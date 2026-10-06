@@ -1,0 +1,33 @@
+{
+  "rule_version": "hpa-dri8-mvp-0.1.0",
+  "rule_status": "partially_confirmed",
+  "source_verification": "text_verified_pdf_visual_check_pending",
+  "product_scope": "adult_standard_for_all_ages_mvp",
+  "energy": {
+    "equation_id": "hpa-dri8-wei1",
+    "intercept": "28.2437",
+    "male_coefficient": "2.4275",
+    "age_coefficient": "-0.02277",
+    "weight_coefficient": "-0.1234",
+    "pal": {
+      "sedentary": "1.3",
+      "low_active": "1.5",
+      "active": "1.7",
+      "highly_active": "1.9"
+    }
+  },
+  "protein": null,
+  "goal_adjustments": null,
+  "allowed_portions": ["0.7", "0.85", "1", "1.15", "1.3"],
+  "meal_ratios": {"breakfast": "0.3", "lunch": "0.3", "dinner": "0.4"},
+  "source": {
+    "publisher": "衛生福利部國民健康署",
+    "title": "國人膳食營養素參考攝取量及其說明",
+    "edition": "8",
+    "publication_date": "2023-12",
+    "energy_printed_pages": [37, 38, 40, 41],
+    "original_energy_scope": "adults_age_19_and_above",
+    "url": "https://www.hpa.gov.tw/Pages/Detail.aspx?id=549&nodeid=4248&pid=12285",
+    "checked_on": "2026-10-05"
+  }
+}
