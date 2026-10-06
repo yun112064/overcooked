@@ -1,0 +1,9 @@
+.DS_Store
+.AppleDouble
+.LSOverride
+.venv/
+venv/
+env/
+.env
+.env.*
+!.env.example
