@@ -1,0 +1,21 @@
+{
+    "雞胸肉": {
+        "food_form": "meat_only",
+        "usda_keywords": [
+            "chicken",
+            "breast",
+            "meat only"
+        ],
+        "exclude_keywords": [
+            "meat and skin"
+        ]
+    },
+    "帶皮雞胸肉": {
+        "food_form": "meat_and_skin",
+        "usda_keywords": [
+            "chicken",
+            "breast",
+            "meat and skin"
+        ]
+    }
+}

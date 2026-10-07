@@ -9,3 +9,6 @@ env/
 !.env.example
 __pycache__/
 *.py[cod]
+
+# T04 source downloads are large raw inputs; generated JSON is committed.
+nutrition_model/data/raw/

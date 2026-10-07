@@ -1,0 +1,1040 @@
+[
+  {
+    "yield_description": "Beef, bottom sirloin, tri-tip roast, separable lean and fat, trimmed to 0\" fat, all grades",
+    "preparation_method": "Baked or Roasted, unspecified",
+    "cooking_yield_pct": 84.0,
+    "source": "USDA Table of Cooking Yields for Meat and Poultry, Release 2"
+  },
+  {
+    "yield_description": "Beef, brisket, flat half, separable lean and fat, trimmed to 1/8\" fat, all grades",
+    "preparation_method": "Braised",
+    "cooking_yield_pct": 69.0,
+    "source": "USDA Table of Cooking Yields for Meat and Poultry, Release 2"
+  },
+  {
+    "yield_description": "Beef, chuck eye country-style ribs, boneless, separable lean and fat, trimmed to 0\" fat, all grades",
+    "preparation_method": "Braised",
+    "cooking_yield_pct": 68.3,
+    "source": "USDA Table of Cooking Yields for Meat and Poultry, Release 2"
+  },
+  {
+    "yield_description": "Beef, chuck eye roast, boneless, America's Beef Roast, separable lean and fat, trimmed to 0\" fat, all grades",
+    "preparation_method": "Roasted",
+    "cooking_yield_pct": 80.0,
+    "source": "USDA Table of Cooking Yields for Meat and Poultry, Release 2"
+  },
+  {
+    "yield_description": "Beef, chuck eye steak, boneless, separable lean and fat, trimmed to 0\" fat, all grades",
+    "preparation_method": "Grilled",
+    "cooking_yield_pct": 80.16846845907656,
+    "source": "USDA Table of Cooking Yields for Meat and Poultry, Release 2"
+  },
+  {
+    "yield_description": "Beef, chuck, arm pot roast, separable lean and fat, trimmed to 1/8\" fat, all grades",
+    "preparation_method": "Braised",
+    "cooking_yield_pct": 71.0,
+    "source": "USDA Table of Cooking Yields for Meat and Poultry, Release 2"
+  },
+  {
+    "yield_description": "Beef, chuck, mock tender steak, boneless, separable lean and fat, trimmed to 0\" fat, all grades",
+    "preparation_method": "Braised",
+    "cooking_yield_pct": 71.36,
+    "source": "USDA Table of Cooking Yields for Meat and Poultry, Release 2"
+  },
+  {
+    "yield_description": "Beef, chuck, short ribs, boneless, separable lean and fat, trimmed to 0\" fat, all grades",
+    "preparation_method": "Braised",
+    "cooking_yield_pct": 66.07,
+    "source": "USDA Table of Cooking Yields for Meat and Poultry, Release 2"
+  },
+  {
+    "yield_description": "Beef, chuck, shoulder clod, shoulder tender, medallion, separable lean and fat, trimmed to 0\" fat, all grades",
+    "preparation_method": "Broiled or Grilled",
+    "cooking_yield_pct": 77.0,
+    "source": "USDA Table of Cooking Yields for Meat and Poultry, Release 2"
+  },
+  {
+    "yield_description": "Beef, chuck, shoulder clod, shoulder top and center steaks, separable lean and fat, trimmed to 0\" fat, all grades",
+    "preparation_method": "Broiled or Grilled",
+    "cooking_yield_pct": 76.0,
+    "source": "USDA Table of Cooking Yields for Meat and Poultry, Release 2"
+  },
+  {
+    "yield_description": "Beef, chuck, shoulder clod, top blade, steak, separable lean and fat, trimmed to 0\" fat, all grades",
+    "preparation_method": "Broiled or Grilled",
+    "cooking_yield_pct": 76.0,
+    "source": "USDA Table of Cooking Yields for Meat and Poultry, Release 2"
+  },
+  {
+    "yield_description": "Beef, chuck, under blade center steak, boneless, Denver Cut, separable lean and fat, trimmed to 0\" fat, all grades",
+    "preparation_method": "Grilled",
+    "cooking_yield_pct": 71.0,
+    "source": "USDA Table of Cooking Yields for Meat and Poultry, Release 2"
+  },
+  {
+    "yield_description": "Beef, chuck, under blade pot roast, boneless, separable lean and fat, trimmed to 0\" fat, all grades",
+    "preparation_method": "Braised",
+    "cooking_yield_pct": 64.0,
+    "source": "USDA Table of Cooking Yields for Meat and Poultry, Release 2"
+  },
+  {
+    "yield_description": "Beef, chuck, under blade steak, boneless, separable lean and fat, trimmed to 0\" fat, all grades",
+    "preparation_method": "Braised",
+    "cooking_yield_pct": 64.96,
+    "source": "USDA Table of Cooking Yields for Meat and Poultry, Release 2"
+  },
+  {
+    "yield_description": "Beef, flank, separable lean and fat, trimmed to 0\" fat, all grades",
+    "preparation_method": "Broiled or Grilled",
+    "cooking_yield_pct": 81.0,
+    "source": "USDA Table of Cooking Yields for Meat and Poultry, Release 2"
+  },
+  {
+    "yield_description": "Beef, ground, high fat (>22%), crumbles",
+    "preparation_method": "Pan-fried",
+    "cooking_yield_pct": 62.0,
+    "source": "USDA Table of Cooking Yields for Meat and Poultry, Release 2"
+  },
+  {
+    "yield_description": "Beef, ground, high fat (>22%), loaf",
+    "preparation_method": "Baked or Roasted, unspecified",
+    "cooking_yield_pct": 63.0,
+    "source": "USDA Table of Cooking Yields for Meat and Poultry, Release 2"
+  },
+  {
+    "yield_description": "Beef, ground, high fat (>22%), patty",
+    "preparation_method": "Pan-broiled",
+    "cooking_yield_pct": 69.0,
+    "source": "USDA Table of Cooking Yields for Meat and Poultry, Release 2"
+  },
+  {
+    "yield_description": "Beef, ground, high fat (>22%), patty",
+    "preparation_method": "Broiled or Grilled",
+    "cooking_yield_pct": 63.0,
+    "source": "USDA Table of Cooking Yields for Meat and Poultry, Release 2"
+  },
+  {
+    "yield_description": "Beef, ground, low fat (<12%), crumbles",
+    "preparation_method": "Pan-fried",
+    "cooking_yield_pct": 69.0,
+    "source": "USDA Table of Cooking Yields for Meat and Poultry, Release 2"
+  },
+  {
+    "yield_description": "Beef, ground, low fat (<12%), loaf",
+    "preparation_method": "Baked or Roasted, unspecified",
+    "cooking_yield_pct": 72.0,
+    "source": "USDA Table of Cooking Yields for Meat and Poultry, Release 2"
+  },
+  {
+    "yield_description": "Beef, ground, low fat (<12%), patty",
+    "preparation_method": "Broiled or Grilled",
+    "cooking_yield_pct": 73.0,
+    "source": "USDA Table of Cooking Yields for Meat and Poultry, Release 2"
+  },
+  {
+    "yield_description": "Beef, ground, low fat (<12%), patty",
+    "preparation_method": "Pan-broiled",
+    "cooking_yield_pct": 77.0,
+    "source": "USDA Table of Cooking Yields for Meat and Poultry, Release 2"
+  },
+  {
+    "yield_description": "Beef, ground, medium fat (12%-22%), crumbles",
+    "preparation_method": "Pan-fried",
+    "cooking_yield_pct": 67.0,
+    "source": "USDA Table of Cooking Yields for Meat and Poultry, Release 2"
+  },
+  {
+    "yield_description": "Beef, ground, medium fat (12%-22%), loaf",
+    "preparation_method": "Baked or Roasted, unspecified",
+    "cooking_yield_pct": 70.0,
+    "source": "USDA Table of Cooking Yields for Meat and Poultry, Release 2"
+  },
+  {
+    "yield_description": "Beef, ground, medium fat (12%-22%), patty",
+    "preparation_method": "Broiled or Grilled",
+    "cooking_yield_pct": 69.0,
+    "source": "USDA Table of Cooking Yields for Meat and Poultry, Release 2"
+  },
+  {
+    "yield_description": "Beef, ground, medium fat (12%-22%), patty",
+    "preparation_method": "Pan-broiled",
+    "cooking_yield_pct": 73.0,
+    "source": "USDA Table of Cooking Yields for Meat and Poultry, Release 2"
+  },
+  {
+    "yield_description": "Beef, loin, tenderloin roast, boneless, separable lean and fat, trimmed to 0\" fat, all grades",
+    "preparation_method": "Roasted",
+    "cooking_yield_pct": 82.0,
+    "source": "USDA Table of Cooking Yields for Meat and Poultry, Release 2"
+  },
+  {
+    "yield_description": "Beef, loin, tenderloin steak, separable lean and fat, trimmed to 0\" fat, all grades",
+    "preparation_method": "Grilled",
+    "cooking_yield_pct": 79.0,
+    "source": "USDA Table of Cooking Yields for Meat and Poultry, Release 2"
+  },
+  {
+    "yield_description": "Beef, loin, top loin steak, boneless, lip off, separable lean and fat, trimmed to 0\" fat, all grades",
+    "preparation_method": "Grilled",
+    "cooking_yield_pct": 82.0,
+    "source": "USDA Table of Cooking Yields for Meat and Poultry, Release 2"
+  },
+  {
+    "yield_description": "Beef, plate steak, boneless, inside skirt, separable lean and fat, trimmed to 0\" fat, all grades",
+    "preparation_method": "Grilled",
+    "cooking_yield_pct": 72.9,
+    "source": "USDA Table of Cooking Yields for Meat and Poultry, Release 2"
+  },
+  {
+    "yield_description": "Beef, plate steak, boneless, outside skirt, separable lean and fat, trimmed to 0\" fat, all grades",
+    "preparation_method": "Grilled",
+    "cooking_yield_pct": 68.2,
+    "source": "USDA Table of Cooking Yields for Meat and Poultry, Release 2"
+  },
+  {
+    "yield_description": "Beef, retail all cuts, all temps",
+    "preparation_method": "Broiled or Grilled",
+    "cooking_yield_pct": 78.0,
+    "source": "USDA Table of Cooking Yields for Meat and Poultry, Release 2"
+  },
+  {
+    "yield_description": "Beef, retail cuts, all, bone in",
+    "preparation_method": "Braised",
+    "cooking_yield_pct": 73.0,
+    "source": "USDA Table of Cooking Yields for Meat and Poultry, Release 2"
+  },
+  {
+    "yield_description": "Beef, retail cuts, all, boneless",
+    "preparation_method": "Braised",
+    "cooking_yield_pct": 67.0,
+    "source": "USDA Table of Cooking Yields for Meat and Poultry, Release 2"
+  },
+  {
+    "yield_description": "Beef, retail cuts, bone in, all temps",
+    "preparation_method": "Baked or Roasted, unspecified",
+    "cooking_yield_pct": 77.0,
+    "source": "USDA Table of Cooking Yields for Meat and Poultry, Release 2"
+  },
+  {
+    "yield_description": "Beef, retail cuts, boneless, all temps",
+    "preparation_method": "Baked or Roasted, unspecified",
+    "cooking_yield_pct": 79.0,
+    "source": "USDA Table of Cooking Yields for Meat and Poultry, Release 2"
+  },
+  {
+    "yield_description": "Beef, retail cuts, boneless, short ribs",
+    "preparation_method": "Braised",
+    "cooking_yield_pct": 66.0,
+    "source": "USDA Table of Cooking Yields for Meat and Poultry, Release 2"
+  },
+  {
+    "yield_description": "Beef, retail cuts, steaks, bone in and boneless",
+    "preparation_method": "Multiple cooking methods",
+    "cooking_yield_pct": 76.0,
+    "source": "USDA Table of Cooking Yields for Meat and Poultry, Release 2"
+  },
+  {
+    "yield_description": "Beef, rib eye roast, bone-in, lip-on, separable lean and fat, trimmed to 1/8\" fat, all grades",
+    "preparation_method": "Roasted",
+    "cooking_yield_pct": 76.9,
+    "source": "USDA Table of Cooking Yields for Meat and Poultry, Release 2"
+  },
+  {
+    "yield_description": "Beef, rib eye roast, boneless, lip-on, separable lean and fat, trimmed to 1/8\" fat, all grades",
+    "preparation_method": "Roasted",
+    "cooking_yield_pct": 75.8,
+    "source": "USDA Table of Cooking Yields for Meat and Poultry, Release 2"
+  },
+  {
+    "yield_description": "Beef, rib eye steak, bone-in, lip-on, separable lean and fat, trimmed to 1/8\" fat, all grades",
+    "preparation_method": "Grilled",
+    "cooking_yield_pct": 85.7,
+    "source": "USDA Table of Cooking Yields for Meat and Poultry, Release 2"
+  },
+  {
+    "yield_description": "Beef, rib eye steak, boneless, lip off, separable lean and fat, trimmed to 0\" fat, all grades",
+    "preparation_method": "Grilled",
+    "cooking_yield_pct": 82.2,
+    "source": "USDA Table of Cooking Yields for Meat and Poultry, Release 2"
+  },
+  {
+    "yield_description": "Beef, rib eye steak, boneless, lip-on, separable lean and fat, trimmed to 1/8\" fat, all grades",
+    "preparation_method": "Grilled",
+    "cooking_yield_pct": 83.6,
+    "source": "USDA Table of Cooking Yields for Meat and Poultry, Release 2"
+  },
+  {
+    "yield_description": "Beef, rib, back ribs, bone-in, separable lean and fat, trimmed to 0\" fat, all grades",
+    "preparation_method": "Braised",
+    "cooking_yield_pct": 75.3,
+    "source": "USDA Table of Cooking Yields for Meat and Poultry, Release 2"
+  },
+  {
+    "yield_description": "Beef, rib, small end (ribs 10-12), separable lean and fat, trimmed to 1/8\" fat, all grades",
+    "preparation_method": "Broiled or Grilled",
+    "cooking_yield_pct": 82.0,
+    "source": "USDA Table of Cooking Yields for Meat and Poultry, Release 2"
+  },
+  {
+    "yield_description": "Beef, round tip round roast, separable lean and fat, trimmed to 0\" fat, all grades",
+    "preparation_method": "Baked or Roasted, unspecified",
+    "cooking_yield_pct": 85.0,
+    "source": "USDA Table of Cooking Yields for Meat and Poultry, Release 2"
+  },
+  {
+    "yield_description": "Beef, round, bottom round, roast, separable lean and fat, trimmed to 1/8\" fat, all grades",
+    "preparation_method": "Baked or Roasted, unspecified",
+    "cooking_yield_pct": 84.0,
+    "source": "USDA Table of Cooking Yields for Meat and Poultry, Release 2"
+  },
+  {
+    "yield_description": "Beef, round, bottom round, steak, separable lean and fat, trimmed to 1/8\" fat, all grades",
+    "preparation_method": "Braised",
+    "cooking_yield_pct": 69.0,
+    "source": "USDA Table of Cooking Yields for Meat and Poultry, Release 2"
+  },
+  {
+    "yield_description": "Beef, round, eye of round, roast, separable lean and fat, trimmed to 1/8\" fat, all grades",
+    "preparation_method": "Baked or Roasted, unspecified",
+    "cooking_yield_pct": 81.0,
+    "source": "USDA Table of Cooking Yields for Meat and Poultry, Release 2"
+  },
+  {
+    "yield_description": "Beef, round, knuckle, tip center, steak, separable lean and fat, trimmed to 0\" fat, all grades",
+    "preparation_method": "Broiled or Grilled",
+    "cooking_yield_pct": 76.0,
+    "source": "USDA Table of Cooking Yields for Meat and Poultry, Release 2"
+  },
+  {
+    "yield_description": "Beef, round, knuckle, tip side, steak, separable lean and fat, trimmed to 0\" fat, all grades",
+    "preparation_method": "Broiled or Grilled",
+    "cooking_yield_pct": 75.0,
+    "source": "USDA Table of Cooking Yields for Meat and Poultry, Release 2"
+  },
+  {
+    "yield_description": "Beef, round, outside round, bottom round, steak, separable lean and fat, trimmed to 0\" fat, all grades",
+    "preparation_method": "Broiled or Grilled",
+    "cooking_yield_pct": 77.0,
+    "source": "USDA Table of Cooking Yields for Meat and Poultry, Release 2"
+  },
+  {
+    "yield_description": "Beef, round, top round steak, separable lean and fat, trimmed to 1/8\" fat, all grades",
+    "preparation_method": "Broiled or Grilled",
+    "cooking_yield_pct": 72.0,
+    "source": "USDA Table of Cooking Yields for Meat and Poultry, Release 2"
+  },
+  {
+    "yield_description": "Beef, short loin, top loin, steak, separable lean and fat, trimmed to 1/8\" fat, all grades",
+    "preparation_method": "Broiled or Grilled",
+    "cooking_yield_pct": 82.0,
+    "source": "USDA Table of Cooking Yields for Meat and Poultry, Release 2"
+  },
+  {
+    "yield_description": "Beef, shoulder pot roast, boneless, separable lean and fat, trimmed to 0\" fat, all grades",
+    "preparation_method": "Braised",
+    "cooking_yield_pct": 66.28,
+    "source": "USDA Table of Cooking Yields for Meat and Poultry, Release 2"
+  },
+  {
+    "yield_description": "Beef, shoulder steak, boneless, separable lean and fat, trimmed to 0\" fat, all grades",
+    "preparation_method": "Grilled",
+    "cooking_yield_pct": 77.72357723577235,
+    "source": "USDA Table of Cooking Yields for Meat and Poultry, Release 2"
+  },
+  {
+    "yield_description": "Beef, shoulder top blade steak, boneless, separable lean and fat, trimmed to 0\" fat, all grades",
+    "preparation_method": "Grilled",
+    "cooking_yield_pct": 73.0,
+    "source": "USDA Table of Cooking Yields for Meat and Poultry, Release 2"
+  },
+  {
+    "yield_description": "Beef, tenderloin, steak, separable lean and fat, trimmed to 1/8\" fat, all grades",
+    "preparation_method": "Broiled or Grilled",
+    "cooking_yield_pct": 80.0,
+    "source": "USDA Table of Cooking Yields for Meat and Poultry, Release 2"
+  },
+  {
+    "yield_description": "Beef, top sirloin, steak, separable lean and fat, trimmed to 1/8\" fat, all grades",
+    "preparation_method": "Broiled or Grilled",
+    "cooking_yield_pct": 80.0,
+    "source": "USDA Table of Cooking Yields for Meat and Poultry, Release 2"
+  },
+  {
+    "yield_description": "Beef, variety meats and by-products, brain",
+    "preparation_method": "Poached, Simmered or Stewed",
+    "cooking_yield_pct": 85.0,
+    "source": "USDA Table of Cooking Yields for Meat and Poultry, Release 2"
+  },
+  {
+    "yield_description": "Beef, variety meats and by-products, heart",
+    "preparation_method": "Poached, Simmered or Stewed",
+    "cooking_yield_pct": 57.0,
+    "source": "USDA Table of Cooking Yields for Meat and Poultry, Release 2"
+  },
+  {
+    "yield_description": "Beef, variety meats and by-products, kidneys",
+    "preparation_method": "Poached, Simmered or Stewed",
+    "cooking_yield_pct": 53.0,
+    "source": "USDA Table of Cooking Yields for Meat and Poultry, Release 2"
+  },
+  {
+    "yield_description": "Beef, variety meats and by-products, liver",
+    "preparation_method": "Braised",
+    "cooking_yield_pct": 68.0,
+    "source": "USDA Table of Cooking Yields for Meat and Poultry, Release 2"
+  },
+  {
+    "yield_description": "Beef, variety meats and by-products, liver",
+    "preparation_method": "Pan-fried or Sauteed",
+    "cooking_yield_pct": 73.0,
+    "source": "USDA Table of Cooking Yields for Meat and Poultry, Release 2"
+  },
+  {
+    "yield_description": "Beef, variety meats and by-products, tripe",
+    "preparation_method": "Poached, Simmered or Stewed",
+    "cooking_yield_pct": 70.0,
+    "source": "USDA Table of Cooking Yields for Meat and Poultry, Release 2"
+  },
+  {
+    "yield_description": "Chicken, broiler-fryer, back, full, meat and skin",
+    "preparation_method": "Baked or Roasted, unspecified",
+    "cooking_yield_pct": 61.0,
+    "source": "USDA Table of Cooking Yields for Meat and Poultry, Release 2"
+  },
+  {
+    "yield_description": "Chicken, broiler-fryer, back, full, meat and skin",
+    "preparation_method": "Poached, Simmered or Stewed",
+    "cooking_yield_pct": 67.0,
+    "source": "USDA Table of Cooking Yields for Meat and Poultry, Release 2"
+  },
+  {
+    "yield_description": "Chicken, broiler-fryer, breast, meat and skin",
+    "preparation_method": "Baked or Roasted, unspecified",
+    "cooking_yield_pct": 72.0,
+    "source": "USDA Table of Cooking Yields for Meat and Poultry, Release 2"
+  },
+  {
+    "yield_description": "Chicken, broiler-fryer, breast, meat and skin",
+    "preparation_method": "Poached, Simmered or Stewed",
+    "cooking_yield_pct": 77.0,
+    "source": "USDA Table of Cooking Yields for Meat and Poultry, Release 2"
+  },
+  {
+    "yield_description": "Chicken, broiler-fryer, drumstick, meat and skin",
+    "preparation_method": "Baked or Roasted, unspecified",
+    "cooking_yield_pct": 76.0,
+    "source": "USDA Table of Cooking Yields for Meat and Poultry, Release 2"
+  },
+  {
+    "yield_description": "Chicken, broiler-fryer, neck, meat and skin",
+    "preparation_method": "Poached, Simmered or Stewed",
+    "cooking_yield_pct": 70.0,
+    "source": "USDA Table of Cooking Yields for Meat and Poultry, Release 2"
+  },
+  {
+    "yield_description": "Chicken, broiler-fryer, thigh, meat and skin",
+    "preparation_method": "Baked or Roasted, unspecified",
+    "cooking_yield_pct": 69.0,
+    "source": "USDA Table of Cooking Yields for Meat and Poultry, Release 2"
+  },
+  {
+    "yield_description": "Chicken, broiler-fryer, thigh, meat and skin",
+    "preparation_method": "Poached, Simmered or Stewed",
+    "cooking_yield_pct": 74.0,
+    "source": "USDA Table of Cooking Yields for Meat and Poultry, Release 2"
+  },
+  {
+    "yield_description": "Chicken, broiler-fryer, whole, including skin",
+    "preparation_method": "Baked or Roasted, specified time",
+    "cooking_yield_pct": 78.0,
+    "source": "USDA Table of Cooking Yields for Meat and Poultry, Release 2"
+  },
+  {
+    "yield_description": "Chicken, broiler-fryer, whole, including skin",
+    "preparation_method": "Poached, Simmered or Stewed",
+    "cooking_yield_pct": 75.0,
+    "source": "USDA Table of Cooking Yields for Meat and Poultry, Release 2"
+  },
+  {
+    "yield_description": "Chicken, broiler-fryer, wing, meat and skin",
+    "preparation_method": "Poached, Simmered or Stewed",
+    "cooking_yield_pct": 86.0,
+    "source": "USDA Table of Cooking Yields for Meat and Poultry, Release 2"
+  },
+  {
+    "yield_description": "Chicken, broiler-fryer, wing, meat and skin, floured",
+    "preparation_method": "Fried in deep fat",
+    "cooking_yield_pct": 66.0,
+    "source": "USDA Table of Cooking Yields for Meat and Poultry, Release 2"
+  },
+  {
+    "yield_description": "Chicken, broilers or fryers, drumstick, meat and skin",
+    "preparation_method": "Braised",
+    "cooking_yield_pct": 77.0,
+    "source": "USDA Table of Cooking Yields for Meat and Poultry, Release 2"
+  },
+  {
+    "yield_description": "Chicken, broilers or fryers, thigh, meat and skin",
+    "preparation_method": "Braised",
+    "cooking_yield_pct": 68.0,
+    "source": "USDA Table of Cooking Yields for Meat and Poultry, Release 2"
+  },
+  {
+    "yield_description": "Chicken, broilers or fryers, wing, meat and skin",
+    "preparation_method": "Roasted",
+    "cooking_yield_pct": 78.0,
+    "source": "USDA Table of Cooking Yields for Meat and Poultry, Release 2"
+  },
+  {
+    "yield_description": "Chicken, drumstick, meat and skin, enhanced",
+    "preparation_method": "Braised",
+    "cooking_yield_pct": 74.0,
+    "source": "USDA Table of Cooking Yields for Meat and Poultry, Release 2"
+  },
+  {
+    "yield_description": "Chicken, dark meat, drumstick, meat and skin, enhanced",
+    "preparation_method": "Roasted",
+    "cooking_yield_pct": 80.0,
+    "source": "USDA Table of Cooking Yields for Meat and Poultry, Release 2"
+  },
+  {
+    "yield_description": "Chicken, thigh, meat and skin, enhanced",
+    "preparation_method": "Braised",
+    "cooking_yield_pct": 72.0,
+    "source": "USDA Table of Cooking Yields for Meat and Poultry, Release 2"
+  },
+  {
+    "yield_description": "Chicken, thigh, meat and skin, enhanced",
+    "preparation_method": "Roasted",
+    "cooking_yield_pct": 67.0,
+    "source": "USDA Table of Cooking Yields for Meat and Poultry, Release 2"
+  },
+  {
+    "yield_description": "Chicken, gizzard, all classes",
+    "preparation_method": "Poached, Simmered or Stewed",
+    "cooking_yield_pct": 55.0,
+    "source": "USDA Table of Cooking Yields for Meat and Poultry, Release 2"
+  },
+  {
+    "yield_description": "Chicken, liver, all classes",
+    "preparation_method": "Pan-fried or Sauteed",
+    "cooking_yield_pct": 62.0,
+    "source": "USDA Table of Cooking Yields for Meat and Poultry, Release 2"
+  },
+  {
+    "yield_description": "Emu, ground",
+    "preparation_method": "Broiled or Grilled",
+    "cooking_yield_pct": 80.0,
+    "source": "USDA Table of Cooking Yields for Meat and Poultry, Release 2"
+  },
+  {
+    "yield_description": "Game meat, bison, ground",
+    "preparation_method": "Broiled or Grilled",
+    "cooking_yield_pct": 77.0,
+    "source": "USDA Table of Cooking Yields for Meat and Poultry, Release 2"
+  },
+  {
+    "yield_description": "Game meat, deer, ground",
+    "preparation_method": "Broiled or Grilled",
+    "cooking_yield_pct": 83.0,
+    "source": "USDA Table of Cooking Yields for Meat and Poultry, Release 2"
+  },
+  {
+    "yield_description": "Game meat, elk, ground",
+    "preparation_method": "Broiled or Grilled",
+    "cooking_yield_pct": 84.0,
+    "source": "USDA Table of Cooking Yields for Meat and Poultry, Release 2"
+  },
+  {
+    "yield_description": "Lamb, retail cuts, roasts, all samples",
+    "preparation_method": "Baked or Roasted, unspecified",
+    "cooking_yield_pct": 74.0,
+    "source": "USDA Table of Cooking Yields for Meat and Poultry, Release 2"
+  },
+  {
+    "yield_description": "Lamb, retail cuts, shoulder, shank, breast, flank",
+    "preparation_method": "Braised",
+    "cooking_yield_pct": 60.0,
+    "source": "USDA Table of Cooking Yields for Meat and Poultry, Release 2"
+  },
+  {
+    "yield_description": "Lamb, retail cuts, shoulder, shank, breast, flank",
+    "preparation_method": "Poached, Simmered or Stewed",
+    "cooking_yield_pct": 60.0,
+    "source": "USDA Table of Cooking Yields for Meat and Poultry, Release 2"
+  },
+  {
+    "yield_description": "Ostrich, ground",
+    "preparation_method": "Broiled or grilled",
+    "cooking_yield_pct": 86.0,
+    "source": "USDA Table of Cooking Yields for Meat and Poultry, Release 2"
+  },
+  {
+    "yield_description": "Pork loin, fresh, backribs, bone-in, separable lean and fat",
+    "preparation_method": "Baked or Roasted, unspecified",
+    "cooking_yield_pct": 82.0,
+    "source": "USDA Table of Cooking Yields for Meat and Poultry, Release 2"
+  },
+  {
+    "yield_description": "Pork sausage, fresh",
+    "preparation_method": "Pan-fried",
+    "cooking_yield_pct": 80.0,
+    "source": "USDA Table of Cooking Yields for Meat and Poultry, Release 2"
+  },
+  {
+    "yield_description": "Pork, cured, bacon",
+    "preparation_method": "Baked or Roasted, unspecified",
+    "cooking_yield_pct": 32.0,
+    "source": "USDA Table of Cooking Yields for Meat and Poultry, Release 2"
+  },
+  {
+    "yield_description": "Pork, cured, bacon",
+    "preparation_method": "Microwaved",
+    "cooking_yield_pct": 29.0,
+    "source": "USDA Table of Cooking Yields for Meat and Poultry, Release 2"
+  },
+  {
+    "yield_description": "Pork, cured, bacon",
+    "preparation_method": "Pan-fried",
+    "cooking_yield_pct": 32.0,
+    "source": "USDA Table of Cooking Yields for Meat and Poultry, Release 2"
+  },
+  {
+    "yield_description": "Pork, cured, ham -- water added, rump, bone-in",
+    "preparation_method": "Baked or Roasted, unspecified",
+    "cooking_yield_pct": 87.0,
+    "source": "USDA Table of Cooking Yields for Meat and Poultry, Release 2"
+  },
+  {
+    "yield_description": "Pork, cured, ham and water product, rump, bone-in",
+    "preparation_method": "Baked or Roasted, unspecified",
+    "cooking_yield_pct": 85.0,
+    "source": "USDA Table of Cooking Yields for Meat and Poultry, Release 2"
+  },
+  {
+    "yield_description": "Pork, cured, ham and water product, shank, bone-in",
+    "preparation_method": "Baked or Roasted, unspecified",
+    "cooking_yield_pct": 82.0,
+    "source": "USDA Table of Cooking Yields for Meat and Poultry, Release 2"
+  },
+  {
+    "yield_description": "Pork, cured, ham and water product, slice, bone-in",
+    "preparation_method": "Pan-broiled",
+    "cooking_yield_pct": 81.0,
+    "source": "USDA Table of Cooking Yields for Meat and Poultry, Release 2"
+  },
+  {
+    "yield_description": "Pork, cured, ham and water product, whole, boneless",
+    "preparation_method": "Baked or Roasted, unspecified",
+    "cooking_yield_pct": 96.0,
+    "source": "USDA Table of Cooking Yields for Meat and Poultry, Release 2"
+  },
+  {
+    "yield_description": "Pork, cured, ham with natural juices, rump, bone-in",
+    "preparation_method": "Baked or Roasted, unspecified",
+    "cooking_yield_pct": 87.0,
+    "source": "USDA Table of Cooking Yields for Meat and Poultry, Release 2"
+  },
+  {
+    "yield_description": "Pork, cured, ham with natural juices, shank, bone-in",
+    "preparation_method": "Baked or Roasted, unspecified",
+    "cooking_yield_pct": 93.0,
+    "source": "USDA Table of Cooking Yields for Meat and Poultry, Release 2"
+  },
+  {
+    "yield_description": "Pork, cured, ham with natural juices, slice, bone-in",
+    "preparation_method": "Pan-broiled",
+    "cooking_yield_pct": 86.0,
+    "source": "USDA Table of Cooking Yields for Meat and Poultry, Release 2"
+  },
+  {
+    "yield_description": "Pork, cured, ham with natural juices, spiral slice",
+    "preparation_method": "Baked or Roasted, unspecified",
+    "cooking_yield_pct": 87.0,
+    "source": "USDA Table of Cooking Yields for Meat and Poultry, Release 2"
+  },
+  {
+    "yield_description": "Pork, cured, ham with natural juices, whole, boneless",
+    "preparation_method": "Baked or Roasted, unspecified",
+    "cooking_yield_pct": 94.0,
+    "source": "USDA Table of Cooking Yields for Meat and Poultry, Release 2"
+  },
+  {
+    "yield_description": "Pork, cured, ham, rump, bone-in",
+    "preparation_method": "Baked or Roasted, unspecified",
+    "cooking_yield_pct": 90.0,
+    "source": "USDA Table of Cooking Yields for Meat and Poultry, Release 2"
+  },
+  {
+    "yield_description": "Pork, cured, ham, shank, bone-in",
+    "preparation_method": "Baked or Roasted, unspecified",
+    "cooking_yield_pct": 92.0,
+    "source": "USDA Table of Cooking Yields for Meat and Poultry, Release 2"
+  },
+  {
+    "yield_description": "Pork, cured, ham, slice, bone-in",
+    "preparation_method": "Pan-broiled",
+    "cooking_yield_pct": 86.0,
+    "source": "USDA Table of Cooking Yields for Meat and Poultry, Release 2"
+  },
+  {
+    "yield_description": "Pork, cured, ham--water added, shank, bone-in",
+    "preparation_method": "Baked or Roasted, unspecified",
+    "cooking_yield_pct": 86.0,
+    "source": "USDA Table of Cooking Yields for Meat and Poultry, Release 2"
+  },
+  {
+    "yield_description": "Pork, cured, ham--water added, slice, bone-in",
+    "preparation_method": "Pan-broiled",
+    "cooking_yield_pct": 80.0,
+    "source": "USDA Table of Cooking Yields for Meat and Poultry, Release 2"
+  },
+  {
+    "yield_description": "Pork, cured, ham--water added, whole, boneless",
+    "preparation_method": "Baked or Roasted, unspecified",
+    "cooking_yield_pct": 94.0,
+    "source": "USDA Table of Cooking Yields for Meat and Poultry, Release 2"
+  },
+  {
+    "yield_description": "Pork, fresh, blade, (chops), boneless, separable lean and fat",
+    "preparation_method": "Broiled or Grilled",
+    "cooking_yield_pct": 85.0,
+    "source": "USDA Table of Cooking Yields for Meat and Poultry, Release 2"
+  },
+  {
+    "yield_description": "Pork, fresh, enhanced, loin, top loin (chops), boneless, separable lean and fat",
+    "preparation_method": "Broiled",
+    "cooking_yield_pct": 82.0,
+    "source": "USDA Table of Cooking Yields for Meat and Poultry, Release 2"
+  },
+  {
+    "yield_description": "Pork, fresh, leg (ham), rump half, separable lean and fat",
+    "preparation_method": "Baked or Roasted, unspecified",
+    "cooking_yield_pct": 77.0,
+    "source": "USDA Table of Cooking Yields for Meat and Poultry, Release 2"
+  },
+  {
+    "yield_description": "Pork, fresh, leg (ham), shank half, separable lean and fat",
+    "preparation_method": "Baked or Roasted, unspecified",
+    "cooking_yield_pct": 79.0,
+    "source": "USDA Table of Cooking Yields for Meat and Poultry, Release 2"
+  },
+  {
+    "yield_description": "Pork, fresh, leg sirloin tip roast, boneless, separable lean and fat",
+    "preparation_method": "Braised",
+    "cooking_yield_pct": 79.0,
+    "source": "USDA Table of Cooking Yields for Meat and Poultry, Release 2"
+  },
+  {
+    "yield_description": "Pork, fresh, loin, blade (chops), bone-in, separable lean and fat",
+    "preparation_method": "Braised",
+    "cooking_yield_pct": 78.0,
+    "source": "USDA Table of Cooking Yields for Meat and Poultry, Release 2"
+  },
+  {
+    "yield_description": "Pork, fresh, loin, blade (chops), bone-in, separable lean and fat",
+    "preparation_method": "Broiled or Grilled",
+    "cooking_yield_pct": 83.0,
+    "source": "USDA Table of Cooking Yields for Meat and Poultry, Release 2"
+  },
+  {
+    "yield_description": "Pork, fresh, loin, blade (chops), bone-in, separable lean and fat",
+    "preparation_method": "Pan-fried",
+    "cooking_yield_pct": 82.0,
+    "source": "USDA Table of Cooking Yields for Meat and Poultry, Release 2"
+  },
+  {
+    "yield_description": "Pork, fresh, loin, blade (roasts), bone-in, separable lean and fat",
+    "preparation_method": "Baked or Roasted, unspecified",
+    "cooking_yield_pct": 77.0,
+    "source": "USDA Table of Cooking Yields for Meat and Poultry, Release 2"
+  },
+  {
+    "yield_description": "Pork, fresh, loin, blade (roasts), boneless, separable lean and fat",
+    "preparation_method": "Baked or Roasted, unspecified",
+    "cooking_yield_pct": 75.0,
+    "source": "USDA Table of Cooking Yields for Meat and Poultry, Release 2"
+  },
+  {
+    "yield_description": "Pork, fresh, loin, center loin (chops), bone-in, separable lean and fat",
+    "preparation_method": "Braised",
+    "cooking_yield_pct": 74.0,
+    "source": "USDA Table of Cooking Yields for Meat and Poultry, Release 2"
+  },
+  {
+    "yield_description": "Pork, fresh, loin, center loin (chops), bone-in, separable lean and fat",
+    "preparation_method": "Pan-fried",
+    "cooking_yield_pct": 76.0,
+    "source": "USDA Table of Cooking Yields for Meat and Poultry, Release 2"
+  },
+  {
+    "yield_description": "Pork, fresh, loin, center loin (chops), boneless, separable lean and fat",
+    "preparation_method": "Pan broiled",
+    "cooking_yield_pct": 80.0,
+    "source": "USDA Table of Cooking Yields for Meat and Poultry, Release 2"
+  },
+  {
+    "yield_description": "Pork, fresh, loin, center loin (roasts), bone-in, separable lean and fat",
+    "preparation_method": "Baked or Roasted, unspecified",
+    "cooking_yield_pct": 77.0,
+    "source": "USDA Table of Cooking Yields for Meat and Poultry, Release 2"
+  },
+  {
+    "yield_description": "Pork, fresh, loin, center rib (chops), bone-in, separable lean and fat",
+    "preparation_method": "Braised",
+    "cooking_yield_pct": 77.0,
+    "source": "USDA Table of Cooking Yields for Meat and Poultry, Release 2"
+  },
+  {
+    "yield_description": "Pork, fresh, loin, center rib (chops), bone-in, separable lean and fat",
+    "preparation_method": "Pan-fried",
+    "cooking_yield_pct": 77.0,
+    "source": "USDA Table of Cooking Yields for Meat and Poultry, Release 2"
+  },
+  {
+    "yield_description": "Pork, fresh, loin, center rib (roasts), bone-in, separable lean and fat",
+    "preparation_method": "Baked or Roasted, unspecified",
+    "cooking_yield_pct": 75.0,
+    "source": "USDA Table of Cooking Yields for Meat and Poultry, Release 2"
+  },
+  {
+    "yield_description": "Pork, fresh, loin, leg cap steak, boneless, separable lean and fat",
+    "preparation_method": "Broiled or Grilled",
+    "cooking_yield_pct": 81.0,
+    "source": "USDA Table of Cooking Yields for Meat and Poultry, Release 2"
+  },
+  {
+    "yield_description": "Pork, fresh, loin, sirloin (chops), bone-in, separable lean and fat",
+    "preparation_method": "Braised",
+    "cooking_yield_pct": 73.0,
+    "source": "USDA Table of Cooking Yields for Meat and Poultry, Release 2"
+  },
+  {
+    "yield_description": "Pork, fresh, loin, sirloin (chops), boneless, separable lean and fat",
+    "preparation_method": "Braised",
+    "cooking_yield_pct": 76.0,
+    "source": "USDA Table of Cooking Yields for Meat and Poultry, Release 2"
+  },
+  {
+    "yield_description": "Pork, fresh, loin, sirloin (chops), boneless, separable lean and fat",
+    "preparation_method": "Broiled or Grilled",
+    "cooking_yield_pct": 79.0,
+    "source": "USDA Table of Cooking Yields for Meat and Poultry, Release 2"
+  },
+  {
+    "yield_description": "Pork, fresh, loin, tenderloin, separable lean and fat",
+    "preparation_method": "Roasted",
+    "cooking_yield_pct": 80.0,
+    "source": "USDA Table of Cooking Yields for Meat and Poultry, Release 2"
+  },
+  {
+    "yield_description": "Pork, fresh, loin, tenderloin, separable lean only",
+    "preparation_method": "Baked or Roasted, unspecified",
+    "cooking_yield_pct": 77.0,
+    "source": "USDA Table of Cooking Yields for Meat and Poultry, Release 2"
+  },
+  {
+    "yield_description": "Pork, fresh, loin, top loin (chops), boneless, separable lean and fat",
+    "preparation_method": "Braised",
+    "cooking_yield_pct": 73.0,
+    "source": "USDA Table of Cooking Yields for Meat and Poultry, Release 2"
+  },
+  {
+    "yield_description": "Pork, fresh, loin, top loin (chops), boneless, separable lean and fat",
+    "preparation_method": "Pan-fried",
+    "cooking_yield_pct": 77.0,
+    "source": "USDA Table of Cooking Yields for Meat and Poultry, Release 2"
+  },
+  {
+    "yield_description": "Pork, fresh, shoulder breast, boneless, separable lean and fat",
+    "preparation_method": "Broiled or Grilled",
+    "cooking_yield_pct": 80.0,
+    "source": "USDA Table of Cooking Yields for Meat and Poultry, Release 2"
+  },
+  {
+    "yield_description": "Pork, fresh, shoulder, arm picnic, separable lean and fat",
+    "preparation_method": "Braised",
+    "cooking_yield_pct": 74.0,
+    "source": "USDA Table of Cooking Yields for Meat and Poultry, Release 2"
+  },
+  {
+    "yield_description": "Pork, fresh, shoulder, petite tender, boneless, separable lean and fat",
+    "preparation_method": "Broiled or Grilled",
+    "cooking_yield_pct": 82.0,
+    "source": "USDA Table of Cooking Yields for Meat and Poultry, Release 2"
+  },
+  {
+    "yield_description": "Pork, fresh, spareribs, separable lean and fat",
+    "preparation_method": "Baked or Roasted, unspecified",
+    "cooking_yield_pct": 76.0,
+    "source": "USDA Table of Cooking Yields for Meat and Poultry, Release 2"
+  },
+  {
+    "yield_description": "Pork, fresh, variety meats and by-products, chitterlings",
+    "preparation_method": "Poached, Simmered or Stewed",
+    "cooking_yield_pct": 39.0,
+    "source": "USDA Table of Cooking Yields for Meat and Poultry, Release 2"
+  },
+  {
+    "yield_description": "Pork, fresh, variety meats and by-products, feet",
+    "preparation_method": "Poached, Simmered or Stewed",
+    "cooking_yield_pct": 36.0,
+    "source": "USDA Table of Cooking Yields for Meat and Poultry, Release 2"
+  },
+  {
+    "yield_description": "Pork, fresh, variety meats and by-products, stomach",
+    "preparation_method": "Poached, Simmered or Stewed",
+    "cooking_yield_pct": 69.0,
+    "source": "USDA Table of Cooking Yields for Meat and Poultry, Release 2"
+  },
+  {
+    "yield_description": "Pork, ground, crumbles, high fat (>27%)",
+    "preparation_method": "Pan-browned",
+    "cooking_yield_pct": 66.0,
+    "source": "USDA Table of Cooking Yields for Meat and Poultry, Release 2"
+  },
+  {
+    "yield_description": "Pork, ground, crumbles, low fat (<10%)",
+    "preparation_method": "Pan-browned",
+    "cooking_yield_pct": 68.0,
+    "source": "USDA Table of Cooking Yields for Meat and Poultry, Release 2"
+  },
+  {
+    "yield_description": "Pork, ground, crumbles, medium fat (10%-27%)",
+    "preparation_method": "Pan-browned",
+    "cooking_yield_pct": 67.0,
+    "source": "USDA Table of Cooking Yields for Meat and Poultry, Release 2"
+  },
+  {
+    "yield_description": "Pork, ground, patty, high fat (>27%)",
+    "preparation_method": "Broiled or Grilled",
+    "cooking_yield_pct": 69.0,
+    "source": "USDA Table of Cooking Yields for Meat and Poultry, Release 2"
+  },
+  {
+    "yield_description": "Pork, ground, patty, low fat (<10%)",
+    "preparation_method": "Broiled or Grilled",
+    "cooking_yield_pct": 68.0,
+    "source": "USDA Table of Cooking Yields for Meat and Poultry, Release 2"
+  },
+  {
+    "yield_description": "Pork, ground, patty, medium fat (10%-27%)",
+    "preparation_method": "Broiled or Grilled",
+    "cooking_yield_pct": 68.0,
+    "source": "USDA Table of Cooking Yields for Meat and Poultry, Release 2"
+  },
+  {
+    "yield_description": "Turkey sausage, fresh",
+    "preparation_method": "Broiled or Grilled",
+    "cooking_yield_pct": 77.0,
+    "source": "USDA Table of Cooking Yields for Meat and Poultry, Release 2"
+  },
+  {
+    "yield_description": "Turkey, from whole, enhanced, back, meat and skin",
+    "preparation_method": "Roasted",
+    "cooking_yield_pct": 76.0,
+    "source": "USDA Table of Cooking Yields for Meat and Poultry, Release 2"
+  },
+  {
+    "yield_description": "Turkey, from whole, enhanced, dark meat, meat and skin",
+    "preparation_method": "Roasted",
+    "cooking_yield_pct": 74.0,
+    "source": "USDA Table of Cooking Yields for Meat and Poultry, Release 2"
+  },
+  {
+    "yield_description": "Turkey, from whole, non-enhanced, dark meat, meat and skin",
+    "preparation_method": "Roasted",
+    "cooking_yield_pct": 69.0,
+    "source": "USDA Table of Cooking Yields for Meat and Poultry, Release 2"
+  },
+  {
+    "yield_description": "Turkey, all, giblets",
+    "preparation_method": "Poached, Simmered or Stewed",
+    "cooking_yield_pct": 64.0,
+    "source": "USDA Table of Cooking Yields for Meat and Poultry, Release 2"
+  },
+  {
+    "yield_description": "Turkey, gizzard, all classes",
+    "preparation_method": "Poached, Simmered or Stewed",
+    "cooking_yield_pct": 85.0,
+    "source": "USDA Table of Cooking Yields for Meat and Poultry, Release 2"
+  },
+  {
+    "yield_description": "Turkey, heart, all classes",
+    "preparation_method": "Poached, Simmered or Stewed",
+    "cooking_yield_pct": 76.0,
+    "source": "USDA Table of Cooking Yields for Meat and Poultry, Release 2"
+  },
+  {
+    "yield_description": "Turkey, liver, all classes",
+    "preparation_method": "Poached, Simmered or Stewed",
+    "cooking_yield_pct": 83.0,
+    "source": "USDA Table of Cooking Yields for Meat and Poultry, Release 2"
+  },
+  {
+    "yield_description": "Turkey, retail parts, enhanced, breast, meat and skin",
+    "preparation_method": "Roasted",
+    "cooking_yield_pct": 68.0,
+    "source": "USDA Table of Cooking Yields for Meat and Poultry, Release 2"
+  },
+  {
+    "yield_description": "Turkey, retail parts, non-enhanced, breast, meat and skin",
+    "preparation_method": "Roasted",
+    "cooking_yield_pct": 72.0,
+    "source": "USDA Table of Cooking Yields for Meat and Poultry, Release 2"
+  },
+  {
+    "yield_description": "Turkey, retail parts, non-enhanced, drumstick, meat and skin",
+    "preparation_method": "Roasted",
+    "cooking_yield_pct": 72.0,
+    "source": "USDA Table of Cooking Yields for Meat and Poultry, Release 2"
+  },
+  {
+    "yield_description": "Turkey, retail parts, non-enhanced, thigh, meat and skin",
+    "preparation_method": "Roasted",
+    "cooking_yield_pct": 83.0,
+    "source": "USDA Table of Cooking Yields for Meat and Poultry, Release 2"
+  },
+  {
+    "yield_description": "Turkey, retail parts, non-enhanced, wing, meat and skin",
+    "preparation_method": "Roasted",
+    "cooking_yield_pct": 71.0,
+    "source": "USDA Table of Cooking Yields for Meat and Poultry, Release 2"
+  },
+  {
+    "yield_description": "Turkey, whole, enhanced, meat and skin",
+    "preparation_method": "Roasted",
+    "cooking_yield_pct": 71.0,
+    "source": "USDA Table of Cooking Yields for Meat and Poultry, Release 2"
+  },
+  {
+    "yield_description": "Turkey, whole, non-enhanced, meat and skin",
+    "preparation_method": "Roasted",
+    "cooking_yield_pct": 71.0,
+    "source": "USDA Table of Cooking Yields for Meat and Poultry, Release 2"
+  },
+  {
+    "yield_description": "Veal, leg, top round, cap off, cutlet, boneless",
+    "preparation_method": "Grilled",
+    "cooking_yield_pct": 74.0,
+    "source": "USDA Table of Cooking Yields for Meat and Poultry, Release 2"
+  },
+  {
+    "yield_description": "Veal, shoulder, blade chop, separable lean and fat",
+    "preparation_method": "Grilled",
+    "cooking_yield_pct": 77.0,
+    "source": "USDA Table of Cooking Yields for Meat and Poultry, Release 2"
+  },
+  {
+    "yield_description": "Veal, variety meats and by-products, liver",
+    "preparation_method": "Braised",
+    "cooking_yield_pct": 69.0,
+    "source": "USDA Table of Cooking Yields for Meat and Poultry, Release 2"
+  },
+  {
+    "yield_description": "Veal, variety meats and by-products, liver",
+    "preparation_method": "Pan-fried or Sauteed",
+    "cooking_yield_pct": 68.0,
+    "source": "USDA Table of Cooking Yields for Meat and Poultry, Release 2"
+  }
+]

@@ -70,3 +70,9 @@ combined = service.aggregate_meal_targets(participations)
 - FastAPI/Pydantic轉接、家庭權限及正式Log沿用T06骨架責任。本模組不擴張其範圍。
 
 歷史0.1.0保留原本待確認的行為；不改寫歷史規則。詳見 [交接契約與人工案例](docs/T03-handoff.md)、[規則來源與G03](docs/T03-nutrition-rule-proposal.md)。
+
+## T04 食譜營養估算
+
+T04 的營養估算模組位於 `nutrition_model/`，提供 TFDA 食材辨識、六項營養計算、USDA 熟食參考、Cooking Yield 判斷、來源追蹤與整道食譜加總。資料不足時不自行補值，並會清楚標示生食估算或營養缺漏。
+
+詳細範圍、驗收案例與執行方式請見 [T04 handoff](nutrition_model/README.md)。
