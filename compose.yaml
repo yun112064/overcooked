@@ -1,0 +1,74 @@
+
+services:
+  db:
+    image: pgvector/pgvector:0.8.6-pg17
+    container_name: meal-planner-db
+
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+      POSTGRES_DB: meal_planner
+
+    ports:
+      - "127.0.0.1:5432:5432"
+
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d meal_planner"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+
+    container_name: meal-planner-backend
+
+    environment:
+      DATABASE_URL: postgresql+psycopg://postgres:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}@db:5432/meal_planner
+      PROJECT_DATA_ROOT: /app/data
+      PYTHONUNBUFFERED: "1"
+      LOG_CLEANUP_APPLY: "true"
+      PROJECT_RUNTIME_ROOT: /app/runtime
+      PROJECT_BACKUP_ROOT: /app/backups
+
+    ports:
+      - "127.0.0.1:8000:8000"
+
+    volumes:
+      - ../AIPE04期末專題_data:/app/data
+      - ../AIPE04期末專題_runtime:/app/runtime
+      - ../AIPE04期末專題_backups:/app/backups
+
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=3)"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 15s
+
+    depends_on:
+      db:
+        condition: service_healthy
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+
+    container_name: meal-planner-frontend
+
+    ports:
+      - "127.0.0.1:8080:80"
+
+    depends_on:
+      backend:
+        condition: service_healthy
+
+volumes:
+  postgres_data:
+  backend_data:
