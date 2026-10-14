@@ -1,6 +1,6 @@
 # 今天吃啥：T03 營養目標模組
 
-現行規則：`hpa-dri8-mvp-0.2.0`。依使用者定案，MVP 所有年齡先採成人公式，兒少條件延後。一般餐食／維持不調整熱量、增肌+5%、減脂−500 kcal；全部年齡與目標的蛋白質統一1.1 g/kg/day。減脂結果低於1200時明確拒絕，不自動夾值。
+現行規則：`hpa-dri8-mvp-0.3.0`。依使用者定案，MVP 所有年齡先採成人公式；增肌／減脂限19歲起，0–18歲僅提供一般餐食。兒少專用公式延後。一般餐食／維持不調整熱量、增肌+5%、減脂−500 kcal；全部年齡與目標的蛋白質統一1.1 g/kg/day。減脂結果低於1200時明確拒絕，不自動夾值。
 
 已實作每日基準、餐別基準、用餐／便當及五段n合計、規則與輸入快照、精確合成基準及CLI。T08、T15仍等待隊友功能。本次不建立公開API、登入、資料庫或前端。
 
@@ -14,7 +14,7 @@
 
 ```sh
 PYTHONPATH=backend python3 -m app.nutrition \
-  --rules config/nutrition/hpa-dri8-mvp-0.2.0.json \
+  --rules config/nutrition/hpa-dri8-mvp-0.3.0.json \
   --input tests/fixtures/member-A.json \
   --operation daily
 ```
@@ -25,7 +25,7 @@ PYTHONPATH=backend python3 -m app.nutrition \
 
 ```sh
 PYTHONPATH=backend python3 -m app.nutrition \
-  --rules config/nutrition/hpa-dri8-mvp-0.2.0.json \
+  --rules config/nutrition/hpa-dri8-mvp-0.3.0.json \
   --input tests/fixtures/member-A.json \
   --operation meal --meal dinner
 ```
@@ -36,7 +36,7 @@ PYTHONPATH=backend python3 -m app.nutrition \
 
 ```sh
 PYTHONPATH=backend python3 -m app.nutrition \
-  --rules config/nutrition/hpa-dri8-mvp-0.2.0.json \
+  --rules config/nutrition/hpa-dri8-mvp-0.3.0.json \
   --input tests/fixtures/participations.json \
   --operation aggregate
 ```
@@ -58,7 +58,7 @@ PYTHONPATH=backend python3 -m unittest discover -s tests -v
 ```python
 from app.nutrition import NutritionTargetService, TargetInputError
 
-service = NutritionTargetService("config/nutrition/hpa-dri8-mvp-0.2.0.json")
+service = NutritionTargetService("config/nutrition/hpa-dri8-mvp-0.3.0.json")
 daily = service.daily_target(member_input)
 meal = service.meal_target(member_input, "dinner")
 combined = service.aggregate_meal_targets(participations)
@@ -69,4 +69,4 @@ combined = service.aggregate_meal_targets(participations)
 - T12消費未縮放每日基準或合計目標，依Spec先對齊基準配方±10%，再乘總N；精確分數避免循環小數取整造成邊界漂移。
 - FastAPI/Pydantic轉接、家庭權限及正式Log沿用T06骨架責任。本模組不擴張其範圍。
 
-歷史0.1.0保留原本待確認的行為；不改寫歷史規則。詳見 [交接契約與人工案例](docs/T03-handoff.md)、[規則來源與G03](docs/T03-nutrition-rule-proposal.md)。
+歷史0.1.0保留待確認行為、0.2.0保留原計算；0.3.0加入目標年齡限制。新接入使用0.3.0，歷史版本僅供重現。詳見 [交接契約與人工案例](docs/T03-handoff.md)、[規則來源與G03](docs/T03-nutrition-rule-proposal.md)。

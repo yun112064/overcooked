@@ -1,16 +1,16 @@
 # T03 MVP 營養規則與來源紀錄
 
-日期：2026-10-05。現行規則版本：`hpa-dri8-mvp-0.2.0`。
+日期：2026-10-14。現行規則版本：`hpa-dri8-mvp-0.3.0`。
 
 ## 使用者定案
 
 - 本次先交付 T03，T08、T15 等待隊友相依功能。
-- MVP 所有年齡先套成人標準；兒少專用公式及條件於 MVP 後加入。
+- MVP 所有年齡先套成人公式；兒少專用公式於 MVP 後加入。依2026-10-14修正，增肌／減脂限19歲起，0–18歲僅提供一般餐食。19歲門檻沿用專案文件的成人目標範圍，18歲亦不開放，不作法律成年年齡判定。
 - 熱量使用國健署衛公式－1及臺灣官方活動係數。
 - 一般餐食與維持：不調整每日能量 E0。
 - 增肌：E0×1.05。減脂：E0−500 kcal；低於1200 kcal回報不適用，不自動夾值或改成維持。
 - **全部年齡與全部目標的蛋白質都用目前體重×1.1 g/kg/day**；不用1.6，不加入70歲切換。
-- 不自行加 BMI、訓練或兒少年齡門檻；這些適用條件依使用者 MVP 指示延後。
+- 不自行加 BMI 或訓練門檻；增肌／減脂的19歲門檻由本次修正啟用。
 - n 僅五段，個人每日基準不乘n。早餐／午餐／晚餐比例為0.3／0.3／0.4。每個用餐或便當項目各縮放一次，再合計。
 
 ## 可追溯來源
@@ -25,12 +25,12 @@
 
 ## 實作與交接
 
-已交付 Python `NutritionTargetService`、歷史與現行版本規則、輸入驗證、每日／餐別／用餐及便當合計、精確分數合成基準、CLI及合成測試資料。原0.1.0保留不可用的待確認行為，新0.2.0啟用已定案的每日目標，不改寫歷史設定。
+已交付 Python `NutritionTargetService`、歷史與現行版本規則、輸入驗證、每日／餐別／用餐及便當合計、精確分數合成基準、CLI及合成測試資料。原0.1.0保留待確認行為，0.2.0保留原每日目標，0.3.0加入增肌／減脂19歲門檻，不改寫歷史設定。
 
 - [啟動及測試](../README.md)
 - [完整接入契約、人工案例與G03狀態](T03-handoff.md)
 - [定版前歷史研究提案](archive/T03-proposal-before-0.2.0.md)
-- 依據：[spec](../../spec.md)、[requirements](../../requirements.md)、[architecture](../../architecture.md)、[architecture-research](../../architecture-research.md)。
+- 依據：[spec](../skills/spec.md)、[requirements](../skills/requirements.md)、[architecture](../skills/architecture.md)、[architecture-research](../skills/architecture-research.md)、[全部文件差異](../skills/全部文件diff.diff)、[Ticket 03](../tickets/03-nutrition-target-rules.md)。
 
 ## G03結論
 

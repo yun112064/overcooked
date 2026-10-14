@@ -1,10 +1,10 @@
 # T03 MVP 開發交接
 
-日期：2026-10-05。現行規則版本：`hpa-dri8-mvp-0.2.0`。計算程式已交付；來源驗收待完成，G03 未通過。
+日期：2026-10-14。現行規則版本：`hpa-dri8-mvp-0.3.0`。計算程式已交付；來源驗收待完成，G03 未通過。
 
 ## 已確認與未確認
 
-- 已確認：MVP 全部採成人標準，兒少公式及條件延後；國健署衛公式－1及官方活動係數；所有年齡和目標的蛋白質統一1.1 g/kg/day；增肌熱量+5%、減脂−500 kcal，低於1200回報不適用。不新增BMI、訓練或高齡門檻。
+- 已確認：MVP 全部採成人公式，兒少專用公式延後；增肌／減脂限19歲起，0–18歲僅提供一般餐食；國健署衛公式－1及官方活動係數；所有年齡和目標的蛋白質統一1.1 g/kg/day；增肌熱量+5%、減脂−500 kcal，低於1200回報不適用。不新增BMI、訓練或高齡門檻。
 - 尚待查證：官方 PDF 表格視覺核對、來源檔快照，以及正式 G03 適用性結論。產品使用成人式到所有年齡的 MVP 指示與原文件成人 19 歲起適用範圍分別保存。
 
 ## 輸入契約
@@ -19,7 +19,9 @@
 | weight_kg | 正有限 Decimal、十進位字串或整數；Python float 不接受 |
 | activity_category | sedentary、low_active、active、highly_active |
 | calculation_date | YYYY-MM-DD；是足歲資料的計算日期，隨輸入保存 |
-| goal | general、maintain、muscle_gain、fat_loss |
+| goal | 0–18歲僅general；19歲起可選general、maintain、muscle_gain、fat_loss |
+
+`available_goals(age_years)` 提供介面可選目標：0–18歲僅 general，19歲起含 muscle_gain／fat_loss。所有計算入口（包括E0與合計）均拒絕年齡不符的maintain／muscle_gain／fat_loss目標，回報 `INVALID_INPUT`／`GOAL_NOT_ALLOWED_FOR_AGE`，不自動改成維持。專案目前沒有前端，T07／T08接入時應依此方法隱藏不適用選項。
 
 JSON CLI 使用 `parse_float=Decimal`，所以 JSON 十進位數字可接受；HTTP 轉接應同樣用 Decimal，避免先轉 Python float 再傳入。
 
@@ -69,7 +71,7 @@ E_reference = E_target/N；P_reference = P_target/N
 
 - 缺輸入／格式：`REQUIRED_TARGET_INPUT_MISSING`、`INVALID_NUMBER`、`INVALID_AGE`、`INVALID_WEIGHT`、`INVALID_DATE`、`INVALID_ACTIVITY`、`INVALID_GOAL`、`UNSUPPORTED_EQUATION_SEX`、`UNKNOWN_FIELD`、`INVALID_MEMBER_ID`、`INVALID_MEMBER`。
 - 規則：`UNKNOWN_RULE_VERSION`、`RULE_CONFIG_VERSION_CONFLICT`、`GOAL_RULE_PENDING_CONFIRMATION`、`PROTEIN_RULE_PENDING_CONFIRMATION`。
-- 無法計算：`UNSUPPORTED_TARGET_SCOPE`、`UNSUPPORTED_NUMERIC_PRECISION`、`INVALID_PORTION`、`DAILY_ENERGY_BELOW_MINIMUM`、`INVALID_MEAL`。
+- 無法計算：`UNSUPPORTED_TARGET_SCOPE`、`UNSUPPORTED_NUMERIC_PRECISION`、`INVALID_PORTION`、`DAILY_ENERGY_BELOW_MINIMUM`、`INVALID_MEAL`、`GOAL_NOT_ALLOWED_FOR_AGE`。
 - 合計輸入：`INVALID_PARTICIPATIONS`、`INVALID_PARTICIPATION`、`DUPLICATE_PARTICIPATION`、`INVALID_PARTICIPATION_KIND`、`MEMBER_SNAPSHOT_CONFLICT`、`CALCULATION_DATE_CONFLICT`。
 
 API 層再決定 HTTP 狀態及家庭權限；不得直接對任意成員 ID 提供無權限的公開服務。不要在捕捉錯誤時記錄完整 input snapshot 到 Log。
@@ -114,10 +116,16 @@ P_reference = 3577 / 150
 
 其他邊界：0／18／19／69／70／71／75歲不切換蛋白質係數；0.7／0.85／1／1.15／1.3合法、0.9等非法；合計N2.6合法。缺必要欄位、非有限值、布林或無法推算正熱量明確拒絕。兩次相同participation_id拒絕，同member_id的晚餐與便當可同時存在。
 
-23個unittest通過，涵蓋以上案例與CLI十進位JSON解析、歷史版本待確認行為、輸入快照不污染規則來源。人工案例另以Fraction算術核對。CLI四種操作及規範文件連結均已檢查；未執行HTTP／資料庫／前端測試，這些留給相依Ticket接入。
+26個unittest通過，涵蓋以上案例與CLI十進位JSON解析、歷史版本待確認行為、輸入快照不污染規則來源。人工案例另以Fraction算術核對。本次涵蓋18歲拒絕／19歲開放、四種服務入口與CLI拒絕路徑；未執行HTTP／資料庫／前端測試，這些留給相依Ticket接入。
 
 ## G03與後續
 
 使用者已定案所有目前MVP計算參數，無待回覆的公式選型問題。程式、規則版本、人工案例與接入文件已交付。尚需完成來源PDF視覺核對與來源檔保存；所有年齡統一成人式仍是產品簡化，不能宣稱官方已驗證該外推。因此G03整體未通過、Ticket尚不標整體驗收完成。
 
-待隊友接入T07／T08／T12；T08、T15不在本次開發範圍。來源驗收完成及MVP後加入兒少／高齡等條件時發新版本，保留0.1.0與0.2.0歷史快照。
+待隊友接入T07／T08／T12；T08、T15不在本次開發範圍。來源驗收完成及MVP後加入兒少／高齡等條件時發新版本，保留0.1.0與0.2.0歷史快照。0.3.0加入成人目標年齡限制；歷史版本僅供重現，不供新流程選用。
+
+## skills 規範與差異核對（2026-10-14）
+
+依據 [Spec R01／AC02](../skills/spec.md)、[需求限制](../skills/requirements.md)及 [Ticket 03](../tickets/03-nutrition-target-rules.md)，未成年僅提供一般餐食份量規劃。本實作的0–18歲僅回傳general選項；維持、增肌、減脂皆屬19歲起可控目標。不自動轉換不合法輸入。19歲為既有T03產品門檻，新提供的skills規範沒有指定數字年齡。
+
+已核對 [全部文件diff.diff](../skills/全部文件diff.diff)：食譜改結構化查詢、AI自動回退、昨日去重及最終食材營養知識RAG屬相依Ticket；不改T03的每日／餐別基準、五段n、多人／便當加權公式，也不以知識說明或AI數值取代計算。配方±10%與採用驗證仍由T12及採用流程完成。G03仍未通過，合成案例不代表真實來源驗收。

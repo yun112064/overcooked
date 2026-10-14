@@ -119,6 +119,7 @@ class NutritionTargetService:
         rule = json.loads(raw)
         # Every historical version is explicit and immutable; no 'latest' fallback.
         versions = {
+            "hpa-dri8-mvp-0.3.0": "fe74148eb24fd6dd036fd9ef5c64745a5413ee4c803470bc36e96b2c3f9a0aba",
             "hpa-dri8-mvp-0.1.0": "57a1327d6eb3e3e14b69745ee8ad41e254495713b44088a2ed253d30f2db80aa",
             "hpa-dri8-mvp-0.2.0": "cdd29bd858a29ee60d765c67d5b207ac6b9ec495fb41f1da330ef76f691efc85",
         }
@@ -140,9 +141,24 @@ class NutritionTargetService:
             raise TargetInputError("INVALID_PORTION", "n", "Choose 0.7, 0.85, 1, 1.15 or 1.3.")
         return portion
 
+    def available_goals(self, age_years: int) -> tuple[str, ...]:
+        """Expose selectable goals for adapters using this explicit rule version."""
+        if type(age_years) is not int or age_years < 0:
+            raise TargetInputError("INVALID_AGE", "age_years", "Age must be a nonnegative whole number.")
+        goals = ("general", "maintain", "muscle_gain", "fat_loss")
+        eligibility = self._rule.get("goal_eligibility")
+        if eligibility and age_years < eligibility["adult_goals_min_age_years"]:
+            return tuple(goal for goal in goals if goal not in eligibility["restricted_goals"])
+        return goals
+
+    def _validate_goal_eligibility(self, member: MemberInput) -> None:
+        if member.goal not in self.available_goals(member.age_years):
+            raise TargetInputError("GOAL_NOT_ALLOWED_FOR_AGE", "goal", "Only the general meal planning goal is available below age 19. No automatic goal substitution is performed.")
+
     def energy_baseline(self, data: Mapping) -> dict:
         """Return E0 only, regardless of goal, never an adjusted daily target."""
         member = MemberInput.from_mapping(data)
+        self._validate_goal_eligibility(member)
         config = self._rule["energy"]
         # Increase precision for supplied decimal digits; trap rounding rather than hiding it.
         with localcontext() as ctx:
@@ -183,6 +199,7 @@ class NutritionTargetService:
     def daily_target(self, data: Mapping) -> dict:
         """Return unscaled D_E and D_P; keep original E0 for reproducibility."""
         member = MemberInput.from_mapping(data)
+        self._validate_goal_eligibility(member)
         adjustments = self._rule["goal_adjustments"]
         if adjustments is None and member.goal in ("muscle_gain", "fat_loss"):
             raise TargetInputError("GOAL_RULE_PENDING_CONFIRMATION", "goal", "Muscle gain and fat loss adjustments have not been confirmed.")
