@@ -3,6 +3,8 @@ import re
 from pathlib import Path
 
 import pandas as pd
+from cooked_nutrition_service import cooked_metadata_for
+from llm_cooking_estimator import finite_number
 
 
 BASE_DIR = Path(__file__).parent
@@ -18,7 +20,7 @@ CSV_PATH = (
 OUTPUT_PATH = (
     BASE_DIR
     / "data"
-    / "ingredient_master.json"
+    / "ingredient_master_from_raw_tfda.json"
 )
 
 
@@ -120,7 +122,8 @@ def parse_number(value):
     text = text.replace(",", "")
 
     try:
-        return float(text)
+        value = float(text)
+        return value if finite_number(value) else None
 
     except ValueError:
         return None
@@ -171,7 +174,7 @@ def unit_matches(
 ):
 
     if pd.isna(unit):
-        return True
+        return False
 
     unit_text = str(
         unit
@@ -520,6 +523,10 @@ def main():
                     "nutrition_ingredient.csv"
             }
         }
+
+        # Only curated cooking methods are added; unknown state/method remains unknown.
+        if state == 'cooked':
+            ingredient.update(cooked_metadata_for(str(ingredient_id)))
 
 
         # =====================

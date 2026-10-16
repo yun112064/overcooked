@@ -1,4 +1,5 @@
 import json
+import hashlib
 from pathlib import Path
 
 
@@ -56,6 +57,49 @@ METHOD_MAP = {
     "油炸": "deep",
     "微波": "microwave"
 }
+
+METHOD_ALIASES = {
+    "烤": "roast", "烘烤": "roast", "roasted": "roast", "roast": "roast",
+    "水煮": "boil", "煮": "boil", "boiled": "boil", "boil": "boil",
+    "燉": "braise", "燉煮": "braise", "braised": "braise", "braise": "braise",
+    "蒸": "steam", "蒸煮": "steam", "steam": "steam", "steamed": "steam",
+    "煎": "pan", "炒": "stir", "油炸": "deep", "炙烤": "broil",
+    "烤肉": "grill", "微波": "microwave", "直接食用": "ready_to_eat"
+}
+
+
+def normalize_method(method):
+    text = str(method or "").strip().lower()
+    return METHOD_ALIASES.get(text, text)
+
+
+def get_yield_references(ingredient_name, cooking_method, limit=5):
+    """Retrieve related species/cut records, labelled as references, not exact matches.
+
+    Retrieval requires at least the first two curated food keywords (species and
+    cut). A skin/form mismatch is allowed only as a labelled LLM analogy.
+    Unknown ingredients never receive unrelated meat-and-poultry references.
+    """
+    mapping = food_mapping.get(ingredient_name, {})
+    keywords = mapping.get("usda_keywords", [])
+    if len(keywords) < 2:
+        return []
+    method = normalize_method(cooking_method)
+    candidates = []
+    for record in cooking_yields:
+        description = record["yield_description"].lower()
+        if not all(k.lower() in description for k in keywords[:2]):
+            continue
+        method_match = method in record["preparation_method"].lower()
+        exact_form = (bool(mapping.get('food_form')) and all(k.lower() in description for k in keywords)
+                      and not any(k.lower() in description for k in mapping.get("exclude_keywords", [])))
+        canonical = json.dumps(record, sort_keys=True, ensure_ascii=False)
+        ref = {**record, "reference_id": "usda-yield-" + hashlib.sha256(canonical.encode()).hexdigest()[:16],
+               "match_type": "exact" if method_match and exact_form else "analogy",
+               "method_matches": method_match, "form_matches": exact_form}
+        candidates.append((not method_match, not exact_form, ref))
+    candidates.sort(key=lambda item: item[:2])
+    return [item[2] for item in candidates[:limit]]
 
 
 # =========================

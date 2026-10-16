@@ -1,0 +1,2307 @@
+[
+  {
+    "ingredient_id": "ING0001",
+    "canonical_name": "醬油",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0002",
+    "canonical_name": "食鹽",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0003",
+    "canonical_name": "青蔥",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0004",
+    "canonical_name": "大蒜",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0005",
+    "canonical_name": "砂糖",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0006",
+    "canonical_name": "米酒",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0007",
+    "canonical_name": "水",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0008",
+    "canonical_name": "薑",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0009",
+    "canonical_name": "雞蛋",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0010",
+    "canonical_name": "洋蔥",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0011",
+    "canonical_name": "白胡椒粉",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0012",
+    "canonical_name": "胡蘿蔔",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0013",
+    "canonical_name": "辣椒",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0014",
+    "canonical_name": "太白粉",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0016",
+    "canonical_name": "香油",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0017",
+    "canonical_name": "番茄",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0018",
+    "canonical_name": "雞腿肉",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0019",
+    "canonical_name": "胡椒粉",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0020",
+    "canonical_name": "冰糖",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0021",
+    "canonical_name": "白米飯",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0022",
+    "canonical_name": "蠔油",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0023",
+    "canonical_name": "香菇",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0024",
+    "canonical_name": "麻油",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0025",
+    "canonical_name": "醬油膏",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0026",
+    "canonical_name": "馬鈴薯",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0027",
+    "canonical_name": "中筋麵粉",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0028",
+    "canonical_name": "奶油",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0029",
+    "canonical_name": "橄欖油",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0030",
+    "canonical_name": "絞肉",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0031",
+    "canonical_name": "蝦仁",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0032",
+    "canonical_name": "豬絞肉",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0033",
+    "canonical_name": "酒",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0034",
+    "canonical_name": "高麗菜",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0035",
+    "canonical_name": "鮮奶",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0036",
+    "canonical_name": "低筋麵粉",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0038",
+    "canonical_name": "油蔥酥",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0039",
+    "canonical_name": "烏醋",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0041",
+    "canonical_name": "九層塔",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0042",
+    "canonical_name": "味醂",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0043",
+    "canonical_name": "小黃瓜",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0044",
+    "canonical_name": "檸檬汁",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0045",
+    "canonical_name": "油",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0046",
+    "canonical_name": "番茄醬",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0047",
+    "canonical_name": "白蘿蔔",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0048",
+    "canonical_name": "紹興酒",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0050",
+    "canonical_name": "蝦米",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0051",
+    "canonical_name": "豬肉絲",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0052",
+    "canonical_name": "雞胸肉",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0053",
+    "canonical_name": "八角",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0054",
+    "canonical_name": "地瓜粉",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0055",
+    "canonical_name": "培根",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0056",
+    "canonical_name": "水煮蛋",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0057",
+    "canonical_name": "白米",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0058",
+    "canonical_name": "白醋",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0059",
+    "canonical_name": "芹菜",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0060",
+    "canonical_name": "透抽",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0061",
+    "canonical_name": "醋",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0063",
+    "canonical_name": "鮮奶油",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0064",
+    "canonical_name": "吐司",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0065",
+    "canonical_name": "咖哩塊",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0066",
+    "canonical_name": "杏鮑菇",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0067",
+    "canonical_name": "板豆腐",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0069",
+    "canonical_name": "沙茶醬",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0070",
+    "canonical_name": "火腿",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0071",
+    "canonical_name": "玉米筍",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0072",
+    "canonical_name": "白芝麻",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0073",
+    "canonical_name": "空心菜",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0074",
+    "canonical_name": "米粉",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0076",
+    "canonical_name": "肉絲",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0077",
+    "canonical_name": "胡椒",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0078",
+    "canonical_name": "胡椒鹽",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0079",
+    "canonical_name": "花枝",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0080",
+    "canonical_name": "花椒粒",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0081",
+    "canonical_name": "花椰菜",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0083",
+    "canonical_name": "蘑菇",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0084",
+    "canonical_name": "蛤蠣",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0085",
+    "canonical_name": "蜂蜜",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0086",
+    "canonical_name": "豆腐",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0087",
+    "canonical_name": "高湯",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0088",
+    "canonical_name": "魚露",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0089",
+    "canonical_name": "鮭魚",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0090",
+    "canonical_name": "黑胡椒粉",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0091",
+    "canonical_name": "小辣椒",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0092",
+    "canonical_name": "乾燥迷迭香",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0093",
+    "canonical_name": "五香粉",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0094",
+    "canonical_name": "全蛋",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0097",
+    "canonical_name": "吳郭魚",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0098",
+    "canonical_name": "味噌",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0099",
+    "canonical_name": "太白粉水",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0100",
+    "canonical_name": "嫩豆腐",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0101",
+    "canonical_name": "小番茄",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0102",
+    "canonical_name": "月桂葉",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0103",
+    "canonical_name": "枸杞",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0104",
+    "canonical_name": "柴魚",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0105",
+    "canonical_name": "桂竹筍",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0106",
+    "canonical_name": "梅花肉",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0107",
+    "canonical_name": "檸檬",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0108",
+    "canonical_name": "沙拉醬",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0109",
+    "canonical_name": "沙茶",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0110",
+    "canonical_name": "油麵",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0111",
+    "canonical_name": "熟小卷",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0113",
+    "canonical_name": "牛肋條",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0114",
+    "canonical_name": "玉米澱粉",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0115",
+    "canonical_name": "生米",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0116",
+    "canonical_name": "皮蛋",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0117",
+    "canonical_name": "素蠔油",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0118",
+    "canonical_name": "細糖",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0119",
+    "canonical_name": "美乃滋",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0120",
+    "canonical_name": "芝麻",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0121",
+    "canonical_name": "芝麻油",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0122",
+    "canonical_name": "蒜苗",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0123",
+    "canonical_name": "蛋黃",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0124",
+    "canonical_name": "蝦",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0125",
+    "canonical_name": "豆瓣醬",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0126",
+    "canonical_name": "豆芽菜",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0127",
+    "canonical_name": "豬五花肉片",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0128",
+    "canonical_name": "豬肉片",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0129",
+    "canonical_name": "辣豆瓣醬",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0131",
+    "canonical_name": "雞翅",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0132",
+    "canonical_name": "青江菜",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0135",
+    "canonical_name": "高筋麵粉",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0136",
+    "canonical_name": "鰹魚粉",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0137",
+    "canonical_name": "鱸魚",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0138",
+    "canonical_name": "鴻喜菇",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0139",
+    "canonical_name": "鹹蛋",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0143",
+    "canonical_name": "紅冰糖",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0145",
+    "canonical_name": "高粱酒",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0147",
+    "canonical_name": "牛排",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0152",
+    "canonical_name": "義大利麵醬",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0153",
+    "canonical_name": "莫札瑞拉起司",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0154",
+    "canonical_name": "沙拉油",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0155",
+    "canonical_name": "七味粉",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0157",
+    "canonical_name": "不死鹹醬油",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0158",
+    "canonical_name": "中型魚",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0161",
+    "canonical_name": "乳酪絲",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0162",
+    "canonical_name": "乾燥海帶芽",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0163",
+    "canonical_name": "乾辣椒",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0164",
+    "canonical_name": "乾香菇",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0166",
+    "canonical_name": "五印醋",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0167",
+    "canonical_name": "五味粉",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0168",
+    "canonical_name": "五木營養麵條",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0169",
+    "canonical_name": "五花肉",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0170",
+    "canonical_name": "五花肉片",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0173",
+    "canonical_name": "低脂牛奶",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0176",
+    "canonical_name": "傳統豆干",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0177",
+    "canonical_name": "優格",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0180",
+    "canonical_name": "全麥醇奶吐司",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0183",
+    "canonical_name": "冷凍烏龍麵",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0184",
+    "canonical_name": "凱撒沙拉",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0185",
+    "canonical_name": "剝殼蝦",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0186",
+    "canonical_name": "南瓜",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0187",
+    "canonical_name": "即溶酵母",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0188",
+    "canonical_name": "去殼去腸泥白蝦",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0189",
+    "canonical_name": "白吐司",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0190",
+    "canonical_name": "雞腿排",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0193",
+    "canonical_name": "蛋液",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0194",
+    "canonical_name": "可樂",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0195",
+    "canonical_name": "台式醬油",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0196",
+    "canonical_name": "史雲生清雞湯",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0198",
+    "canonical_name": "吉利丁片",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0202",
+    "canonical_name": "咖啡粉",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0203",
+    "canonical_name": "咖喱塊",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0204",
+    "canonical_name": "啤酒",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0205",
+    "canonical_name": "土雞腿",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0206",
+    "canonical_name": "在來米粉",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0210",
+    "canonical_name": "多利魚",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0211",
+    "canonical_name": "大白粉",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0212",
+    "canonical_name": "大白菜",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0217",
+    "canonical_name": "大頭菜",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0225",
+    "canonical_name": "奇亞籽",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0227",
+    "canonical_name": "菠菜",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0228",
+    "canonical_name": "寬麵條",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0229",
+    "canonical_name": "小卷",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0230",
+    "canonical_name": "小型洋蔥",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0231",
+    "canonical_name": "小松菜",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0232",
+    "canonical_name": "小白菇",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0233",
+    "canonical_name": "小白菜",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0235",
+    "canonical_name": "小茴香",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0239",
+    "canonical_name": "山葵胡椒粉",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0241",
+    "canonical_name": "巧克力",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0242",
+    "canonical_name": "巴西里",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0244",
+    "canonical_name": "帶皮三層肉",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0246",
+    "canonical_name": "帶皮帶骨雞肉",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0247",
+    "canonical_name": "帶皮雞腿",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0248",
+    "canonical_name": "年糕",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0249",
+    "canonical_name": "拉麵",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0250",
+    "canonical_name": "指天椒",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0251",
+    "canonical_name": "排骨酥",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0252",
+    "canonical_name": "料理酒",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0253",
+    "canonical_name": "料酒",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0254",
+    "canonical_name": "新鮮檸檬",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0255",
+    "canonical_name": "新鮮藍莓",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0257",
+    "canonical_name": "日式炒麵醬",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0259",
+    "canonical_name": "昆布",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0261",
+    "canonical_name": "普羅旺斯風味香料",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0262",
+    "canonical_name": "小辣椒",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0263",
+    "canonical_name": "有機素蠔油",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0264",
+    "canonical_name": "朝天椒",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0265",
+    "canonical_name": "木耳",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0267",
+    "canonical_name": "木薯粉",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0269",
+    "canonical_name": "杏仁果",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0271",
+    "canonical_name": "松阪豬",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0273",
+    "canonical_name": "柴魚片花",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0274",
+    "canonical_name": "柴魚粉",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0275",
+    "canonical_name": "柴魚高湯",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0276",
+    "canonical_name": "桂皮",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0277",
+    "canonical_name": "梅花排骨",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0278",
+    "canonical_name": "椰子油",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0279",
+    "canonical_name": "椰菜",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0281",
+    "canonical_name": "破布子",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0284",
+    "canonical_name": "毛豆",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0288",
+    "canonical_name": "水 各",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0291",
+    "canonical_name": "水煮鮪魚罐頭",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0294",
+    "canonical_name": "沙茶醬的油",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0295",
+    "canonical_name": "油花生",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0296",
+    "canonical_name": "油豆腐",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0300",
+    "canonical_name": "法式香料",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0301",
+    "canonical_name": "泡菜",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0302",
+    "canonical_name": "泡香菇的水",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0303",
+    "canonical_name": "洋菇",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0304",
+    "canonical_name": "洋葱絲",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0309",
+    "canonical_name": "洋蔥",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0312",
+    "canonical_name": "海苔粉",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0313",
+    "canonical_name": "海鹽",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0314",
+    "canonical_name": "淡醬油",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0316",
+    "canonical_name": "清酒",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0317",
+    "canonical_name": "清雞高湯",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0319",
+    "canonical_name": "火鍋羊肉片",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0323",
+    "canonical_name": "烏龍麵",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0326",
+    "canonical_name": "焗烤起司",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0327",
+    "canonical_name": "無塩奶油",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0330",
+    "canonical_name": "無糖豆漿",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0331",
+    "canonical_name": "無骨雞腿肉",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0332",
+    "canonical_name": "煉乳",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0333",
+    "canonical_name": "熟蛋黃",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0334",
+    "canonical_name": "熟蛤蜊",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0338",
+    "canonical_name": "燕麥片",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0339",
+    "canonical_name": "燻鮭魚",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0341",
+    "canonical_name": "牛小排",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0342",
+    "canonical_name": "牛肉",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0348",
+    "canonical_name": "牛肉貢丸",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0350",
+    "canonical_name": "牛腩",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0351",
+    "canonical_name": "牛腱",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0352",
+    "canonical_name": "牛腱肉",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0354",
+    "canonical_name": "特級冷壓初榨橄欖油",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0356",
+    "canonical_name": "甜豆",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0357",
+    "canonical_name": "甜麵醬",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0358",
+    "canonical_name": "萵苣",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0360",
+    "canonical_name": "生蛋黃",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0365",
+    "canonical_name": "當歸",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0366",
+    "canonical_name": "瘦肉",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0368",
+    "canonical_name": "白皮小馬鈴薯",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0370",
+    "canonical_name": "白米醋",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0371",
+    "canonical_name": "白精靈菇",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0376",
+    "canonical_name": "白蘑菇",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0380",
+    "canonical_name": "白飯",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0381",
+    "canonical_name": "石頭火鍋粉",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0382",
+    "canonical_name": "秋刀魚",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0383",
+    "canonical_name": "竹筍",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0384",
+    "canonical_name": "筊白筍",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0385",
+    "canonical_name": "筍片",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0386",
+    "canonical_name": "節瓜",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0387",
+    "canonical_name": "米",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0388",
+    "canonical_name": "米油",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0390",
+    "canonical_name": "米酒 醃豬肉",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0392",
+    "canonical_name": "粗黑胡椒粉",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0393",
+    "canonical_name": "粟米",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0396",
+    "canonical_name": "糖粉",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0398",
+    "canonical_name": "紅彩椒",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0399",
+    "canonical_name": "紅椒",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0401",
+    "canonical_name": "紅茶葉",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0402",
+    "canonical_name": "紅蔥酥",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0403",
+    "canonical_name": "紅蔥頭",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0411",
+    "canonical_name": "紅酒",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0413",
+    "canonical_name": "紫菜",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0415",
+    "canonical_name": "絲瓜",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0416",
+    "canonical_name": "綜合香料",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0417",
+    "canonical_name": "綠花椰菜",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0419",
+    "canonical_name": "綠蘆筍",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0420",
+    "canonical_name": "罐頭花瓜醬汁",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0421",
+    "canonical_name": "罐頭鮪魚",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0423",
+    "canonical_name": "羅勒葉",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0425",
+    "canonical_name": "美國茉莉香米",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0427",
+    "canonical_name": "美極鮮味露",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0429",
+    "canonical_name": "義大利麵",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0430",
+    "canonical_name": "義式香料",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0431",
+    "canonical_name": "義式香腸",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0432",
+    "canonical_name": "老抽",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0433",
+    "canonical_name": "肉末",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0435",
+    "canonical_name": "胛心肉",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0438",
+    "canonical_name": "脆瓜罐頭",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0439",
+    "canonical_name": "腰內肉",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0440",
+    "canonical_name": "芋頭",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0441",
+    "canonical_name": "花椒粉",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0443",
+    "canonical_name": "花瓜",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0444",
+    "canonical_name": "花生醬",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0449",
+    "canonical_name": "茄子",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0450",
+    "canonical_name": "草果",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0451",
+    "canonical_name": "草莓",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0452",
+    "canonical_name": "草蝦仁",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0453",
+    "canonical_name": "草蝦",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0454",
+    "canonical_name": "荷包蛋",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0455",
+    "canonical_name": "葱花",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0457",
+    "canonical_name": "蒜末",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0463",
+    "canonical_name": "蒜酥",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0466",
+    "canonical_name": "蒜頭",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0468",
+    "canonical_name": "蒟蒻烏龍麵",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0469",
+    "canonical_name": "蓮藕粉",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0474",
+    "canonical_name": "蔥粒",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0479",
+    "canonical_name": "蔥花",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0481",
+    "canonical_name": "蔬菜雞高湯",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0482",
+    "canonical_name": "蔭油",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0483",
+    "canonical_name": "蕃茄",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0487",
+    "canonical_name": "番茄糊",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0488",
+    "canonical_name": "蕃茄膏",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0494",
+    "canonical_name": "蘆筍",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0495",
+    "canonical_name": "蘋果",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0498",
+    "canonical_name": "蘿蔔",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0500",
+    "canonical_name": "虱目魚肚",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0502",
+    "canonical_name": "蛋白",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0503",
+    "canonical_name": "蛋豆腐",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0504",
+    "canonical_name": "蛤蜊",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0506",
+    "canonical_name": "蛤蜊汁",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0510",
+    "canonical_name": "蜆肉",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0511",
+    "canonical_name": "蝦子",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0512",
+    "canonical_name": "蝦皮",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0513",
+    "canonical_name": "蝦米,油蔥酥,油蒜酥",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0514",
+    "canonical_name": "蟹肉棒",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0515",
+    "canonical_name": "袖珍菇",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0516",
+    "canonical_name": "西洋芹",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0519",
+    "canonical_name": "西芹",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0521",
+    "canonical_name": "話梅",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0526",
+    "canonical_name": "火鍋肉片",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0527",
+    "canonical_name": "豬排肉",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0528",
+    "canonical_name": "豬油蔥",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0532",
+    "canonical_name": "豬里肌肉",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0533",
+    "canonical_name": "貢丸",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0534",
+    "canonical_name": "起司",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0544",
+    "canonical_name": "辣豆瓣",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0545",
+    "canonical_name": "迷迭香",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0547",
+    "canonical_name": "酪梨",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0548",
+    "canonical_name": "酸黃瓜醬",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0551",
+    "canonical_name": "糖",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0552",
+    "canonical_name": "糯米辣椒醬",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0558",
+    "canonical_name": "金瓜",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0559",
+    "canonical_name": "金針菇",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0560",
+    "canonical_name": "長米",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0561",
+    "canonical_name": "雞柳條",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0562",
+    "canonical_name": "雞湯",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0563",
+    "canonical_name": "雞粉",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0570",
+    "canonical_name": "雞腿",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0575",
+    "canonical_name": "雞蛋豆腐",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0578",
+    "canonical_name": "雞里肌肉",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0579",
+    "canonical_name": "青椒",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0582",
+    "canonical_name": "青蘿蔔",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0583",
+    "canonical_name": "青花菜",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0590",
+    "canonical_name": "韓式辣椒粉",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0591",
+    "canonical_name": "韓式辣椒醬",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0592",
+    "canonical_name": "韓式辣醬",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0593",
+    "canonical_name": "韭菜",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0594",
+    "canonical_name": "食用水",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0596",
+    "canonical_name": "養樂多",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0598",
+    "canonical_name": "餛飩",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0599",
+    "canonical_name": "餛飩皮",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0605",
+    "canonical_name": "香菇水",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0607",
+    "canonical_name": "香菜",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0612",
+    "canonical_name": "香葉",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0617",
+    "canonical_name": "高湯水",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0618",
+    "canonical_name": "高粱醋",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0621",
+    "canonical_name": "魚",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0622",
+    "canonical_name": "魯蛋",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0623",
+    "canonical_name": "魷魚",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0624",
+    "canonical_name": "鮪魚罐頭",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0627",
+    "canonical_name": "鮮味炒手",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0629",
+    "canonical_name": "鮮雞粉",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0631",
+    "canonical_name": "鯖魚",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0632",
+    "canonical_name": "鯛魚",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0633",
+    "canonical_name": "鯛魚片",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0635",
+    "canonical_name": "鱈魚",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0636",
+    "canonical_name": "鳳梨罐頭",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0638",
+    "canonical_name": "鹹蛋黃",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0639",
+    "canonical_name": "鹹豬肉",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0643",
+    "canonical_name": "鹽",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0645",
+    "canonical_name": "鹽巴",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0649",
+    "canonical_name": "麥片",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0650",
+    "canonical_name": "麵包丁",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0651",
+    "canonical_name": "麵包粉",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0652",
+    "canonical_name": "麵條",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0655",
+    "canonical_name": "麵粉",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0658",
+    "canonical_name": "黃冰糖",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0659",
+    "canonical_name": "黃椒",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0660",
+    "canonical_name": "黃芥末醬",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0661",
+    "canonical_name": "黑啤酒",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0662",
+    "canonical_name": "黑木耳",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0663",
+    "canonical_name": "黑芝麻",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0664",
+    "canonical_name": "黑醋",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0665",
+    "canonical_name": "冬瓜",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0666",
+    "canonical_name": "地瓜",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0667",
+    "canonical_name": "地瓜葉",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0668",
+    "canonical_name": "干貝醬",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0669",
+    "canonical_name": "梅子粉",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0670",
+    "canonical_name": "橄欖油檸檬沙拉醬",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0671",
+    "canonical_name": "澄粉",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0673",
+    "canonical_name": "烹大師",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0674",
+    "canonical_name": "玉米",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0675",
+    "canonical_name": "甘草",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0676",
+    "canonical_name": "百里香",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0677",
+    "canonical_name": "百香果",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0678",
+    "canonical_name": "秋葵",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0679",
+    "canonical_name": "米粕",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0680",
+    "canonical_name": "糯米粉",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0681",
+    "canonical_name": "紅糖",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0682",
+    "canonical_name": "紫薯粉",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0683",
+    "canonical_name": "肉桂",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0684",
+    "canonical_name": "芋頭餡",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0685",
+    "canonical_name": "芥藍",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0686",
+    "canonical_name": "苦瓜",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0687",
+    "canonical_name": "荷蘭芹",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0688",
+    "canonical_name": "葵花油",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0689",
+    "canonical_name": "薑油",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0690",
+    "canonical_name": "豆皮",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0691",
+    "canonical_name": "豆腐乳",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0692",
+    "canonical_name": "豆豉",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0693",
+    "canonical_name": "豬排骨",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0694",
+    "canonical_name": "豬油",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0695",
+    "canonical_name": "起司粉",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0696",
+    "canonical_name": "辣椒醬",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0697",
+    "canonical_name": "酪梨油",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0698",
+    "canonical_name": "雞腿骨",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0699",
+    "canonical_name": "韓式烤肉醬",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0700",
+    "canonical_name": "麥芽糖",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0701",
+    "canonical_name": "麵筋",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0702",
+    "canonical_name": "黑糖",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0703",
+    "canonical_name": "油蒜酥",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0704",
+    "canonical_name": "醃豬肉",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0705",
+    "canonical_name": "黑白芝麻",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0706",
+    "canonical_name": "紅標料理米酒",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0707",
+    "canonical_name": "魚高湯",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0708",
+    "canonical_name": "豆芽",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0709",
+    "canonical_name": "辣椒粉",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0710",
+    "canonical_name": "韓式芝麻油",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0711",
+    "canonical_name": "黃豆油",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0712",
+    "canonical_name": "黃豆芽",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0713",
+    "canonical_name": "櫛瓜",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0714",
+    "canonical_name": "香蒜胡椒鹽",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0715",
+    "canonical_name": "其他香料",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0716",
+    "canonical_name": "餃子皮",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0717",
+    "canonical_name": "麻油或香油",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0718",
+    "canonical_name": "水餃皮",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0719",
+    "canonical_name": "韭菜花",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0720",
+    "canonical_name": "甜不辣",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0721",
+    "canonical_name": "粉絲",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0722",
+    "canonical_name": "滾水",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0723",
+    "canonical_name": "水蓮菜",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0724",
+    "canonical_name": "油菜",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0725",
+    "canonical_name": "鹽麴",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0726",
+    "canonical_name": "四季豆",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0727",
+    "canonical_name": "香腸",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0728",
+    "canonical_name": "豆干",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0729",
+    "canonical_name": "泡蝦米水",
+    "suggested_name": null
+  },
+  {
+    "ingredient_id": "ING0730",
+    "canonical_name": "福山萵苣",
+    "suggested_name": null
+  }
+]

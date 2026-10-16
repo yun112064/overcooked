@@ -73,6 +73,8 @@ combined = service.aggregate_meal_targets(participations)
 
 ## T04 食譜營養估算
 
-T04 的營養估算模組位於 `nutrition_model/`，提供 TFDA 食材辨識、六項營養計算、USDA 熟食參考、Cooking Yield 判斷、來源追蹤與整道食譜加總。資料不足時不自行補值，並會清楚標示生食估算或營養缺漏。
+T04 的營養估算模組位於 `nutrition_model/`。本版優先使用相符 TFDA 熟食營養；缺少時以 TFDA 生食為基底，由 Gemini 參考相關 USDA 產率估算烹調參數，再由 Python 計算七項營養、每份及每100g。USDA 熟食營養退出主流程；未知值保留 null。
 
-詳細範圍、驗收案例與執行方式請見 [T04 handoff](nutrition_model/README.md)。
+本機驗收：53 項自動測試與19項驗收檢查通過。Gemini 已取得一次通過參數驗證的估算；主系統整合與實際料理準確度尚未驗收。
+
+詳細範圍、設定與執行方式請見 [T04 handoff](nutrition_model/README.md)；驗收證據與限制見 [T04 本機驗收報告](docs/T04-acceptance-2026-10-16.md)。
