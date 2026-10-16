@@ -2,11 +2,11 @@
 
 ## T04／T06 合併狀態
 
-本分支整合 T06 系統骨架、T04 營養模組與來源分支附帶的 T03 程式。**程式碼合併不代表 G03／G04／G07 通過或營養方案可正式採用。** LLM 烹調係數用途、T03 未成年規則一致性，以及必要營養欄位契約均標記為「待決議」；以下模組說明不取代核准 Spec。
+本分支整合 T06 系統骨架、T04 營養模組與來源分支附帶的 T03 程式。**程式碼合併不代表 G03／G04／G07 通過或營養方案可正式採用。** T03 已於 2026-10-16 決議以 Spec 為準，未成年僅提供一般餐食規劃，不提供增肌／減脂。LLM 烹調係數用途與必要營養欄位契約仍為「待決議」。
 
 詳見 [待決議清單、驗收界線與整合待辦](docs/T04-T06-merge-pending.md)。
 
-現行規則：`hpa-dri8-mvp-0.2.0`。依使用者定案，MVP 所有年齡先採成人公式，兒少條件延後。一般餐食／維持不調整熱量、增肌+5%、減脂−500 kcal；全部年齡與目標的蛋白質統一1.1 g/kg/day。減脂結果低於1200時明確拒絕，不自動夾值。
+現行規則：`hpa-dri8-mvp-0.3.0`，沿用 T03 分支已實作的目標限制：0–18 歲僅 `general`，19 歲起開放維持／增肌／減脂。19 歲是既有 T03 的成人目標支援門檻，並非 Spec 對法律成年年齡的定義。一般餐食／維持不調整熱量、增肌+5%、減脂−500 kcal；蛋白質係數維持 1.1 g/kg/day。既有成人式的一般餐食試算仍待 G03 適用性驗證，不能宣稱已確認適用兒少。減脂結果低於1200時明確拒絕，不自動夾值。
 
 已實作每日基準、餐別基準、用餐／便當及五段n合計、規則與輸入快照、精確合成基準及CLI。T08、T15仍等待隊友功能。本次不建立公開API、登入、資料庫或前端。
 
@@ -20,7 +20,7 @@
 
 ```sh
 PYTHONPATH=backend python3 -m app.nutrition \
-  --rules config/nutrition/hpa-dri8-mvp-0.2.0.json \
+  --rules config/nutrition/hpa-dri8-mvp-0.3.0.json \
   --input tests/fixtures/member-A.json \
   --operation daily
 ```
@@ -31,7 +31,7 @@ PYTHONPATH=backend python3 -m app.nutrition \
 
 ```sh
 PYTHONPATH=backend python3 -m app.nutrition \
-  --rules config/nutrition/hpa-dri8-mvp-0.2.0.json \
+  --rules config/nutrition/hpa-dri8-mvp-0.3.0.json \
   --input tests/fixtures/member-A.json \
   --operation meal --meal dinner
 ```
@@ -42,7 +42,7 @@ PYTHONPATH=backend python3 -m app.nutrition \
 
 ```sh
 PYTHONPATH=backend python3 -m app.nutrition \
-  --rules config/nutrition/hpa-dri8-mvp-0.2.0.json \
+  --rules config/nutrition/hpa-dri8-mvp-0.3.0.json \
   --input tests/fixtures/participations.json \
   --operation aggregate
 ```
@@ -64,18 +64,20 @@ PYTHONPATH=backend python3 -m unittest discover -s tests -v
 ```python
 from app.nutrition import NutritionTargetService, TargetInputError
 
-service = NutritionTargetService("config/nutrition/hpa-dri8-mvp-0.2.0.json")
+service = NutritionTargetService("config/nutrition/hpa-dri8-mvp-0.3.0.json")
 daily = service.daily_target(member_input)
 meal = service.meal_target(member_input, "dinner")
 combined = service.aggregate_meal_targets(participations)
 ```
+
+`available_goals(age_years)` 提供該規則版本的可選目標；不適用的目標在每日、餐別、合計與 CLI 入口均拒絕，回傳 `INVALID_INPUT`／`GOAL_NOT_ALLOWED_FOR_AGE`，不自動改成一般餐食或維持。
 
 - T07保存成員ID、足歲、公式性別M/F、體重kg、四級活動、目標及計算日期。衛公式－1不需要身高；n另外保存。
 - T08形成用餐與便當參與項目，每個項目指定餐別與n。
 - T12消費未縮放每日基準或合計目標，依Spec先對齊基準配方±10%，再乘總N；精確分數避免循環小數取整造成邊界漂移。
 - FastAPI/Pydantic轉接、家庭權限及正式Log沿用T06骨架責任。本模組不擴張其範圍。
 
-歷史0.1.0保留原本待確認的行為；不改寫歷史規則。詳見 [交接契約與人工案例](docs/T03-handoff.md)、[規則來源與G03](docs/T03-nutrition-rule-proposal.md)。
+新流程明確使用 0.3.0；0.1.0、0.2.0 保留原始位元組與歷史計算行為，僅供重現，不供新流程選用。詳見 [交接契約與人工案例](docs/T03-handoff.md)、[規則來源與G03](docs/T03-nutrition-rule-proposal.md)。
 
 ## T04 食譜營養估算
 

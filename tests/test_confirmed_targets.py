@@ -15,7 +15,7 @@ from test_nutrition import member
 
 
 ROOT = Path(__file__).resolve().parents[1]
-RULE = ROOT / "config/nutrition/hpa-dri8-mvp-0.2.0.json"
+RULE = ROOT / "config/nutrition/hpa-dri8-mvp-0.3.0.json"
 
 
 def participation(identifier="dinner", *, kind="dining", meal="dinner", n="1.3", profile=None):
@@ -54,10 +54,42 @@ class ConfirmedTargetTests(unittest.TestCase):
 
     def test_uniform_protein_across_ages_and_goals(self):
         for age in (0, 3, 8, 18, 19, 69, 70, 71, 75):
-            for goal in ("general", "maintain", "muscle_gain", "fat_loss"):
+            for goal in self.service.available_goals(age):
                 with self.subTest(age=age, goal=goal):
                     result = self.service.daily_target(member(age_years=age, weight_kg="90", goal=goal))
                     self.assertEqual(Decimal(result["daily_reference"]["protein_g"]), Decimal("99"))
+
+    def test_age_restrictions_cover_every_calculation_entry(self):
+        for age in (0, 3, 8, 17, 18):
+            self.assertEqual(self.service.available_goals(age), ("general",))
+            for goal in ("maintain", "muscle_gain", "fat_loss"):
+                data = member(age_years=age, goal=goal)
+                with self.subTest(age=age, goal=goal):
+                    for operation, args in (
+                        (self.service.energy_baseline, (data,)),
+                        (self.service.daily_target, (data,)),
+                        (self.service.meal_target, (data, "dinner")),
+                        (self.service.aggregate_meal_targets, ([participation(profile=data)],)),
+                    ):
+                        self.assert_reason("GOAL_NOT_ALLOWED_FOR_AGE", operation, *args)
+        for goal, energy in (("muscle_gain", "2063.9344635"), ("fat_loss", "1465.65187")):
+            result = self.service.daily_target(member(age_years=19, goal=goal))
+            self.assertEqual(Decimal(result["daily_reference"]["energy_kcal"]), Decimal(energy))
+
+    def test_historical_02_preserves_its_goal_policy(self):
+        historical = NutritionTargetService(ROOT / "config/nutrition/hpa-dri8-mvp-0.2.0.json")
+        result = historical.daily_target(member(age_years=18, goal="muscle_gain"))
+        self.assertTrue(result["daily_target_available"])
+
+    def test_cli_rejects_age_restricted_goal(self):
+        result = subprocess.run(
+            [sys.executable, "-m", "app.nutrition", "--rules", str(RULE), "--input", "-", "--operation", "daily"],
+            input=json.dumps(member(age_years=18, goal="fat_loss")), capture_output=True, text=True,
+            cwd=ROOT, env={**os.environ, "PYTHONPATH": str(ROOT / "backend")},
+        )
+        self.assertEqual(result.returncode, 2)
+        error = json.loads(result.stdout)["error"]
+        self.assertEqual(error["details"], {"reason": "GOAL_NOT_ALLOWED_FOR_AGE", "field": "goal"})
 
     def test_fat_loss_floor_rejects_without_clamping(self):
         self.assert_reason("DAILY_ENERGY_BELOW_MINIMUM", self.service.daily_target, member(weight_kg="55", goal="fat_loss"))
