@@ -10,12 +10,13 @@ from decimal import Decimal, localcontext
 from fractions import Fraction
 from pathlib import Path
 
-from app.nutrition import NutritionTargetService, TargetInputError
-from test_nutrition import member
+from nutrition_target import NutritionTargetService, TargetInputError
+from nutrition_target.tests.test_nutrition import member
 
 
-ROOT = Path(__file__).resolve().parents[1]
-RULE = ROOT / "config/nutrition/hpa-dri8-mvp-0.3.0.json"
+ROOT = Path(__file__).resolve().parents[2]
+RULE_ROOT = ROOT / "nutrition_target/rules"
+RULE = RULE_ROOT / "hpa-dri8-mvp-0.3.0.json"
 
 
 def participation(identifier="dinner", *, kind="dining", meal="dinner", n="1.3", profile=None):
@@ -77,15 +78,15 @@ class ConfirmedTargetTests(unittest.TestCase):
             self.assertEqual(Decimal(result["daily_reference"]["energy_kcal"]), Decimal(energy))
 
     def test_historical_02_preserves_its_goal_policy(self):
-        historical = NutritionTargetService(ROOT / "config/nutrition/hpa-dri8-mvp-0.2.0.json")
+        historical = NutritionTargetService(RULE_ROOT / "hpa-dri8-mvp-0.2.0.json")
         result = historical.daily_target(member(age_years=18, goal="muscle_gain"))
         self.assertTrue(result["daily_target_available"])
 
     def test_cli_rejects_age_restricted_goal(self):
         result = subprocess.run(
-            [sys.executable, "-m", "app.nutrition", "--rules", str(RULE), "--input", "-", "--operation", "daily"],
+            [sys.executable, "-m", "nutrition_target", "--rules", str(RULE), "--input", "-", "--operation", "daily"],
             input=json.dumps(member(age_years=18, goal="fat_loss")), capture_output=True, text=True,
-            cwd=ROOT, env={**os.environ, "PYTHONPATH": str(ROOT / "backend")},
+            cwd=ROOT, env={**os.environ, "PYTHONPATH": str(ROOT)},
         )
         self.assertEqual(result.returncode, 2)
         error = json.loads(result.stdout)["error"]
@@ -171,9 +172,9 @@ class ConfirmedTargetTests(unittest.TestCase):
     def test_daily_cli_accepts_decimal_json_numbers(self):
         data = member(weight_kg=70.125)
         result = subprocess.run(
-            [sys.executable, "-m", "app.nutrition", "--rules", str(RULE), "--input", "-", "--operation", "daily"],
+            [sys.executable, "-m", "nutrition_target", "--rules", str(RULE), "--input", "-", "--operation", "daily"],
             input=json.dumps(data), capture_output=True, text=True,
-            cwd=ROOT, env={**os.environ, "PYTHONPATH": str(ROOT / "backend")},
+            cwd=ROOT, env={**os.environ, "PYTHONPATH": str(ROOT)},
         )
         self.assertEqual(result.returncode, 0, result.stderr + result.stdout)
         target = json.loads(result.stdout)["daily_reference"]

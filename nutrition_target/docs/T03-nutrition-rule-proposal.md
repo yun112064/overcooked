@@ -31,7 +31,7 @@
 - [啟動及測試](../README.md)
 - [完整接入契約、人工案例與G03狀態](T03-handoff.md)
 - [定版前歷史研究提案](archive/T03-proposal-before-0.2.0.md)
-- 依據：[spec](../../spec.md)、[requirements](../../requirements.md)、[architecture](../../architecture.md)、[architecture-research](../../architecture-research.md)。
+- 依據：使用者提供的本機 `背景知識&ticket/` 內 `spec.md`、`requirements.md`、`architecture.md`、`architecture-research.md`；該參考資料夾未隨模組提交。
 
 ## G03結論
 

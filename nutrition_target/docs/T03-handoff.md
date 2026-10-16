@@ -117,7 +117,9 @@ P_reference = 3577 / 150
 
 其他邊界：0／18／19／69／70／71／75歲不切換蛋白質係數；0.7／0.85／1／1.15／1.3合法、0.9等非法；合計N2.6合法。缺必要欄位、非有限值、布林或無法推算正熱量明確拒絕。兩次相同participation_id拒絕，同member_id的晚餐與便當可同時存在。
 
-原0.2.0的23項測試為歷史驗證記錄。本次採入0.3.0及年齡限制回歸測試，涵蓋0–18歲受限、19歲起開放、四種計算入口與CLI拒絕路徑，以及歷史0.2.0重現。實際重跑結果見 [決議與驗證記錄](T04-T06-merge-pending.md)。未執行HTTP／資料庫／前端整合測試，這些留給相依Ticket接入。
+原0.2.0的23項測試為歷史驗證記錄。本次採入0.3.0及年齡限制回歸測試，涵蓋0–18歲受限、19歲起開放、四種計算入口與CLI拒絕路徑，以及歷史0.2.0重現。實際重跑結果見 [決議與驗證記錄](../../docs/T04-T06-merge-pending.md)。未執行HTTP／資料庫／前端整合測試，這些留給相依Ticket接入。
+
+T03 現集中於 `nutrition_target/`。Python API 使用 `from nutrition_target import NutritionTargetService, TargetInputError`；CLI 使用 `python -m nutrition_target`。規則在 `nutrition_target/rules/`，測試及合成資料在 `nutrition_target/tests/`，啟動方式見 [模組 README](../README.md)。
 
 ## G03與後續
 

@@ -6,10 +6,10 @@ import unittest
 from decimal import Decimal, localcontext
 from pathlib import Path
 
-from app.nutrition import NutritionTargetService, TargetInputError
+from nutrition_target import NutritionTargetService, TargetInputError
 
 
-RULE = Path(__file__).resolve().parents[1] / "config/nutrition/hpa-dri8-mvp-0.1.0.json"
+RULE = Path(__file__).resolve().parents[1] / "rules/hpa-dri8-mvp-0.1.0.json"
 
 
 def member(**changes):
