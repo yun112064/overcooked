@@ -1,0 +1,36 @@
+name: T03 and T06 Checks
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  backend-tests:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Check Python syntax
+        run: python -m compileall -q backend migrations tests nutrition_target
+
+      - name: Run T03 nutrition target tests
+        run: python -m unittest discover -s nutrition_target/tests -t . -p 'test_*.py' -v
+
+      - name: Run T06 and AC26 tests
+        env:
+          PROJECT_DATA_ROOT: /tmp/t06-ci-data
+          PYTHONPATH: backend
+          DATABASE_URL: postgresql+psycopg://postgres:ci_placeholder@localhost:5432/meal_planner
+        run: python -m unittest discover -s tests -p 'test_*.py' -v

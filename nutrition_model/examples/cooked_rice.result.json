@@ -1,0 +1,132 @@
+{
+  "success": true,
+  "recipe_name": "兩份白飯（實際熟重）",
+  "ingredients": [
+    {
+      "success": true,
+      "ingredient_id": "A0550601",
+      "standard_name": "白飯",
+      "input_name": "白飯",
+      "state": "cooked",
+      "weight_g": 300,
+      "nutrition": {
+        "energy_kcal": 549.0,
+        "carbohydrate_g": 123.0,
+        "protein_g": 9.3,
+        "fat_g": 0.8999999999999999,
+        "sodium_mg": 6.0,
+        "dietary_fiber_g": 1.7999999999999998
+      },
+      "nutrition_complete": true,
+      "missing_fields": [],
+      "source": {
+        "provider": "TFDA",
+        "source_id": "A0550601",
+        "source_file": "nutrition_ingredient.csv"
+      },
+      "ingredient": "白飯",
+      "nutrition_basis": "cooked_tfda",
+      "cooking_adjustment_complete": true,
+      "is_estimated": false,
+      "missing_reason": null,
+      "nutrient_sources": {
+        "energy_kcal": {
+          "basis": "cooked_tfda",
+          "source": {
+            "provider": "TFDA",
+            "source_id": "A0550601",
+            "source_file": "nutrition_ingredient.csv"
+          },
+          "is_estimated": false
+        },
+        "carbohydrate_g": {
+          "basis": "cooked_tfda",
+          "source": {
+            "provider": "TFDA",
+            "source_id": "A0550601",
+            "source_file": "nutrition_ingredient.csv"
+          },
+          "is_estimated": false
+        },
+        "protein_g": {
+          "basis": "cooked_tfda",
+          "source": {
+            "provider": "TFDA",
+            "source_id": "A0550601",
+            "source_file": "nutrition_ingredient.csv"
+          },
+          "is_estimated": false
+        },
+        "fat_g": {
+          "basis": "cooked_tfda",
+          "source": {
+            "provider": "TFDA",
+            "source_id": "A0550601",
+            "source_file": "nutrition_ingredient.csv"
+          },
+          "is_estimated": false
+        },
+        "sodium_mg": {
+          "basis": "cooked_tfda",
+          "source": {
+            "provider": "TFDA",
+            "source_id": "A0550601",
+            "source_file": "nutrition_ingredient.csv"
+          },
+          "is_estimated": false
+        },
+        "dietary_fiber_g": {
+          "basis": "cooked_tfda",
+          "source": {
+            "provider": "TFDA",
+            "source_id": "A0550601",
+            "source_file": "nutrition_ingredient.csv"
+          },
+          "is_estimated": false
+        }
+      },
+      "cooked_weight_g": 300,
+      "retained_fraction": 1
+    }
+  ],
+  "total_nutrition": {
+    "energy_kcal": 549.0,
+    "carbohydrate_g": 123.0,
+    "protein_g": 9.3,
+    "fat_g": 0.9,
+    "sodium_mg": 6.0,
+    "dietary_fiber_g": 1.8
+  },
+  "partial_nutrition_totals": {
+    "energy_kcal": 549.0,
+    "carbohydrate_g": 123.0,
+    "protein_g": 9.3,
+    "fat_g": 0.9,
+    "sodium_mg": 6.0,
+    "dietary_fiber_g": 1.8
+  },
+  "nutrition_complete": true,
+  "cooking_adjustment_complete": true,
+  "missing_nutrients": {},
+  "failed_ingredients": [],
+  "cooking_incomplete": [],
+  "is_estimated": false,
+  "servings": 2,
+  "cooked_weight_g": 300,
+  "per_serving_nutrition": {
+    "energy_kcal": 274.5,
+    "carbohydrate_g": 61.5,
+    "protein_g": 4.65,
+    "fat_g": 0.45,
+    "sodium_mg": 3.0,
+    "dietary_fiber_g": 0.9
+  },
+  "nutrition_per_100g": {
+    "energy_kcal": 183.0,
+    "carbohydrate_g": 41.0,
+    "protein_g": 3.1,
+    "fat_g": 0.3,
+    "sodium_mg": 2.0,
+    "dietary_fiber_g": 0.6
+  }
+}

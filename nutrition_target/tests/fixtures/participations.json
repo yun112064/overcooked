@@ -1,0 +1,47 @@
+[
+  {
+    "participation_id": "dinner",
+    "kind": "dining",
+    "member": {
+      "member_id": "synthetic-A",
+      "age_years": 30,
+      "equation_sex": "M",
+      "weight_kg": "70",
+      "activity_category": "sedentary",
+      "calculation_date": "2026-10-05",
+      "goal": "maintain"
+    },
+    "meal": "dinner",
+    "n": "1.3"
+  },
+  {
+    "participation_id": "bento",
+    "kind": "bento",
+    "member": {
+      "member_id": "synthetic-A",
+      "age_years": 30,
+      "equation_sex": "M",
+      "weight_kg": "70",
+      "activity_category": "sedentary",
+      "calculation_date": "2026-10-05",
+      "goal": "maintain"
+    },
+    "meal": "lunch",
+    "n": "1.3"
+  },
+  {
+    "participation_id": "young",
+    "kind": "dining",
+    "member": {
+      "member_id": "synthetic-young",
+      "age_years": 8,
+      "equation_sex": "M",
+      "weight_kg": "28",
+      "activity_category": "sedentary",
+      "calculation_date": "2026-10-05",
+      "goal": "general"
+    },
+    "meal": "dinner",
+    "n": "0.7"
+  }
+]

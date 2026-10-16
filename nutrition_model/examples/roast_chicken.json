@@ -1,0 +1,19 @@
+{
+  "recipe_name": "烤雞胸肉（LLM備援示例）",
+  "servings": 1,
+  "ingredients": [
+    {
+      "name": "雞胸肉",
+      "weight_g": 150,
+      "weight_basis": "raw",
+      "cooking_method": "烤",
+      "cooking_context": {
+        "food_form": "去皮去骨可食部",
+        "drained": true,
+        "juices_consumed": false,
+        "added_oil_g": 0,
+        "added_salt_g": 0
+      }
+    }
+  ]
+}

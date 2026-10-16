@@ -1,0 +1,18 @@
+{
+  "source_file": "食材營養成分表.xlsx",
+  "sha256": "bd7410e9ac80e2df5cd739a4617bda3121ea5be2563787f95a83f1eeeec5a5ee",
+  "row_counts": {
+    "TFDA": 2213,
+    "USDA": 372,
+    "ingredient_ids": 461
+  },
+  "nutrition_fields": [
+    "energy_kcal",
+    "carbohydrate_g",
+    "protein_g",
+    "fat_g",
+    "sugars_g",
+    "sodium_mg",
+    "dietary_fiber_g"
+  ]
+}
