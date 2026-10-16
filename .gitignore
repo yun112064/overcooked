@@ -1,5 +1,15 @@
+.DS_Store
+.AppleDouble
+.LSOverride
 .venv/
+venv/
+env/
 .env
+.env.*
+!.env.example
 __pycache__/
-*.pyc
+*.py[cod]
 .pytest_cache/
+
+# T04 source downloads are large raw inputs; generated JSON is committed.
+nutrition_model/data/raw/
