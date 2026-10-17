@@ -16,3 +16,6 @@ nutrition_model/data/raw/
 
 # Local recipe datasets
 /local_data/
+
+# Local PostgreSQL database backups
+/*.dump
