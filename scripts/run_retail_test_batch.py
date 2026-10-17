@@ -1,4 +1,4 @@
-﻿"""Safely import a prepared retail JSON batch and record its execution.
+"""Safely import a prepared retail JSON batch and record its execution.
 
 Test database ONLY. Does not crawl, schedule, or automatically map ingredients.
 """
