@@ -110,6 +110,21 @@ class T07ApiTests(unittest.TestCase):
         # 另一個 session 不受影響
         self.assertEqual(self.client.get("/auth/me").status_code, 200)
 
+    def test_login_selects_household_only_when_unambiguous(self):
+        first = self.with_household(name="家庭一")
+        def login():
+            client = make_client()
+            res = client.post("/auth/login", json={"email": "owner@example.test", "password": PASSWORD})
+            self.assertEqual(res.status_code, 200)
+            return res.json()["current_household"], client
+        current, client = login()
+        self.assertEqual(current["id"], first)
+        self.assertEqual(client.get("/members").status_code, 200)
+        self.client.post("/household", json={"name": "家庭二"})
+        current, client = login()
+        self.assertIsNone(current)
+        self.assertEqual(client.get("/members").status_code, 409)
+
     def test_expired_session_is_rejected(self):
         self.register()
         from app.db.models import UserSession

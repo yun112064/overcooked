@@ -10,7 +10,7 @@ from app.api.deps import AuthContext, current_auth, verify_origin
 from app.api.errors import ApiError
 from app.core.config import settings
 from app.core.logging_config import api_logger
-from app.db.models import Household, User
+from app.db.models import Household, HouseholdMembership, User
 from app.db.session import get_db
 from app.services import identity
 
@@ -85,10 +85,15 @@ def login(body: LoginBody, response: Response, db: Session = Depends(get_db)):
     if user is None:
         api_logger.warning("Login failed", extra={"event": "auth_login_failed", "source": "api"})
         raise ApiError(401, "UNAUTHENTICATED", "Email 或密碼不正確。")
-    token = identity.create_session(db, user)
+    # 只有一個家庭時直接選取，省去每次登入都要再選
+    households = db.scalars(
+        select(HouseholdMembership.household_id).where(HouseholdMembership.user_id == user.id).limit(2)
+    ).all()
+    household_id = households[0] if len(households) == 1 else None
+    token = identity.create_session(db, user, household_id=household_id)
     db.commit()
     _set_session_cookie(response, token)
-    return _me(db, user.id, None)
+    return _me(db, user.id, household_id)
 
 
 @router.post("/logout", status_code=204)

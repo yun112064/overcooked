@@ -89,7 +89,7 @@ function toForm(member: Member | null): FormValues {
 export default function MemberFormDialog({ open, member, options, onClose }: Props) {
   const queryClient = useQueryClient()
   const { control, register, handleSubmit, reset, setError, setValue, getValues, formState: { errors } } =
-    useForm<FormValues>({ resolver: zodResolver(buildSchema(options)), defaultValues: toForm(member) })
+    useForm<FormValues>({ mode: 'onTouched', resolver: zodResolver(buildSchema(options)), defaultValues: toForm(member) })
 
   useEffect(() => { if (open) reset(toForm(member)) }, [open, member, reset])
 

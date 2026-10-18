@@ -7,6 +7,8 @@ import { api, errorStatus } from './api/client'
 import type { Me } from './api/types'
 import HouseholdPage from './pages/HouseholdPage'
 import LoginPage from './pages/LoginPage'
+import MealRequestEditor from './pages/MealRequestEditor'
+import MealRequestsPage from './pages/MealRequestsPage'
 import MembersPage from './pages/MembersPage'
 
 const theme = createTheme({ palette: { primary: { main: '#2e7d32' } } })
@@ -68,7 +70,11 @@ function Layout() {
             今天吃啥
           </Typography>
           {me.data?.current_household && (
-            <Button color="inherit" component={Link} to="/households">{me.data.current_household.name}</Button>
+            <>
+              <Button color="inherit" component={Link} to="/plan">規劃餐食</Button>
+              <Button color="inherit" component={Link} to="/members">成員</Button>
+              <Button color="inherit" component={Link} to="/households">{me.data.current_household.name}</Button>
+            </>
           )}
           {me.data && <Button color="inherit" onClick={() => logout.mutate()} disabled={logout.isPending}>登出</Button>}
         </Toolbar>
@@ -95,7 +101,14 @@ const router = createBrowserRouter([
       element: <Layout />,
       children: [
         { path: '/households', element: <HouseholdPage /> },
-        { element: <Protected requireHousehold />, children: [{ path: '/members', element: <MembersPage /> }] },
+        {
+          element: <Protected requireHousehold />,
+          children: [
+            { path: '/members', element: <MembersPage /> },
+            { path: '/plan', element: <MealRequestsPage /> },
+            { path: '/plan/:id', element: <MealRequestEditor /> },
+          ],
+        },
       ],
     }],
   },

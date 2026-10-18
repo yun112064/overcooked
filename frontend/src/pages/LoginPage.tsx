@@ -28,7 +28,7 @@ export default function LoginPage() {
       (await api.post<Me>(mode === 'login' ? '/auth/login' : '/auth/register', values)).data,
     onSuccess: (me) => {
       queryClient.setQueryData(['me'], me)
-      navigate('/households', { replace: true })
+      navigate(me.current_household ? '/plan' : '/households', { replace: true })
     },
   })
 

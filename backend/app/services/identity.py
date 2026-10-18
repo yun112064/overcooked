@@ -47,13 +47,14 @@ def authenticate(db: Session, email: str, password: str) -> User | None:
     return user
 
 
-def create_session(db: Session, user: User) -> str:
+def create_session(db: Session, user: User, *, household_id=None) -> str:
     """建立 session，回傳只放在 Cookie 的原始 token；資料庫只存其雜湊。"""
     token = secrets.token_urlsafe(32)
     now = datetime.now(timezone.utc)
     db.add(UserSession(
         token_hash=_token_hash(token),
         user_id=user.id,
+        household_id=household_id,
         created_at=now,
         expires_at=now + timedelta(hours=settings.session_ttl_hours),
     ))
