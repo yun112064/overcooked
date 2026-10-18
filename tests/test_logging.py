@@ -293,6 +293,96 @@ class TestLogging(unittest.TestCase):
 
                 self.assertFalse(path.exists())
 
+    def test_same_timestamp_rotation_keeps_every_archive(self):
+        """同一時間戳記多次輪替時，不可覆蓋或遺失封存檔。"""
+        from datetime import datetime, timezone
+        from app.core import logging_config
+
+        fixed = datetime(2026, 10, 18, 7, 0, 0, 0, tzinfo=timezone.utc)
+
+        class FrozenNow(datetime):
+            @classmethod
+            def now(cls, tz=None):
+                return fixed
+
+        with TemporaryDirectory() as tmp:
+            path = Path(tmp) / "test.jsonl"
+
+            handler = PreservingRotatingFileHandler(
+                path,
+                maxBytes=300,
+                backupCount=0,
+                encoding="utf-8",
+            )
+
+            logger = logging.Logger(
+                "same_timestamp_rotation_test",
+                level=logging.INFO,
+            )
+            logger.addHandler(handler)
+
+            try:
+                with patch.object(logging_config, "datetime", FrozenNow):
+                    for i in range(6):
+                        logger.info(f"test-{i}: " + "x" * 200)
+            finally:
+                logger.removeHandler(handler)
+                handler.close()
+
+            archives = sorted(
+                p.name for p in Path(tmp).glob("test.jsonl.*")
+            )
+            lines = [
+                line
+                for p in Path(tmp).glob("test.jsonl*")
+                for line in p.read_text(encoding="utf-8").splitlines()
+            ]
+
+            self.assertEqual(len(lines), 6)
+            self.assertEqual(len(archives), 5)
+            self.assertEqual(len(set(archives)), 5)
+
+            # 加序號的封存檔仍屬可清理的輪替檔
+            for name in archives:
+                self.assertTrue(
+                    log_cleanup.ROTATED_PATTERN.fullmatch(name),
+                    name,
+                )
+            self.assertFalse(
+                log_cleanup.ROTATED_PATTERN.fullmatch(
+                    archives[-1] + ".hold"
+                )
+            )
+
+    def test_budget_exceeded_is_written_to_scheduler_log(self):
+        """清理後仍超過空間預算時，需在正式 Log 留下提示。"""
+        with TemporaryDirectory() as tmp:
+            folder = Path(tmp)
+            active = folder / "api.jsonl"
+            active.write_bytes(b"x" * 2048)
+
+            with (
+                patch.object(log_cleanup, "LOG_DIR", folder),
+                patch.object(log_cleanup, "MAX_TOTAL_BYTES", 1024),
+                patch.object(log_cleanup, "opened_files", return_value=set()),
+                patch.object(log_cleanup, "scheduler_logger") as logger,
+                redirect_stdout(StringIO()),
+            ):
+                log_cleanup.cleanup(apply=True)
+
+            self.assertTrue(active.exists())
+            logger.warning.assert_called_once()
+            extra = logger.warning.call_args.kwargs["extra"]
+            self.assertEqual(extra["event"], "log_cleanup_budget_exceeded")
+
+            record = logging.LogRecord(
+                "scheduler", logging.WARNING, "", 0, "x", (), None
+            )
+            record.event = extra["event"]
+            data = json.loads(JsonFormatter().format(record))
+            self.assertEqual(data["source"], "scheduler")
+            self.assertNotEqual(data["event"], "unknown_event")
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)

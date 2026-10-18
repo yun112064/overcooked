@@ -44,6 +44,22 @@ class AcceptanceRegressions(unittest.TestCase):
         self.assertFalse(result['cooking_adjustment_complete'])
         self.assertIsNone(result['total_nutrition']['dietary_fiber_g'])
 
+    def test_recipe_keeps_unrounded_totals_for_boundary_checks(self):
+        result = service.calculate_recipe_nutrition('rice and soy sauce', [
+            {'name': '白飯', 'weight_g': 133, 'weight_basis': 'cooked'},
+            {'name': '醬油', 'weight_g': 7, 'consumed_as_is': True}])
+        exact = result['total_nutrition_unrounded']
+        shown = result['total_nutrition']
+        self.assertEqual(set(exact), set(shown))
+        for key, value in exact.items():
+            if value is None:
+                self.assertIsNone(shown[key])
+            else:
+                self.assertEqual(shown[key], round(value, 2))
+        # The display value is rounded; the exact sum is not.
+        self.assertNotEqual(exact['protein_g'], shown['protein_g'])
+        self.assertAlmostEqual(exact['protein_g'], 4.669, places=9)
+
     def test_unrepresentable_integer_is_rejected_without_exception(self):
         self.assertFalse(finite_number(10 ** 400, positive=True))
         result = service.calculate_nutrition('白芝麻(熟)', 10 ** 400)

@@ -6,6 +6,8 @@ import stat
 import time
 from pathlib import Path
 
+from app.core.logging_config import scheduler_logger
+
 
 RETENTION_DAYS = 14
 MAX_TOTAL_BYTES = 200 * 1024 * 1024
@@ -13,9 +15,9 @@ MAX_TOTAL_BYTES = 200 * 1024 * 1024
 DATA_ROOT = Path(os.getenv("PROJECT_DATA_ROOT", "/app/data"))
 LOG_DIR = DATA_ROOT / "logs"
 
-# 支援舊版數字與新版時間戳記輪替檔案
+# 支援舊版數字與新版時間戳記輪替檔案；同刻度重複輪替會加 -序號
 ROTATED_PATTERN = re.compile(
-    r".+\.jsonl\.(?:[1-9][0-9]*|[0-9]{8}T[0-9]{12}Z)$"
+    r".+\.jsonl\.(?:[1-9][0-9]*|[0-9]{8}T[0-9]{12}Z(?:-[1-9][0-9]*)?)$"
 )
 
 
@@ -192,6 +194,13 @@ def cleanup(apply=False):
 
     if remaining > MAX_TOTAL_BYTES:
         print("警告：可清理空間不足，仍超過200MiB預算")
+        scheduler_logger.warning(
+            "Log space budget exceeded",
+            extra={
+                "event": "log_cleanup_budget_exceeded",
+                "source": "scheduler",
+            },
+        )
 
 
 if __name__ == "__main__":

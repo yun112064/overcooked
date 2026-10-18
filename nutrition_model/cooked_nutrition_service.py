@@ -218,6 +218,8 @@ def calculate_recipe(recipe_name, recipe_ingredients, cooking_calculator, raw_ca
     complete = not failed and all(v is not None for v in total.values())
     return {'success': not failed, 'recipe_name': recipe_name, 'ingredients': results,
             'total_nutrition': {k: round(v, 2) if v is not None else None for k, v in total.items()},
+            # Unrounded values for T12 scaling and ±10% boundary checks; display fields stay rounded.
+            'total_nutrition_unrounded': dict(total),
             'partial_nutrition_totals': {k: round(v, 2) for k, v in partial.items()},
             'nutrition_complete': complete, 'cooking_adjustment_complete': not incomplete and not failed,
             'missing_nutrients': {k: names for k, names in missing.items() if names},
