@@ -45,7 +45,7 @@ def is_member_of(db: Session, user_id, household_id) -> bool:
     ) is not None
 
 
-def _plain(value) -> Decimal:
+def plain_decimal(value) -> Decimal:
     """去掉資料庫補上的尾數 0（70.00 → 70），不改變數值。"""
     return Decimal(format(Decimal(value).normalize(), "f"))
 
@@ -56,7 +56,7 @@ def target_input(member_fields: dict, *, member_id: str, on: date) -> dict:
         "member_id": member_id,
         "age_years": age_on(member_fields["birth_date"], on),
         "equation_sex": member_fields["equation_sex"],
-        "weight_kg": _plain(member_fields["weight_kg"]),
+        "weight_kg": plain_decimal(member_fields["weight_kg"]),
         "activity_category": member_fields["activity_category"],
         "calculation_date": on.isoformat(),
         "goal": member_fields["goal"],

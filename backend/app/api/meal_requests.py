@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime, timezone
 
-from fastapi import APIRouter, Depends, Response
+from fastapi import APIRouter, Depends, Header, Response
 from pydantic import BaseModel, Field
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -11,6 +11,7 @@ from app.api.errors import ApiError, not_found, version_conflict
 from app.db.models import MealRequest, MealRequestRevision, Member
 from app.db.session import get_db
 from app.services import ingredients
+from app.services import jobs as job_service
 from app.services import meal_request as service
 
 router = APIRouter(prefix="/meal-requests", tags=["meal-requests"], dependencies=[Depends(verify_origin)])
@@ -100,14 +101,16 @@ def get_request(request_id: uuid.UUID, household_id=Depends(current_household_id
 def update_request(request_id: uuid.UUID, body: DraftUpdate, auth: AuthContext = Depends(current_auth),
                    household_id=Depends(current_household_id), db: Session = Depends(get_db)):
     row = _get_owned(db, household_id, request_id, lock=True)
-    if row.status != "draft":
-        raise ApiError(409, "VERSION_CONFLICT", "此問卷已送出，不能再修改；請建立新的問卷。",
-                       {"reason": "NOT_DRAFT"})
+    if row.status in ("queued", "running"):
+        raise ApiError(409, "VERSION_CONFLICT", "此問卷正在生成中，請等待結果後再修改。",
+                       {"reason": "GENERATION_IN_PROGRESS"})
     if row.version != body.version:
         raise version_conflict()
     _reject_bad_references(db, household_id, body.draft)
     payload = service.dump(body.draft)
     row.version += 1
+    # 失敗或已有結果後再修改：回到草稿，新版本需重新送出生成
+    row.status = "draft"
     row.payload = payload
     row.meal_date = body.draft.meal_date
     row.updated_at = datetime.now(timezone.utc)
@@ -132,8 +135,27 @@ def get_revision(request_id: uuid.UUID, version: int, household_id=Depends(curre
 def delete_request(request_id: uuid.UUID, household_id=Depends(current_household_id),
                    db: Session = Depends(get_db)):
     row = _get_owned(db, household_id, request_id)
-    if row.status != "draft":
-        raise ApiError(409, "VERSION_CONFLICT", "只能刪除尚未送出的草稿。", {"reason": "NOT_DRAFT"})
+    if row.status in ("queued", "running"):
+        raise ApiError(409, "VERSION_CONFLICT", "此問卷正在生成中，不能刪除。",
+                       {"reason": "GENERATION_IN_PROGRESS"})
     db.delete(row)
     db.commit()
     return Response(status_code=204)
+
+
+class SubmitBody(BaseModel):
+    version: int = Field(ge=1)
+
+
+@router.post("/{request_id}/submit", status_code=202)
+def submit_request(request_id: uuid.UUID, body: SubmitBody,
+                   idempotency_key: str = Header(min_length=8, max_length=100),
+                   household_id=Depends(current_household_id), db: Session = Depends(get_db)):
+    """送出生成：相同 Idempotency-Key 與相同問卷版本回傳同一工作，不重複建立或扣額度。"""
+    row = _get_owned(db, household_id, request_id, lock=True)
+    complete = not service.completeness(service.load(row.payload), _members(db, household_id))
+    job, created = job_service.submit_generation(
+        db, household_id=household_id, meal_request=row, version=body.version,
+        idempotency_key=idempotency_key, complete=complete)
+    db.commit()
+    return {"job": job_service.public_view(job), "created": created}

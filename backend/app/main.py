@@ -11,8 +11,10 @@ from app.api.errors import register_error_handlers
 from app.api.health import router as health_router
 from app.api.households import router as household_router
 from app.api.ingredients import router as ingredient_router
+from app.api.jobs import router as job_router
 from app.api.meal_requests import router as meal_request_router
 from app.api.members import router as member_router
+from app.core.config import settings
 from app.core.log_cleanup import cleanup
 
 
@@ -45,6 +47,10 @@ async def scheduled_log_cleanup():
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    # 正式部署由單一排程程序（app.jobs.scheduler）清理；僅在明確設定時於 API 內執行
+    if not settings.log_cleanup_in_api:
+        yield
+        return
     task = asyncio.create_task(scheduled_log_cleanup())
 
     try:
@@ -70,3 +76,4 @@ app.include_router(household_router)
 app.include_router(member_router)
 app.include_router(ingredient_router)
 app.include_router(meal_request_router)
+app.include_router(job_router)

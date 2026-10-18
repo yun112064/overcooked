@@ -125,3 +125,18 @@ export type MealRequestSummary = {
   meal_type: MealType | null
   updated_at: string
 }
+
+export type Job = {
+  id: string
+  kind: string
+  status: 'queued' | 'running' | 'succeeded' | 'failed'
+  stage: string | null
+  attempts: number
+  max_attempts: number
+  meal_request_id: string | null
+  input_version: number | null
+  result_version: number | null
+  error: { code: string; message: string } | null
+  created_at: string
+  updated_at: string
+}

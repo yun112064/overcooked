@@ -179,7 +179,7 @@ def target_preview(draft: MealRequestDraft, members: dict) -> dict:
             "participation_id": entry["participation_id"],
             "kind": entry["kind"],
             "meal": entry["meal"],
-            "n": household_service._plain(member.portion),
+            "n": household_service.plain_decimal(member.portion),
             "member": household_service.target_input(fields, member_id=entry["member_id"], on=draft.meal_date),
         })
     try:

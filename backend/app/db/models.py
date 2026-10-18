@@ -12,11 +12,13 @@ from sqlalchemy import (
     Date,
     DateTime,
     ForeignKey,
+    Index,
     Integer,
     Numeric,
     String,
     Text,
     UniqueConstraint,
+    text,
 )
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
@@ -147,3 +149,86 @@ class MealRequestRevision(Base):
         UUID(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL"), nullable=True
     )
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, nullable=False)
+
+
+class BackgroundJob(Base):
+    """T10 持久工作。短交易領取並記錄租約；外部呼叫期間不持有資料庫鎖。"""
+    __tablename__ = "background_jobs"
+    __table_args__ = (
+        CheckConstraint("status IN ('queued', 'running', 'succeeded', 'failed')", name="ck_job_status"),
+        UniqueConstraint("household_id", "idempotency_key", name="uq_job_idempotency"),
+        Index("ix_background_jobs_claim", "available_at", postgresql_where=text("status = 'queued'")),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    household_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("households.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    kind: Mapped[str] = mapped_column(String(40), nullable=False)
+    # 冪等：同鍵同內容回傳同一工作；request_hash 不同即拒絕
+    idempotency_key: Mapped[str] = mapped_column(String(100), nullable=False)
+    request_hash: Mapped[str] = mapped_column(String(64), nullable=False)
+    meal_request_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("meal_requests.id", ondelete="CASCADE"), nullable=True, index=True
+    )
+    input_version: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    status: Mapped[str] = mapped_column(String(20), nullable=False, default="queued")
+    attempts: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    max_attempts: Mapped[int] = mapped_column(Integer, nullable=False, default=2)
+    available_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, nullable=False)
+    lease_owner: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    lease_expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    stage: Mapped[str | None] = mapped_column(String(40), nullable=True)
+    error_code: Mapped[str | None] = mapped_column(String(50), nullable=True)
+    error_message: Mapped[str | None] = mapped_column(Text, nullable=True)
+    result: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
+    result_version: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, nullable=False)
+    finished_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+
+class BudgetMonth(Base):
+    """每月外部服務總額度（新台幣）。committed 為主機、備份等已占用的固定費用。"""
+    __tablename__ = "budget_months"
+    __table_args__ = (
+        CheckConstraint("reserved_twd >= 0 AND spent_twd >= 0 AND committed_twd >= 0", name="ck_budget_nonnegative"),
+    )
+
+    month: Mapped[str] = mapped_column(String(7), primary_key=True)  # YYYY-MM
+    limit_twd: Mapped[Decimal] = mapped_column(Numeric(12, 4), nullable=False)
+    committed_twd: Mapped[Decimal] = mapped_column(Numeric(12, 4), nullable=False)
+    reserved_twd: Mapped[Decimal] = mapped_column(Numeric(12, 4), nullable=False, default=Decimal("0"))
+    spent_twd: Mapped[Decimal] = mapped_column(Numeric(12, 4), nullable=False, default=Decimal("0"))
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, nullable=False)
+
+
+class UsageReservation(Base):
+    """每筆付費呼叫的預留與結算；uncertain 表示可能已計費但結果不明，需人工核對。"""
+    __tablename__ = "usage_reservations"
+    __table_args__ = (
+        CheckConstraint("status IN ('reserved', 'settled', 'released', 'uncertain')", name="ck_usage_status"),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    call_key: Mapped[str] = mapped_column(String(150), nullable=False, unique=True)
+    job_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("background_jobs.id", ondelete="SET NULL"), nullable=True, index=True
+    )
+    household_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("households.id", ondelete="SET NULL"), nullable=True
+    )
+    month: Mapped[str] = mapped_column(String(7), ForeignKey("budget_months.month"), nullable=False)
+    purpose: Mapped[str] = mapped_column(String(40), nullable=False)
+    provider: Mapped[str] = mapped_column(String(40), nullable=False)
+    model: Mapped[str] = mapped_column(String(80), nullable=False)
+    status: Mapped[str] = mapped_column(String(20), nullable=False, default="reserved")
+    reserved_twd: Mapped[Decimal] = mapped_column(Numeric(12, 4), nullable=False)
+    actual_twd: Mapped[Decimal | None] = mapped_column(Numeric(12, 4), nullable=True)
+    currency: Mapped[str] = mapped_column(String(3), nullable=False, default="USD")
+    fx_rate_twd: Mapped[Decimal] = mapped_column(Numeric(10, 4), nullable=False)
+    pricing_version: Mapped[str] = mapped_column(String(40), nullable=False)
+    usage: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
+    note: Mapped[str | None] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, nullable=False)
+    settled_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)

@@ -182,6 +182,11 @@ class T07ApiTests(unittest.TestCase):
         self.assertEqual(res.status_code, 201, res.text)
         member = res.json()
         self.assertEqual(member["portion"], "1")
+        # 資料庫 Numeric(6,2) 的 70.00 不可顯示成科學記號 7E+1
+        self.assertEqual(member["weight_kg"], "70")
+        heavy = self.client.post("/members", json=adult(display_name="成員C", weight_kg="100.50")).json()
+        self.assertEqual(heavy["weight_kg"], "100.5")
+        self.client.delete(f"/members/{heavy['id']}")
         self.assertEqual(member["allergens"], [{"ingredient_id": "ING0009", "name": "雞蛋"}])
         self.assertEqual([a["ingredient_id"] for a in member["avoided"]], ["ING0004"])
 

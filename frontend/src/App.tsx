@@ -89,7 +89,7 @@ function Layout() {
 function LoginRoute() {
   const me = useMe()
   if (me.isPending) return <FullPageSpinner />
-  if (me.data) return <Navigate to={me.data.current_household ? '/members' : '/households'} replace />
+  if (me.data) return <Navigate to={me.data.current_household ? '/plan' : '/households'} replace />
   return <LoginPage />
 }
 

@@ -26,13 +26,13 @@ services:
       context: .
       dockerfile: backend/Dockerfile
 
+    image: meal-planner-backend
     container_name: meal-planner-backend
 
     environment:
       DATABASE_URL: postgresql+psycopg://postgres:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}@db:5432/meal_planner
       PROJECT_DATA_ROOT: /app/data
       PYTHONUNBUFFERED: "1"
-      LOG_CLEANUP_APPLY: "true"
       PROJECT_RUNTIME_ROOT: /app/runtime
       PROJECT_BACKUP_ROOT: /app/backups
       # 狀態修改請求只接受這些前端來源；正式網域部署時改為 https://<網域>
@@ -57,6 +57,42 @@ services:
 
     depends_on:
       db:
+        condition: service_healthy
+
+  # T10：生成／推論工作程序，可視負載啟動多個副本
+  worker:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    image: meal-planner-backend
+    command: ["python", "-m", "app.jobs.worker"]
+    environment:
+      DATABASE_URL: postgresql+psycopg://postgres:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}@db:5432/meal_planner
+      PROJECT_DATA_ROOT: /app/data
+      PYTHONUNBUFFERED: "1"
+    volumes:
+      - ${PROJECT_DATA_ROOT:-../AIPE04期末專題_data}:/app/data
+    depends_on:
+      backend:
+        condition: service_healthy
+
+  # T10：單一排程程序（以 PostgreSQL advisory lock 保證只會有一個在執行）
+  scheduler:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    image: meal-planner-backend
+    command: ["python", "-m", "app.jobs.scheduler"]
+    environment:
+      DATABASE_URL: postgresql+psycopg://postgres:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}@db:5432/meal_planner
+      PROJECT_DATA_ROOT: /app/data
+      PYTHONUNBUFFERED: "1"
+      LOG_CLEANUP_APPLY: "true"
+    volumes:
+      - ${PROJECT_DATA_ROOT:-../AIPE04期末專題_data}:/app/data
+    restart: unless-stopped
+    depends_on:
+      backend:
         condition: service_healthy
 
   frontend:

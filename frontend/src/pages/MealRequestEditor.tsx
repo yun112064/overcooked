@@ -12,6 +12,7 @@ import { api, apiError, errorMessage, errorStatus } from '../api/client'
 import {
   MEAL_LABELS, type IngredientRef, type MealRequest, type MealRequestDraft, type MealType, type Member,
 } from '../api/types'
+import GenerationPanel from '../components/GenerationPanel'
 import IngredientPicker from '../components/IngredientPicker'
 
 const STEPS = ['用餐資訊', '成員與便當', '口味與指定菜', '已有食材', '確認']
@@ -129,7 +130,17 @@ function Editor({ initial, members: memberList }: { initial: MealRequest; member
     },
   })
 
+  // 送出後重新讀取問卷狀態（queued／running 時不能修改）
+  const refresh = async () => {
+    const row = (await api.get<MealRequest>(`/meal-requests/${id}`)).data
+    setServer(row)
+    queryClient.setQueryData(['meal-request', id], row)
+  }
+  const locked = server.status === 'queued' || server.status === 'running'
+
   const goTo = async (next: number) => {
+    // 生成中只能瀏覽，不儲存
+    if (locked) { setStep(next); return }
     // 只檢查格式；未填完也能前往下一步，草稿不會遺失
     if (!(await trigger(STEP_FIELDS[step]))) return
     try {
@@ -166,6 +177,7 @@ function Editor({ initial, members: memberList }: { initial: MealRequest; member
         </Alert>
       )}
       {save.isError && !conflict && <Alert severity="error">{errorMessage(save.error)}</Alert>}
+      {locked && <Alert severity="info">此問卷正在生成中，完成前無法修改。</Alert>}
 
       <Paper variant="outlined" sx={{ p: { xs: 2, sm: 3 } }}>
         {step === 0 && (
@@ -255,13 +267,19 @@ function Editor({ initial, members: memberList }: { initial: MealRequest; member
           </Stack>
         )}
 
-        {step === 4 && <Summary row={server} members={memberList} />}
+        {step === 4 && (
+          <Stack spacing={3}>
+            <Summary row={server} members={memberList} />
+            <Divider />
+            <GenerationPanel row={server} onChanged={refresh} />
+          </Stack>
+        )}
       </Paper>
 
       <Box sx={{ display: 'flex', gap: 1, justifyContent: 'space-between', flexWrap: 'wrap' }}>
         <Button disabled={step === 0 || save.isPending} onClick={() => goTo(step - 1)}>上一步</Button>
         <Box sx={{ display: 'flex', gap: 1 }}>
-          <Button variant="outlined" disabled={save.isPending} onClick={() => goTo(step)}>儲存草稿</Button>
+          <Button variant="outlined" disabled={save.isPending || locked} onClick={() => goTo(step)}>儲存草稿</Button>
           {step < STEPS.length - 1 && (
             <Button variant="contained" disabled={save.isPending} onClick={() => goTo(step + 1)}>下一步</Button>
           )}
@@ -278,7 +296,7 @@ function Summary({ row, members }: { row: MealRequest; members: Member[] }) {
   return (
     <Stack spacing={2}>
       {row.complete
-        ? <Alert severity="success">問卷已填寫完整。送出生成會在後續功能開放。</Alert>
+        ? <Alert severity="success">問卷已填寫完整，可以送出生成。</Alert>
         : (
           <Alert severity="warning">
             還有項目需要補充：
