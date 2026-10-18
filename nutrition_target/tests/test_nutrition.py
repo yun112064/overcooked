@@ -112,11 +112,11 @@ class NutritionTests(unittest.TestCase):
         self.assertNotIn("daily_reference", result)
 
     def test_unknown_version_does_not_fall_back(self):
-        rule = json.loads(RULE.read_text())
+        rule = json.loads(RULE.read_text(encoding="utf-8"))
         rule["rule_version"] = "unknown"
         with tempfile.TemporaryDirectory() as folder:
             path = Path(folder) / "unknown.json"
-            path.write_text(json.dumps(rule))
+            path.write_text(json.dumps(rule), encoding="utf-8")
             self.assert_reason("UNKNOWN_RULE_VERSION", NutritionTargetService, path)
 
     def test_arithmetic_ignores_callers_decimal_precision(self):
@@ -126,11 +126,11 @@ class NutritionTests(unittest.TestCase):
         self.assertEqual(Decimal(result["unadjusted_energy_kcal"]), Decimal("1942.8591"))
 
     def test_frozen_version_cannot_silently_change_coefficients(self):
-        rule = json.loads(RULE.read_text())
+        rule = json.loads(RULE.read_text(encoding="utf-8"))
         rule["energy"]["intercept"] = "30"
         with tempfile.TemporaryDirectory() as folder:
             path = Path(folder) / "changed.json"
-            path.write_text(json.dumps(rule))
+            path.write_text(json.dumps(rule), encoding="utf-8")
             self.assert_reason("RULE_CONFIG_VERSION_CONFLICT", NutritionTargetService, path)
 
 
