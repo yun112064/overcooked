@@ -131,6 +131,20 @@ USDA 以 `data/usda_food_mapping.json` 前兩項關鍵字（物種及部位）�
 
 查無食材或營養缺值時，食譜相應 `total_nutrition` 為 null；已知部分只放 `partial_nutrition_totals`。LLM 未設定、逾時或無效時不退回生食值冒充熟食值。
 
+`total_nutrition`、`per_serving_nutrition` 與 `nutrition_per_100g` 為顯示用，取兩位小數。T12 做 n 倍縮放與 ±10% 邊界判斷時，請改用未取整的 `total_nutrition_unrounded`；缺值同樣是 null。
+
+## 營養知識資料（R12、G07）
+
+`knowledge_service.py` 只處理文字知識，與 TFDA 數值營養分開；缺知識可省略說明，不代表缺必要營養。
+
+- `KnowledgeStore(ingredient_ids)`：`import_record()` 需 `knowledge_id`、`ingredient_id`、`excerpt`、`source_url`（http/https）、`source_version`、`rights`、`conditions`，一律先成為 pending；同一 `knowledge_id` 與 `source_version` 不可重複匯入。
+- `review(..., reviewer, reviewed_at, approved, note)` 是管理端操作，審核後不可再改；只有 approved 可檢索。匯入新版本後舊版退出檢索，但保留在歷史，已回傳的快照不變。
+- `retrieve(final_ingredient_ids)` 只取最終配方食材，回傳 `status`（available／not_found）、`records` 與逐食材的 `by_ingredient`。配方變更後須重新呼叫，舊食材的說明不會保留。
+- `retrieve_knowledge(path, ingredient_ids, final_ingredient_ids)` 讀檔或解析失敗時回傳 `unavailable`，不會偽裝成查無。
+- `verify_citations(citations, snapshot)` 核對說明引用的 `knowledge_id`／`source_version`／`ingredient_id` 是否確實出現在本次快照；虛構、錯食材、未審核或舊版引用列入 `invalid`，不可顯示。
+
+`test_knowledge_service.py` 只使用合成資料驗證契約。使用者尚未提供真實知識來源、授權與審核，**G07 仍未通過**。
+
 ## 驗證
 
 ```powershell
@@ -139,7 +153,7 @@ $env:PYTHONPATH = "nutrition_model"
 python -m unittest discover -s nutrition_model -v
 ```
 
-`test_tfda_llm.py` 涵蓋 TFDA 優先、部分缺值、重量基準、參數驗證、Gemini 與通用 HTTP 邊界、預覽不呼叫 API、油脂留存、來源與加總，以及錯誤料理方式、非有限／負數營養與缺少單位的匯入。`test_workbook_source.py` 檢查來源資料數量、七項 TFDA 營養與白飯缺糖。原有部分 `test_*.py` 是展示腳本，不是斷言測試。
+`test_tfda_llm.py` 涵蓋 TFDA 優先、部分缺值、重量基準、參數驗證、Gemini 與通用 HTTP 邊界、預覽不呼叫 API、油脂留存、來源與加總，以及錯誤料理方式、非有限／負數營養與缺少單位的匯入。`test_workbook_source.py` 檢查來源資料數量、七項 TFDA 營養與白飯缺糖。`test_knowledge_service.py` 驗證營養知識契約。原有部分 `test_*.py` 是展示腳本，不是斷言測試。
 
 ## 2026-10-16 驗收修正
 
