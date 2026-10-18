@@ -13,3 +13,7 @@ __pycache__/
 
 # T04 source downloads are large raw inputs; generated JSON is committed.
 nutrition_model/data/raw/
+
+# 模型權重放在 Runtime Root，不進 Git
+*.pt
+*.onnx

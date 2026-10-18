@@ -82,6 +82,25 @@ jobs:
           print("database and pgvector ready")
           EOF
 
+  inference-tests:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      # 只測前處理與 HTTP 契約；真實模型推論需團隊電腦上的權重與 Ultralytics
+      - name: Install dependencies
+        run: pip install numpy==2.5.4 opencv-python-headless==5.0.0.93
+
+      - name: Run inference service tests
+        run: python -m unittest discover -s inference -p 'test_*.py' -v
+
   frontend-build:
     runs-on: ubuntu-latest
     defaults:
