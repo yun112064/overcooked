@@ -13,6 +13,8 @@ from alembic import context
 BACKEND_ROOT = Path(__file__).resolve().parents[1] / "backend"
 sys.path.insert(0, str(BACKEND_ROOT))
 from app.core.config import settings
+from app.db.base import Base
+import app.models  # noqa: F401,E402
 
 
 
@@ -35,7 +37,7 @@ if config.config_file_name is not None:
 # for 'autogenerate' support
 # from myapp import mymodel
 # target_metadata = mymodel.Base.metadata
-target_metadata = None
+target_metadata = Base.metadata
 
 
 
