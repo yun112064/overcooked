@@ -17,3 +17,7 @@ nutrition_model/data/raw/
 # 模型權重放在 Runtime Root，不進 Git
 *.pt
 *.onnx
+
+# T01 raw recipe workbooks are local source material and require separate approval.
+data/*.xlsx
+data/*.xls
