@@ -77,6 +77,10 @@ SAFE_LOG_EVENTS = {
         "api",
         "Database health check failed",
     ),
+    "auth_login_failed": (
+        "api",
+        "Login failed",
+    ),
     "log_cleanup_budget_exceeded": (
         "scheduler",
         "Log space budget exceeded after cleanup",

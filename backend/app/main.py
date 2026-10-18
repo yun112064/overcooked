@@ -6,7 +6,12 @@ from contextlib import asynccontextmanager, suppress
 
 from fastapi import FastAPI
 
+from app.api.auth import router as auth_router
+from app.api.errors import register_error_handlers
 from app.api.health import router as health_router
+from app.api.households import router as household_router
+from app.api.ingredients import router as ingredient_router
+from app.api.members import router as member_router
 from app.core.log_cleanup import cleanup
 
 
@@ -56,4 +61,10 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+register_error_handlers(app)
+
 app.include_router(health_router)
+app.include_router(auth_router)
+app.include_router(household_router)
+app.include_router(member_router)
+app.include_router(ingredient_router)
