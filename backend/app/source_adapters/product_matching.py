@@ -48,6 +48,11 @@ SPECIFIC_CONFLICTS: dict[str, tuple[str, ...]] = {
     "雞蛋": ("鴨蛋", "鵪鶉蛋", "皮蛋", "鹹蛋", "茶葉蛋", "鐵蛋", "滷蛋"),
     "青蔥": ("洋蔥", "紅蔥頭", "蔥油", "蔥抓餅", "蔥餅", "蔥燒"),
     "太白粉": ("樹薯粉圓", "珍珠粉圓", "地瓜粉"),
+    "水": ("冰角", "冰塊", "冰品", "冰棒", "冰淇淋", "製冰", "冰磚"),
+}
+
+SHORT_NAME_IDENTITY_TERMS: dict[str, tuple[str, ...]] = {
+    "水": ("飲用水", "純水", "礦泉水", "包裝水", "蒸餾水", "RO水"),
 }
 
 
@@ -258,6 +263,16 @@ def evaluate_match(
         and normalize(term) not in {normalize(value) for value in GENERIC_ALIASES}
         and normalize(term) in normalized_name
     ]
+    if len(canonical) <= 1 and normalized_name != canonical:
+        short_identity_terms = [
+            term
+            for term in SHORT_NAME_IDENTITY_TERMS.get(query.canonical_name, ())
+            if normalize(term) in normalized_name
+        ]
+        if not short_identity_terms and not curated and not aliases:
+            return MatchDecision.REJECT, ingredient_type, 0, ConfidenceLevel.LOW, reasons, [
+                "short canonical name requires an exact name or a specific safe identity term"
+            ]
     if not canonical_match and not curated and not aliases:
         return MatchDecision.REJECT, ingredient_type, 0, ConfidenceLevel.LOW, reasons, [
             "canonical name and safe aliases not present"

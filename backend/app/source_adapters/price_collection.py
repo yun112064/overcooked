@@ -129,33 +129,39 @@ class PriceCollectionService:
 
             with self.adapter_factory() as adapter:
                 for index, ingredient in enumerate(remaining):
-                    representative = (
-                        self.repository.get_representative(
-                            lease, ingredient.canonical_name
+                    representative = None
+                    if ingredient.mapping_missing_reason:
+                        price_quote = self._workbook_mapping_error_quote(
+                            ingredient
                         )
-                        if hasattr(self.repository, "get_representative")
-                        else None
-                    )
-                    try:
-                        price_quote = adapter.quote(
-                            ingredient,
-                            preferred_product_id=(
-                                representative.product_id
-                                if representative else None
-                            ),
-                            representative_product_url=(
-                                representative.product_url
-                                if representative else None
-                            ),
-                            force_reassessment=(
-                                representative.reassessment_due
-                                if representative else False
-                            ),
+                    else:
+                        representative = (
+                            self.repository.get_representative(
+                                lease, ingredient.canonical_name
+                            )
+                            if hasattr(self.repository, "get_representative")
+                            else None
                         )
-                    except Exception as exc:  # isolate one ingredient failure
-                        price_quote = self._unexpected_error_quote(
-                            ingredient, type(exc).__name__
-                        )
+                        try:
+                            price_quote = adapter.quote(
+                                ingredient,
+                                preferred_product_id=(
+                                    representative.product_id
+                                    if representative else None
+                                ),
+                                representative_product_url=(
+                                    representative.product_url
+                                    if representative else None
+                                ),
+                                force_reassessment=(
+                                    representative.reassessment_due
+                                    if representative else False
+                                ),
+                            )
+                        except Exception as exc:  # isolate one ingredient failure
+                            price_quote = self._unexpected_error_quote(
+                                ingredient, type(exc).__name__
+                            )
 
                     self.repository.save_quote(lease, price_quote)
                     checkpoint_count += 1
@@ -257,6 +263,21 @@ class PriceCollectionService:
                 extra={"event": "price_collection_failed"},
             )
             raise
+
+    @staticmethod
+    def _workbook_mapping_error_quote(
+        ingredient: IngredientQuery,
+    ) -> PriceQuote:
+        return PriceQuote(
+            canonical_name=ingredient.canonical_name,
+            food_ids=ingredient.food_ids,
+            source="recipe workbook Food_ID mapping",
+            source_url="data/recipe_dataset_1017.xlsx#recipe_ingredients",
+            queried_at=datetime.now(timezone.utc),
+            status=QuoteStatus.NOT_FOUND,
+            missing_reason=ingredient.mapping_missing_reason,
+            selection_method="workbook_mapping",
+        )
 
     @staticmethod
     def _unexpected_error_quote(

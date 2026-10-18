@@ -18,7 +18,7 @@ if str(BACKEND) not in sys.path:
     sys.path.insert(0, str(BACKEND))
 
 from app.source_adapters.ingredient_workbook import load_ingredient_queries
-from app.source_adapters.price_models import PriceQuote, QuoteStatus
+from app.source_adapters.price_models import IngredientQuery, PriceQuote, QuoteStatus
 from app.source_adapters.pxmart import PxMartAdapter, SEARCH_URL
 
 
@@ -27,7 +27,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--input", type=Path, required=True, help="input .xlsx path")
     parser.add_argument("--output", type=Path, required=True, help="output .json/.csv file or directory")
     parser.add_argument("--format", choices=("json", "csv"), default="json")
-    parser.add_argument("--limit", type=int, help="only query the first N unique canonical names")
+    parser.add_argument("--limit", type=int, help="only process the first N deduplicated ingredient work items")
     parser.add_argument("--timeout", type=float, default=15.0)
     parser.add_argument("--retries", type=int, choices=range(0, 4), default=1)
     parser.add_argument("--delay", type=float, default=1.5, help="seconds between ingredients")
@@ -46,14 +46,54 @@ def _resolve_output(path: Path, output_format: str) -> Path:
     return path
 
 
-def _write_json(path: Path, quotes: list[PriceQuote], total: int, selected: int) -> None:
+def _scope_counts(ingredients: list[IngredientQuery]) -> dict[str, int]:
+    return {
+        "food_id_total": sum(len(item.food_ids) for item in ingredients),
+        "mapped_food_id_total": sum(
+            len(item.food_ids)
+            for item in ingredients
+            if not item.mapping_missing_reason
+        ),
+        "canonical_ingredient_total": sum(
+            not item.mapping_missing_reason for item in ingredients
+        ),
+        "unmapped_food_id_total": sum(
+            len(item.food_ids)
+            for item in ingredients
+            if item.mapping_missing_reason
+        ),
+    }
+
+
+def _mapping_error_quote(ingredient: IngredientQuery) -> PriceQuote:
+    return PriceQuote(
+        canonical_name=ingredient.canonical_name,
+        food_ids=ingredient.food_ids,
+        source="recipe workbook Food_ID mapping",
+        source_url="data/recipe_dataset_1017.xlsx#recipe_ingredients",
+        queried_at=datetime.now(timezone.utc),
+        status=QuoteStatus.NOT_FOUND,
+        missing_reason=ingredient.mapping_missing_reason,
+        selection_method="workbook_mapping",
+    )
+
+
+def _write_json(
+    path: Path,
+    quotes: list[PriceQuote],
+    scope: dict[str, int],
+    selected: list[IngredientQuery],
+) -> None:
     counts = Counter(quote.status.value for quote in quotes)
     tiers = Counter(quote.selection_tier.value for quote in quotes)
     processed = len(quotes)
     payload = {
         "source": "PX Mart Hour Arrive public search",
-        "canonical_ingredient_total": total,
-        "selected_ingredient_total": selected,
+        **scope,
+        "selected_ingredient_total": len(selected),
+        "selected_search_total": sum(
+            not item.mapping_missing_reason for item in selected
+        ),
         "counts": dict(sorted(counts.items())),
         "coverage": {
             "processed": processed,
@@ -104,10 +144,17 @@ def main() -> int:
         raise SystemExit("--batch-size must be at least 1")
 
     ingredients = load_ingredient_queries(args.input)
-    actual_total = len(ingredients)
+    scope = _scope_counts(ingredients)
     selected = ingredients[: args.limit] if args.limit else ingredients
-    print(f"實際 canonical_name 唯一食材總數: {actual_total}", flush=True)
-    print(f"本次查詢食材數: {len(selected)}", flush=True)
+    print(f"recipe_ingredients 唯一 Food_ID: {scope['food_id_total']}", flush=True)
+    print(f"可對應名稱的 Food_ID: {scope['mapped_food_id_total']}", flush=True)
+    print(f"需搜尋的不同標準食材: {scope['canonical_ingredient_total']}", flush=True)
+    print(f"無法對應名稱的 Food_ID: {scope['unmapped_food_id_total']}", flush=True)
+    print(
+        "本次查詢食材數: "
+        f"{sum(not item.mapping_missing_reason for item in selected)}",
+        flush=True,
+    )
 
     output = _resolve_output(args.output, args.format)
     checkpoint = args.checkpoint or output.with_suffix(output.suffix + ".checkpoint.json")
@@ -115,9 +162,21 @@ def main() -> int:
         payload = {
             "dry_run": True,
             "network_requests_made": 0,
-            "canonical_ingredient_total": actual_total,
+            **scope,
             "selected_ingredient_total": len(selected),
-            "canonical_names": [item.canonical_name for item in selected],
+            "canonical_names": [
+                item.canonical_name
+                for item in selected
+                if not item.mapping_missing_reason
+            ],
+            "unmapped_food_ids": [
+                {
+                    "food_ids": item.food_ids,
+                    "missing_reason": item.mapping_missing_reason,
+                }
+                for item in selected
+                if item.mapping_missing_reason
+            ],
         }
         output.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
         print(f"dry-run 完成，未發出網路請求；輸出: {output}", flush=True)
@@ -135,21 +194,24 @@ def main() -> int:
     counts.update(quote.status.value for quote in quotes)
     with PxMartAdapter(timeout=args.timeout, retries=args.retries) as adapter:
         for index, ingredient in enumerate(remaining, start=len(quotes) + 1):
-            try:
-                quote = adapter.quote(ingredient)
-            except Exception as exc:
-                quote = PriceQuote(
-                    canonical_name=ingredient.canonical_name,
-                    food_ids=ingredient.food_ids,
-                    source_url=SEARCH_URL.format(
-                        query=url_quote(ingredient.canonical_name, safe="")
-                    ),
-                    queried_at=datetime.now(timezone.utc),
-                    region_condition="Taiwan; no precise delivery region selected",
-                    store_condition="unexpected adapter failure; collection continued",
-                    status=QuoteStatus.SOURCE_ERROR,
-                    missing_reason=f"unexpected adapter error: {type(exc).__name__}",
-                )
+            if ingredient.mapping_missing_reason:
+                quote = _mapping_error_quote(ingredient)
+            else:
+                try:
+                    quote = adapter.quote(ingredient)
+                except Exception as exc:
+                    quote = PriceQuote(
+                        canonical_name=ingredient.canonical_name,
+                        food_ids=ingredient.food_ids,
+                        source_url=SEARCH_URL.format(
+                            query=url_quote(ingredient.canonical_name, safe="")
+                        ),
+                        queried_at=datetime.now(timezone.utc),
+                        region_condition="Taiwan; no precise delivery region selected",
+                        store_condition="unexpected adapter failure; collection continued",
+                        status=QuoteStatus.SOURCE_ERROR,
+                        missing_reason=f"unexpected adapter error: {type(exc).__name__}",
+                    )
             quotes.append(quote)
             counts[quote.status.value] += 1
             auto = sum(item.selection_tier.value == "auto_adopted" for item in quotes)
@@ -176,12 +238,12 @@ def main() -> int:
     if output_format == "csv":
         _write_csv(output, quotes)
     else:
-        _write_json(output, quotes, actual_total, len(selected))
+        _write_json(output, quotes, scope, selected)
     tiers = Counter(quote.selection_tier.value for quote in quotes)
     processed = len(quotes)
     print(
         "覆蓋率: "
-        f"總數={actual_total}, 已處理={processed}, 自動採用={tiers['auto_adopted']}, "
+        f"總數={len(ingredients)}, 已處理={processed}, 自動採用={tiers['auto_adopted']}, "
         f"估價備選={tiers['estimate']}, 缺值={tiers['missing']}, "
         f"對映失效率={(tiers['missing'] / processed if processed else 0):.2%}, "
         f"價格更新成功率={(tiers['auto_adopted'] / processed if processed else 0):.2%}",
