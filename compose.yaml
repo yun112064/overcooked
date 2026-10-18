@@ -56,6 +56,40 @@ services:
       db:
         condition: service_healthy
 
+  # Explicitly opt in with: docker compose --profile scheduler up -d
+  # This is the only daily-price scheduler process; FastAPI never starts it.
+  scheduler:
+    profiles: ["scheduler"]
+
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+
+    container_name: meal-planner-price-scheduler
+    command: ["python", "-m", "app.pricing_scheduler"]
+    restart: unless-stopped
+
+    environment:
+      DATABASE_URL: postgresql+psycopg://postgres:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}@db:5432/meal_planner
+      PROJECT_DATA_ROOT: /app/data
+      PYTHONUNBUFFERED: "1"
+      PRICE_SCHEDULER_ENABLED: ${PRICE_SCHEDULER_ENABLED:-true}
+      PRICE_SCHEDULER_HOUR: ${PRICE_SCHEDULER_HOUR:-3}
+      PRICE_SCHEDULER_MINUTE: ${PRICE_SCHEDULER_MINUTE:-0}
+      PRICE_SCHEDULER_TIMEZONE: ${PRICE_SCHEDULER_TIMEZONE:-Asia/Taipei}
+      PRICE_WORKBOOK_PATH: ${PRICE_WORKBOOK_PATH_CONTAINER:-/app/data/recipe_dataset_1017.xlsx}
+      PRICE_COLLECTION_DELAY_SECONDS: ${PRICE_COLLECTION_DELAY_SECONDS:-1.5}
+      PRICE_COLLECTION_TIMEOUT_SECONDS: ${PRICE_COLLECTION_TIMEOUT_SECONDS:-15}
+      PRICE_COLLECTION_RETRIES: ${PRICE_COLLECTION_RETRIES:-1}
+      PRICE_COLLECTION_BATCH_SIZE: ${PRICE_COLLECTION_BATCH_SIZE:-0}
+
+    volumes:
+      - ${PROJECT_DATA_ROOT:-../AIPE04期末專題_data}:/app/data
+
+    depends_on:
+      backend:
+        condition: service_healthy
+
   frontend:
     build:
       context: ./frontend

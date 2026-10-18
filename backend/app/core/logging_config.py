@@ -81,6 +81,22 @@ SAFE_LOG_EVENTS = {
         "scheduler",
         "Log space budget exceeded after cleanup",
     ),
+    "price_collection_started": (
+        "scheduler",
+        "Price collection started",
+    ),
+    "price_collection_completed": (
+        "scheduler",
+        "Price collection completed",
+    ),
+    "price_collection_failed": (
+        "scheduler",
+        "Price collection failed",
+    ),
+    "price_collection_skipped": (
+        "scheduler",
+        "Duplicate or concurrent price collection skipped",
+    ),
 }
 
 
