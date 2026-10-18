@@ -40,9 +40,10 @@ services:
       - "127.0.0.1:8000:8000"
 
     volumes:
-      - ../AIPE04期末專題_data:/app/data
-      - ../AIPE04期末專題_runtime:/app/runtime
-      - ../AIPE04期末專題_backups:/app/backups
+      # 主機端路徑由 .env 的 PROJECT_*_ROOT 設定；未設定時沿用開發機預設位置
+      - ${PROJECT_DATA_ROOT:-../AIPE04期末專題_data}:/app/data
+      - ${PROJECT_RUNTIME_ROOT:-../AIPE04期末專題_runtime}:/app/runtime
+      - ${PROJECT_BACKUP_ROOT:-../AIPE04期末專題_backups}:/app/backups
 
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=3)"]

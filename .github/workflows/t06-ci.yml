@@ -1,4 +1,4 @@
-name: T03 and T06 Checks
+name: T03, T04 and T06 Checks
 
 on:
   push:
@@ -8,6 +8,25 @@ on:
 jobs:
   backend-tests:
     runs-on: ubuntu-latest
+
+    services:
+      db:
+        image: pgvector/pgvector:0.8.6-pg17
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: ci_placeholder
+          POSTGRES_DB: meal_planner
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d meal_planner"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      DATABASE_URL: postgresql+psycopg://postgres:ci_placeholder@localhost:5432/meal_planner
+      PROJECT_DATA_ROOT: /tmp/t06-ci-data
 
     steps:
       - name: Checkout code
@@ -23,14 +42,66 @@ jobs:
         run: pip install -r requirements.txt
 
       - name: Check Python syntax
-        run: python -m compileall -q backend migrations tests nutrition_target
+        run: python -m compileall -q backend migrations tests nutrition_target nutrition_model
 
       - name: Run T03 nutrition target tests
         run: python -m unittest discover -s nutrition_target/tests -t . -p 'test_*.py' -v
 
+      - name: Run T04 nutrition model tests
+        env:
+          PYTHONPATH: nutrition_model
+          PYTHONUTF8: "1"
+        run: python -m unittest discover -s nutrition_model -p 'test_*.py' -v
+
       - name: Run T06 and AC26 tests
         env:
-          PROJECT_DATA_ROOT: /tmp/t06-ci-data
           PYTHONPATH: backend
-          DATABASE_URL: postgresql+psycopg://postgres:ci_placeholder@localhost:5432/meal_planner
         run: python -m unittest discover -s tests -p 'test_*.py' -v
+
+      - name: Apply Alembic migrations
+        run: |
+          alembic -c alembic.ini upgrade head
+          alembic -c alembic.ini current
+
+      - name: Check database health and pgvector
+        env:
+          PYTHONPATH: backend
+        run: |
+          python - <<'EOF'
+          from sqlalchemy import text
+          from app.api.health import database_health_check
+          from app.db.session import engine
+
+          assert database_health_check() == {"status": "ok", "service": "database"}
+          with engine.connect() as conn:
+              assert conn.execute(
+                  text("SELECT 1 FROM pg_extension WHERE extname = 'vector'")
+              ).scalar_one() == 1
+          print("database and pgvector ready")
+          EOF
+
+  frontend-build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Build
+        run: npm run build

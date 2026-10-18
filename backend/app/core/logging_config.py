@@ -77,6 +77,10 @@ SAFE_LOG_EVENTS = {
         "api",
         "Database health check failed",
     ),
+    "log_cleanup_budget_exceeded": (
+        "scheduler",
+        "Log space budget exceeded after cleanup",
+    ),
 }
 
 
@@ -164,6 +168,13 @@ class PreservingRotatingFileHandler(RotatingFileHandler):
             archive_name = (
                 f"{self.baseFilename}.{timestamp}"
             )
+
+            # 同一時間刻度內再次輪替時加序號，避免覆蓋或改名失敗
+            suffix = 1
+            base_archive = archive_name
+            while os.path.exists(archive_name):
+                archive_name = f"{base_archive}-{suffix}"
+                suffix += 1
 
             self.rotate(
                 self.baseFilename,
