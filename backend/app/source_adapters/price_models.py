@@ -79,6 +79,7 @@ class IngredientQuery(BaseModel):
 class ProductCandidate(BaseModel):
     product_id: str | None = None
     product_name: str
+    brand: str | None = None
     price: Decimal | None = None
     currency: str | None = None
     package_quantity: Decimal | None = None
@@ -94,6 +95,8 @@ class ProductCandidate(BaseModel):
     product_url: str | None = None
     availability: Availability = Availability.UNKNOWN
     price_kind: str = "displayed"
+    unit_price_per_100: Decimal | None = None
+    unit_price_per_1000: Decimal | None = None
     promotion_description: str | None = None
     valid_from: datetime | None = None
     valid_until: datetime | None = None
@@ -135,6 +138,7 @@ class PriceQuote(BaseModel):
     selection_reasons: list[str] = Field(default_factory=list)
     product_id: str | None = None
     product_name: str | None = None
+    brand: str | None = None
     price: Decimal | None = None
     currency: str | None = None
     package_quantity: Decimal | None = None
@@ -150,12 +154,20 @@ class PriceQuote(BaseModel):
     product_url: str | None = None
     availability: Availability = Availability.UNKNOWN
     price_kind: str | None = None
+    unit_price_per_100: Decimal | None = None
+    unit_price_per_1000: Decimal | None = None
     promotion_description: str | None = None
     estimated_product_id: str | None = None
     estimated_product_name: str | None = None
     estimated_price: Decimal | None = None
     estimated_currency: str | None = None
     candidates: list[ProductCandidate] = Field(default_factory=list)
+    raw_candidate_count: int = 0
+    retained_candidate_count: int = 0
+    rejected_candidate_count: int = 0
+    rejection_summary: dict[str, int] = Field(default_factory=dict)
+    query_terms: list[str] = Field(default_factory=list)
+    source_request_count: int = 0
 
     @model_validator(mode="after")
     def missing_values_must_be_explicit(self) -> "PriceQuote":

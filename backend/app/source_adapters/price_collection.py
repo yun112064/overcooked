@@ -22,6 +22,7 @@ from .price_models import (
     SelectionTier,
 )
 from .pricing_repository import PricingRepository, RunProgress
+from .product_matching import POLICY_VERSION
 from .pxmart import PxMartAdapter, SEARCH_URL
 
 
@@ -155,6 +156,7 @@ class PriceCollectionService:
                                 ),
                                 force_reassessment=(
                                     representative.reassessment_due
+                                    or representative.policy_version != POLICY_VERSION
                                     if representative else False
                                 ),
                             )

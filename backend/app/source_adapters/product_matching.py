@@ -19,7 +19,7 @@ from .price_models import (
 )
 
 
-POLICY_VERSION = "pxmart-selection-v2"
+POLICY_VERSION = "pxmart-selection-v3"
 
 GENERIC_ALIASES = {"蔬菜", "肉類", "海鮮", "澱粉", "香料", "調味料", "食材"}
 CURATED_ALIASES: dict[str, tuple[str, ...]] = {
@@ -33,15 +33,49 @@ CURATED_ALIASES: dict[str, tuple[str, ...]] = {
     "玉米筍": ("玉米心",),
     "豬絞肉": ("豬肉餡",),
     "牛絞肉": ("牛肉餡",),
+    "蛤蠣": ("蛤蜊",),
+    "蛤蜊": ("蛤蠣",),
+    "大蒜": ("蒜頭",),
+    "蒜頭": ("大蒜",),
+    "蔥花": ("葱花",),
 }
+
+SEARCH_REFINEMENTS: dict[str, tuple[str, ...]] = {
+    "水": ("飲用水", "礦泉水"),
+    "胡椒": ("胡椒粒", "黑胡椒粒"),
+    "奶油": ("無鹽奶油", "有鹽奶油"),
+    "起司": ("天然起司", "起司片"),
+    "番茄": ("生鮮番茄", "牛番茄"),
+    "大蒜": ("蒜頭",),
+    "蛤蠣": ("蛤蜊",),
+    "香菇": ("鮮香菇",),
+    "芝麻": ("白芝麻粒", "黑芝麻粒"),
+}
+
+NON_FOOD_MARKERS = (
+    "寵物", "寵物食品", "貓糧", "狗糧", "犬糧", "飼料", "貓罐", "狗罐",
+    "貓用", "狗用", "犬用", "毛孩", "洗髮", "洗髮精", "沐浴乳", "肥皂",
+    "洗衣", "清潔劑", "清潔液", "洗碗", "護髮", "化妝", "保養", "精華液",
+    "面膜", "乳液", "牙膏", "除臭", "洗手乳", "漱口水", "ciao", "cat care",
+    "寶路", "葛莉思cat", "沛比兒", "狗食", "貓食", "寵食",
+    "偉嘉", "西莎", "希爾思", "whiskas",
+)
 
 PROCESSED_MARKERS = (
     "熟食", "調理", "即食", "滷", "炸", "醃", "煙燻", "香腸", "肉鬆",
     "水餃", "罐頭", "沙拉", "果汁", "蔬果汁", "醬", "餅", "米果",
     "布丁", "蛋糕", "蛋捲", "麵", "麵包", "金磚", "湯", "丸", "糕", "飲", "茶",
     "風味", "口味", "脆片", "調味", "燒", "香炙", "乾燥", "粉包",
+    "炒飯", "便當", "饅頭", "餐包", "雞煲", "火鍋", "底料", "料理包",
+    "爆米花", "薯條", "吐司", "愛玉", "方塊酥", "優酪", "優格", "粥",
+    "瓜子", "客家小炒", "涼拌", "泡菜", "豆腐乳", "燉", "花生米",
+    "卷", "味噌", "麻婆豆腐", "氣泡水", "蒟蒻", "煲", "泡芙", "軟糖",
+    "夾心酥", "蛋黃酥", "派", "包子", "堅果", "蔥酥", "果凍", "qq",
+    "捲", "鍋", "鍋底", "餃", "餃子", "美乃滋", "炊飯", "千層", "棉花糖",
+    "魚條", "麻糬", "壽司", "油雞", "蒜蓉", "十三香", "卡啦", "川椒", "蒸",
+    "蛋白棒", "手撕包", "馬卡龍", "夾餡", "魚揚", "營養素",
 )
-STATE_MARKERS = ("冷凍", "熟", "去骨", "帶骨", "去皮", "帶皮")
+STATE_MARKERS = ("冷凍", "極凍", "凍乾", "熟", "去骨", "帶骨", "去皮", "帶皮", "重組", "鹽鯖")
 BENIGN_FRESH_MARKERS = ("冷藏", "生鮮", "洗選", "產銷履歷", "有機")
 
 SPECIFIC_CONFLICTS: dict[str, tuple[str, ...]] = {
@@ -49,6 +83,66 @@ SPECIFIC_CONFLICTS: dict[str, tuple[str, ...]] = {
     "青蔥": ("洋蔥", "紅蔥頭", "蔥油", "蔥抓餅", "蔥餅", "蔥燒"),
     "太白粉": ("樹薯粉圓", "珍珠粉圓", "地瓜粉"),
     "水": ("冰角", "冰塊", "冰品", "冰棒", "冰淇淋", "製冰", "冰磚"),
+    "麻油": ("麻油雞", "麻油猴頭菇", "麻油辣腐乳"),
+    "蛤蠣": ("蛤蠣雞", "蛤蜊雞", "蛤蜊絲瓜"),
+    "蛤蜊": ("蛤蠣雞", "蛤蜊雞", "蛤蜊絲瓜"),
+    "紅椒": ("紅椒粉",),
+    "迷迭香": ("迷迭香薯條",),
+    "大蒜": ("大蒜花生", "大蒜條", "蒜頭雞", "蒜頭酥", "蒜頭粉"),
+    "小卷": ("海苔小卷",),
+    "花椒": ("豬", "牛", "雞", "魚", "蝦", "翅", "腿"),
+    "胡椒": ("毛豆", "豬", "牛", "雞", "魚", "蝦", "胡椒餅", "胡椒鹽", "肉排"),
+    "番茄": ("番茄罐", "番茄冬粉", "番茄汁", "蕃茄汁", "柳葉魚"),
+    "奶油": ("鮮奶油", "奶油球", "奶油餐包", "人造奶油", "乳瑪琳"),
+    "啤酒": ("啤酒酵母",),
+    "蛋黃": ("蛋黃香", "蛋黃素"),
+    "鹹蛋黃": ("蛋黃酥", "方塊酥"),
+    "鹹蛋": ("蛋黃酥", "方塊酥"),
+    "高粱酒": ("高粱酒豬", "高粱酒豆腐乳"),
+    "可樂": ("可樂果",),
+    "黑醋": ("黑醋栗",),
+    "玉米": ("玉米筍", "玉米粉"),
+    "地瓜": ("地瓜葉",),
+    "白蘿蔔": ("紅蘿蔔",),
+    "紅蘿蔔": ("白蘿蔔",),
+    "芹菜": ("西洋芹",),
+    "雞胸肉": ("雞腿", "雞翅"),
+    "雞腿": ("雞胸", "雞翅"),
+    "雞翅": ("雞胸", "雞腿", "花椒", "椒鹽", "三杯", "卡啦", "香草", "吮指"),
+    "米粉": ("在來米粉", "蓬萊米粉", "糯米粉"),
+    "芝麻": ("芝麻粉", "芝麻包", "芝麻麻糬", "芝麻糊"),
+    "黑芝麻": ("黑芝麻粉", "黑芝麻包", "黑芝麻糊", "五麥", "藜麥", "穀奶"),
+    "花椰菜": ("青花菜", "青花椰菜", "綠花椰菜", "三重奏"),
+    "玉米筍": ("玉米粒", "甜玉米"),
+    "甘草": ("甘草芭樂", "甘草喉糖"),
+    "蝦米": ("朝天辣椒",),
+    "貢丸": ("鴨肉", "牛肉", "魚肉"),
+    "牛腩": ("黑胡椒牛腩",),
+    "香葉": ("迷迭香",),
+    "鮭魚": ("魚頭", "魚骨"),
+    "鯛魚": ("魚下巴", "鯛魚下巴"),
+    "鯖魚": ("鹽鯖", "茄汁", "易開罐"),
+    "鱈魚": ("鱈魚香絲", "鱈魚起司", "三明治", "雙珍", "比活力", "芝麻鱈魚"),
+    "檸檬": ("檸檬薄片", "福義軒", "冰磚", "冰角", "原汁", "檸檬味", "酸糖", "酸酸李"),
+    "毛豆": ("黑胡椒毛豆", "調味毛豆"),
+    "巧克力": ("熱巧克力", "繽紛樂"),
+    "蛋白": ("蛋白牛奶", "奶蛋白", "蛋白飲", "蛋白粉", "蛋白棒", "蛋白杯", "高蛋白", "優蛋白", "乳清", "補體素", "燕麥"),
+    "草莓": ("咖啡", "拿鐵", "果醬", "優格", "優酪", "威化", "百奇", "pocky", "kitkat", "草莓棒", "甜心草莓"),
+    "蒜頭": ("蒜頭雞", "蒜頭酥", "蒜頭粉", "大蒜條"),
+    "沙茶": ("蜜汁", "豆干", "肉乾"),
+    "椰菜": ("青花椰菜", "花椰菜"),
+    "蘿蔔": ("香辣蘿蔔", "醃蘿蔔", "蘿蔔乾"),
+    "豆豉": ("朝天小魚",),
+}
+
+AMBIGUOUS_VARIANTS: dict[str, tuple[str, ...]] = {
+    "蘿蔔": ("紅蘿蔔", "白蘿蔔", "胡蘿蔔"),
+    "麵粉": ("高筋", "中筋", "低筋"),
+    "肉絲": ("牛", "豬", "雞", "前腿", "里肌"),
+    "高湯": ("雞", "豬", "牛", "魚", "昆布", "海鮮", "蟹"),
+    "沙茶": ("沙茶醬", "沙茶粉"),
+    "肉桂": ("肉桂粉", "肉桂棒"),
+    "優格": ("橘", "水蜜桃", "草莓", "藍莓", "水果"),
 }
 
 SHORT_NAME_IDENTITY_TERMS: dict[str, tuple[str, ...]] = {
@@ -61,8 +155,37 @@ def normalize(value: str) -> str:
     return re.sub(r"[\s\-_()（）/]+", "", value)
 
 
+def build_search_terms(query: IngredientQuery, max_terms: int = 3) -> list[str]:
+    """Build a bounded, conservative canonical/alias search sequence."""
+
+    terms: list[str] = []
+    for term in (
+        query.canonical_name,
+        *CURATED_ALIASES.get(query.canonical_name, ()),
+        *SEARCH_REFINEMENTS.get(query.canonical_name, ()),
+        *query.aliases,
+    ):
+        cleaned = term.strip()
+        if (
+            cleaned
+            and len(normalize(cleaned)) >= 2
+            and normalize(cleaned) not in {normalize(value) for value in GENERIC_ALIASES}
+            and cleaned not in terms
+        ):
+            terms.append(cleaned)
+        elif cleaned == query.canonical_name and cleaned not in terms:
+            terms.append(cleaned)
+        if len(terms) >= max_terms:
+            break
+    return terms
+
+
 def classify_ingredient(canonical_name: str) -> str:
     name = normalize(canonical_name)
+    if name in {"水", "飲用水", "礦泉水"}:
+        return "water"
+    if any(term in name for term in ("蜂蜜", "高湯", "雞湯")):
+        return "liquid_food"
     if "蛋" in name:
         return "egg"
     if any(term in name for term in ("雞", "豬", "牛", "羊", "肉", "排骨")):
@@ -249,6 +372,12 @@ def evaluate_match(
     reasons: list[str] = [f"ingredient type: {ingredient_type}"]
     rejected: list[str] = []
 
+    non_food = [marker for marker in NON_FOOD_MARKERS if normalize(marker) in normalized_name]
+    if non_food:
+        return MatchDecision.REJECT, ingredient_type, 0, ConfidenceLevel.LOW, reasons, [
+            "non-food product: " + ", ".join(non_food)
+        ]
+
     conflicts = [term for term in SPECIFIC_CONFLICTS.get(query.canonical_name, ()) if normalize(term) in normalized_name]
     if conflicts:
         return MatchDecision.REJECT, ingredient_type, 0, ConfidenceLevel.LOW, reasons, [
@@ -309,7 +438,21 @@ def evaluate_match(
         score += 3
         reasons.append("freshness/traceability marker is compatible")
 
-    if package.unit and ingredient_type not in {"liquid_seasoning", "dairy"} and package.unit != "g":
+    ambiguous_variants = [
+        marker for marker in AMBIGUOUS_VARIANTS.get(query.canonical_name, ())
+        if normalize(marker) in normalized_name
+    ]
+    if ambiguous_variants:
+        decision = MatchDecision.REVIEW
+        score -= 15
+        reasons.append(
+            "canonical name is broader than product variant: "
+            + ", ".join(ambiguous_variants)
+        )
+
+    if package.unit and ingredient_type not in {
+        "liquid_seasoning", "dairy", "water", "liquid_food"
+    } and package.unit != "g":
         return MatchDecision.REJECT, ingredient_type, 0, ConfidenceLevel.LOW, reasons, [
             f"weight basis incompatible with solid ingredient: {package.unit}"
         ]
