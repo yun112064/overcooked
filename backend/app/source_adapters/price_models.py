@@ -65,6 +65,7 @@ class IngredientQuery(BaseModel):
     canonical_name: str
     food_ids: list[str] = Field(default_factory=list)
     aliases: list[str] = Field(default_factory=list)
+    mapping_missing_reason: str | None = None
 
     @field_validator("canonical_name")
     @classmethod

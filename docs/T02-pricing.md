@@ -4,9 +4,9 @@
 
 ## 範圍與結論
 
-本階段只接入全聯福利中心「全聯小時達」，未實作萬家福或其他供應商。程式只讀輸入活頁簿的 `ingredient_aliases` 工作表，且只有非空的 `canonical_name` 能建立查價項目；`Food_ID` 與 `alias` 只附加在該標準食材上作識別提示，不會擴張清單。
+本階段只接入全聯福利中心「全聯小時達」，未實作萬家福或其他供應商。程式以 `recipe_ingredients.Food_ID` 的唯一值建立查價範圍，使用活頁簿現有 `canonical_name` 對應標準名稱；`ingredient_aliases.alias` 只作商品匹配提示。相同標準名稱只查全聯一次，結果保留其全部 Food_ID。
 
-本機 `data/recipe_dataset_1017.xlsx` 實測有 209 筆非空 canonical 列，依正規化後的完整名稱去重為 **159 種標準食材**。CLI 每次執行也會重新顯示實際總數，不將此數字硬編碼。
+本機 `data/recipe_dataset_1017.xlsx` 實測有 **434 個唯一 Food_ID**，434 個皆可對應名稱，去重後需搜尋 **434 種標準食材**，無法對應 0 個。CLI 每次執行都重新計算，不將數字硬編碼；找不到或有衝突的名稱會記為缺值，不會送到全聯搜尋或填入假價格。
 
 ## 來源研究與取得邊界
 
@@ -70,7 +70,7 @@ python scripts/collect_pxmart_prices.py `
   --limit 3
 ```
 
-完整查詢 159 種食材並輸出 CSV：
+完整查詢 Food_ID 範圍去重後的標準食材並輸出 CSV：
 
 ```powershell
 python scripts/collect_pxmart_prices.py `
@@ -92,7 +92,7 @@ python scripts/collect_pxmart_prices.py --input data/recipe_dataset_1017.xlsx `
 
 ## 每日自動更新
 
-排程使用 APScheduler 3.x 的單一獨立 blocking process，**沒有**掛在 FastAPI lifespan，所以增加 Uvicorn worker 不會增加排程器。預設每天 `Asia/Taipei` 03:00 執行；每次仍由 `load_ingredient_queries()` 只讀 `ingredient_aliases` 並去重 canonical name，目前供應商固定為 `pxmart`。
+排程使用 APScheduler 3.x 的單一獨立 blocking process，**沒有**掛在 FastAPI lifespan，所以增加 Uvicorn worker 不會增加排程器。預設每天 `Asia/Taipei` 03:00 執行；每次由 `load_ingredient_queries()` 讀取 `recipe_ingredients.Food_ID`、解析工作簿標準名稱並去重 canonical name，目前供應商固定為 `pxmart`。
 
 執行前先套用 migration：
 
@@ -158,21 +158,21 @@ docker compose logs -f scheduler
 - 每筆 snapshot 寫完即提交。單一食材發生未預期錯誤時寫入 `source_error` snapshot 後繼續；run row 最後記錄成功、待確認、失敗、各狀態與缺值原因次數、開始／完成時間及耗時。
 - 若 process 在中途崩潰，advisory lock 會由 PostgreSQL 連線關閉自動釋放，已提交 snapshot 與 `running` run row保留供調查；同一日不會被自動偽裝成新的完整更新，可另用新的 manual run key 人工重跑。
 
-目前未執行完整 159 種的每日 production run，也沒有接入萬家福。下方三筆真實小量驗證只證明公開全聯頁面在驗證時間可取得候選，不代表每日雲端更新已成功上線。
+目前未執行完整 434 種的每日 production run，也沒有接入萬家福。下方三筆真實小量驗證只證明公開全聯頁面在驗證時間可取得候選，不代表每日雲端更新已成功上線。
 
 ## 測試與 G02 狀態
 
 固定 fixtures 覆蓋 Excel 欄位/去重、Decimal 價格、缺價、缺貨、包裝缺值、加工狀態不匹配、有限逾時重試、來源欄位變動、過期/未知有效期，以及缺值不得為 0。
 
-2026-10-18 22:41（Asia/Taipei）以 `pxmart-selection-v2` 對本機活頁簿執行 `--limit 3` 的真實公開頁面結果：自動採用 3、估價備選 0、缺值 0；樣本價格更新成功率 100%，對映失效率 0%。這不是 fixture 結果，也不能外推為完整 159 種覆蓋率。
+2026-10-18 修正短名稱與水類排除規則後，以新的 Food_ID 範圍執行 `--limit 3 --retries 0`：低筋麵粉、太白粉成功自動採用；「純水冰角」被硬性排除，水沒有可靠可採用商品，回傳 `selection_tier=missing`、`price=null`。這次只證明少量來源與規則可運作，不能外推為完整 434 種的匹配正確率。
 
 | canonical_name | 原始候選 | 自動採用代表商品 | 售價（NTD） | 判定 |
 |---|---:|---|---:|---|
+| 低筋麵粉 | 46 | 耆盛低筋麵粉 500 g | 26 | 高可信度；score 94 |
 | 太白粉 | 42 | 台糖高級太白粉 300 g | 22 | 高可信度；score 94 |
-| 雞蛋 | 44 | 味全木崗高品質雞蛋 630±30 g／10 入 | 104 | 高可信度；公差與件數分開保存；score 95 |
-| 青蔥 | 36 | 青蔥（產銷履歷）100 g | 33 | 高可信度；加工青蔥商品仍排除；score 97 |
+| 水 | 49 | 無 | — | `unusable_package`／`missing`；純水冰角因冰角衝突被排除，未填入價格 |
 
-完整原始候選、分數與拒絕原因保存在本機忽略檔 `outputs/t02-live-limit3-v2.json`。159 種無網路 dry-run 已確認完整 canonical 清單，但尚未執行 159 種真實請求，因此完整真實覆蓋率仍未知。
+本次原始候選、分數與拒絕原因保存在本機忽略檔 `outputs/t02-waterfix-live-limit3.json`。434 種無網路 dry-run 已確認 Food_ID、名稱對應與查價清單，但尚未執行 434 種真實請求，因此完整真實覆蓋率仍未知。
 
 G02 目前可完成「公開來源取得、追溯候選、缺值/阻擋處理與小量真實查詢」的工程驗證；仍有兩項正式驗收限制：
 
