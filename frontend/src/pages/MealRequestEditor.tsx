@@ -12,8 +12,10 @@ import { api, apiError, errorMessage, errorStatus } from '../api/client'
 import {
   MEAL_LABELS, type IngredientRef, type MealRequest, type MealRequestDraft, type MealType, type Member,
 } from '../api/types'
+import FormTextField from '../components/FormTextField'
 import GenerationPanel from '../components/GenerationPanel'
 import IngredientPicker from '../components/IngredientPicker'
+import RecognitionCapture from '../components/RecognitionCapture'
 
 const STEPS = ['用餐資訊', '成員與便當', '口味與指定菜', '已有食材', '確認']
 const MEALS: MealType[] = ['breakfast', 'lunch', 'dinner']
@@ -190,8 +192,8 @@ function Editor({ initial, members: memberList }: { initial: MealRequest; member
                 {MEALS.map((m) => <MenuItem key={m} value={m}>{MEAL_LABELS[m]}</MenuItem>)}
               </TextField>
             )} />
-            <TextField label="預算（新台幣）" inputMode="decimal" {...register('budget')}
-              error={!!errors.budget} helperText={errors.budget?.message ?? '以需補買食材的比例成本判斷是否在預算內'} />
+            <FormTextField name="budget" control={control} label="預算（新台幣）" inputMode="decimal"
+              helperText="以需補買食材的比例成本判斷是否在預算內" />
             <Controller name="staple" control={control} render={({ field }) => (
               <Autocomplete freeSolo options={STAPLE_SUGGESTIONS} value={field.value}
                 onChange={(_, v) => field.onChange(v ?? '')} onInputChange={(_, v) => field.onChange(v)}
@@ -240,9 +242,8 @@ function Editor({ initial, members: memberList }: { initial: MealRequest; member
 
         {step === 2 && (
           <Stack spacing={2}>
-            <TextField label="口味偏好" multiline minRows={2} {...register('taste_preferences')}
-              error={!!errors.taste_preferences}
-              helperText={errors.taste_preferences?.message ?? '例如：清淡、少辣（會盡量滿足）'} />
+            <FormTextField name="taste_preferences" control={control} label="口味偏好" multiline minRows={2}
+              helperText="例如：清淡、少辣（會盡量滿足）" />
             <Controller name="specified_dishes" control={control} render={({ field }) => (
               <Autocomplete multiple freeSolo options={[]} value={field.value}
                 onChange={(_, v) => field.onChange(v.map((s) => String(s).trim()).filter(Boolean))}
@@ -260,9 +261,15 @@ function Editor({ initial, members: memberList }: { initial: MealRequest; member
             <Typography variant="body2" color="text.secondary">
               選擇家中已有的食材種類。已有的種類視為足夠這餐使用，不需要輸入重量；沒選的食材會按整餐需求量補買。
             </Typography>
+            <RecognitionCapture mealRequestId={id} onAdd={(ingredient) => {
+              const current = getValues('available')
+              if (!current.some((i) => i.ingredient_id === ingredient.ingredient_id)) {
+                form.setValue('available', [...current, ingredient], { shouldDirty: true })
+              }
+            }} />
             <Controller name="available" control={control} render={({ field }) => (
-              <IngredientPicker label="家中已有的食材" value={field.value as IngredientRef[]} onChange={field.onChange}
-                error={!!errors.available} helperText={errors.available?.message} />
+              <IngredientPicker label="家中已有的食材（也可直接搜尋加入，例如肉類）" value={field.value as IngredientRef[]}
+                onChange={field.onChange} error={!!errors.available} helperText={errors.available?.message} />
             )} />
           </Stack>
         )}

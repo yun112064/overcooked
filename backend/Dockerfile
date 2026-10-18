@@ -12,6 +12,8 @@ COPY nutrition_target /app/nutrition_target
 COPY nutrition_model/data/ingredient_id_master.json /app/nutrition_model/data/ingredient_id_master.json
 # T10 付費呼叫預留與結算用的模型價格表
 COPY config/model_pricing.json /app/config/model_pricing.json
+# T09 YOLO 類別名稱對照（待 T05 定版）
+COPY config/recognition_labels.json /app/config/recognition_labels.json
 ENV PYTHONPATH=/app
 COPY alembic.ini /app/alembic.ini
 COPY migrations /app/migrations

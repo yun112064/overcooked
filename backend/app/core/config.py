@@ -41,6 +41,17 @@ class Settings(BaseSettings):
     # 日誌清理預設由單一排程程序負責；API 程序內清理僅供未啟用排程時使用
     log_cleanup_in_api: bool = False
 
+    # T09 上傳與團隊電腦 YOLO 推論服務
+    project_data_root: Path = Path("/app/data")
+    upload_max_bytes: int = 10 * 1024 * 1024
+    upload_max_pixels: int = 40_000_000
+    # 未設定代表推論服務不可用（顯示服務狀態，可手動輸入），不是「沒有結果」
+    recognition_service_url: str | None = None
+    recognition_service_token: str | None = None
+    recognition_timeout_seconds: float = 10.0
+    recognition_min_confidence: Decimal = Decimal("0.25")
+    recognition_labels_path: Path = PROJECT_ROOT / "config/recognition_labels.json"
+
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",

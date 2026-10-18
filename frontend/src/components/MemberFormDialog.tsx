@@ -10,6 +10,7 @@ import { api, apiError } from '../api/client'
 import {
   ACTIVITY_LABELS, GOAL_LABELS, type Activity, type Goal, type Member, type MemberInput, type MemberOptions,
 } from '../api/types'
+import FormTextField from './FormTextField'
 import IngredientPicker from './IngredientPicker'
 
 const PORTION_HINT: Record<string, string> = {
@@ -140,8 +141,7 @@ export default function MemberFormDialog({ open, member, options, onClose }: Pro
         <DialogContent>
           <Stack spacing={2} sx={{ pt: 1 }}>
             {save.isError && !fieldShown && <Alert severity="error">{serverError?.message ?? '儲存失敗，請稍後再試。'}</Alert>}
-            <TextField label="成員名稱" {...register('display_name')}
-              error={!!errors.display_name} helperText={errors.display_name?.message ?? '可用暱稱，不需要真實姓名'} />
+            <FormTextField name="display_name" control={control} label="成員名稱" helperText="可用暱稱，不需要真實姓名" />
             <TextField label="出生日期" type="date" {...register('birth_date')}
               slotProps={{ inputLabel: { shrink: true }, htmlInput: { max: today() } }}
               error={!!errors.birth_date}
@@ -153,8 +153,7 @@ export default function MemberFormDialog({ open, member, options, onClose }: Pro
                 <MenuItem value="M">男</MenuItem>
               </TextField>
             )} />
-            <TextField label="體重（公斤）" inputMode="decimal" {...register('weight_kg')}
-              error={!!errors.weight_kg} helperText={errors.weight_kg?.message} />
+            <FormTextField name="weight_kg" control={control} label="體重（公斤）" inputMode="decimal" />
             <Controller name="activity_category" control={control} render={({ field }) => (
               <TextField select label="活動量" {...field} error={!!errors.activity_category}
                 helperText={errors.activity_category?.message}>

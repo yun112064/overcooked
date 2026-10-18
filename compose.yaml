@@ -38,6 +38,9 @@ services:
       # 狀態修改請求只接受這些前端來源；正式網域部署時改為 https://<網域>
       ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-http://localhost:8080}
       COOKIE_SECURE: ${COOKIE_SECURE:-true}
+      # T09 團隊電腦 YOLO 推論服務；未設定時辨識顯示不可用，可手動輸入
+      RECOGNITION_SERVICE_URL: ${RECOGNITION_SERVICE_URL:-}
+      RECOGNITION_SERVICE_TOKEN: ${RECOGNITION_SERVICE_TOKEN:-}
 
     ports:
       - "127.0.0.1:8000:8000"

@@ -232,3 +232,35 @@ class UsageReservation(Base):
     note: Mapped[str | None] = mapped_column(Text, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, nullable=False)
     settled_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+
+class Recognition(Base):
+    """T09 蔬菜辨識紀錄。畫面只回填最高信心名稱；偵測明細保留供評估與追溯。"""
+    __tablename__ = "recognitions"
+    __table_args__ = (
+        CheckConstraint("status IN ('succeeded', 'no_result', 'unavailable')", name="ck_recognition_status"),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    household_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("households.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    meal_request_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("meal_requests.id", ondelete="SET NULL"), nullable=True
+    )
+    status: Mapped[str] = mapped_column(String(20), nullable=False)
+    # Data Root 內的相對路徑；圖片只經家庭授權的 API 讀取
+    image_path: Mapped[str] = mapped_column(String(200), nullable=False)
+    image_width: Mapped[int] = mapped_column(Integer, nullable=False)
+    image_height: Mapped[int] = mapped_column(Integer, nullable=False)
+    top_label: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    top_name: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    top_confidence: Mapped[Decimal | None] = mapped_column(Numeric(6, 5), nullable=True)
+    model_version: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    detections: Mapped[list | None] = mapped_column(JSONB, nullable=True)
+    unavailable_reason: Mapped[str | None] = mapped_column(String(50), nullable=True)
+    # 使用者修正後確認的名稱與標準食材（AC22 不以此計分）
+    confirmed_name: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    confirmed_ingredient_id: Mapped[str | None] = mapped_column(String(20), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, nullable=False)
