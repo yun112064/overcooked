@@ -92,6 +92,22 @@ SAFE_LOG_EVENTS = {
     "job_recovered": ("scheduler", "Expired background job recovered"),
     "scheduler_started": ("scheduler", "Scheduler started"),
     "scheduler_lock_held": ("scheduler", "Another scheduler instance is running"),
+    "price_collection_started": (
+        "scheduler",
+        "Price collection started",
+    ),
+    "price_collection_completed": (
+        "scheduler",
+        "Price collection completed",
+    ),
+    "price_collection_failed": (
+        "scheduler",
+        "Price collection failed",
+    ),
+    "price_collection_skipped": (
+        "scheduler",
+        "Duplicate or concurrent price collection skipped",
+    ),
 }
 
 # 可選追蹤欄位：只接受符合格式的值，避免任意內容寫入正式 Log
