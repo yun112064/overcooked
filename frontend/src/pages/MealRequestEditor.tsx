@@ -344,6 +344,15 @@ function Summary({ row, members }: { row: MealRequest; members: Member[] }) {
             label={`${r.name}：${r.kinds.includes('allergen') ? '過敏' : '禁吃'}（${r.member_names.join('、')}）`} />
         ))}
       </Stack>
+      {row.restrictions.expanded_ingredients.length > 0 && (
+        <Typography variant="body2" color="text.secondary">
+          同義或同類食材也會一併排除：
+          {row.restrictions.expanded_ingredients.map((r) => {
+            const base = row.restrictions.ingredients.find((i) => r.via.includes(i.ingredient_id))
+            return `${r.name}（${r.relation === 'broader' ? '同類' : '同義'}：${base?.name ?? ''}）`
+          }).join('、')}
+        </Typography>
+      )}
       {row.restrictions.available_but_restricted.length > 0 && (
         <Alert severity="info">家中已有的食材中，有成員過敏或禁吃的項目；產生菜單時仍會排除這些食材。</Alert>
       )}

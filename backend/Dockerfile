@@ -15,6 +15,8 @@ COPY config/model_pricing.json /app/config/model_pricing.json
 COPY config/recognition_labels.json /app/config/recognition_labels.json
 # T02 不查價食材（如水）
 COPY config/price_exempt_ingredients.json /app/config/price_exempt_ingredients.json
+# 同義食材對照（過敏全套用、已有食材與查價只用已確認組）
+COPY config/ingredient_synonyms.json /app/config/ingredient_synonyms.json
 ENV PYTHONPATH=/app
 COPY alembic.ini /app/alembic.ini
 COPY migrations /app/migrations

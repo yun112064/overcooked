@@ -14,7 +14,7 @@ from sqlalchemy.orm import Session
 
 from app.db.models import Member
 from app.services import household as household_service
-from app.services import ingredients
+from app.services import ingredients, synonyms
 from nutrition_target import TargetInputError
 
 MealType = Literal["breakfast", "lunch", "dinner"]
@@ -157,11 +157,33 @@ def restrictions(db: Session, draft: MealRequestDraft, members: dict) -> dict:
                     row["kinds"].append(kind)
                 if member.display_name not in row["member_names"]:
                     row["member_names"].append(member.display_name)
+    # 同義食材（含待確認的組）也一併排除，例如對「番茄」過敏也排除「蕃茄」
+    expanded: dict[str, dict] = {}
+    for base_id, extras in synonyms.restriction_expansion(list(union)).items():
+        for extra in extras:
+            if extra["food_id"] in union:
+                continue
+            row = expanded.setdefault(extra["food_id"], {
+                "ingredient_id": extra["food_id"], "relation": extra["relation"], "status": extra["status"],
+                "via": [], "kinds": [], "member_names": [],
+            })
+            row["via"].append(base_id)
+            for key in ("kinds", "member_names"):
+                for value in union[base_id][key]:
+                    if value not in row[key]:
+                        row[key].append(value)
+    extra_names = ingredients.names(db, list(expanded))
+    for row in expanded.values():
+        row["name"] = extra_names.get(row["ingredient_id"])
+    excluded = set(union) | set(expanded)
     available = set(draft.available_ingredient_ids)
     return {
         "ingredients": list(union.values()),
+        "expanded_ingredients": list(expanded.values()),
+        # 生成菜單時要排除的完整 FOOD 編號
+        "excluded_food_ids": sorted(excluded),
         # 家中有、但有人過敏或禁吃：提醒使用者，生成時仍會排除
-        "available_but_restricted": [i for i in union if i in available],
+        "available_but_restricted": [i for i in draft.available_ingredient_ids if i in excluded],
     }
 
 

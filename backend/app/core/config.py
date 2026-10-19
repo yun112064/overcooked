@@ -19,6 +19,9 @@ class Settings(BaseSettings):
     # 允許的前端來源（狀態修改請求的 Origin／Referer 檢查），逗號分隔
     allowed_origins: str = "http://localhost:8080,http://localhost:5173"
 
+    # 同義食材對照（不修改工作簿；過敏全套用、其他只用已確認組）
+    ingredient_synonyms_path: Path = PROJECT_ROOT / "config/ingredient_synonyms.json"
+
     nutrition_rules_path: Path = (
         PROJECT_ROOT / "nutrition_target/rules/hpa-dri8-mvp-0.3.0.json"
     )

@@ -57,6 +57,26 @@ def load_price_exempt(path: str | Path = PRICE_EXEMPT_PATH) -> set[str]:
     return set(json.loads(path.read_text(encoding="utf-8"))["ingredients"])
 
 
+def merge_confirmed_synonyms(queries: list[IngredientQuery], groups: list[set[str]]) -> list[IngredientQuery]:
+    """已確認是同一種食材的不同 Food_ID 只查一次價；其他名稱當作商品比對提示。"""
+    merged = list(queries)
+    for group in groups:
+        members = [q for q in merged if set(q.food_ids) & group]
+        if len(members) < 2:
+            continue
+        keep = members[0]
+        aliases = list(keep.aliases)
+        food_ids = list(keep.food_ids)
+        for other in members[1:]:
+            for name in (other.canonical_name, *other.aliases):
+                if name not in aliases and name != keep.canonical_name:
+                    aliases.append(name)
+            food_ids += [i for i in other.food_ids if i not in food_ids]
+        combined = keep.model_copy(update={"food_ids": food_ids, "aliases": aliases})
+        merged = [combined if q is keep else q for q in merged if q is keep or q not in members]
+    return merged
+
+
 class PriceCollectionService:
     def __init__(
         self,
@@ -70,7 +90,12 @@ class PriceCollectionService:
         ),
         sleep: Callable[[float], None] = time.sleep,
         exempt_food_ids: set[str] | None = None,
+        synonym_groups: list[set[str]] | None = None,
     ) -> None:
+        if synonym_groups is None:
+            from app.services.synonyms import confirmed_groups
+            synonym_groups = confirmed_groups()
+        self.synonym_groups = synonym_groups
         self.exempt_food_ids = load_price_exempt() if exempt_food_ids is None else set(exempt_food_ids)
         self.workbook_path = Path(workbook_path)
         self.repository = repository
@@ -140,7 +165,7 @@ class PriceCollectionService:
             review_count = estimate_count
             failure_count = missing_count
 
-            ingredients = self.ingredient_loader(self.workbook_path)
+            ingredients = merge_confirmed_synonyms(self.ingredient_loader(self.workbook_path), self.synonym_groups)
             # 不計價食材（如水）不送去查價，成本為已知 0；在執行摘要中另計
             exempt = [i for i in ingredients if i.food_ids and set(i.food_ids) <= self.exempt_food_ids]
             if exempt:

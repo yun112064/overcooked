@@ -139,6 +139,21 @@ class T08ApiTests(unittest.TestCase):
         self.assertEqual(created["restrictions"]["available_but_restricted"], ["FOOD001566"])
         self.assertEqual(created["draft"]["available_ingredient_ids"], ["FOOD001566", "FOOD001016"])
 
+    def test_synonym_foods_are_also_restricted(self):
+        kid = self.client.post("/members", json=member_body(
+            "成員C", birth_date="2016-01-01", weight_kg="25", goal="general", portion="0.7",
+            allergen_ingredient_ids=["FOOD001016"])).json()  # 番茄
+        created = self.create(full_draft([{"member_id": kid["id"]}], available_ingredient_ids=["FOOD001444"]))
+        restrictions = created["restrictions"]
+        self.assertEqual([r["ingredient_id"] for r in restrictions["ingredients"]], ["FOOD001016"])
+        expanded = {r["ingredient_id"]: r for r in restrictions["expanded_ingredients"]}
+        self.assertEqual(expanded["FOOD001444"]["name"], "蕃茄")
+        self.assertEqual(expanded["FOOD001444"]["via"], ["FOOD001016"])
+        self.assertEqual(expanded["FOOD001444"]["kinds"], ["allergen"])
+        self.assertEqual(restrictions["excluded_food_ids"], ["FOOD001016", "FOOD001444"])
+        # 家中有「蕃茄」也會被提醒：有成員對番茄過敏
+        self.assertEqual(restrictions["available_but_restricted"], ["FOOD001444"])
+
     def test_available_ingredients_are_types_without_weights(self):
         created = self.create(full_draft([{"member_id": self.a["id"]}],
                                          available_ingredient_ids=["FOOD000678", "FOOD000867"]))

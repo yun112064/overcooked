@@ -100,6 +100,11 @@ export type MealRequest = {
   items: { participation_id: string; member_id: string; kind: 'dining' | 'bento'; meal: MealType }[]
   restrictions: {
     ingredients: { ingredient_id: string; name: string | null; kinds: ('allergen' | 'avoided')[]; member_names: string[] }[]
+    expanded_ingredients: {
+      ingredient_id: string; name: string | null; relation: 'synonym' | 'broader'; via: string[]
+      kinds: ('allergen' | 'avoided')[]; member_names: string[]
+    }[]
+    excluded_food_ids: string[]
     available_but_restricted: string[]
   }
   targets_preview:
