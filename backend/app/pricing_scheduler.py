@@ -1,4 +1,8 @@
-"""The single standalone APScheduler process for daily T02 collection."""
+"""T02 daily PX Mart collection: settings, service factory and manual CLI.
+
+The recurring job is registered in the single scheduler process
+(app.jobs.scheduler); this module no longer starts its own scheduler.
+"""
 
 from __future__ import annotations
 
@@ -190,14 +194,13 @@ def main() -> int:
         print(json.dumps(asdict(result), ensure_ascii=False), flush=True)
         return 0 if result.status != "failed" else 1
 
-    scheduler = build_scheduler(service, settings)
+    # 架構只允許一個 APScheduler 程序：長駐排程已併入 app.jobs.scheduler
     print(
-        "T02 PX Mart scheduler started: "
-        f"{settings.hour:02d}:{settings.minute:02d} {settings.timezone_name}",
+        "T02 daily collection runs inside the single scheduler process: "
+        "python -m app.jobs.scheduler  (use --run-once for a manual run)",
         flush=True,
     )
-    scheduler.start()
-    return 0
+    return 2
 
 
 if __name__ == "__main__":

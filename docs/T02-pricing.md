@@ -92,7 +92,7 @@ python scripts/collect_pxmart_prices.py --input data/recipe_dataset_1017.xlsx `
 
 ## 每日自動更新
 
-排程使用 APScheduler 3.x 的單一獨立 blocking process，**沒有**掛在 FastAPI lifespan，所以增加 Uvicorn worker 不會增加排程器。預設每天 `Asia/Taipei` 03:00 執行；每次由 `load_ingredient_queries()` 讀取 `recipe_ingredients.Food_ID`、解析工作簿標準名稱並去重 canonical name，目前供應商固定為 `pxmart`。
+每日查價已併入專案唯一的排程程序 `app.jobs.scheduler`（T10；以 PostgreSQL advisory lock 保證只有一個在執行），**沒有**掛在 FastAPI lifespan，也不另開第二個排程器。預設每天 `Asia/Taipei` 03:00 執行；每次由 `load_ingredient_queries()` 讀取 `recipe_ingredients.Food_ID`、解析工作簿標準名稱並去重 canonical name，目前供應商固定為 `pxmart`。
 
 執行前先套用 migration：
 
@@ -106,7 +106,7 @@ python -m alembic upgrade head
 ```powershell
 $env:PYTHONPATH="$PWD\backend"
 $env:PRICE_SCHEDULER_ENABLED="true"
-python -m app.pricing_scheduler
+python -m app.jobs.scheduler
 ```
 
 手動立即執行一次並寫入同一套 run/snapshot 表：
@@ -128,14 +128,13 @@ python -m app.pricing_scheduler --run-once --run-key debug-2026-10-18-a
 python -m app.pricing_scheduler --show-runs 20
 ```
 
-雲端／Docker Compose 啟動（`scheduler` profile 是唯一排程程序）：
+雲端／Docker Compose：`docker compose up -d --build` 會啟動唯一的 `scheduler` service（同時負責 T10 工作回收與日誌清理），查價設定由 `PRICE_*` 環境變數傳入。
 
 ```powershell
-docker compose --profile scheduler up -d --build
 docker compose logs -f scheduler
 ```
 
-停止排程可執行 `docker compose stop scheduler`，或設 `PRICE_SCHEDULER_ENABLED=false` 後重建 scheduler container。不要另開第二個 scheduler service。可調環境變數：
+只停用查價時設 `PRICE_SCHEDULER_ENABLED=false` 後重建 scheduler container（其他排程照常執行）。不要另開第二個 scheduler service；`python -m app.pricing_scheduler` 只保留 `--run-once`、`--show-runs` 等手動操作。
 
 | 變數 | 預設 | 用途 |
 |---|---|---|

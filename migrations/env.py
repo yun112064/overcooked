@@ -14,7 +14,17 @@ BACKEND_ROOT = Path(__file__).resolve().parents[1] / "backend"
 sys.path.insert(0, str(BACKEND_ROOT))
 from app.core.config import settings
 from app.db.base import Base
-import app.models  # noqa: F401,E402
+import app.db.models  # noqa: F401,E402  T07–T10
+import app.models  # noqa: F401,E402  T01
+
+# T02 以 SQL 直接存取、沒有 ORM 模型；這些表只由遷移管理，比對模型時略過
+MIGRATION_ONLY_TABLES = {"price_collection_runs", "price_quote_snapshots", "retailer_product_mappings"}
+
+
+def include_object(obj, name, type_, reflected, compare_to):
+    table = obj if type_ == "table" else getattr(obj, "table", None)
+    table_name = name if type_ == "table" else getattr(table, "name", None)
+    return table_name not in MIGRATION_ONLY_TABLES
 
 
 
@@ -88,7 +98,8 @@ def run_migrations_online() -> None:
 
     with connectable.connect() as connection:
         context.configure(
-            connection=connection, target_metadata=target_metadata
+            connection=connection, target_metadata=target_metadata,
+            include_object=include_object,
         )
 
         with context.begin_transaction():

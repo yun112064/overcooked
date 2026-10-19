@@ -21,15 +21,15 @@ from sqlalchemy import (
     text,
 )
 from sqlalchemy.dialects.postgresql import JSONB, UUID
-from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column
+
+from app.db.base import Base
 
 
 def utcnow() -> datetime:
     return datetime.now(timezone.utc)
 
 
-class Base(DeclarativeBase):
-    pass
 
 
 class User(Base):
