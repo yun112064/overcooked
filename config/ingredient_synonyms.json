@@ -5,7 +5,7 @@
   "groups": [
     {
       "id": "SYN001",
-      "status": "pending_confirmation",
+      "status": "confirmed",
       "foods": [
         {
           "food_id": "FOOD000691",
@@ -30,7 +30,7 @@
     },
     {
       "id": "SYN002",
-      "status": "pending_confirmation",
+      "status": "confirmed",
       "foods": [
         {
           "food_id": "FOOD000039",
@@ -49,7 +49,7 @@
     },
     {
       "id": "SYN003",
-      "status": "pending_confirmation",
+      "status": "confirmed",
       "foods": [
         {
           "food_id": "FOOD001566",
@@ -68,7 +68,7 @@
     },
     {
       "id": "SYN004",
-      "status": "pending_confirmation",
+      "status": "confirmed",
       "foods": [
         {
           "food_id": "FOOD000693",
@@ -87,7 +87,7 @@
     },
     {
       "id": "SYN005",
-      "status": "pending_confirmation",
+      "status": "confirmed",
       "foods": [
         {
           "food_id": "FOOD001016",
@@ -107,7 +107,7 @@
     },
     {
       "id": "SYN006",
-      "status": "pending_confirmation",
+      "status": "confirmed",
       "foods": [
         {
           "food_id": "FOOD000867",
@@ -126,7 +126,7 @@
     },
     {
       "id": "SYN007",
-      "status": "pending_confirmation",
+      "status": "confirmed",
       "foods": [
         {
           "food_id": "FOOD000281",
@@ -145,7 +145,7 @@
     },
     {
       "id": "SYN008",
-      "status": "pending_confirmation",
+      "status": "confirmed",
       "foods": [
         {
           "food_id": "FOOD000705",
@@ -164,7 +164,7 @@
     },
     {
       "id": "SYN009",
-      "status": "pending_confirmation",
+      "status": "confirmed",
       "foods": [
         {
           "food_id": "FOOD000588",
@@ -183,7 +183,7 @@
     },
     {
       "id": "SYN010",
-      "status": "pending_confirmation",
+      "status": "confirmed",
       "foods": [
         {
           "food_id": "FOOD000168",
@@ -202,7 +202,7 @@
     },
     {
       "id": "SYN011",
-      "status": "pending_confirmation",
+      "status": "confirmed",
       "foods": [
         {
           "food_id": "FOOD000210",
@@ -221,7 +221,7 @@
     },
     {
       "id": "SYN012",
-      "status": "pending_confirmation",
+      "status": "confirmed",
       "foods": [
         {
           "food_id": "FOOD001307",
@@ -241,7 +241,7 @@
     },
     {
       "id": "SYN013",
-      "status": "pending_confirmation",
+      "status": "confirmed",
       "foods": [
         {
           "food_id": "FOOD001071",
@@ -260,7 +260,7 @@
     },
     {
       "id": "SYN014",
-      "status": "pending_confirmation",
+      "status": "confirmed",
       "foods": [
         {
           "food_id": "FOOD000810",
@@ -282,7 +282,7 @@
     {
       "food_id": "FOOD000183",
       "name": "牛肉",
-      "status": "pending_confirmation",
+      "status": "confirmed",
       "includes": [
         {
           "food_id": "FOOD000176",
