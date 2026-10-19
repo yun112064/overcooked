@@ -7,7 +7,7 @@ from unittest.mock import patch
 import httpx
 from PIL import Image
 
-from db_support import make_client, migrate_fresh, requires_db, truncate_all
+from db_support import seed_foods, make_client, migrate_fresh, requires_db, truncate_all
 
 PASSWORD = "correct-horse-42"
 
@@ -57,16 +57,24 @@ class SelectionTests(unittest.TestCase):
 
     def test_label_map_covers_primary_model_and_uses_known_ids(self):
         import json
-        from app.core.config import settings
-        from app.services import ingredients
+        import re
+        from app.core.config import PROJECT_ROOT, settings
         from app.services.recognition import display_name
         data = json.loads(settings.recognition_labels_path.read_text(encoding="utf-8"))
         self.assertEqual(len(data["labels"]), 39)
         ids = [v["ingredient_id"] for v in data["labels"].values() if "ingredient_id" in v]
-        self.assertEqual(ingredients.unknown_ids(ids), [])
+        self.assertTrue(all(re.fullmatch(r"FOOD\d{6}", i) for i in ids), ids)
         self.assertEqual(len(ids), len(set(ids)))
+        workbook = PROJECT_ROOT / "data/recipe_dataset_1017.xlsx"
+        if workbook.is_file():  # 原始工作簿不進 Git；本機有時核對編號確實存在於標準食材字典
+            from openpyxl import load_workbook
+            book = load_workbook(workbook, read_only=True, data_only=True)
+            rows = book["標準食材整合"].iter_rows(values_only=True)
+            next(rows)
+            catalog = {row[1] for row in rows if row[1]}
+            self.assertEqual([i for i in ids if i not in catalog], [])
         self.assertTrue(all(v["name"].strip() for v in data["labels"].values()))
-        self.assertEqual(display_name("Cabbage"), ("高麗菜", "ING0034"))
+        self.assertEqual(display_name("Cabbage"), ("高麗菜", "FOOD000867"))
         # 有歧義的類別不猜 ID；未列出的類別顯示原名
         self.assertEqual(display_name("garlic"), ("大蒜", None))
         self.assertEqual(display_name("unknown-class"), ("unknown-class", None))
@@ -113,6 +121,7 @@ class T09ApiTests(unittest.TestCase):
 
     def setUp(self):
         truncate_all()
+        seed_foods()
         from app.api.recognitions import get_recognizer
         from app.main import app
         self.app = app
@@ -149,7 +158,7 @@ class T09ApiTests(unittest.TestCase):
     def test_model_class_is_shown_in_chinese_with_standard_id(self):
         self.recognizer.detections = [("Cabbage", 0.8), ("garlic", 0.3)]
         body = self.upload(jpeg_bytes()).json()
-        self.assertEqual((body["suggested_name"], body["suggested_ingredient_id"]), ("高麗菜", "ING0034"))
+        self.assertEqual((body["suggested_name"], body["suggested_ingredient_id"]), ("高麗菜", "FOOD000867"))
 
     def test_no_valid_detection_asks_for_manual_input(self):
         self.recognizer.detections = [("蔥", 0.05)]
@@ -203,13 +212,13 @@ class T09ApiTests(unittest.TestCase):
 
     def test_confirm_records_corrected_type_without_weight(self):
         body = self.upload(jpeg_bytes()).json()
-        bad = self.client.post(f"/recognitions/{body['id']}/confirm", json={"name": "高麗菜", "ingredient_id": "ING9999"})
+        bad = self.client.post(f"/recognitions/{body['id']}/confirm", json={"name": "高麗菜", "ingredient_id": "FOOD999999"})
         self.assertEqual(bad.status_code, 422)
         ok = self.client.post(f"/recognitions/{body['id']}/confirm",
-                              json={"name": " 高麗菜 ", "ingredient_id": "ING0034"}).json()
-        self.assertEqual(ok["confirmed"], {"name": "高麗菜", "ingredient_id": "ING0034"})
+                              json={"name": " 高麗菜 ", "ingredient_id": "FOOD000867"}).json()
+        self.assertEqual(ok["confirmed"], {"name": "高麗菜", "ingredient_id": "FOOD000867"})
         weighted = self.client.post(f"/recognitions/{body['id']}/confirm",
-                                    json={"name": "高麗菜", "ingredient_id": "ING0034", "weight_g": 300})
+                                    json={"name": "高麗菜", "ingredient_id": "FOOD000867", "weight_g": 300})
         self.assertEqual(weighted.status_code, 200)
         self.assertNotIn("weight", weighted.text)
 
@@ -235,7 +244,7 @@ class T09ApiTests(unittest.TestCase):
         self.assertEqual(other.get(f"/recognitions/{rid}/image").status_code, 404)
         self.assertEqual(other.post(f"/recognitions/{rid}/retry").status_code, 404)
         self.assertEqual(other.post(f"/recognitions/{rid}/confirm",
-                                    json={"name": "x", "ingredient_id": "ING0034"}).status_code, 404)
+                                    json={"name": "x", "ingredient_id": "FOOD000867"}).status_code, 404)
         self.assertEqual(other.delete(f"/recognitions/{rid}").status_code, 404)
         req = self.client.post("/meal-requests", json={}).json()
         foreign = self.upload(jpeg_bytes(), client=other, meal_request_id=req["id"])

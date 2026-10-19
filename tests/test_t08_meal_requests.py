@@ -1,7 +1,7 @@
 """T08：當餐問卷、便當與手動食材草稿（AC03、AC09）。成員皆為合成測試資料。"""
 import unittest
 
-from db_support import make_client, migrate_fresh, requires_db, truncate_all
+from db_support import seed_foods, make_client, migrate_fresh, requires_db, truncate_all
 
 PASSWORD = "correct-horse-42"
 
@@ -34,13 +34,14 @@ class T08ApiTests(unittest.TestCase):
 
     def setUp(self):
         truncate_all()
+        seed_foods()
         self.client = make_client()
         self.login_with_household(self.client, "owner@example.test")
         self.a = self.client.post("/members", json=member_body(
-            "成員A", portion="1.3", allergen_ingredient_ids=["ING0009"])).json()
+            "成員A", portion="1.3", allergen_ingredient_ids=["FOOD001566"])).json()
         self.b = self.client.post("/members", json=member_body(
             "成員B", birth_date="2018-01-01", weight_kg="28", goal="general", portion="0.7",
-            avoided_ingredient_ids=["ING0004", "ING0009"])).json()
+            avoided_ingredient_ids=["FOOD000039", "FOOD001566"])).json()
 
     def login_with_household(self, client, email):
         self.assertEqual(client.post("/auth/register", json={"email": email, "password": PASSWORD}).status_code, 201)
@@ -125,30 +126,30 @@ class T08ApiTests(unittest.TestCase):
         ]))
         self.assertEqual([(i["kind"], i["meal"]) for i in created["items"]], [("bento", "lunch")])
         # 未參與的成員 B 的限制不納入
-        self.assertEqual([r["ingredient_id"] for r in created["restrictions"]["ingredients"]], ["ING0009"])
+        self.assertEqual([r["ingredient_id"] for r in created["restrictions"]["ingredients"]], ["FOOD001566"])
 
     def test_restrictions_are_union_of_participants(self):
         created = self.create(full_draft(
             [{"member_id": self.a["id"]}, {"member_id": self.b["id"]}],
-            available_ingredient_ids=["ING0009", "ING0016", "ING0016"]))
+            available_ingredient_ids=["FOOD001566", "FOOD001016", "FOOD001016"]))
         union = {r["ingredient_id"]: r for r in created["restrictions"]["ingredients"]}
-        self.assertEqual(set(union), {"ING0009", "ING0004"})
-        self.assertEqual(sorted(union["ING0009"]["kinds"]), ["allergen", "avoided"])
-        self.assertEqual(sorted(union["ING0009"]["member_names"]), ["成員A", "成員B"])
-        self.assertEqual(created["restrictions"]["available_but_restricted"], ["ING0009"])
-        self.assertEqual(created["draft"]["available_ingredient_ids"], ["ING0009", "ING0016"])
+        self.assertEqual(set(union), {"FOOD001566", "FOOD000039"})
+        self.assertEqual(sorted(union["FOOD001566"]["kinds"]), ["allergen", "avoided"])
+        self.assertEqual(sorted(union["FOOD001566"]["member_names"]), ["成員A", "成員B"])
+        self.assertEqual(created["restrictions"]["available_but_restricted"], ["FOOD001566"])
+        self.assertEqual(created["draft"]["available_ingredient_ids"], ["FOOD001566", "FOOD001016"])
 
     def test_available_ingredients_are_types_without_weights(self):
         created = self.create(full_draft([{"member_id": self.a["id"]}],
-                                         available_ingredient_ids=["ING0012", "ING0034"]))
+                                         available_ingredient_ids=["FOOD000678", "FOOD000867"]))
         self.assertEqual(created["available_ingredients"],
-                         [{"ingredient_id": "ING0012", "name": "胡蘿蔔"},
-                          {"ingredient_id": "ING0034", "name": "高麗菜"}])
+                         [{"ingredient_id": "FOOD000678", "name": "胡蘿蔔"},
+                          {"ingredient_id": "FOOD000867", "name": "高麗菜"}])
         weighted = self.client.post("/meal-requests", json=full_draft(
-            [{"member_id": self.a["id"]}], available_ingredient_ids=[{"ingredient_id": "ING0012", "weight_g": 100}]))
+            [{"member_id": self.a["id"]}], available_ingredient_ids=[{"ingredient_id": "FOOD000678", "weight_g": 100}]))
         self.assertEqual(weighted.status_code, 422)
         unknown = self.client.post("/meal-requests", json=full_draft(
-            [{"member_id": self.a["id"]}], available_ingredient_ids=["ING9999"]))
+            [{"member_id": self.a["id"]}], available_ingredient_ids=["FOOD999999"]))
         self.assertEqual(unknown.status_code, 422)
         self.assertEqual(unknown.json()["error"]["details"]["reason"], "UNKNOWN_INGREDIENT_ID")
 

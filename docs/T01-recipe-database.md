@@ -44,6 +44,7 @@ alembic -c alembic.ini upgrade head
 ```powershell
 python scripts/import_recipes.py `
   --excel data/recipe_dataset_1017.xlsx `
+  --sources config/recipe_sources.json `
   --dry-run `
   --report docs/T01-acceptance-evidence.json
 ```
@@ -53,6 +54,7 @@ python scripts/import_recipes.py `
 ```powershell
 python scripts/import_recipes.py `
   --excel data/recipe_dataset_1017.xlsx `
+  --sources config/recipe_sources.json `
   --database-url $env:DATABASE_URL `
   --report docs/T01-import-report.json
 ```
@@ -86,6 +88,20 @@ python -m unittest discover -s tests -p "test_t01_*.py" -v
 - 重複菜：同名重複只有編號最小的 primary 可計入合格，其餘為 `duplicate_not_primary`；疑似重複在人工確認前只讓編號較小者計入（`suspected_duplicate_not_primary`）。
 - 重跑匯入：工作簿中每道食譜的步驟與食材以工作簿為準整批取代，移除的列會刪除，步驟重新編號不再撞唯一限制；結果多回報 `deleted`。工作簿中已不存在的整道食譜目前不會被刪除。
 - `duplicate_of_recipe_id` 先全部寫入食譜後再補上，不依賴工作簿列的順序。
+
+### 標準食材字典、來源授權與整道刪除（2026-10-19）
+
+- **FOOD 編號為全系統唯一的食材識別**：工作簿的「標準食材整合」工作表（1,992 筆）匯入 `ingredient_aliases`，食譜沒用到的食材也收錄。T07 過敏／禁吃、T08 已有食材、T09 辨識結果都改用同一套 FOOD 編號；食譜用到的 Food_ID 必須存在於字典且名稱一致，否則匯入失敗。
+- **來源授權**：真實工作簿沒有授權欄位，以 `--sources config/recipe_sources.json` 補上 iCook 愛料理的授權、版本與取得時間（工作簿有填時以工作簿為準）。授權確認日為 2026-10-19；取得時間依檔名推定為 2026-10-17，授權文件編號待補。
+- **整道刪除**：工作簿已移除的食譜，重新匯入時連同步驟、食材與不再使用的來源紀錄一併刪除；結果的 `deleted` 含隨食譜刪除的子資料。
+
+### 真實資料匯入結果
+
+`recipe_dataset_1017.xlsx`（SHA-256 前 16 碼 `6bcaca41549572e3`）在乾淨 PostgreSQL 匯入約 6 秒：293 道食譜、1,507 個步驟、2,403 筆食材、1,992 種標準食材、15 種過敏原；重跑結果相同。去重後 291 道標準菜（2 組同名、7 組疑似重複）。
+
+**G01／AC05 仍未通過：合格 0 道（距 150 道差 150）。** 授權補上後，剩下的阻擋全是人工審核：食譜、來源、烹調方式與可調用量範圍皆未審核（293 道）；另有 203 筆「適量」類無數字用量、100 筆用量無法由原文確認、63 筆範圍用量需定義使用規則。
+
+工作簿資料品質待修：`ingredient_aliases` 有 143 筆別名同時指向多個 Food_ID（例如別名「番茄」指向 FOOD001444，但字典中「番茄」是 FOOD001016；「綠花椰菜」「蒜頭」亦同），這些別名不會被自動採用。
 
 ## 查詢範例
 

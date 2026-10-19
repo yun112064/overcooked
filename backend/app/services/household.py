@@ -82,11 +82,11 @@ def _raise_target_error(exc: TargetInputError):
     raise invalid_input(message, field=field, reason=reason) from None
 
 
-def _clean_ids(values: list[str], field: str) -> list[str]:
+def _clean_ids(db: Session, values: list[str], field: str) -> list[str]:
     cleaned = list(dict.fromkeys(v.strip() for v in values if v.strip()))
     if len(cleaned) > MAX_RESTRICTIONS:
         raise invalid_input(f"最多可設定 {MAX_RESTRICTIONS} 項。", field=field, reason="TOO_MANY_ITEMS")
-    unknown = ingredients.unknown_ids(cleaned)
+    unknown = ingredients.unknown_ids(db, cleaned)
     if unknown:
         raise invalid_input(
             "包含不在標準食材字典中的項目，請從清單選擇。",
@@ -95,7 +95,7 @@ def _clean_ids(values: list[str], field: str) -> list[str]:
     return cleaned
 
 
-def validate_member(fields: dict, *, today: date) -> dict:
+def validate_member(db: Session, fields: dict, *, today: date) -> dict:
     """驗證並正規化成員欄位；任何不合格都回報可修正的欄位與原因。"""
     if fields["birth_date"] > today:
         raise invalid_input("出生日期不能晚於今天。", field="birth_date", reason="INVALID_DATE")
@@ -112,8 +112,8 @@ def validate_member(fields: dict, *, today: date) -> dict:
         service.daily_target(target_input(fields, member_id="validation", on=today))
     except TargetInputError as exc:
         _raise_target_error(exc)
-    fields["allergen_ingredient_ids"] = _clean_ids(fields["allergen_ingredient_ids"], "allergen_ingredient_ids")
-    fields["avoided_ingredient_ids"] = _clean_ids(fields["avoided_ingredient_ids"], "avoided_ingredient_ids")
+    fields["allergen_ingredient_ids"] = _clean_ids(db, fields["allergen_ingredient_ids"], "allergen_ingredient_ids")
+    fields["avoided_ingredient_ids"] = _clean_ids(db, fields["avoided_ingredient_ids"], "avoided_ingredient_ids")
     return fields
 
 

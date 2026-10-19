@@ -50,7 +50,7 @@ def _today() -> date:
     return datetime.now(timezone.utc).date()
 
 
-def _out(m: Member) -> dict:
+def _out(db: Session, m: Member) -> dict:
     today = _today()
     return {
         "id": str(m.id),
@@ -62,8 +62,8 @@ def _out(m: Member) -> dict:
         "activity_category": m.activity_category,
         "goal": m.goal,
         "portion": str(household_service.plain_decimal(m.portion)),
-        "allergens": ingredients.describe(m.allergen_ingredient_ids),
-        "avoided": ingredients.describe(m.avoided_ingredient_ids),
+        "allergens": ingredients.describe(db, m.allergen_ingredient_ids),
+        "avoided": ingredients.describe(db, m.avoided_ingredient_ids),
         "version": m.version,
         "updated_at": m.updated_at.isoformat(),
     }
@@ -95,23 +95,23 @@ def list_members(household_id=Depends(current_household_id), db: Session = Depen
     rows = db.scalars(
         select(Member).where(Member.household_id == household_id).order_by(Member.created_at)
     ).all()
-    return {"members": [_out(m) for m in rows]}
+    return {"members": [_out(db, m) for m in rows]}
 
 
 @router.post("", status_code=201)
 def create_member(body: MemberBody, household_id=Depends(current_household_id),
                   db: Session = Depends(get_db)):
-    fields = household_service.validate_member(body.model_dump(), today=_today())
+    fields = household_service.validate_member(db, body.model_dump(), today=_today())
     member = Member(household_id=household_id, version=1, **fields)
     db.add(member)
     db.commit()
-    return _out(member)
+    return _out(db, member)
 
 
 @router.get("/{member_id}")
 def get_member(member_id: uuid.UUID, household_id=Depends(current_household_id),
                db: Session = Depends(get_db)):
-    return _out(_get_owned(db, household_id, member_id))
+    return _out(db, _get_owned(db, household_id, member_id))
 
 
 @router.put("/{member_id}")
@@ -120,13 +120,13 @@ def update_member(member_id: uuid.UUID, body: MemberUpdate,
     member = _get_owned(db, household_id, member_id)
     if member.version != body.version:
         raise version_conflict()
-    fields = household_service.validate_member(body.model_dump(exclude={"version"}), today=_today())
+    fields = household_service.validate_member(db, body.model_dump(exclude={"version"}), today=_today())
     for key, value in fields.items():
         setattr(member, key, value)
     member.version += 1
     member.updated_at = datetime.now(timezone.utc)
     db.commit()
-    return _out(member)
+    return _out(db, member)
 
 
 @router.delete("/{member_id}", status_code=204)

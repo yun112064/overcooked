@@ -22,9 +22,6 @@ class Settings(BaseSettings):
     nutrition_rules_path: Path = (
         PROJECT_ROOT / "nutrition_target/rules/hpa-dri8-mvp-0.3.0.json"
     )
-    ingredient_master_path: Path = (
-        PROJECT_ROOT / "nutrition_model/data/ingredient_id_master.json"
-    )
 
     # T10 外部服務費用：每月總上限包含主機、模型、備份等全部服務
     monthly_budget_twd: Decimal = Decimal("2000")

@@ -24,12 +24,16 @@ def ingredient(food_id, name, grams, **extra):
     return row
 
 
-def recipe(recipe_id, name, *, servings="2人份", steps=("熱鍋下油，大火快炒",), ingredients=None, approved=True):
+def recipe(recipe_id, name, *, servings="2人份", steps=("熱鍋下油，大火快炒",), ingredients=None, approved=True,
+           rights_in_workbook=True):
+    """rights_in_workbook=False：來源列不附授權欄位（如真實工作簿），改由來源設定補上。"""
     return {"id": recipe_id, "name": name, "servings": servings, "steps": list(steps), "approved": approved,
+            "rights_in_workbook": rights_in_workbook,
             "ingredients": ingredients or [ingredient("FOOD000005", "高麗菜", 300)]}
 
 
-def build(path: Path, recipes: list[dict]) -> Path:
+def build(path: Path, recipes: list[dict], catalog: dict[str, str] | None = None) -> Path:
+    """catalog：選用的「標準食材整合」工作表內容 {Food_ID: 標準名稱}。"""
     wb = Workbook()
     wb.remove(wb.active)
     sheets = {name: wb.create_sheet(name) for name in
@@ -44,10 +48,11 @@ def build(path: Path, recipes: list[dict]) -> Path:
     for r in recipes:
         ok = "approved" if r["approved"] else "pending"
         raw_id = f"RAW-{r['id']}"
+        rights = (["CC BY 4.0（合成測試）", "verified" if r["approved"] else "unknown", "v1", "2026-10-01T00:00:00Z"]
+                  if r["rights_in_workbook"] else [None, None, None, None])
         sheets["source_archive"].append([
             raw_id, "合成來源", f"https://example.invalid/{r['id']}", r["id"], r["name"], r["servings"],
-            "、".join(i["name"] for i in r["ingredients"]), "；".join(r["steps"]), "家常",
-            "CC BY 4.0（合成測試）", "verified" if r["approved"] else "unknown", "v1", "2026-10-01T00:00:00Z", ok])
+            "、".join(i["name"] for i in r["ingredients"]), "；".join(r["steps"]), "家常", *rights, ok])
         sheets["recipes"].append([
             raw_id, r["id"], r["name"], r["servings"], "主菜", "晚餐", "台式", "合成來源",
             f"https://example.invalid/{r['id']}", "", "炒", ok, ok])
@@ -62,5 +67,11 @@ def build(path: Path, recipes: list[dict]) -> Path:
     for n, (food_id, name) in enumerate(sorted(foods.items()), start=1):
         sheets["ingredient_aliases"].append([f"A{n}", food_id, name, name])
     sheets["allergens"].append(["AL1", "蛋", "合成參考"])
+    if catalog is not None:
+        sheet = wb.create_sheet("標準食材整合")
+        sheet.append(["合併標準食材名稱", "Food_ID", None])
+        for food_id, name in catalog.items():
+            sheet.append([name, food_id, None])
+        sheet.append([None, None, None])  # 真實工作簿尾端有空白列
     wb.save(path)
     return path

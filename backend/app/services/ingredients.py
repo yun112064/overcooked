@@ -1,41 +1,54 @@
-"""共用標準食材字典（ING 編號），供過敏、禁吃與已有食材種類對映。
+"""共用標準食材字典（FOOD 編號），供過敏、禁吃、已有食材種類與辨識結果對映。
 
-來源為 nutrition_model/data/ingredient_id_master.json，由 T04 匯入工具維護；
-一般使用者不能改寫共用字典。
+來源為 T01 匯入的 ingredient_aliases 資料表（recipe_dataset 工作簿的「標準食材整合」
+與食材別名），與食譜的 recipe_ingredients.food_id 同一套編號。一般使用者不能改寫
+共用字典，只能透過匯入工具更新。
 """
-import json
-from functools import lru_cache
-from pathlib import Path
+from sqlalchemy import String, cast, or_, select
+from sqlalchemy.orm import Session
 
-from app.core.config import settings
-
-
-@lru_cache(maxsize=1)
-def _catalog(path: str) -> dict[str, str]:
-    rows = json.loads(Path(path).read_text(encoding="utf-8"))
-    return {row["ingredient_id"]: row["canonical_name"] for row in rows}
+from app.models.recipe import IngredientAlias
 
 
-def catalog() -> dict[str, str]:
-    return _catalog(str(settings.ingredient_master_path))
+def names(db: Session, ingredient_ids: list[str]) -> dict[str, str]:
+    if not ingredient_ids:
+        return {}
+    rows = db.execute(
+        select(IngredientAlias.food_id, IngredientAlias.canonical_name)
+        .where(IngredientAlias.food_id.in_(set(ingredient_ids)))
+    ).all()
+    return dict(rows)
 
 
-def unknown_ids(ingredient_ids: list[str]) -> list[str]:
-    known = catalog()
+def unknown_ids(db: Session, ingredient_ids: list[str]) -> list[str]:
+    known = names(db, ingredient_ids)
     return [i for i in ingredient_ids if i not in known]
 
 
-def describe(ingredient_ids: list[str]) -> list[dict]:
-    known = catalog()
+def describe(db: Session, ingredient_ids: list[str]) -> list[dict]:
+    known = names(db, ingredient_ids)
     return [{"ingredient_id": i, "name": known.get(i)} for i in ingredient_ids]
 
 
-def search(query: str, limit: int = 20) -> list[dict]:
+def search(db: Session, query: str, limit: int = 20) -> list[dict]:
+    """依標準名稱或無歧義別名搜尋；完全相符 → 開頭相符 → 包含。"""
     q = query.strip()
-    rows = catalog().items()
+    stmt = select(IngredientAlias.food_id, IngredientAlias.canonical_name, IngredientAlias.aliases)
     if q:
-        exact = [(i, n) for i, n in rows if n == q]
-        prefix = [(i, n) for i, n in rows if n != q and n.startswith(q)]
-        contains = [(i, n) for i, n in rows if q in n and not n.startswith(q)]
-        rows = exact + prefix + contains
-    return [{"ingredient_id": i, "name": n} for i, n in list(rows)[:limit]]
+        pattern = f"%{q.replace('%', '').replace('_', '')}%"
+        stmt = stmt.where(or_(
+            IngredientAlias.canonical_name.ilike(pattern),
+            cast(IngredientAlias.aliases, String).ilike(pattern),
+        ))
+    rows = db.execute(stmt.order_by(IngredientAlias.canonical_name).limit(500)).all()
+
+    def rank(row):
+        name, aliases = row.canonical_name, row.aliases or []
+        if name == q or q in aliases:
+            return 0
+        if name.startswith(q) or any(a.startswith(q) for a in aliases):
+            return 1
+        return 2
+
+    rows = sorted(rows, key=lambda r: (rank(r), len(r.canonical_name), r.canonical_name)) if q else rows
+    return [{"ingredient_id": r.food_id, "name": r.canonical_name} for r in rows[:limit]]

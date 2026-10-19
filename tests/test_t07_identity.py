@@ -4,7 +4,7 @@ from datetime import date, datetime, timedelta, timezone
 
 from sqlalchemy import select
 
-from db_support import ORIGIN, make_client, migrate_fresh, requires_db, session_factory, truncate_all
+from db_support import seed_foods, ORIGIN, make_client, migrate_fresh, requires_db, session_factory, truncate_all
 
 PASSWORD = "correct-horse-42"
 
@@ -48,6 +48,7 @@ class T07ApiTests(unittest.TestCase):
 
     def setUp(self):
         truncate_all()
+        seed_foods()
         self.client = make_client()
 
     def register(self, client=None, email="owner@example.test"):
@@ -178,7 +179,7 @@ class T07ApiTests(unittest.TestCase):
     def test_member_crud_with_restrictions_and_versioning(self):
         self.with_household()
         res = self.client.post("/members", json=adult(
-            allergen_ingredient_ids=["ING0009"], avoided_ingredient_ids=["ING0004", "ING0004"]))
+            allergen_ingredient_ids=["FOOD001566"], avoided_ingredient_ids=["FOOD000039", "FOOD000039"]))
         self.assertEqual(res.status_code, 201, res.text)
         member = res.json()
         self.assertEqual(member["portion"], "1")
@@ -187,8 +188,8 @@ class T07ApiTests(unittest.TestCase):
         heavy = self.client.post("/members", json=adult(display_name="成員C", weight_kg="100.50")).json()
         self.assertEqual(heavy["weight_kg"], "100.5")
         self.client.delete(f"/members/{heavy['id']}")
-        self.assertEqual(member["allergens"], [{"ingredient_id": "ING0009", "name": "雞蛋"}])
-        self.assertEqual([a["ingredient_id"] for a in member["avoided"]], ["ING0004"])
+        self.assertEqual(member["allergens"], [{"ingredient_id": "FOOD001566", "name": "雞蛋"}])
+        self.assertEqual([a["ingredient_id"] for a in member["avoided"]], ["FOOD000039"])
 
         update = self.client.put(f"/members/{member['id']}", json=adult(portion="1.3", version=1))
         self.assertEqual(update.status_code, 200, update.text)
@@ -236,7 +237,7 @@ class T07ApiTests(unittest.TestCase):
     def test_invalid_member_inputs_are_rejected(self):
         self.with_household()
         cases = [
-            adult(allergen_ingredient_ids=["ING9999"]),
+            adult(allergen_ingredient_ids=["FOOD999999"]),
             adult(birth_date="2999-01-01"),
             adult(weight_kg="0"),
             adult(equation_sex="X"),
@@ -273,7 +274,7 @@ class T07ApiTests(unittest.TestCase):
         self.assertEqual(anon.get("/ingredients", params={"q": "醬"}).status_code, 401)
         self.register()
         found = self.client.get("/ingredients", params={"q": "醬油"}).json()["ingredients"]
-        self.assertEqual(found[0], {"ingredient_id": "ING0001", "name": "醬油"})
+        self.assertEqual(found[0], {"ingredient_id": "FOOD001541", "name": "醬油"})
         options = self.client.get("/members/options").json()
         self.assertEqual(options["portions"], ["0.7", "0.85", "1", "1.15", "1.3"])
         self.assertEqual(options["minor_goals"], ["general"])

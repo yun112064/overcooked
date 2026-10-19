@@ -133,7 +133,7 @@ def confirm_recognition(recognition_id: uuid.UUID, body: ConfirmBody,
                         household_id=Depends(current_household_id), db: Session = Depends(get_db)):
     """記錄使用者修正後的名稱與標準食材；只確認種類，不含重量。"""
     row = _owned(db, household_id, recognition_id)
-    if ingredients.unknown_ids([body.ingredient_id]):
+    if ingredients.unknown_ids(db, [body.ingredient_id]):
         raise invalid_input("請從標準食材清單選擇。", field="ingredient_id", reason="UNKNOWN_INGREDIENT_ID")
     row.confirmed_name = body.name.strip()
     row.confirmed_ingredient_id = body.ingredient_id

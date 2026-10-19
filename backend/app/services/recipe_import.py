@@ -13,7 +13,7 @@ from pathlib import Path
 from typing import Any, Iterable
 
 from openpyxl import load_workbook
-from sqlalchemy import delete, select
+from sqlalchemy import delete, func, select
 from sqlalchemy.orm import Session
 
 from app.models.recipe import (
@@ -73,6 +73,10 @@ REQUIRED_COLUMNS = {
     "ingredient_aliases": {"alias_id", "Food_ID", "canonical_name", "alias"},
     "allergens": {"allergen_id", "allergen_name", "reference"},
 }
+
+# 選用工作表：全系統共用的標準食材字典（Food_ID ↔ 標準名稱）
+CATALOG_SHEET = "標準食材整合"
+CATALOG_COLUMNS = {"合併標準食材名稱", "Food_ID"}
 
 QUALITATIVE_WORDS = (
     "適量",
@@ -456,7 +460,46 @@ def _suspected_duplicates(
     return pairs
 
 
-def parse_recipe_workbook(path: str | Path) -> ImportBundle:
+def _catalog_records(workbook: Any) -> list[dict[str, Any]]:
+    if CATALOG_SHEET not in workbook.sheetnames:
+        return []
+    rows = workbook[CATALOG_SHEET].iter_rows(values_only=True)
+    headers = [str(h) if h is not None else "" for h in next(rows, ())]
+    missing = CATALOG_COLUMNS - set(headers)
+    if missing:
+        raise WorkbookValidationError(f"Worksheet {CATALOG_SHEET} missing columns: {', '.join(sorted(missing))}")
+    records = []
+    for values in rows:
+        record = dict(zip(headers, values))
+        name, food_id = _text(record.get("合併標準食材名稱")), _text(record.get("Food_ID"))
+        if name is None and food_id is None:
+            continue
+        if not (name and food_id):
+            raise WorkbookValidationError(f"{CATALOG_SHEET} has a row with a blank name or Food_ID")
+        records.append({"food_id": food_id, "name": name})
+    return records
+
+
+def _apply_source_rights(source_input: list[dict[str, Any]], source_rights: dict[str, dict] | None) -> None:
+    """依來源設定補上授權資訊（工作簿本身未附授權欄位時）。工作簿已填的值優先。"""
+    if not source_rights:
+        return
+    fields = ("license_name", "rights_status", "rights_uri", "source_version", "retrieved_at")
+    for row in source_input:
+        defaults = source_rights.get(_text(row.get("source_name")) or "")
+        if not defaults:
+            continue
+        for field in fields:
+            if _text(row.get(field)) is None and defaults.get(field) is not None:
+                row[field] = defaults[field]
+
+
+def load_source_rights(path: str | Path) -> dict[str, dict]:
+    data = json.loads(Path(path).read_text(encoding="utf-8"))
+    return {name: entry for name, entry in data["sources"].items()}
+
+
+def parse_recipe_workbook(path: str | Path, source_rights: dict[str, dict] | None = None) -> ImportBundle:
     workbook_path = Path(path).resolve()
     if not workbook_path.is_file():
         raise FileNotFoundError(workbook_path)
@@ -469,10 +512,12 @@ def parse_recipe_workbook(path: str | Path) -> ImportBundle:
             sheet_name: _sheet_records(workbook, sheet_name)
             for sheet_name in REQUIRED_COLUMNS
         }
+        catalog_input = _catalog_records(workbook)
     finally:
         workbook.close()
 
     source_input = raw_sheets["source_archive"]
+    _apply_source_rights(source_input, source_rights)
     recipe_input = raw_sheets["recipes"]
     step_input = raw_sheets["recipe_steps"]
     ingredient_input = raw_sheets["recipe_ingredients"]
@@ -667,6 +712,19 @@ def parse_recipe_workbook(path: str | Path) -> ImportBundle:
                 "quality_issues": quality_issues,
             }
         )
+
+    # 標準食材字典：食譜沒用到的食材也收進 ingredient_aliases，作為全系統共用的 FOOD 字典
+    catalog_ids = set()
+    for entry in catalog_input:
+        if entry["food_id"] in catalog_ids:
+            raise WorkbookValidationError(f"{CATALOG_SHEET} duplicate Food_ID: {entry['food_id']}")
+        catalog_ids.add(entry["food_id"])
+        food_names[entry["food_id"]].add(entry["name"])
+    if catalog_ids:
+        missing_from_catalog = sorted(set(food_names) - catalog_ids)
+        if missing_from_catalog:
+            raise WorkbookValidationError(
+                f"Food_ID used in recipes but missing from {CATALOG_SHEET}: {missing_from_catalog[:10]}")
 
     canonical_conflicts = {
         food_id: sorted(names) for food_id, names in food_names.items() if len(names) > 1
@@ -875,6 +933,17 @@ def parse_recipe_workbook(path: str | Path) -> ImportBundle:
         for issue in recipe_issues:
             for reason in issue["issues"]:
                 ingredient_ids_by_reason[reason].append(issue["recipe_ingredient_id"])
+    rights_reasons = {"missing_license", "rights_not_verified", "missing_source_version", "missing_retrieved_at"}
+    remaining_blockers = sorted(
+        {issue for recipe in recipe_rows if not recipe["is_eligible"] for issue in recipe["quality_issues"]}
+        & (rights_reasons | {"source_review_pending", "recipe_review_pending", "cooking_method_not_reviewed",
+                             "ingredient:adjustable_range_not_reviewed"})
+    )
+    blocker_text = (
+        "Remaining blockers: " + ", ".join(remaining_blockers) + "; unverified records are not counted as qualified."
+        if remaining_blockers else "Quality issues remain; unverified records are not counted as qualified."
+    )
+
     report = {
         "schema_version": SCHEMA_VERSION,
         "source_file": workbook_path.name,
@@ -891,6 +960,7 @@ def parse_recipe_workbook(path: str | Path) -> ImportBundle:
             "recipe_steps": len(step_rows),
             "recipe_ingredients": len(ingredient_rows),
             "distinct_food_ids": len(ingredient_alias_rows),
+            "catalog_food_ids": len(catalog_ids),
             "ambiguous_alias_assignments": ambiguous_alias_count,
         },
         "not_qualified_reason_counts": dict(sorted(reason_counts.items())),
@@ -933,7 +1003,7 @@ def parse_recipe_workbook(path: str | Path) -> ImportBundle:
             "reason": (
                 "At least 150 recipes have complete provenance and review evidence."
                 if qualified >= 150
-                else "Source rights/version and human review evidence are incomplete; unverified records are not counted as qualified."
+                else blocker_text
             ),
         },
         "ac05": {
@@ -941,7 +1011,7 @@ def parse_recipe_workbook(path: str | Path) -> ImportBundle:
             "reason": (
                 "Import evidence includes provenance, quantities, steps, deduplication and qualified counts."
                 if qualified >= 150
-                else "The import is reproducible, but source rights/version and human review evidence remain incomplete."
+                else "The import is reproducible, but " + blocker_text
             ),
         },
     }
@@ -1010,6 +1080,17 @@ def import_recipe_bundle(session: Session, bundle: ImportBundle) -> dict[str, di
     """
 
     results: dict[str, dict[str, int]] = {}
+    # 工作簿已刪除的整道食譜：連同步驟、食材一併刪除（子表為 ON DELETE CASCADE），
+    # 指向它的 duplicate_of 會變成 NULL；工作簿是食譜庫的唯一來源。
+    recipe_ids = {row["recipe_id"] for row in bundle.recipes}
+    removed_recipes = list(session.scalars(select(Recipe.recipe_id).where(Recipe.recipe_id.not_in(recipe_ids))))
+    cascaded = {"recipe_steps": 0, "recipe_ingredients": 0}
+    if removed_recipes:
+        for key, model in (("recipe_steps", RecipeStep), ("recipe_ingredients", RecipeIngredient)):
+            cascaded[key] = session.scalar(
+                select(func.count()).select_from(model).where(model.recipe_id.in_(removed_recipes)))
+        session.execute(delete(Recipe).where(Recipe.recipe_id.in_(removed_recipes)))
+        session.flush()
     results["source_archive"] = _upsert_rows(
         session, SourceArchive, bundle.source_archive, "raw_id"
     )
@@ -1029,13 +1110,24 @@ def import_recipe_bundle(session: Session, bundle: ImportBundle) -> dict[str, di
         if row.get("duplicate_of_recipe_id"):
             session.get(Recipe, row["recipe_id"]).duplicate_of_recipe_id = row["duplicate_of_recipe_id"]
     session.flush()
-    recipe_ids = {row["recipe_id"] for row in bundle.recipes}
+    results["recipes"]["deleted"] = len(removed_recipes)
+    # 不再被任何食譜使用、也不在工作簿中的來源紀錄
+    raw_ids = {row["raw_id"] for row in bundle.source_archive}
+    removed_sources = session.execute(
+        delete(SourceArchive)
+        .where(SourceArchive.raw_id.not_in(raw_ids))
+        .where(~SourceArchive.raw_id.in_(select(Recipe.raw_id)))
+    ).rowcount
+    results["source_archive"]["deleted"] = removed_sources
     results["recipe_steps"] = _replace_children(
         session, RecipeStep, list(bundle.recipe_steps), "step_id", recipe_ids
     )
     results["recipe_ingredients"] = _replace_children(
         session, RecipeIngredient, list(bundle.recipe_ingredients), "recipe_ingredient_id", recipe_ids
     )
+    # 隨整道食譜一起刪除的子資料也計入 deleted
+    for key, count in cascaded.items():
+        results[key]["deleted"] += count
     session.flush()
     return results
 

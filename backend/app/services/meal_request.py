@@ -92,7 +92,7 @@ def check_references(db: Session, household_id, draft: MealRequestDraft) -> list
         ))
         if any(m not in owned for m in member_ids):
             problems.append(_issue("participants", "UNKNOWN_MEMBER", "包含不屬於此家庭的成員。"))
-    if ingredients.unknown_ids(draft.available_ingredient_ids):
+    if ingredients.unknown_ids(db, draft.available_ingredient_ids):
         problems.append(_issue("available_ingredient_ids", "UNKNOWN_INGREDIENT_ID",
                                "包含不在標準食材字典中的項目，請從清單選擇。"))
     return problems
@@ -138,9 +138,10 @@ def completeness(draft: MealRequestDraft, members: dict) -> list[dict]:
     return issues
 
 
-def restrictions(draft: MealRequestDraft, members: dict) -> dict:
+def restrictions(db: Session, draft: MealRequestDraft, members: dict) -> dict:
     """必要限制取本次用餐與便當成員的聯集，並標出來自哪些成員。"""
-    names = ingredients.catalog()
+    involved = [i for m in members.values() for i in (*m.allergen_ingredient_ids, *m.avoided_ingredient_ids)]
+    names = ingredients.names(db, involved)
     union: dict[str, dict] = {}
     for p in draft.participants:
         member = members.get(p.member_id)

@@ -9,10 +9,14 @@ from db_support import migrate_fresh, requires_db, session_factory, truncate_all
 from recipe_workbook import build, ingredient, recipe
 
 
-def parse(recipes):
+SOURCE_RIGHTS = {"合成來源": {"license_name": "合成來源授權（測試）", "rights_status": "verified",
+                            "source_version": "v1", "retrieved_at": "2026-10-17T00:00:00+08:00"}}
+
+
+def parse(recipes, catalog=None, source_rights=None):
     from app.services.recipe_import import parse_recipe_workbook
     with tempfile.TemporaryDirectory() as folder:
-        return parse_recipe_workbook(build(Path(folder) / "book.xlsx", recipes))
+        return parse_recipe_workbook(build(Path(folder) / "book.xlsx", recipes, catalog), source_rights)
 
 
 def by_id(bundle):
@@ -75,6 +79,35 @@ class QualityRuleTests(unittest.TestCase):
         self.assertTrue(rows["R001"]["is_eligible"])
         self.assertFalse(rows["R002"]["is_eligible"])
         self.assertIn("suspected_duplicate_not_primary", rows["R002"]["quality_issues"])
+
+    def test_catalog_sheet_becomes_the_food_dictionary(self):
+        bundle = parse([recipe("R001", "清炒高麗菜")],
+                       catalog={"FOOD000005": "高麗菜", "FOOD001566": "雞蛋", "FOOD000039": "大蒜"})
+        aliases = {row["food_id"]: row["canonical_name"] for row in bundle.ingredient_aliases}
+        self.assertEqual(aliases, {"FOOD000005": "高麗菜", "FOOD001566": "雞蛋", "FOOD000039": "大蒜"})
+        self.assertEqual(bundle.report["counts"]["catalog_food_ids"], 3)
+
+    def test_recipe_food_missing_from_catalog_is_rejected(self):
+        from app.services.recipe_import import WorkbookValidationError
+        with self.assertRaises(WorkbookValidationError):
+            parse([recipe("R001", "清炒高麗菜")], catalog={"FOOD001566": "雞蛋"})
+        with self.assertRaises(WorkbookValidationError):  # 同一編號名稱不一致
+            parse([recipe("R001", "清炒高麗菜")], catalog={"FOOD000005": "甘藍菜"})
+
+    def test_source_rights_config_fills_missing_rights_only(self):
+        no_rights = [recipe("R001", "清炒高麗菜", rights_in_workbook=False)]
+        before = by_id(parse(no_rights))["R001"]
+        self.assertIn("missing_license", before["quality_issues"])
+        self.assertFalse(before["is_eligible"])
+        after = by_id(parse(no_rights, source_rights=SOURCE_RIGHTS))["R001"]
+        for issue in ("missing_license", "rights_not_verified", "missing_source_version", "missing_retrieved_at"):
+            self.assertNotIn(issue, after["quality_issues"])
+        self.assertTrue(after["is_eligible"], after["quality_issues"])
+        # 授權不能取代人工審核
+        pending = by_id(parse([recipe("R001", "清炒高麗菜", rights_in_workbook=False, approved=False)],
+                              source_rights=SOURCE_RIGHTS))["R001"]
+        self.assertIn("recipe_review_pending", pending["quality_issues"])
+        self.assertFalse(pending["is_eligible"])
 
     def test_unreviewed_recipe_never_pads_the_count(self):
         bundle = parse([recipe("R001", "清炒高麗菜", approved=False)])
@@ -143,6 +176,23 @@ class ImportTests(unittest.TestCase):
         self.assertEqual(result["recipe_steps"]["deleted"], 1)
         self.assertEqual(result["recipe_ingredients"]["deleted"], 1)
         self.assertEqual((self.count(RecipeStep), self.count(RecipeIngredient)), (2, 1))
+
+    def test_reimport_deletes_recipes_removed_from_workbook(self):
+        from app.models import Recipe, RecipeIngredient, RecipeStep, SourceArchive
+        self.run_import([recipe("R001", "清炒高麗菜"), recipe("R002", "番茄炒蛋", steps=("切", "炒"), ingredients=[
+            ingredient("FOOD000001", "番茄", 200)])], "a.xlsx")
+        result = self.run_import([recipe("R001", "清炒高麗菜")], "b.xlsx")
+        self.assertEqual(result["recipes"]["deleted"], 1)
+        self.assertEqual(result["source_archive"]["deleted"], 1)
+        self.assertEqual(result["recipe_steps"]["deleted"], 2)
+        self.assertEqual(result["recipe_ingredients"]["deleted"], 1)
+        self.assertEqual(self.count(Recipe), 1)
+        self.assertEqual(self.count(RecipeStep, recipe_id="R002"), 0)
+        self.assertEqual(self.count(RecipeIngredient, recipe_id="R002"), 0)
+        self.assertEqual(self.count(SourceArchive), 1)
+        # 刪除後再加回來也能正常匯入
+        again = self.run_import([recipe("R001", "清炒高麗菜"), recipe("R002", "番茄炒蛋")], "c.xlsx")
+        self.assertEqual((again["recipes"]["inserted"], again["recipes"]["deleted"]), (1, 0))
 
     def test_reimport_with_renumbered_steps(self):
         from app.models import RecipeStep

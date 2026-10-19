@@ -16,6 +16,7 @@ sys.path.insert(0, str(BACKEND_ROOT))
 
 from app.services.recipe_import import (  # noqa: E402
     import_recipe_bundle,
+    load_source_rights,
     parse_recipe_workbook,
     write_quality_report,
 )
@@ -31,6 +32,10 @@ def build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument("--report", help="Write the data-quality report to this JSON path")
     parser.add_argument(
+        "--sources",
+        help="JSON with per-source license/rights/version defaults (e.g. config/recipe_sources.json)",
+    )
+    parser.add_argument(
         "--dry-run",
         action="store_true",
         help="Validate and report without writing to the database",
@@ -40,7 +45,8 @@ def build_parser() -> argparse.ArgumentParser:
 
 def main() -> int:
     args = build_parser().parse_args()
-    bundle = parse_recipe_workbook(args.excel)
+    source_rights = load_source_rights(args.sources) if args.sources else None
+    bundle = parse_recipe_workbook(args.excel, source_rights)
     if args.report:
         write_quality_report(bundle.report, args.report)
 

@@ -1,46 +1,158 @@
 {
-  "labels_version": "food41-39cls-20261015",
-  "model_reference": "yolo_training/runs/yolov8n_food41/primary_model.json（YOLOv8n、39 類、雙邊濾波前處理）",
-  "note": "YOLO 類別名稱 → 畫面顯示的中文名稱與標準食材 ID（ING）。中文名稱依類別英文名整理，須由 T05 負責人確認。只有能一對一對應單一 ING 項目時才填 ingredient_id；有歧義（字典重複、品種不明）或字典沒有的類別留空，使用者確認時再從標準食材字典選擇。模型品質仍依 AC22 獨立驗收，此表不代表模型已通過。",
+  "labels_version": "food41-39cls-20261015-food-ids",
+  "model_reference": "inference/model_manifest.json（YOLO26s，Food41 39 類，OpenCV 中值濾波降噪前處理）",
+  "note": "YOLO 類別名稱 → 畫面顯示的中文名稱與標準食材 ID（FOOD 編號，來源：recipe_dataset_1017.xlsx 的「標準食材整合」）。中文名稱依類別英文名整理，須由 T05 負責人確認。只有能一對一對應單一 FOOD 項目時才填 ingredient_id；字典或別名有衝突（牛番茄、青花菜、大蒜）、品種不明（Cucumber、lettuce）的類別留空，使用者確認時再從字典選擇。模型品質仍依 AC22 獨立驗收，此表不代表模型已通過。",
   "labels": {
-    "Beef-tomato": {"name": "牛番茄"},
-    "Bell-peppers": {"name": "甜椒"},
-    "Broccoli": {"name": "青花菜"},
-    "Cabbage": {"name": "高麗菜", "ingredient_id": "ING0034"},
-    "Celery": {"name": "芹菜", "ingredient_id": "ING0059"},
-    "Chili-pepper": {"name": "辣椒", "ingredient_id": "ING0013"},
-    "Chinese-kale": {"name": "芥藍", "ingredient_id": "ING0685"},
-    "Cucumber": {"name": "小黃瓜"},
-    "Fushan-lettuce": {"name": "福山萵苣", "ingredient_id": "ING0730"},
-    "Loofah-strips": {"name": "絲瓜", "ingredient_id": "ING0415"},
-    "Napa-cabbage": {"name": "大白菜", "ingredient_id": "ING0212"},
-    "Onion": {"name": "洋蔥", "ingredient_id": "ING0309"},
-    "Pumpkin": {"name": "南瓜", "ingredient_id": "ING0186"},
-    "Soybean-sprouts": {"name": "黃豆芽", "ingredient_id": "ING0712"},
-    "Sweet-potato": {"name": "地瓜", "ingredient_id": "ING0666"},
-    "Zucchini": {"name": "櫛瓜", "ingredient_id": "ING0713"},
-    "basil": {"name": "九層塔", "ingredient_id": "ING0041"},
-    "bitter-gourd": {"name": "苦瓜", "ingredient_id": "ING0686"},
-    "bok-choy": {"name": "青江菜", "ingredient_id": "ING0132"},
-    "carrot": {"name": "胡蘿蔔", "ingredient_id": "ING0012"},
-    "chives": {"name": "韭菜", "ingredient_id": "ING0593"},
-    "coriander": {"name": "香菜", "ingredient_id": "ING0607"},
-    "corn": {"name": "玉米", "ingredient_id": "ING0674"},
-    "egg": {"name": "雞蛋", "ingredient_id": "ING0009"},
-    "eggplant": {"name": "茄子", "ingredient_id": "ING0449"},
-    "garlic": {"name": "大蒜"},
-    "ginger": {"name": "薑", "ingredient_id": "ING0008"},
-    "green-bean": {"name": "四季豆", "ingredient_id": "ING0726"},
-    "green-onion": {"name": "青蔥", "ingredient_id": "ING0003"},
-    "lettuce": {"name": "萵苣"},
-    "okra": {"name": "秋葵", "ingredient_id": "ING0678"},
-    "potato": {"name": "馬鈴薯", "ingredient_id": "ING0026"},
-    "rape": {"name": "油菜", "ingredient_id": "ING0724"},
-    "spinach": {"name": "菠菜", "ingredient_id": "ING0227"},
-    "sweet-potato-leaves": {"name": "地瓜葉", "ingredient_id": "ING0667"},
-    "water-spinach": {"name": "空心菜", "ingredient_id": "ING0073"},
-    "white-radish": {"name": "白蘿蔔", "ingredient_id": "ING0047"},
-    "white-water-snowflake": {"name": "水蓮"},
-    "winter-melon": {"name": "冬瓜", "ingredient_id": "ING0665"}
+    "Beef-tomato": {
+      "name": "牛番茄"
+    },
+    "Bell-peppers": {
+      "name": "甜椒",
+      "ingredient_id": "FOOD000920"
+    },
+    "Broccoli": {
+      "name": "青花菜"
+    },
+    "Cabbage": {
+      "name": "高麗菜",
+      "ingredient_id": "FOOD000867"
+    },
+    "Celery": {
+      "name": "芹菜",
+      "ingredient_id": "FOOD000554"
+    },
+    "Chili-pepper": {
+      "name": "辣椒",
+      "ingredient_id": "FOOD001250"
+    },
+    "Chinese-kale": {
+      "name": "芥藍",
+      "ingredient_id": "FOOD000517"
+    },
+    "Cucumber": {
+      "name": "小黃瓜"
+    },
+    "Fushan-lettuce": {
+      "name": "福山萵苣",
+      "ingredient_id": "FOOD001210"
+    },
+    "Loofah-strips": {
+      "name": "絲瓜",
+      "ingredient_id": "FOOD001037"
+    },
+    "Napa-cabbage": {
+      "name": "大白菜",
+      "ingredient_id": "FOOD000026"
+    },
+    "Onion": {
+      "name": "洋蔥",
+      "ingredient_id": "FOOD000618"
+    },
+    "Pumpkin": {
+      "name": "南瓜",
+      "ingredient_id": "FOOD000601"
+    },
+    "Soybean-sprouts": {
+      "name": "黃豆芽",
+      "ingredient_id": "FOOD001072"
+    },
+    "Sweet-potato": {
+      "name": "地瓜",
+      "ingredient_id": "FOOD000325"
+    },
+    "Zucchini": {
+      "name": "櫛瓜",
+      "ingredient_id": "FOOD001482"
+    },
+    "basil": {
+      "name": "九層塔",
+      "ingredient_id": "FOOD000004"
+    },
+    "bitter-gourd": {
+      "name": "苦瓜",
+      "ingredient_id": "FOOD000680"
+    },
+    "bok-choy": {
+      "name": "青江菜",
+      "ingredient_id": "FOOD000585"
+    },
+    "carrot": {
+      "name": "胡蘿蔔",
+      "ingredient_id": "FOOD000678"
+    },
+    "chives": {
+      "name": "韭菜",
+      "ingredient_id": "FOOD000687"
+    },
+    "coriander": {
+      "name": "香菜",
+      "ingredient_id": "FOOD000705"
+    },
+    "corn": {
+      "name": "玉米",
+      "ingredient_id": "FOOD000257"
+    },
+    "egg": {
+      "name": "雞蛋",
+      "ingredient_id": "FOOD001566"
+    },
+    "eggplant": {
+      "name": "茄子",
+      "ingredient_id": "FOOD000684"
+    },
+    "garlic": {
+      "name": "大蒜"
+    },
+    "ginger": {
+      "name": "薑",
+      "ingredient_id": "FOOD001496"
+    },
+    "green-bean": {
+      "name": "四季豆",
+      "ingredient_id": "FOOD000240"
+    },
+    "green-onion": {
+      "name": "青蔥",
+      "ingredient_id": "FOOD000598"
+    },
+    "lettuce": {
+      "name": "萵苣"
+    },
+    "okra": {
+      "name": "秋葵",
+      "ingredient_id": "FOOD000631"
+    },
+    "potato": {
+      "name": "馬鈴薯",
+      "ingredient_id": "FOOD000851"
+    },
+    "rape": {
+      "name": "油菜",
+      "ingredient_id": "FOOD000486"
+    },
+    "spinach": {
+      "name": "菠菜",
+      "ingredient_id": "FOOD001043"
+    },
+    "sweet-potato-leaves": {
+      "name": "地瓜葉",
+      "ingredient_id": "FOOD000327"
+    },
+    "water-spinach": {
+      "name": "空心菜",
+      "ingredient_id": "FOOD000509"
+    },
+    "white-radish": {
+      "name": "白蘿蔔",
+      "ingredient_id": "FOOD000307"
+    },
+    "white-water-snowflake": {
+      "name": "水蓮",
+      "ingredient_id": "FOOD000168"
+    },
+    "winter-melon": {
+      "name": "冬瓜",
+      "ingredient_id": "FOOD000216"
+    }
   }
 }
