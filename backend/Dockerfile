@@ -13,6 +13,8 @@ COPY nutrition_target /app/nutrition_target
 COPY config/model_pricing.json /app/config/model_pricing.json
 # T09 YOLO 類別名稱對照（待 T05 定版）
 COPY config/recognition_labels.json /app/config/recognition_labels.json
+# T02 不查價食材（如水）
+COPY config/price_exempt_ingredients.json /app/config/price_exempt_ingredients.json
 ENV PYTHONPATH=/app
 COPY alembic.ini /app/alembic.ini
 COPY migrations /app/migrations

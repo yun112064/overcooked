@@ -13,10 +13,16 @@ SOURCE_RIGHTS = {"合成來源": {"license_name": "合成來源授權（測試�
                             "source_version": "v1", "retrieved_at": "2026-10-17T00:00:00+08:00"}}
 
 
-def parse(recipes, catalog=None, source_rights=None):
+def parse(recipes, catalog=None, source_rights=None, review_record=None):
     from app.services.recipe_import import parse_recipe_workbook
     with tempfile.TemporaryDirectory() as folder:
-        return parse_recipe_workbook(build(Path(folder) / "book.xlsx", recipes, catalog), source_rights)
+        return parse_recipe_workbook(build(Path(folder) / "book.xlsx", recipes, catalog), source_rights, review_record)
+
+
+def quantity(raw_text, amount, unit="g", name="高麗菜"):
+    bundle = parse([recipe("R001", "清炒高麗菜", ingredients=[
+        ingredient("FOOD000005", name, amount, raw_text=raw_text, unit=unit, weight_g=amount)])])
+    return bundle.recipe_ingredients[0], by_id(bundle)["R001"]
 
 
 def by_id(bundle):
@@ -108,6 +114,51 @@ class QualityRuleTests(unittest.TestCase):
                               source_rights=SOURCE_RIGHTS))["R001"]
         self.assertIn("recipe_review_pending", pending["quality_issues"])
         self.assertFalse(pending["is_eligible"])
+
+    def test_vague_words_use_reference_amount(self):
+        for raw in ("鹽 適量", "胡椒 少許", "雞腿 一大隻", "香菇 十幾朵", "鱸魚 數塊", "醬油"):
+            row, recipe_row = quantity(raw, 10, name=raw.split()[0])
+            self.assertEqual((row["quantity_status"], row["amount"]), ("reference_amount", 10), raw)
+            self.assertTrue(recipe_row["is_eligible"], (raw, recipe_row["quality_issues"]))
+
+    def test_reference_amount_needs_an_amount(self):
+        row, recipe_row = quantity("鹽 適量", None, name="鹽")
+        self.assertEqual(row["quantity_status"], "qualitative_unresolved")
+        self.assertFalse(recipe_row["is_eligible"])
+
+    def test_chinese_numerals_must_match_amount(self):
+        cases = {"雞蛋 六顆": 6, "醬油露 半碗": 0.5, "高麗菜 一顆半": 1.5, "肉 十二片": 12, "米 兩杯": 2}
+        for raw, value in cases.items():
+            row, _ = quantity(raw, value, unit="顆", name=raw.split()[0])
+            self.assertEqual(row["quantity_status"], "source_exact", raw)
+        # 原文與 amount 不一致時以 Excel 的 amount 為準，只留下提醒、不阻擋
+        row, recipe_row = quantity("雞蛋 六顆", 2, unit="顆", name="雞蛋")
+        self.assertEqual((row["quantity_status"], row["amount"]), ("reference_amount", 2))
+        self.assertIn("ingredient:raw_text_differs_from_amount", recipe_row["quality_issues"])
+        self.assertTrue(recipe_row["is_eligible"], recipe_row["quality_issues"])
+
+    def test_notes_and_names_are_not_read_as_quantities(self):
+        row, _ = quantity("[內餡食材(六份)] 鮪魚罐頭 一罐", 1, unit="罐", name="鮪魚罐頭")
+        self.assertEqual(row["quantity_status"], "source_exact")
+        row, _ = quantity("九層塔(摘葉子就好) 半包", 0.5, unit="包", name="九層塔")
+        self.assertEqual(row["quantity_status"], "source_exact")
+
+    def test_review_record_applies_only_to_the_reviewed_workbook(self):
+        from app.services.recipe_import import parse_recipe_workbook
+        books = [recipe("R001", "清炒高麗菜", approved=None, rights_in_workbook=False)]
+        with tempfile.TemporaryDirectory() as folder:
+            path = build(Path(folder) / "book.xlsx", books)
+            import hashlib
+            digest = hashlib.sha256(path.read_bytes()).hexdigest()
+            approvals = {key: "approved" for key in
+                         ("source_review", "recipe_review", "cooking_method", "step_review", "adjustable_range")}
+            record = {"workbook_sha256": digest, "reviewed_on": "2026-10-19", "approvals": approvals}
+            ok = parse_recipe_workbook(path, SOURCE_RIGHTS, record)
+            stale = parse_recipe_workbook(path, SOURCE_RIGHTS, {**record, "workbook_sha256": "0" * 64})
+        self.assertTrue(by_id(ok)["R001"]["is_eligible"], by_id(ok)["R001"]["quality_issues"])
+        self.assertTrue(ok.report["review_record"]["applied"])
+        self.assertFalse(by_id(stale)["R001"]["is_eligible"])
+        self.assertFalse(stale.report["review_record"]["applied"])
 
     def test_unreviewed_recipe_never_pads_the_count(self):
         bundle = parse([recipe("R001", "清炒高麗菜", approved=False)])

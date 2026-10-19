@@ -172,6 +172,12 @@ VALID_UNITS = {
 RANGE_RE = re.compile(r"(?P<low>\d+(?:\.\d+)?)\s*[~～\-–—]\s*(?P<high>\d+(?:\.\d+)?)")
 FRACTION_RE = re.compile(r"(?P<num>\d+)\s*/\s*(?P<den>\d+)")
 NUMBER_RE = re.compile(r"\d+(?:\.\d+)?")
+# 原文以中文數字寫的數量（例如「雞蛋 六顆」「醬油露 半碗」）
+CHINESE_NUMBER_RE = re.compile(r"(?P<num>[一二兩三四五六七八九十]+)(?P<half>半)?|(?P<only_half>半)")
+# 原文數量含這些字時屬於概略用量（「一大隻」「十幾朵」「數塊」「六到七瓣」）
+VAGUE_QUANTITY_RE = re.compile(r"[大小幾數約多到至]|左右")
+NOTE_RE = re.compile(r"\[[^\]]*\]|【[^】]*】|\([^)]*\)|（[^）]*）")
+CHINESE_DIGITS = {"一": 1, "二": 2, "兩": 2, "三": 3, "四": 4, "五": 5, "六": 6, "七": 7, "八": 8, "九": 9}
 UNIT_IN_TEXT_RE = re.compile(
     r"(?:\d+(?:\.\d+)?\s*(?:/\s*\d+)?|\d+(?:\.\d+)?\s*[~～\-–—]\s*\d+(?:\.\d+)?)\s*"
     r"(?P<unit>公克|克|g|G|毫升|ml|cc|CC|大匙|湯匙|小匙|茶匙|顆|片|條|根|瓣|支|個|碗|隻|杯|把|朵|盒|包|斤|塊|粒|株|罐|尾|份|兩|張|米杯|小撮|滴)"
@@ -331,6 +337,37 @@ def _normalize_unit(source_unit: str | None, raw_text: str) -> tuple[str | None,
     return None, "invalid", issues
 
 
+def _chinese_number(text: str) -> Decimal | None:
+    """解析原文中的中文數字（一～九十九、兩、半、X半）；無法解析時回傳 None。"""
+    match = CHINESE_NUMBER_RE.search(text)
+    if match is None:
+        return None
+    if match.group("only_half"):
+        return Decimal("0.5")
+    digits = match.group("num")
+    if "十" in digits:
+        tens, _, ones = digits.partition("十")
+        if (tens and tens not in CHINESE_DIGITS) or (ones and ones not in CHINESE_DIGITS) or "十" in ones:
+            return None
+        value = Decimal(CHINESE_DIGITS.get(tens, 1) * 10 + CHINESE_DIGITS.get(ones, 0))
+    elif len(digits) == 1:
+        value = Decimal(CHINESE_DIGITS[digits])
+    else:
+        return None
+    # 「一顆半」：半在單位字之後
+    trailing_half = text[match.end():match.end() + 2]
+    half = match.group("half") or (len(trailing_half) == 2 and trailing_half[1] == "半")
+    return value + (Decimal("0.5") if half else 0)
+
+
+def _quantity_text(raw_text: str, canonical_name: str | None) -> str:
+    """只留下原文中的數量部分：去掉 [分組]、(備註) 與食材名稱，避免把「九層塔」「六份」當成數量。"""
+    text = NOTE_RE.sub(" ", raw_text)
+    if canonical_name:
+        text = text.replace(canonical_name, " ")
+    return text.strip()
+
+
 def _normalize_quantity(record: dict[str, Any]) -> dict[str, Any]:
     raw_text = _text(record.get("raw_text")) or ""
     source_unit = _text(record.get("unit"))
@@ -347,8 +384,14 @@ def _normalize_quantity(record: dict[str, Any]) -> dict[str, Any]:
     amount_max: Decimal | None = None
 
     if contains_qualitative and not has_digit:
-        quantity_status = "qualitative_unresolved"
-        issues.append("qualitative_quantity_without_number")
+        if source_amount is not None:
+            # 「適量／少許」等用詞：依資料整理時填入的 amount 作為參考用量（非原文明示）
+            amount = source_amount
+            quantity_status = "reference_amount"
+            issues.append("qualitative_quantity_uses_reference_amount")
+        else:
+            quantity_status = "qualitative_unresolved"
+            issues.append("qualitative_quantity_without_number")
     elif range_match:
         amount_min = Decimal(range_match.group("low"))
         amount_max = Decimal(range_match.group("high"))
@@ -368,13 +411,36 @@ def _normalize_quantity(record: dict[str, Any]) -> dict[str, Any]:
         amount = source_amount
         quantity_status = "source_exact"
     else:
-        quantity_status = "unresolved"
-        issues.append("quantity_not_supported_by_raw_text")
+        quantity_text = _quantity_text(raw_text, _text(record.get("canonical_name")))
+        chinese = _chinese_number(quantity_text)
+        vague = VAGUE_QUANTITY_RE.search(quantity_text) is not None
+        if chinese is not None and not vague and source_amount == chinese:
+            # 原文中文數字與 amount 一致才算原文明示
+            amount = source_amount
+            quantity_status = "source_exact"
+        elif source_amount is not None and (chinese is None or vague):
+            # 原文沒寫數量或只是概略用量：依資料整理時填入的 amount 作為參考用量
+            amount = source_amount
+            quantity_status = "reference_amount"
+            issues.append("unstated_quantity_uses_reference_amount" if chinese is None
+                          else "vague_quantity_uses_reference_amount")
+        elif source_amount is not None:
+            # 以 Excel 的 amount 為準（工作簿已人工確認）；原文數字不同只留提醒
+            amount = source_amount
+            quantity_status = "reference_amount"
+            issues.append("raw_text_differs_from_amount")
+        else:
+            # 原文與 amount 都沒有可用數量
+            quantity_status = "unresolved"
+            issues.append("quantity_not_supported_by_raw_text")
 
     weight_g: Decimal | None = None
     if unit == "g" and amount is not None and quantity_status == "source_exact":
         weight_g = amount
         weight_status = "source_explicit"
+    elif unit == "g" and amount is not None and quantity_status == "reference_amount":
+        weight_g = amount
+        weight_status = "reference_amount"
     elif unit == "g" and quantity_status == "source_range":
         weight_status = "source_range"
     elif source_weight is not None:
@@ -494,12 +560,47 @@ def _apply_source_rights(source_input: list[dict[str, Any]], source_rights: dict
                 row[field] = defaults[field]
 
 
+REVIEW_FIELDS = {
+    # 審核紀錄的 approvals 鍵 → (工作表, 欄位)
+    "source_review": ("source_archive", "review_status"),
+    "recipe_review": ("recipes", "review_status"),
+    "cooking_method": ("recipes", "cooking_method_status"),
+    "step_review": ("recipe_steps", "review_status"),
+    "adjustable_range": ("recipe_ingredients", "adjustment_status"),
+}
+
+
+def load_review_record(path: str | Path) -> dict[str, Any]:
+    return json.loads(Path(path).read_text(encoding="utf-8"))
+
+
+def _apply_review_record(raw_sheets: dict[str, list[dict[str, Any]]], record: dict[str, Any] | None,
+                         source_sha256: str) -> dict[str, Any] | None:
+    """套用人工審核紀錄（工作簿沒有審核欄位時）。
+
+    紀錄綁定工作簿 SHA-256：工作簿內容一改，舊的審核不會套用到新內容。
+    工作簿已填的審核欄位優先。
+    """
+    if not record:
+        return None
+    summary = {key: record.get(key) for key in ("reviewed_on", "reviewer", "scope", "workbook_sha256")}
+    if record.get("workbook_sha256") != source_sha256:
+        return {**summary, "applied": False, "reason": "workbook SHA-256 differs from the reviewed version"}
+    for key, status in (record.get("approvals") or {}).items():
+        sheet, field = REVIEW_FIELDS[key]
+        for row in raw_sheets[sheet]:
+            if _text(row.get(field)) is None:
+                row[field] = status
+    return {**summary, "applied": True, "approvals": record.get("approvals")}
+
+
 def load_source_rights(path: str | Path) -> dict[str, dict]:
     data = json.loads(Path(path).read_text(encoding="utf-8"))
     return {name: entry for name, entry in data["sources"].items()}
 
 
-def parse_recipe_workbook(path: str | Path, source_rights: dict[str, dict] | None = None) -> ImportBundle:
+def parse_recipe_workbook(path: str | Path, source_rights: dict[str, dict] | None = None,
+                          review_record: dict[str, Any] | None = None) -> ImportBundle:
     workbook_path = Path(path).resolve()
     if not workbook_path.is_file():
         raise FileNotFoundError(workbook_path)
@@ -516,6 +617,7 @@ def parse_recipe_workbook(path: str | Path, source_rights: dict[str, dict] | Non
     finally:
         workbook.close()
 
+    review_applied = _apply_review_record(raw_sheets, review_record, source_sha256)
     source_input = raw_sheets["source_archive"]
     _apply_source_rights(source_input, source_rights)
     recipe_input = raw_sheets["recipes"]
@@ -995,6 +1097,7 @@ def parse_recipe_workbook(path: str | Path, source_rights: dict[str, dict] | Non
                 if row["ambiguous_aliases"]
             ],
         },
+        "review_record": review_applied,
         "g01": {
             "status": "passed" if qualified >= 150 else "not_passed",
             "required_qualified_recipes": 150,

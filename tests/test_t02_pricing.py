@@ -182,6 +182,29 @@ class CollectionLockTests(unittest.TestCase):
         # 失敗的 run 可用同一個 key 續跑
         self.assertEqual(self.run_once(PricingRepository(self.engine), "k1").status, "completed_with_errors")
 
+    def test_exempt_ingredients_are_not_priced(self):
+        from app.source_adapters.price_collection import PriceCollectionService
+        from app.source_adapters.pricing_repository import PricingRepository
+        folder = tempfile.TemporaryDirectory()
+        self.addCleanup(folder.cleanup)
+        book = build(Path(folder.name) / "water.xlsx", [recipe("R001", "清炒高麗菜", ingredients=[
+            ingredient("FOOD000005", "高麗菜", 300), ingredient("FOOD000119", "水", 100)])])
+        source, client = adapter(page(product("高麗菜 1顆", "45")), retries=0)
+        service = PriceCollectionService(workbook_path=book, repository=PricingRepository(self.engine),
+                                         adapter_factory=lambda: source, delay_seconds=0, sleep=lambda s: None,
+                                         exempt_food_ids={"FOOD000119"})
+        result = service.run(trigger_type="manual", scheduled_for=datetime(2026, 10, 19, 3, tzinfo=TZ), run_key="w1")
+        self.assertEqual(result.ingredient_total, 1)
+        with self.engine.connect() as conn:
+            names = conn.execute(text("SELECT canonical_name FROM price_quote_snapshots")).scalars().all()
+            counts = conn.execute(text("SELECT status_counts FROM price_collection_runs WHERE run_key = 'w1'")).scalar_one()
+        self.assertEqual(names, ["高麗菜"])
+        self.assertEqual(counts["exempt"], 1)
+
+    def test_default_exempt_list_contains_water(self):
+        from app.source_adapters.price_collection import load_price_exempt
+        self.assertIn("FOOD000119", load_price_exempt())
+
     def test_same_key_is_skipped_and_new_day_appends_snapshots(self):
         from app.source_adapters.pricing_repository import PricingRepository
         repository = PricingRepository(self.engine)

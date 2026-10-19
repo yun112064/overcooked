@@ -46,7 +46,8 @@ def build(path: Path, recipes: list[dict], catalog: dict[str, str] | None = None
     sheets["allergens"].append(["allergen_id", "allergen_name", "reference"])
     foods = {}
     for r in recipes:
-        ok = "approved" if r["approved"] else "pending"
+        # approved=None：工作簿沒有審核欄位（如真實工作簿），由審核紀錄補上
+        ok = {True: "approved", False: "pending", None: None}[r["approved"]]
         raw_id = f"RAW-{r['id']}"
         rights = (["CC BY 4.0（合成測試）", "verified" if r["approved"] else "unknown", "v1", "2026-10-01T00:00:00Z"]
                   if r["rights_in_workbook"] else [None, None, None, None])

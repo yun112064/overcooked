@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import json
+
 import time
 import uuid
 from collections import Counter
@@ -44,6 +46,17 @@ class CollectionResult:
     skipped_reason: str | None = None
 
 
+PRICE_EXEMPT_PATH = Path(__file__).resolve().parents[3] / "config/price_exempt_ingredients.json"
+
+
+def load_price_exempt(path: str | Path = PRICE_EXEMPT_PATH) -> set[str]:
+    """不查價的 FOOD 編號（例如水）；檔案不存在時視為沒有例外。"""
+    path = Path(path)
+    if not path.is_file():
+        return set()
+    return set(json.loads(path.read_text(encoding="utf-8"))["ingredients"])
+
+
 class PriceCollectionService:
     def __init__(
         self,
@@ -56,7 +69,9 @@ class PriceCollectionService:
             load_ingredient_queries
         ),
         sleep: Callable[[float], None] = time.sleep,
+        exempt_food_ids: set[str] | None = None,
     ) -> None:
+        self.exempt_food_ids = load_price_exempt() if exempt_food_ids is None else set(exempt_food_ids)
         self.workbook_path = Path(workbook_path)
         self.repository = repository
         self.adapter_factory = adapter_factory
@@ -126,6 +141,11 @@ class PriceCollectionService:
             failure_count = missing_count
 
             ingredients = self.ingredient_loader(self.workbook_path)
+            # 不計價食材（如水）不送去查價，成本為已知 0；在執行摘要中另計
+            exempt = [i for i in ingredients if i.food_ids and set(i.food_ids) <= self.exempt_food_ids]
+            if exempt:
+                ingredients = [i for i in ingredients if i not in exempt]
+                status_counts["exempt"] = len(exempt)
             ingredient_total = len(ingredients)
             self.repository.set_ingredient_total(lease, ingredient_total)
             selected_ingredients = ingredients[:limit] if limit else ingredients

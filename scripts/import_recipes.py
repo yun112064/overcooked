@@ -16,6 +16,7 @@ sys.path.insert(0, str(BACKEND_ROOT))
 
 from app.services.recipe_import import (  # noqa: E402
     import_recipe_bundle,
+    load_review_record,
     load_source_rights,
     parse_recipe_workbook,
     write_quality_report,
@@ -32,6 +33,10 @@ def build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument("--report", help="Write the data-quality report to this JSON path")
     parser.add_argument(
+        "--reviews",
+        help="JSON human-review record bound to the workbook SHA-256 (e.g. config/recipe_reviews.json)",
+    )
+    parser.add_argument(
         "--sources",
         help="JSON with per-source license/rights/version defaults (e.g. config/recipe_sources.json)",
     )
@@ -46,7 +51,11 @@ def build_parser() -> argparse.ArgumentParser:
 def main() -> int:
     args = build_parser().parse_args()
     source_rights = load_source_rights(args.sources) if args.sources else None
-    bundle = parse_recipe_workbook(args.excel, source_rights)
+    review_record = load_review_record(args.reviews) if args.reviews else None
+    bundle = parse_recipe_workbook(args.excel, source_rights, review_record)
+    if review_record and not (bundle.report.get("review_record") or {}).get("applied"):
+        print("WARNING: review record not applied: " + str((bundle.report.get("review_record") or {}).get("reason")),
+              file=sys.stderr)
     if args.report:
         write_quality_report(bundle.report, args.report)
 
