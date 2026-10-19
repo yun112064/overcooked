@@ -8,6 +8,12 @@ import { MEAL_LABELS, type MealRequest, type MealRequestSummary } from '../api/t
 
 const STATUS_LABELS: Record<string, string> = { draft: '草稿' }
 
+// 使用者本機時區的今天（YYYY-MM-DD）；toISOString 是 UTC，台灣早上 8 點前會變成昨天
+function localToday() {
+  const d = new Date()
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
+
 export default function MealRequestsPage() {
   const navigate = useNavigate()
   const list = useQuery({
@@ -15,7 +21,7 @@ export default function MealRequestsPage() {
     queryFn: async () => (await api.get<{ meal_requests: MealRequestSummary[] }>('/meal-requests')).data.meal_requests,
   })
   const create = useMutation({
-    mutationFn: async () => (await api.post<MealRequest>('/meal-requests', {})).data,
+    mutationFn: async () => (await api.post<MealRequest>('/meal-requests', { meal_date: localToday() })).data,
     onSuccess: (row) => navigate(`/plan/${row.id}`),
   })
 
