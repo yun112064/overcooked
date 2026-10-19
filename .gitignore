@@ -7,6 +7,7 @@ env/
 .env
 .env.*
 !.env.example
+!.env.dev.example
 __pycache__/
 *.py[cod]
 .pytest_cache/
@@ -26,3 +27,6 @@ nutrition_model/data/raw/
 # T01 raw recipe workbooks are local source material and require separate approval.
 data/*.xlsx
 data/*.xls
+
+# 本機開發腳本的執行狀態（PID、匯入報告）
+.dev/
