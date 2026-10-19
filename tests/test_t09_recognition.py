@@ -55,6 +55,13 @@ class SelectionTests(unittest.TestCase):
         self.assertIsNone(top_detection([Detection("蔥", 0.1, None)]))
         self.assertIsNone(top_detection([]))
 
+    def test_all_valid_vegetables_are_listed_once_by_confidence(self):
+        from app.services.recognition import Detection, vegetable_detections
+        dets = [Detection("高麗菜", 0.62, None), Detection("青江菜", 0.91, None), Detection("高麗菜", 0.8, None),
+                Detection("", 0.99, None), Detection("番茄", float("nan"), None), Detection("蔥", 0.1, None)]
+        found = vegetable_detections(dets)
+        self.assertEqual([(d.label, d.confidence) for d in found], [("青江菜", 0.91), ("高麗菜", 0.8)])
+
     def test_label_map_covers_primary_model_and_uses_known_ids(self):
         import json
         import re
@@ -139,12 +146,13 @@ class T09ApiTests(unittest.TestCase):
         client = client or self.client
         return client.post("/recognitions", files={"image": (filename, data, "application/octet-stream")}, data=form)
 
-    def test_only_top_vegetable_name_is_returned(self):
+    def test_every_detected_vegetable_is_returned(self):
         res = self.upload(jpeg_bytes())
         self.assertEqual(res.status_code, 201, res.text)
         body = res.json()
-        self.assertEqual((body["status"], body["suggested_name"]), ("succeeded", "青江菜"))
-        # 畫面不列候選、信心或框線
+        self.assertEqual(body["status"], "succeeded")
+        self.assertEqual([s["name"] for s in body["suggestions"]], ["青江菜", "高麗菜"])
+        # 畫面不列信心或框線
         for hidden in ("detections", "confidence", "box", "candidates"):
             self.assertNotIn(hidden, res.text)
         from app.db.models import Recognition
@@ -158,12 +166,13 @@ class T09ApiTests(unittest.TestCase):
     def test_model_class_is_shown_in_chinese_with_standard_id(self):
         self.recognizer.detections = [("Cabbage", 0.8), ("garlic", 0.3)]
         body = self.upload(jpeg_bytes()).json()
-        self.assertEqual((body["suggested_name"], body["suggested_ingredient_id"]), ("高麗菜", "FOOD000867"))
+        self.assertEqual(body["suggestions"][0], {"name": "高麗菜", "ingredient_id": "FOOD000867"})
+        self.assertEqual(len(body["suggestions"]), 2)
 
     def test_no_valid_detection_asks_for_manual_input(self):
         self.recognizer.detections = [("蔥", 0.05)]
         body = self.upload(jpeg_bytes()).json()
-        self.assertEqual((body["status"], body["suggested_name"], body["retryable"]), ("no_result", None, False))
+        self.assertEqual((body["status"], body["suggestions"], body["retryable"]), ("no_result", [], False))
         self.assertIn("手動輸入", body["message"])
 
     def test_unavailable_service_keeps_photo_and_can_retry(self):
@@ -175,7 +184,7 @@ class T09ApiTests(unittest.TestCase):
         self.assertEqual(self.client.get(body["image_url"]).status_code, 200)
         self.recognizer.error = None
         retried = self.client.post(f"/recognitions/{body['id']}/retry").json()
-        self.assertEqual((retried["status"], retried["suggested_name"]), ("succeeded", "青江菜"))
+        self.assertEqual((retried["status"], retried["suggestions"][0]["name"]), ("succeeded", "青江菜"))
         again = self.client.post(f"/recognitions/{body['id']}/retry")
         self.assertEqual(again.status_code, 409)
 
@@ -216,11 +225,21 @@ class T09ApiTests(unittest.TestCase):
         self.assertEqual(bad.status_code, 422)
         ok = self.client.post(f"/recognitions/{body['id']}/confirm",
                               json={"name": " 高麗菜 ", "ingredient_id": "FOOD000867"}).json()
-        self.assertEqual(ok["confirmed"], {"name": "高麗菜", "ingredient_id": "FOOD000867"})
+        self.assertEqual(ok["confirmed"], [{"name": "高麗菜", "ingredient_id": "FOOD000867"}])
         weighted = self.client.post(f"/recognitions/{body['id']}/confirm",
                                     json={"name": "高麗菜", "ingredient_id": "FOOD000867", "weight_g": 300})
         self.assertEqual(weighted.status_code, 200)
         self.assertNotIn("weight", weighted.text)
+
+    def test_one_photo_confirms_several_vegetables(self):
+        body = self.upload(jpeg_bytes()).json()
+        url = f"/recognitions/{body['id']}/confirm"
+        self.client.post(url, json={"name": "青江菜", "ingredient_id": "FOOD000585"})
+        self.client.post(url, json={"name": "甘藍", "ingredient_id": "FOOD000867"})
+        again = self.client.post(url, json={"name": "高麗菜", "ingredient_id": "FOOD000867"}).json()
+        self.assertEqual(again["confirmed"], [{"name": "青江菜", "ingredient_id": "FOOD000585"},
+                                              {"name": "高麗菜", "ingredient_id": "FOOD000867"}])
+        self.assertEqual(self.client.get(f"/recognitions/{body['id']}").json()["confirmed"], again["confirmed"])
 
     def test_delete_removes_photo(self):
         from app.services.recognition import image_file

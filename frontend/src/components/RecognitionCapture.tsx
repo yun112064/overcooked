@@ -6,12 +6,13 @@ import { useEffect, useState } from 'react'
 import { api, errorMessage } from '../api/client'
 import type { IngredientRef } from '../api/types'
 
+type Suggestion = { name: string; ingredient_id: string | null }
+
 type RecognitionResult = {
   id: string
   status: 'succeeded' | 'no_result' | 'unavailable'
   message: string
-  suggested_name: string | null
-  suggested_ingredient_id: string | null
+  suggestions: Suggestion[]
   retryable: boolean
   image_url: string
 }
@@ -21,21 +22,9 @@ type Props = {
   onAdd: (ingredient: IngredientRef) => void
 }
 
-/** 拍照／上傳 → 最高信心蔬菜名稱回填可編輯文字框 → 選標準食材加入已有食材。 */
+/** 拍照／上傳 → 每種辨識到的蔬菜各一個可編輯文字框 → 逐一選標準食材加入已有食材。 */
 export default function RecognitionCapture({ mealRequestId, onAdd }: Props) {
   const [result, setResult] = useState<RecognitionResult | null>(null)
-  const [name, setName] = useState('')
-  const [query, setQuery] = useState('')
-
-  useEffect(() => {
-    const timer = setTimeout(() => setQuery(name.trim()), 250)
-    return () => clearTimeout(timer)
-  }, [name])
-
-  const showResult = (r: RecognitionResult) => {
-    setResult(r)
-    setName(r.suggested_name ?? '')
-  }
 
   const upload = useMutation({
     mutationFn: async (file: File) => {
@@ -46,35 +35,19 @@ export default function RecognitionCapture({ mealRequestId, onAdd }: Props) {
         headers: { 'Content-Type': 'multipart/form-data' },
       })).data
     },
-    onSuccess: showResult,
+    onSuccess: setResult,
   })
   const retry = useMutation({
     mutationFn: async () => (await api.post<RecognitionResult>(`/recognitions/${result!.id}/retry`)).data,
-    onSuccess: showResult,
-  })
-  const confirm = useMutation({
-    mutationFn: async (ingredient: IngredientRef) => {
-      await api.post(`/recognitions/${result!.id}/confirm`, { name: name.trim() || ingredient.name, ingredient_id: ingredient.ingredient_id })
-      return ingredient
-    },
-    onSuccess: (ingredient) => {
-      onAdd(ingredient)
-      setResult(null)
-      setName('')
-    },
+    onSuccess: setResult,
   })
   const discard = useMutation({
     mutationFn: async () => api.delete(`/recognitions/${result!.id}`),
-    onSuccess: () => { setResult(null); setName('') },
+    onSuccess: () => setResult(null),
   })
 
-  const matches = useQuery({
-    queryKey: ['ingredients', query],
-    queryFn: async () =>
-      (await api.get<{ ingredients: IngredientRef[] }>('/ingredients', { params: { q: query, limit: 6 } })).data.ingredients,
-    enabled: !!result && query.length > 0,
-    staleTime: 60_000,
-  })
+  // 沒有辨識結果時仍給一個空白框讓使用者手動輸入
+  const rows: Suggestion[] = result?.suggestions.length ? result.suggestions : [{ name: '', ingredient_id: null }]
 
   return (
     <Card variant="outlined">
@@ -105,26 +78,15 @@ export default function RecognitionCapture({ mealRequestId, onAdd }: Props) {
                     ? <Button color="inherit" size="small" disabled={retry.isPending} onClick={() => retry.mutate()}>重試</Button>
                     : undefined}>
                   {result.message}
+                  {result.suggestions.length > 1 && `（共 ${result.suggestions.length} 種）`}
                 </Alert>
               </Box>
               {retry.isError && <Alert severity="error">{errorMessage(retry.error)}</Alert>}
-              <TextField label="蔬菜名稱（可修改）" value={name} onChange={(e) => setName(e.target.value)} fullWidth />
-              <Box>
-                <Typography variant="body2" color="text.secondary" gutterBottom>
-                  選擇對應的標準食材加入「家中已有」：
-                </Typography>
-                {matches.isFetching && <CircularProgress size={20} />}
-                {query && matches.data?.length === 0 && (
-                  <Typography variant="body2" color="text.secondary">查無符合的標準食材，請修改名稱。</Typography>
-                )}
-                <Stack direction="row" spacing={1} sx={{ flexWrap: 'wrap', rowGap: 1 }}>
-                  {matches.data?.map((i) => (
-                    <Chip key={i.ingredient_id} label={`加入：${i.name}`} color="primary" variant="outlined"
-                      disabled={confirm.isPending} onClick={() => confirm.mutate(i)} />
-                  ))}
-                </Stack>
-              </Box>
-              {confirm.isError && <Alert severity="error">{errorMessage(confirm.error)}</Alert>}
+              {rows.map((s, i) => (
+                // key 含辨識 ID：重試後換成新結果時重建各列狀態
+                <SuggestionRow key={`${result.id}-${result.status}-${i}`} recognitionId={result.id}
+                  initialName={s.name} onAdd={onAdd} />
+              ))}
               <Box>
                 <Button size="small" color="inherit" disabled={discard.isPending} onClick={() => discard.mutate()}>
                   刪除這張照片
@@ -135,5 +97,76 @@ export default function RecognitionCapture({ mealRequestId, onAdd }: Props) {
         </Stack>
       </CardContent>
     </Card>
+  )
+}
+
+function SuggestionRow({ recognitionId, initialName, onAdd }: {
+  recognitionId: string
+  initialName: string
+  onAdd: (ingredient: IngredientRef) => void
+}) {
+  const [name, setName] = useState(initialName)
+  const [query, setQuery] = useState(initialName.trim())
+  const [done, setDone] = useState<{ added: IngredientRef } | 'skipped' | null>(null)
+
+  useEffect(() => {
+    const timer = setTimeout(() => setQuery(name.trim()), 250)
+    return () => clearTimeout(timer)
+  }, [name])
+
+  const confirm = useMutation({
+    mutationFn: async (ingredient: IngredientRef) => {
+      await api.post(`/recognitions/${recognitionId}/confirm`, { name: name.trim() || ingredient.name, ingredient_id: ingredient.ingredient_id })
+      return ingredient
+    },
+    onSuccess: (ingredient) => {
+      onAdd(ingredient)
+      setDone({ added: ingredient })
+    },
+  })
+
+  const matches = useQuery({
+    queryKey: ['ingredients', query],
+    queryFn: async () =>
+      (await api.get<{ ingredients: IngredientRef[] }>('/ingredients', { params: { q: query, limit: 6 } })).data.ingredients,
+    enabled: !done && query.length > 0,
+    staleTime: 60_000,
+  })
+
+  if (done) {
+    return (
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+        {done === 'skipped'
+          ? <>
+            <Chip label={`已略過：${name || '（空白）'}`} variant="outlined" />
+            <Button size="small" color="inherit" onClick={() => setDone(null)}>改回</Button>
+          </>
+          // 加入後要移除，請在下方「家中已有的食材」刪除
+          : <Chip label={`已加入：${done.added.name}`} color="success" variant="outlined" />}
+      </Box>
+    )
+  }
+
+  return (
+    <Box sx={{ p: 1.5, border: 1, borderColor: 'divider', borderRadius: 1 }}>
+      <Stack spacing={1}>
+        <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+          <TextField label="蔬菜名稱（可修改）" value={name} onChange={(e) => setName(e.target.value)} fullWidth size="small" />
+          <Button size="small" color="inherit" onClick={() => setDone('skipped')}>略過</Button>
+        </Box>
+        <Typography variant="body2" color="text.secondary">選擇對應的標準食材加入「家中已有」：</Typography>
+        {matches.isFetching && <CircularProgress size={20} />}
+        {query && matches.data?.length === 0 && (
+          <Typography variant="body2" color="text.secondary">查無符合的標準食材，請修改名稱。</Typography>
+        )}
+        <Stack direction="row" spacing={1} sx={{ flexWrap: 'wrap', rowGap: 1 }}>
+          {matches.data?.map((i) => (
+            <Chip key={i.ingredient_id} label={`加入：${i.name}`} color="primary" variant="outlined"
+              disabled={confirm.isPending} onClick={() => confirm.mutate(i)} />
+          ))}
+        </Stack>
+        {confirm.isError && <Alert severity="error">{errorMessage(confirm.error)}</Alert>}
+      </Stack>
+    </Box>
   )
 }

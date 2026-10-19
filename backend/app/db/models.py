@@ -235,7 +235,7 @@ class UsageReservation(Base):
 
 
 class Recognition(Base):
-    """T09 蔬菜辨識紀錄。畫面只回填最高信心名稱；偵測明細保留供評估與追溯。"""
+    """T09 蔬菜辨識紀錄。畫面列出所有辨識到的蔬菜；偵測明細保留供評估與追溯。"""
     __tablename__ = "recognitions"
     __table_args__ = (
         CheckConstraint("status IN ('succeeded', 'no_result', 'unavailable')", name="ck_recognition_status"),
@@ -259,8 +259,7 @@ class Recognition(Base):
     model_version: Mapped[str | None] = mapped_column(String(100), nullable=True)
     detections: Mapped[list | None] = mapped_column(JSONB, nullable=True)
     unavailable_reason: Mapped[str | None] = mapped_column(String(50), nullable=True)
-    # 使用者修正後確認的名稱與標準食材（AC22 不以此計分）
-    confirmed_name: Mapped[str | None] = mapped_column(String(100), nullable=True)
-    confirmed_ingredient_id: Mapped[str | None] = mapped_column(String(20), nullable=True)
+    # 使用者修正後確認的 [{name, ingredient_id}]，一張照片可確認多種（AC22 不以此計分）
+    confirmed_items: Mapped[list] = mapped_column(JSONB, nullable=False, default=list, server_default="[]")
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, nullable=False)
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, nullable=False)

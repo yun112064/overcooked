@@ -1,8 +1,8 @@
-"""T09 蔬菜辨識：影像解碼與正規化、團隊電腦推論轉接器、最高信心結果。
+"""T09 蔬菜辨識：影像解碼與正規化、團隊電腦推論轉接器、所有辨識到的蔬菜。
 
 - 後端實際解碼影像、依 EXIF 轉正，再重新編碼成 JPEG 保存（去除 GPS 等中繼資料）。
 - 推論服務未設定、連不上或逾時 → unavailable（保留照片可重試），與「沒有有效辨識」分開。
-- 畫面只回填一個最高信心的蔬菜名稱；完整偵測只存內部供評估。
+- 畫面列出每種有效辨識到的蔬菜（同類別合併，依信心由高到低）；信心與框線只存內部供評估。
 """
 import io
 import json
@@ -92,12 +92,32 @@ def display_name(label: str) -> tuple[str, str | None]:
     return label, None
 
 
-def top_detection(detections: list[Detection]) -> Detection | None:
-    """多個有效偵測只取最高信心；無效或低於門檻的不算。"""
+def vegetable_detections(detections: list[Detection]) -> list[Detection]:
+    """有效偵測依類別合併（取該類最高信心），依信心由高到低；無效或低於門檻的不算。"""
     threshold = float(settings.recognition_min_confidence)
-    valid = [d for d in detections
-             if d.label.strip() and math.isfinite(d.confidence) and threshold <= d.confidence <= 1]
-    return max(valid, key=lambda d: d.confidence, default=None)
+    best: dict[str, Detection] = {}
+    for d in detections:
+        if d.label.strip() and math.isfinite(d.confidence) and threshold <= d.confidence <= 1:
+            if d.label not in best or d.confidence > best[d.label].confidence:
+                best[d.label] = d
+    return sorted(best.values(), key=lambda d: d.confidence, reverse=True)
+
+
+def top_detection(detections: list[Detection]) -> Detection | None:
+    found = vegetable_detections(detections)
+    return found[0] if found else None
+
+
+def suggestions(stored: list[dict] | None) -> list[dict]:
+    """由保存的偵測明細產生畫面清單：每種蔬菜一筆名稱與標準食材 ID，對到同一名稱的只列一次。"""
+    dets = [Detection(d["label"], d["confidence"], d.get("box")) for d in stored or []]
+    out, seen = [], set()
+    for d in vegetable_detections(dets):
+        name, ingredient_id = display_name(d.label)
+        if name not in seen:
+            seen.add(name)
+            out.append({"name": name, "ingredient_id": ingredient_id})
+    return out
 
 
 def parse_output(body: dict) -> RecognizerOutput:

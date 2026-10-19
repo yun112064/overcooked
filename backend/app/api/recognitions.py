@@ -38,24 +38,19 @@ class ConfirmBody(BaseModel):
 
 def _out(r: Recognition) -> dict:
     if r.status == "succeeded":
-        message = "請確認或修改辨識出的蔬菜名稱。"
+        message = "請確認或修改辨識出的蔬菜名稱，逐一加入家中已有食材。"
     elif r.status == "no_result":
         message = "沒有辨識到蔬菜，請手動輸入名稱。"
     else:
         message = UNAVAILABLE_MESSAGES.get(r.unavailable_reason, UNAVAILABLE_MESSAGES["SERVICE_ERROR"])
-    _, suggested_id = service.display_name(r.top_label) if r.top_label else (None, None)
     return {
         "id": str(r.id),
         "status": r.status,
         "message": message,
-        # 只回填一個最高信心名稱，不列多個候選
-        "suggested_name": r.top_name,
-        "suggested_ingredient_id": suggested_id,
+        # 每種辨識到的蔬菜一筆，依信心由高到低；不回傳信心與框線
+        "suggestions": service.suggestions(r.detections) if r.status == "succeeded" else [],
         "retryable": r.status == "unavailable",
-        "confirmed": (
-            {"name": r.confirmed_name, "ingredient_id": r.confirmed_ingredient_id}
-            if r.confirmed_ingredient_id else None
-        ),
+        "confirmed": r.confirmed_items,
         "image_url": f"/recognitions/{r.id}/image",
         "meal_request_id": str(r.meal_request_id) if r.meal_request_id else None,
     }
@@ -131,12 +126,12 @@ def retry_recognition(recognition_id: uuid.UUID, household_id=Depends(current_ho
 @router.post("/{recognition_id}/confirm")
 def confirm_recognition(recognition_id: uuid.UUID, body: ConfirmBody,
                         household_id=Depends(current_household_id), db: Session = Depends(get_db)):
-    """記錄使用者修正後的名稱與標準食材；只確認種類，不含重量。"""
+    """加入一筆使用者修正後的名稱與標準食材；只確認種類，不含重量。同一標準食材重複確認時以最後一次為準。"""
     row = _owned(db, household_id, recognition_id)
     if ingredients.unknown_ids(db, [body.ingredient_id]):
         raise invalid_input("請從標準食材清單選擇。", field="ingredient_id", reason="UNKNOWN_INGREDIENT_ID")
-    row.confirmed_name = body.name.strip()
-    row.confirmed_ingredient_id = body.ingredient_id
+    items = [i for i in row.confirmed_items if i["ingredient_id"] != body.ingredient_id]
+    row.confirmed_items = [*items, {"name": body.name.strip(), "ingredient_id": body.ingredient_id}]
     row.updated_at = datetime.now(timezone.utc)
     db.commit()
     return _out(row)
