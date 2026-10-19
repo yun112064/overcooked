@@ -57,8 +57,9 @@
 
 ```powershell
 python -m pip install -r requirements.txt
-python -m pytest tests/test_t02_pricing.py -q
-python -m pytest tests/test_t02_scheduler.py -q
+$env:PYTHONPATH = "backend"
+# 鎖與續跑測試需要 TEST_DATABASE_URL（可清空的 PostgreSQL）
+python -m unittest discover -s tests -p "test_t02_*.py" -v
 ```
 
 先查前三種標準食材並輸出 JSON：

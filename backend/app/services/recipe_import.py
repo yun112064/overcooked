@@ -13,6 +13,7 @@ from pathlib import Path
 from typing import Any, Iterable
 
 from openpyxl import load_workbook
+from sqlalchemy import delete, select
 from sqlalchemy.orm import Session
 
 from app.models.recipe import (
@@ -204,6 +205,22 @@ def _decimal(value: Any) -> Decimal | None:
         raise WorkbookValidationError(f"Invalid numeric value: {value!r}") from exc
 
 
+def _lenient_decimal(value: Any, field: str, issues: list[str]) -> Decimal | None:
+    """食材數值欄位：非數字或負數存成 NULL 並記錄原因，不中斷整批匯入。
+
+    結構欄位（序號、步驟編號等）仍用 _decimal／_integer 嚴格檢查。
+    """
+    try:
+        number = _decimal(value)
+    except WorkbookValidationError:
+        issues.append(f"invalid_numeric_value:{field}")
+        return None
+    if number is not None and (not number.is_finite() or number < 0):
+        issues.append(f"invalid_numeric_value:{field}")
+        return None
+    return number
+
+
 def _integer(value: Any, field: str) -> int:
     number = _decimal(value)
     if number is None or number != number.to_integral_value():
@@ -282,8 +299,9 @@ def _parse_servings(value: Any) -> tuple[Decimal | None, str, list[str]]:
     issues = []
     status = "parsed"
     if servings <= 0:
+        # 0 或負數違反資料表 CHECK；存成 NULL 並列為阻擋原因，避免整批匯入回滾
         issues.append("nonpositive_servings")
-        status = "invalid"
+        return None, "invalid", issues
     elif servings > 12:
         issues.append("servings_outlier_review_required")
         status = "review_required"
@@ -311,10 +329,10 @@ def _normalize_unit(source_unit: str | None, raw_text: str) -> tuple[str | None,
 
 def _normalize_quantity(record: dict[str, Any]) -> dict[str, Any]:
     raw_text = _text(record.get("raw_text")) or ""
-    source_amount = _decimal(record.get("amount"))
     source_unit = _text(record.get("unit"))
-    source_weight = _decimal(record.get("weight_g"))
     unit, unit_status, issues = _normalize_unit(source_unit, raw_text)
+    source_amount = _lenient_decimal(record.get("amount"), "amount", issues)
+    source_weight = _lenient_decimal(record.get("weight_g"), "weight_g", issues)
 
     contains_qualitative = any(word in raw_text for word in QUALITATIVE_WORDS)
     range_match = RANGE_RE.search(raw_text)
@@ -606,10 +624,15 @@ def parse_recipe_workbook(path: str | Path) -> ImportBundle:
         food_names[food_id].add(canonical_name)
         quantity = _normalize_quantity(row)
         adjustment_status = (_text(row.get("adjustment_status")) or "not_reviewed").lower()
-        adjustable_min = _decimal(row.get("adjustable_min"))
-        adjustable_max = _decimal(row.get("adjustable_max"))
+        adjustable_min = _lenient_decimal(row.get("adjustable_min"), "adjustable_min", quantity["quality_issues"])
+        adjustable_max = _lenient_decimal(row.get("adjustable_max"), "adjustable_max", quantity["quality_issues"])
         if adjustable_min is not None and adjustable_max is not None and adjustable_min > adjustable_max:
             quantity["quality_issues"].append("invalid_adjustable_range")
+            adjustable_min = adjustable_max = None
+        source_nutrition = {
+            f"source_{field}": _lenient_decimal(row.get(field), field, quantity["quality_issues"])
+            for field in ("protein_g", "carbohydrates_g", "fat_g", "sugar_g", "sodium_mg")
+        }
         if adjustment_status != "approved":
             quantity["quality_issues"].append("adjustable_range_not_reviewed")
         quality_issues = sorted(set(quantity.pop("quality_issues")))
@@ -635,11 +658,11 @@ def parse_recipe_workbook(path: str | Path) -> ImportBundle:
                 "adjustable_max": adjustable_max,
                 "adjustment_status": adjustment_status,
                 "is_required": row.get("is_required") if isinstance(row.get("is_required"), bool) else None,
-                "source_protein_g": _decimal(row.get("protein_g")),
-                "source_carbohydrates_g": _decimal(row.get("carbohydrates_g")),
-                "source_fat_g": _decimal(row.get("fat_g")),
-                "source_sugar_g": _decimal(row.get("sugar_g")),
-                "source_sodium_mg": _decimal(row.get("sodium_mg")),
+                "source_protein_g": source_nutrition["source_protein_g"],
+                "source_carbohydrates_g": source_nutrition["source_carbohydrates_g"],
+                "source_fat_g": source_nutrition["source_fat_g"],
+                "source_sugar_g": source_nutrition["source_sugar_g"],
+                "source_sodium_mg": source_nutrition["source_sodium_mg"],
                 "allergens": _split_list(row.get("allergens")),
                 "quality_issues": quality_issues,
             }
@@ -775,6 +798,8 @@ def parse_recipe_workbook(path: str | Path) -> ImportBundle:
             recipe_by_id[recipe_id]["quality_issues"].append("exact_name_duplicate_review_required")
             if recipe_id != primary_id:
                 recipe_by_id[recipe_id]["duplicate_of_recipe_id"] = primary_id
+                # 同一道菜只保留 primary 可計入合格，其餘不能拿來補足 150 道
+                recipe_by_id[recipe_id]["quality_issues"].append("duplicate_not_primary")
 
     suspected_pairs = _suspected_duplicates(recipe_rows, ingredients_by_recipe)
     for pair in suspected_pairs:
@@ -788,6 +813,9 @@ def parse_recipe_workbook(path: str | Path) -> ImportBundle:
         right["duplicate_candidate_recipe_ids"].append(left["recipe_id"])
         left["quality_issues"].append("suspected_duplicate_review_required")
         right["quality_issues"].append("suspected_duplicate_review_required")
+        # 疑似重複在人工確認前只讓編號較小的一筆可計入合格
+        later = max(left, right, key=lambda recipe: recipe["recipe_id"])
+        later["quality_issues"].append("suspected_duplicate_not_primary")
 
     for recipe in recipe_rows:
         recipe["duplicate_candidate_recipe_ids"] = sorted(
@@ -809,8 +837,15 @@ def parse_recipe_workbook(path: str | Path) -> ImportBundle:
             "ingredient:quantity_not_supported_by_raw_text",
             "ingredient:qualitative_quantity_without_number",
             "ingredient:adjustable_range_not_reviewed",
+            "ingredient:invalid_adjustable_range",
+            "nonpositive_servings",
+            "duplicate_not_primary",
+            "suspected_duplicate_not_primary",
         }
-        recipe["is_eligible"] = not any(issue in blocking for issue in recipe["quality_issues"])
+        recipe["is_eligible"] = not any(
+            issue in blocking or issue.startswith("ingredient:invalid_numeric_value:")
+            for issue in recipe["quality_issues"]
+        )
         recipe["quality_status"] = "qualified" if recipe["is_eligible"] else "not_qualified"
 
     allergen_rows = []
@@ -940,11 +975,38 @@ def _upsert_rows(
     return {"inserted": inserted, "updated": updated}
 
 
+def _replace_children(
+    session: Session, model: type[Any], rows: list[dict[str, Any]], primary_key: str,
+    recipe_ids: set[str],
+) -> dict[str, int]:
+    """以工作簿為準整批取代這些食譜的子資料（步驟／食材）。
+
+    只做 upsert 會留下工作簿已移除的列，步驟重新編號時也會撞到
+    (recipe_id, step_no) 唯一限制；因此先刪除再寫入，仍在同一個交易內。
+    """
+    key_column = getattr(model, primary_key)
+    existing = set(session.scalars(
+        select(key_column).where(model.recipe_id.in_(recipe_ids))
+    )) if recipe_ids else set()
+    if recipe_ids:
+        session.execute(delete(model).where(model.recipe_id.in_(recipe_ids)))
+        session.flush()
+    new_ids = {row[primary_key] for row in rows}
+    session.add_all(model(**row) for row in rows)
+    return {
+        "inserted": len(new_ids - existing),
+        "updated": len(new_ids & existing),
+        "deleted": len(existing - new_ids),
+    }
+
+
 def import_recipe_bundle(session: Session, bundle: ImportBundle) -> dict[str, dict[str, int]]:
-    """Idempotently upsert a parsed bundle into the six T01 tables.
+    """Idempotently import a parsed bundle into the six T01 tables.
 
     The caller owns the transaction. A failed import can therefore be rolled back as
-    one unit, and no source workbook is ever changed.
+    one unit, and no source workbook is ever changed. Steps and ingredients of every
+    recipe in the workbook are replaced as a whole, so rows removed from the workbook
+    do not linger in the database.
     """
 
     results: dict[str, dict[str, int]] = {}
@@ -956,13 +1018,23 @@ def import_recipe_bundle(session: Session, bundle: ImportBundle) -> dict[str, di
     )
     results["allergens"] = _upsert_rows(session, Allergen, bundle.allergens, "allergen_id")
     session.flush()
-    results["recipes"] = _upsert_rows(session, Recipe, bundle.recipes, "recipe_id")
-    session.flush()
-    results["recipe_steps"] = _upsert_rows(
-        session, RecipeStep, bundle.recipe_steps, "step_id"
+    # duplicate_of_recipe_id 指向同一張表：先全部寫入、再補上參照，
+    # 不依賴工作簿列的順序（避免 primary 排在後面時違反外鍵）
+    results["recipes"] = _upsert_rows(
+        session, Recipe,
+        [{**row, "duplicate_of_recipe_id": None} for row in bundle.recipes], "recipe_id",
     )
-    results["recipe_ingredients"] = _upsert_rows(
-        session, RecipeIngredient, bundle.recipe_ingredients, "recipe_ingredient_id"
+    session.flush()
+    for row in bundle.recipes:
+        if row.get("duplicate_of_recipe_id"):
+            session.get(Recipe, row["recipe_id"]).duplicate_of_recipe_id = row["duplicate_of_recipe_id"]
+    session.flush()
+    recipe_ids = {row["recipe_id"] for row in bundle.recipes}
+    results["recipe_steps"] = _replace_children(
+        session, RecipeStep, list(bundle.recipe_steps), "step_id", recipe_ids
+    )
+    results["recipe_ingredients"] = _replace_children(
+        session, RecipeIngredient, list(bundle.recipe_ingredients), "recipe_ingredient_id", recipe_ids
     )
     session.flush()
     return results

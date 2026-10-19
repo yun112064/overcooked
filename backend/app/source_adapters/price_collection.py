@@ -100,23 +100,31 @@ class PriceCollectionService:
             "price collection started",
             extra={"event": "price_collection_started"},
         )
-        progress = (
-            self.repository.get_run_progress(lease)
-            if hasattr(self.repository, "get_run_progress")
-            else RunProgress(set(), Counter(), Counter())
-        )
-        status_counts = progress.status_counts
-        missing_reasons = progress.missing_reasons
-        auto_adopted_count = progress.auto_adopted_count
-        estimate_count = progress.estimate_count
-        missing_count = progress.missing_count
-        checkpoint_count = len(progress.completed_names)
-        success_count = auto_adopted_count
-        review_count = estimate_count
-        failure_count = missing_count
-        ingredient_total = 0
+        status_counts: Counter[str] = Counter()
+        missing_reasons: Counter[str] = Counter()
+        auto_adopted_count = estimate_count = missing_count = checkpoint_count = 0
+        success_count = review_count = failure_count = ingredient_total = 0
+        # finish_run 一定會解鎖並關閉連線，只能呼叫一次；
+        # 旗標避免失敗路徑重複呼叫而蓋掉原本的例外
+        finish_attempted = False
 
         try:
+            # 續跑前讀取進度也在保護範圍內：失敗時同樣會結束 run 並解鎖
+            progress = (
+                self.repository.get_run_progress(lease)
+                if hasattr(self.repository, "get_run_progress")
+                else RunProgress(set(), Counter(), Counter())
+            )
+            status_counts = progress.status_counts
+            missing_reasons = progress.missing_reasons
+            auto_adopted_count = progress.auto_adopted_count
+            estimate_count = progress.estimate_count
+            missing_count = progress.missing_count
+            checkpoint_count = len(progress.completed_names)
+            success_count = auto_adopted_count
+            review_count = estimate_count
+            failure_count = missing_count
+
             ingredients = self.ingredient_loader(self.workbook_path)
             ingredient_total = len(ingredients)
             self.repository.set_ingredient_total(lease, ingredient_total)
@@ -206,6 +214,7 @@ class PriceCollectionService:
                 if processed_total else Decimal("0")
             )
             duration_ms = round((time.monotonic() - started_monotonic) * 1000)
+            finish_attempted = True
             self.repository.finish_run(
                 lease,
                 finished_at=datetime.now(timezone.utc),
@@ -242,24 +251,32 @@ class PriceCollectionService:
                 price_update_success_rate=float(price_update_success_rate),
                 duration_ms=duration_ms,
             )
-        except Exception as exc:
+        except BaseException as exc:
+            if finish_attempted:
+                # finish_run 已執行過（且已解鎖），不再呼叫第二次
+                raise
+            finish_attempted = True
             duration_ms = round((time.monotonic() - started_monotonic) * 1000)
-            self.repository.finish_run(
-                lease,
-                finished_at=datetime.now(timezone.utc),
-                status="failed",
-                success_count=success_count,
-                review_count=review_count,
-                failure_count=failure_count,
-                duration_ms=duration_ms,
-                status_counts=dict(status_counts),
-                missing_reasons=dict(missing_reasons),
-                auto_adopted_count=auto_adopted_count,
-                estimate_count=estimate_count,
-                missing_count=missing_count,
-                checkpoint_count=checkpoint_count,
-                fatal_error=type(exc).__name__,
-            )
+            try:
+                self.repository.finish_run(
+                    lease,
+                    finished_at=datetime.now(timezone.utc),
+                    status="failed",
+                    success_count=success_count,
+                    review_count=review_count,
+                    failure_count=failure_count,
+                    duration_ms=duration_ms,
+                    status_counts=dict(status_counts),
+                    missing_reasons=dict(missing_reasons),
+                    auto_adopted_count=auto_adopted_count,
+                    estimate_count=estimate_count,
+                    missing_count=missing_count,
+                    checkpoint_count=checkpoint_count,
+                    fatal_error=type(exc).__name__,
+                )
+            except Exception:
+                # 記錄失敗本身出錯時仍保留原本的例外；finish_run 已確保解鎖
+                pass
             scheduler_logger.error(
                 "price collection failed",
                 extra={"event": "price_collection_failed"},

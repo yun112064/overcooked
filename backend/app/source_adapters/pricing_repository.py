@@ -383,9 +383,19 @@ class PricingRepository:
 
     @staticmethod
     def _unlock_and_close(connection: Connection) -> None:
+        """釋放 session 級 advisory lock 後關閉連線。
+
+        前一個指令失敗時交易會處於 aborted 狀態，直接 unlock 也會失敗；
+        因此先 rollback。若仍無法 unlock，就丟棄這條連線（invalidate），
+        不讓它帶著鎖回到連線池，PostgreSQL 會在連線中斷時自動釋放鎖。
+        這裡不往外拋例外，以免蓋掉呼叫端原本的錯誤。
+        """
         try:
+            connection.rollback()
             connection.execute(text(UNLOCK_SQL), {"lock_name": LOCK_NAME})
             connection.commit()
+        except Exception:
+            connection.invalidate()
         finally:
             connection.close()
 

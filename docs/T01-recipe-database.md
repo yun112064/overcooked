@@ -72,10 +72,20 @@ python scripts/import_recipes.py `
 ## 測試
 
 ```powershell
-pytest -q tests/test_recipe_import.py
+$env:TEST_DATABASE_URL = "postgresql+psycopg://postgres:<password>@localhost:5432/meal_planner_test"
+$env:PYTHONPATH = "backend"
+python -m unittest discover -s tests -p "test_t01_*.py" -v
 ```
 
-測試包含：正常匯入、重複匯入、缺欄位、錯誤單位、Food_ID 外鍵、六表範圍，以及本機存在原始 Excel 時的真實 dry-run 控制總數。
+測試以合成工作簿涵蓋：完整審核才合格、0 份數與上下限顛倒的可調範圍存成 NULL 並阻擋、單一儲存格數值錯誤只影響該食譜、重複菜只計一次、未審核不補數，以及資料庫匯入時不整批回滾、重複菜排在 primary 前也能匯入、重跑冪等、移除與重新編號的步驟／食材會同步。需要資料庫的測試只在設定 `TEST_DATABASE_URL` 時執行。真實工作簿不在 repo 中，仍需以 dry-run 報告另外留存證據。
+
+### 2026-10-19 修正
+
+- 份數 ≤ 0、可調範圍上下限顛倒：存成 NULL（原文保留），列為阻擋原因；先前會寫入違反 CHECK 的值，使整批匯入回滾。
+- 食材數量、重量、營養欄位不是數字或為負數：只標記該列（`invalid_numeric_value:<欄位>`）並阻擋該食譜，不再讓整份工作簿失敗。結構欄位（序號、步驟編號）仍嚴格檢查。
+- 重複菜：同名重複只有編號最小的 primary 可計入合格，其餘為 `duplicate_not_primary`；疑似重複在人工確認前只讓編號較小者計入（`suspected_duplicate_not_primary`）。
+- 重跑匯入：工作簿中每道食譜的步驟與食材以工作簿為準整批取代，移除的列會刪除，步驟重新編號不再撞唯一限制；結果多回報 `deleted`。工作簿中已不存在的整道食譜目前不會被刪除。
+- `duplicate_of_recipe_id` 先全部寫入食譜後再補上，不依賴工作簿列的順序。
 
 ## 查詢範例
 
