@@ -4,6 +4,7 @@
 """
 import unittest
 from datetime import date
+from unittest.mock import patch
 
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
@@ -26,11 +27,22 @@ RECIPES = [
 ]
 
 
+def fix_tie_break_order(test):
+    """固定情境（AC06）的期望值以人工寫定：同分時改依 recipe_id 排，讓情境可讀。
+
+    正式的「家庭＋餐食日期」輪替（決策 #22）由 MenuCompositionTests 另外驗證。
+    """
+    patcher = patch("app.services.recipe_retrieval.tie_break", lambda household_id, meal_date, recipe_id: recipe_id)
+    patcher.start()
+    test.addCleanup(patcher.stop)
+
+
 def seed_recipes(factory, rows=RECIPES):
     from app.models import Recipe, RecipeIngredient, SourceArchive
     from app.services.recipe_import import normalize_name, standard_dish_id
     with factory() as db, db.begin():
-        for rid, name, aliases, foods, methods, eligible in rows:
+        for rid, name, aliases, foods, methods, eligible, *rest in rows:
+            category = rest[0] if rest else "主菜"  # 第 7 欄可指定菜色分類，預設主菜
             db.add(SourceArchive(raw_id=f"RAW-{rid}", source_name="合成來源", source_url=f"https://example.invalid/{rid}",
                                  source_recipe_id=rid, recipe_name_raw=name, servings_raw="2人份",
                                  ingredients_raw="", steps_raw="", tags_raw="", content_hash="x" * 64,
@@ -38,7 +50,7 @@ def seed_recipes(factory, rows=RECIPES):
             db.flush()
             db.add(Recipe(recipe_id=rid, raw_id=f"RAW-{rid}", standard_dish_id=standard_dish_id(name), recipe_name=name,
                           normalized_name=normalize_name(name), name_aliases=aliases, servings_raw="2人份",
-                          original_servings=2, servings_status="parsed", category="主菜", meal_type="晚餐",
+                          original_servings=2, servings_status="parsed", category=category, meal_type="晚餐",
                           cuisine="台式", source_name="合成來源", source_url=f"https://example.invalid/{rid}",
                           cooking_methods=methods, is_eligible=eligible,
                           review_status="approved" if eligible else "pending"))
@@ -104,6 +116,7 @@ class RetrievalScenarioTests(unittest.TestCase):
 
     def setUp(self):
         from app.db.models import Household
+        fix_tie_break_order(self)
         truncate_all()
         seed_foods()
         self.factory = session_factory()
@@ -223,6 +236,130 @@ class RetrievalScenarioTests(unittest.TestCase):
             self.retrieve({})
         with self.assertRaises(ValueError):
             self.retrieve({"dish_count": 1, "specified_dishes": ["番茄炒蛋", "蒜炒青江菜"]})
+
+
+# 決策 #22：菜色結構。每道都含已有的蛋＝重疊數全部 1，舊排序同分時照 recipe_id 會選到前三道主食
+MENU_RECIPES = [
+    ("M01", "沙茶羊肉燴飯", [], [EGG, SOY], ["燴"], True, "主食"),
+    ("M02", "沙茶牛肉燴飯", [], [EGG, GARLIC], ["燴"], True, "主食"),
+    ("M03", "蛋炒飯", [], [EGG, CARROT], ["炒"], True, "主食"),
+    ("M04", "羅宋湯", [], [EGG, TOMATO], ["煮"], True, "湯"),
+    ("M05", "蛋花湯", [], [EGG, BOKCHOY], ["煮"], True, "湯"),
+    ("M06", "雞蛋糕", [], [EGG, BASIL], ["烤"], True, "點心"),
+    ("M07", "洋蔥炒蛋", [], [EGG, CABBAGE], ["炒"], True, "主菜"),
+    ("M08", "蒸蛋", [], [EGG, GARLIC], ["蒸"], True, "主菜"),
+    ("M09", "菜脯蛋", [], [EGG, SOY], ["煎"], True, "主菜"),
+    ("M10", "清燙高麗菜", [], [CABBAGE], ["燙"], True, "主菜"),
+    ("M11", "白煮蛋", [], [EGG], ["煮"], True, "主菜"),  # 重疊 1、比例 100%
+]
+EXTRA_SOUPS = [("S01", "番茄湯", [], [TOMATO], ["煮"], True, "湯"),
+               ("S02", "青江菜湯", [], [BOKCHOY], ["煮"], True, "湯")]
+
+
+@requires_db
+class MenuCompositionTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        migrate_fresh()
+
+    def setUp(self):
+        from app.db.models import Household
+        truncate_all()
+        seed_foods()
+        self.factory = session_factory()
+        seed_recipes(self.factory, MENU_RECIPES)
+        with self.factory() as db, db.begin():
+            self.home = Household(name="本家")
+            db.add(self.home)
+
+    def retrieve(self, fields, day=date(2026, 8, 20), excluded=()):
+        from app.services.meal_request import MealRequestDraft
+        from app.services.recipe_retrieval import retrieve_database_menu
+        draft = MealRequestDraft(meal_date=day, meal_type="dinner", **fields)
+        with self.factory() as db:
+            return retrieve_database_menu(db, self.home.id, draft, excluded_food_ids=list(excluded))
+
+    def assert_structure(self, combo, *, staple=True):
+        cats = [d["category"] for d in combo]
+        if staple:
+            self.assertNotIn("主食", cats, combo)
+        self.assertNotIn("點心", cats, combo)
+        self.assertGreaterEqual(cats.count("主菜"), 1, combo)
+        self.assertLessEqual(cats.count("湯"), 1, combo)
+
+    def test_reported_case_staple_rice_three_dishes_gets_structured_menu(self):
+        for offset in range(7):
+            with self.subTest(day=offset):
+                result = self.retrieve({"dish_count": 3, "staple": "白飯", "available_ingredient_ids": [EGG]},
+                                       day=date(2026, 8, 20 + offset))
+                self.assertEqual(result.status, "database_menu", result.reason)
+                self.assertEqual(len(result.selected), 3)
+                for combo in result.alternatives:
+                    self.assert_structure(combo)
+
+    def test_owned_count_then_owned_share_rank_before_tie_break(self):
+        for offset in range(7):
+            day = date(2026, 8, 20 + offset)
+            with self.subTest(day=offset):
+                # 重疊數優先：蛋＋高麗菜都有的洋蔥炒蛋（2 種）勝過比例 100% 的白煮蛋（1 種）
+                both = self.retrieve({"dish_count": 1, "staple": "白飯", "available_ingredient_ids": [EGG, CABBAGE]},
+                                     day=day)
+                self.assertEqual([d["recipe_id"] for d in both.selected], ["M07"])
+                # 重疊數同為 1 時比例高者優先：白煮蛋（1/1）勝過其他含蛋菜（1/2）
+                share = self.retrieve({"dish_count": 1, "staple": "白飯", "available_ingredient_ids": [EGG]}, day=day)
+                self.assertEqual([d["recipe_id"] for d in share.selected], ["M11"])
+
+    def test_ties_rotate_by_household_and_date_but_are_reproducible(self):
+        fields = {"dish_count": 1, "staple": "白飯"}
+        picks = {}
+        for offset in range(10):
+            day = date(2026, 8, 1 + offset)
+            first = self.retrieve(fields, day=day)
+            self.assertEqual(first.alternatives, self.retrieve(fields, day=day).alternatives)  # 同一請求可重現
+            picks[day] = first.selected[0]["recipe_id"]
+        self.assertGreater(len(set(picks.values())), 1, picks)  # 不同日期換菜，不再固定最小編號
+
+    def test_at_most_one_soup_even_when_soups_rank_highest(self):
+        seed_recipes(self.factory, EXTRA_SOUPS)
+        fields = {"dish_count": 2, "staple": "白飯", "available_ingredient_ids": [TOMATO, BOKCHOY]}
+        result = self.retrieve(fields)
+        # 兩道湯（S01、S02 比例 100%）排最前，但只能取一道，另一道補主菜
+        self.assertIn(result.selected[0]["recipe_id"], {"S01", "S02"})
+        self.assertEqual(result.selected[1]["category"], "主菜")
+        for combo in result.alternatives:
+            self.assert_structure(combo)
+
+    def test_specified_soup_uses_up_the_soup_slot(self):
+        seed_recipes(self.factory, EXTRA_SOUPS)
+        result = self.retrieve({"dish_count": 3, "staple": "白飯", "specified_dishes": ["羅宋湯"],
+                                "available_ingredient_ids": [TOMATO, BOKCHOY]})
+        self.assertEqual(result.selected[0]["recipe_id"], "M04")
+        for combo in result.alternatives:
+            self.assertEqual([d["category"] for d in combo].count("湯"), 1, combo)
+            self.assertIn("主菜", [d["category"] for d in combo])
+
+    def test_without_staple_staple_category_dishes_may_be_chosen(self):
+        result = self.retrieve({"dish_count": 3, "staple": "不需要主食", "available_ingredient_ids": [EGG]})
+        self.assertEqual(result.status, "database_menu")
+        chosen = {d["category"] for c in result.alternatives for d in c}
+        self.assertIn("主食", chosen)
+        for combo in result.alternatives:
+            self.assert_structure(combo, staple=False)
+
+    def test_unmet_structure_is_no_feasible_with_reason(self):
+        seed_recipes(self.factory, EXTRA_SOUPS)
+        # 排除蛋與高麗菜後只剩兩道湯（主食類因選了白飯不列入、點心不放正餐）→ 湊不出至少一道主菜
+        result = self.retrieve({"dish_count": 2, "staple": "白飯"}, excluded=[EGG, CABBAGE])
+        self.assertEqual((result.status, result.reason), ("no_feasible_database_menu", "MENU_STRUCTURE_UNMET"))
+        self.assertEqual(result.code, "NO_FEASIBLE_DATABASE_MENU")
+        self.assertEqual(result.selected, [])
+
+    def test_specified_staple_dish_with_chosen_staple_is_reported(self):
+        result = self.retrieve({"dish_count": 2, "staple": "白飯", "specified_dishes": ["蛋炒飯"]})
+        self.assertEqual(result.status, "specified_dish_staple_conflict")
+        self.assertEqual(result.code, "SPECIFIED_DISH_STAPLE_CONFLICT")
+        self.assertEqual(result.details, {"specified_dishes": ["蛋炒飯"], "staple": "白飯"})
+        self.assertEqual(result.selected, [])
 
 
 def truncate_history():
