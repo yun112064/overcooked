@@ -310,6 +310,7 @@ class GenerationResult(Base):
         CheckConstraint("result_version > 0 AND request_version > 0", name="ck_generation_result_versions"),
         UniqueConstraint("job_id", name="uq_generation_result_job"),
         UniqueConstraint("meal_request_id", "result_version", name="uq_generation_result_version"),
+        CheckConstraint("(job_id IS NULL) <> (derived_from_result_id IS NULL)", name="ck_generation_result_origin"),
     )
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
@@ -320,11 +321,57 @@ class GenerationResult(Base):
         UUID(as_uuid=True), ForeignKey("meal_requests.id", ondelete="CASCADE"), nullable=False
     )
     request_version: Mapped[int] = mapped_column(Integer, nullable=False)
-    job_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("background_jobs.id", ondelete="CASCADE"), nullable=False
+    # T15：缺價重試產生的新版本沒有工作（job_id 為 NULL），改以 derived_from_result_id 指向來源版本
+    job_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("background_jobs.id", ondelete="CASCADE"), nullable=True
     )
     result_version: Mapped[int] = mapped_column(Integer, nullable=False)
     mode: Mapped[str] = mapped_column(String(30), nullable=False)
     fallback_reason: Mapped[str | None] = mapped_column(String(60), nullable=True)
     payload: Mapped[dict] = mapped_column(JSONB, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, nullable=False)
+    derived_from_result_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("generation_results.id", ondelete="CASCADE"), nullable=True
+    )
+
+
+class MealResultDecision(Base):
+    """T15 使用者對單一結果版本的決定（R09）；T16 採用時重新讀取並以 meal_validation 重驗。
+
+    - accept_missing_price：明確接受缺價例外；details.missing_food_ids 保存當時缺價食材集合，
+      集合不同（例如重試後又變）就不算數。已知成本超預算時不可建立。
+    - continue_missing_nutrition：確認在缺必要營養下繼續查看；不會讓結果變成可採用。
+    - retry_missing_price：重讀價格快照產生新結果版本；produced_result_id 指向新版本。
+    冪等：(household_id, idempotency_key) 唯一＋request_hash；同一結果同一種決定只有一筆。
+    """
+    __tablename__ = "meal_result_decisions"
+    __table_args__ = (
+        CheckConstraint("kind IN ('accept_missing_price', 'continue_missing_nutrition', 'retry_missing_price')",
+                        name="ck_meal_result_decision_kind"),
+        UniqueConstraint("household_id", "idempotency_key", name="uq_meal_result_decision_idempotency"),
+        UniqueConstraint("generation_result_id", "kind", name="uq_meal_result_decision_kind"),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    household_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("households.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    meal_request_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("meal_requests.id", ondelete="CASCADE"), nullable=False
+    )
+    generation_result_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("generation_results.id", ondelete="CASCADE"), nullable=False
+    )
+    result_version: Mapped[int] = mapped_column(Integer, nullable=False)
+    request_version: Mapped[int] = mapped_column(Integer, nullable=False)
+    kind: Mapped[str] = mapped_column(String(40), nullable=False)
+    idempotency_key: Mapped[str] = mapped_column(String(100), nullable=False)
+    request_hash: Mapped[str] = mapped_column(String(64), nullable=False)
+    details: Mapped[dict] = mapped_column(JSONB, nullable=False, default=dict)
+    produced_result_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("generation_results.id", ondelete="CASCADE"), nullable=True
+    )
+    created_by: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL"), nullable=True
+    )
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, nullable=False)

@@ -462,15 +462,8 @@ def _generate(ctx, *, responder, knowledge_client, embedder, calculator, now) ->
                           calculator=calculator)
     if calc["requirements"]:
         with ctx.factory() as db:
-            cost = meal_cost_from_db(db, calc["requirements"], draft.available_ingredient_ids, draft.budget, now=now)
-        cost_view = {"status": "computed", "budget": cost.budget, "budget_status": cost.budget_status,
-                     "price_complete": cost.price_complete, "purchase_total": cost.purchase_total,
-                     "cost_total": cost.cost_total, "known_purchase_total": cost.known_purchase_total,
-                     "known_cost_total": cost.known_cost_total,
-                     "lines": [{"food_id": c.food_id, "required_grams": c.required_grams,
-                                "shortage_grams": c.shortage_grams, "price_status": c.price_status,
-                                "packs": c.packs, "purchase_price": c.purchase_price, "cost": c.cost,
-                                "missing_reason": c.missing_reason, "quote": c.quote} for c in cost.lines]}
+            cost_view = cost_snapshot(
+                meal_cost_from_db(db, calc["requirements"], draft.available_ingredient_ids, draft.budget, now=now))
     else:
         cost_view = {"status": "not_computed", "reason": "NO_FINAL_REQUIREMENTS", "budget_status": None}
 
@@ -516,11 +509,27 @@ def _generate(ctx, *, responder, knowledge_client, embedder, calculator, now) ->
     })
 
 
+def cost_snapshot(cost) -> dict:
+    """T13 MealCost → 結果快照的 cost 區（T14 生成與 T15 缺價重試共用）。"""
+    return {"status": "computed", "budget": cost.budget, "budget_status": cost.budget_status,
+            "price_complete": cost.price_complete, "purchase_total": cost.purchase_total,
+            "cost_total": cost.cost_total, "known_purchase_total": cost.known_purchase_total,
+            "known_cost_total": cost.known_cost_total,
+            "lines": [{"food_id": c.food_id, "required_grams": c.required_grams,
+                       "shortage_grams": c.shortage_grams, "price_status": c.price_status,
+                       "packs": c.packs, "purchase_price": c.purchase_price, "cost": c.cost,
+                       "missing_reason": c.missing_reason, "quote": c.quote} for c in cost.lines]}
+
+
 def persist_result(db, job, result: dict) -> tuple[dict, int]:
     """在 jobs.complete 的交易內（已確認租約）寫入結果；回傳 (工作摘要, 結果版本)。
 
     鎖住問卷列以序列化同一問卷的版本編號；job_id 唯一保證同一工作只寫一次。
+    摘要的 request_status（T15）：缺價或缺必要營養需要使用者決定時為 awaiting_decision，否則 result_ready；
+    result_ready 不代表可採用。
     """
+    from app.services import meal_validation
+
     db.execute(select(MealRequest.id).where(MealRequest.id == job.meal_request_id).with_for_update())
     version = (db.scalar(select(func.max(GenerationResult.result_version))
                          .where(GenerationResult.meal_request_id == job.meal_request_id)) or 0) + 1
@@ -531,5 +540,6 @@ def persist_result(db, job, result: dict) -> tuple[dict, int]:
     db.add(row)
     db.flush()
     summary = {"generation_result_id": str(row.id), "result_version": version, "mode": result["mode"],
-               "mode_label": result["mode_label"], "fallback_reason": result["fallback_reason"]}
+               "mode_label": result["mode_label"], "fallback_reason": result["fallback_reason"],
+               "request_status": meal_validation.request_status(row.payload, decisions=[])}
     return summary, version
