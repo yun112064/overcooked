@@ -119,7 +119,8 @@ class CollectionLockTests(unittest.TestCase):
         probe = create_engine(TEST_DATABASE_URL)
         try:
             with probe.connect() as conn:
-                return conn.execute(text("SELECT count(*) FROM pg_locks WHERE locktype = 'advisory'")).scalar_one()
+                return conn.execute(text("SELECT count(*) FROM pg_locks WHERE locktype = 'advisory' "
+                                         "AND database = (SELECT oid FROM pg_database WHERE datname = current_database())")).scalar_one()
         finally:
             probe.dispose()
 

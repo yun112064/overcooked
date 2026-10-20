@@ -134,6 +134,15 @@ QUOTE_FIELDS = ("retailer", "source", "source_url", "product_name", "product_url
                 "store_condition", "promotion_description")
 
 
+# 畫面標示的價格來源名稱（決策 #25）
+SOURCE_NAMES = {"PX Mart": "全聯", "萬家福": "萬家福"}
+
+
+def _source_name(quote: dict) -> str | None:
+    retailer = quote.get("retailer")
+    return SOURCE_NAMES.get(retailer, retailer) if retailer else None
+
+
 def _prices(payload: dict) -> dict:
     cost = payload.get("cost") or {}
     if cost.get("status") != "computed":
@@ -149,7 +158,8 @@ def _prices(payload: dict) -> dict:
         items.append({"food_id": ln["food_id"], "name": names.get(ln["food_id"], ln["food_id"]),
                       "shortage_grams": ln["shortage_grams"], "price_status": ln["price_status"],
                       "packs": ln.get("packs"), "purchase_price": ln.get("purchase_price"), "cost": ln.get("cost"),
-                      "missing_reason": ln.get("missing_reason"), **{k: quote.get(k) for k in QUOTE_FIELDS}})
+                      "missing_reason": ln.get("missing_reason"), "source_name": _source_name(quote),
+                      **{k: quote.get(k) for k in QUOTE_FIELDS}})
     return {"status": "computed", **{k: cost.get(k) for k in (
         "budget", "budget_status", "price_complete", "purchase_total", "cost_total", "known_purchase_total",
         "known_cost_total")}, "items": items}

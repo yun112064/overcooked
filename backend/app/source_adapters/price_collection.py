@@ -1,4 +1,9 @@
-"""One resilient PX Mart price collection run."""
+"""One resilient price collection run: PX Mart first, then an optional fallback source.
+
+決策 #25：全聯查無或不可用（selection_tier=missing，不含 review_required 與工作簿對應失敗）的
+食材，才以第二來源（萬家福）查價。第二來源用獨立的 run（run_key 加 ":<provider>"），
+統計分來源記錄；同一 run_key 重跑可續跑、已完成則略過（冪等）。
+"""
 
 from __future__ import annotations
 
@@ -7,7 +12,7 @@ import json
 import time
 import uuid
 from collections import Counter
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import datetime, timezone
 from decimal import Decimal
 from pathlib import Path
@@ -44,6 +49,8 @@ class CollectionResult:
     price_update_success_rate: float = 0.0
     duration_ms: int = 0
     skipped_reason: str | None = None
+    provider: str = "pxmart"
+    fallback: "CollectionResult | None" = None
 
 
 PRICE_EXEMPT_PATH = Path(__file__).resolve().parents[3] / "config/price_exempt_ingredients.json"
@@ -91,7 +98,9 @@ class PriceCollectionService:
         sleep: Callable[[float], None] = time.sleep,
         exempt_food_ids: set[str] | None = None,
         synonym_groups: list[set[str]] | None = None,
+        fallback_adapter_factory: Callable[[], object] | None = None,
     ) -> None:
+        self.fallback_adapter_factory = fallback_adapter_factory
         if synonym_groups is None:
             from app.services.synonyms import confirmed_groups
             synonym_groups = confirmed_groups()
@@ -115,14 +124,40 @@ class PriceCollectionService:
         food_ids: set[str] | None = None,
     ) -> CollectionResult:
         """food_ids：只查這些 FOOD 編號（T15 缺價定向查價）；None 為全部。"""
-        started_at = datetime.now(timezone.utc)
-        started_monotonic = time.monotonic()
         if run_key is None:
             run_key = f"pxmart-manual-{uuid.uuid4()}"
+        common = dict(trigger_type=trigger_type, scheduled_for=scheduled_for, batch_size=batch_size,
+                      food_ids=food_ids)
+        primary = self._collect(provider="pxmart", run_key=run_key, adapter_factory=self.adapter_factory,
+                                limit=limit, **common)
+        if self.fallback_adapter_factory is None:
+            return primary
+        fallback_provider = getattr(self.fallback_adapter_factory, "provider", "uniprosperity")
+        fallback = self._collect(
+            provider=fallback_provider, run_key=f"{run_key}:{fallback_provider}",
+            adapter_factory=self.fallback_adapter_factory, limit=None,
+            target_filter=lambda lease: self.repository.fallback_targets(lease, primary_run_key=run_key),
+            **common)
+        return replace(primary, fallback=fallback)
 
+    def _collect(
+        self,
+        *,
+        provider: str,
+        run_key: str,
+        adapter_factory: Callable[[], object],
+        trigger_type: str,
+        scheduled_for: datetime,
+        limit: int | None,
+        batch_size: int | None,
+        food_ids: set[str] | None,
+        target_filter: Callable[[object], tuple[set[str], bool]] | None = None,
+    ) -> CollectionResult:
+        started_at = datetime.now(timezone.utc)
+        started_monotonic = time.monotonic()
         lease = self.repository.try_begin_run(
             run_key=run_key,
-            provider="pxmart",
+            provider=provider,
             trigger_type=trigger_type,
             scheduled_for=scheduled_for,
             started_at=started_at,
@@ -134,6 +169,7 @@ class PriceCollectionService:
             )
             return CollectionResult(
                 run_key=run_key,
+                provider=provider,
                 status="skipped",
                 skipped_reason="run_key already exists or advisory lock is held",
             )
@@ -173,6 +209,11 @@ class PriceCollectionService:
             if exempt:
                 ingredients = [i for i in ingredients if i not in exempt]
                 status_counts["exempt"] = len(exempt)
+            primary_finished = True
+            if target_filter is not None:
+                # 第二來源只查主要來源查無／不可用的食材；總數即目標數
+                targets, primary_finished = target_filter(lease)
+                ingredients = [i for i in ingredients if i.canonical_name in targets]
             ingredient_total = len(ingredients)
             self.repository.set_ingredient_total(lease, ingredient_total)
             if food_ids is not None:
@@ -185,7 +226,7 @@ class PriceCollectionService:
             if batch_size:
                 remaining = remaining[:batch_size]
 
-            with self.adapter_factory() as adapter:
+            with adapter_factory() as adapter:
                 for index, ingredient in enumerate(remaining):
                     representative = None
                     if ingredient.mapping_missing_reason:
@@ -221,6 +262,10 @@ class PriceCollectionService:
                             price_quote = self._unexpected_error_quote(
                                 ingredient, type(exc).__name__
                             )
+                            if provider != "pxmart":
+                                price_quote = price_quote.model_copy(update={
+                                    "retailer": getattr(adapter, "retailer", provider),
+                                    "source": provider, "source_url": "(fallback source)"})
 
                     self.repository.save_quote(lease, price_quote)
                     checkpoint_count += 1
@@ -250,7 +295,8 @@ class PriceCollectionService:
 
             target_total = len(selected_ingredients)
             processed_total = auto_adopted_count + estimate_count + missing_count
-            partial = processed_total < target_total
+            # 主要來源尚未跑完時，之後還會出現新的查無食材：第二來源也維持 partial 以便續跑
+            partial = processed_total < target_total or not primary_finished
             final_status = "partial" if partial else (
                 "completed" if missing_count == 0 else "completed_with_errors"
             )
@@ -287,6 +333,7 @@ class PriceCollectionService:
             )
             return CollectionResult(
                 run_key=run_key,
+                provider=provider,
                 status=final_status,
                 ingredient_total=ingredient_total,
                 success_count=success_count,

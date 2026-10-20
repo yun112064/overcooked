@@ -27,6 +27,7 @@ class RunLease:
     run_key: str
     connection: Connection
     resumed: bool = False
+    provider: str = "pxmart"
 
 
 @dataclass(frozen=True)
@@ -138,6 +139,7 @@ class PricingRepository:
                 run_key=run_key,
                 connection=connection,
                 resumed=resumed,
+                provider=provider,
             )
         except Exception:
             connection.rollback()
@@ -168,7 +170,7 @@ class PricingRepository:
                     product_name, price, currency, package_quantity,
                     package_unit, source_url, quote_payload
                 ) VALUES (
-                    :run_id, 'pxmart', :canonical_name, :status,
+                    :run_id, :provider, :canonical_name, :status,
                     :missing_reason, :queried_at, :valid_from, :valid_until,
                     :product_id, :product_name, :price, :currency,
                     :package_quantity, :package_unit, :source_url,
@@ -179,6 +181,7 @@ class PricingRepository:
             ),
             {
                 "run_id": lease.run_id,
+                "provider": lease.provider,
                 "canonical_name": quote.canonical_name,
                 "status": quote.status.value,
                 "missing_reason": quote.missing_reason,
@@ -299,10 +302,10 @@ class PricingRepository:
                 "SELECT canonical_name, product_id, product_name, product_url, "
                 "confidence, policy_version, consecutive_failures, "
                 "next_reassessment_at FROM retailer_product_mappings "
-                "WHERE provider = 'pxmart' AND canonical_name = :canonical_name "
+                "WHERE provider = :provider AND canonical_name = :canonical_name "
                 "AND active = true"
             ),
-            {"canonical_name": canonical_name},
+            {"canonical_name": canonical_name, "provider": lease.provider},
         ).mappings().one_or_none()
         lease.connection.commit()
         return RepresentativeProduct(**dict(row)) if row else None
@@ -320,7 +323,7 @@ class PricingRepository:
                     active, selected_at, last_verified_at, last_success_at,
                     consecutive_failures, next_reassessment_at
                 ) VALUES (
-                    'pxmart', :canonical_name, :product_id, :product_name,
+                    :provider, :canonical_name, :product_id, :product_name,
                     :product_url, :confidence, CAST(:selection_reason AS jsonb),
                     :policy_version, true, :now, :now, :now, 0, :reassess_at
                 )
@@ -344,6 +347,7 @@ class PricingRepository:
                 """
             ),
             {
+                "provider": lease.provider,
                 "canonical_name": quote.canonical_name,
                 "product_id": quote.product_id,
                 "product_name": quote.product_name,
@@ -369,11 +373,38 @@ class PricingRepository:
                 "last_verified_at = :now, "
                 "active = CASE WHEN consecutive_failures + 1 >= 3 "
                 "THEN false ELSE active END "
-                "WHERE provider = 'pxmart' AND canonical_name = :canonical_name"
+                "WHERE provider = :provider AND canonical_name = :canonical_name"
             ),
-            {"canonical_name": canonical_name, "now": datetime.now(timezone.utc)},
+            {"canonical_name": canonical_name, "now": datetime.now(timezone.utc),
+             "provider": lease.provider},
         )
         lease.connection.commit()
+
+    def fallback_targets(self, lease: RunLease, *, primary_run_key: str) -> tuple[set[str], bool]:
+        """主要來源（全聯）那次 run 查無／不可用的食材，以及該 run 是否已跑完。
+
+        只取 selection_tier=missing（not_found、unusable_package、out_of_stock、逾時等）；
+        review_required（估價待審）與工作簿 Food_ID 對應失敗不送第二來源。
+        """
+        row = lease.connection.execute(
+            text("SELECT id, status FROM price_collection_runs WHERE run_key = :run_key"),
+            {"run_key": primary_run_key},
+        ).mappings().one_or_none()
+        if row is None:
+            lease.connection.commit()
+            return set(), False
+        names = lease.connection.execute(
+            text(
+                "SELECT canonical_name FROM price_quote_snapshots WHERE run_id = :run_id "
+                "AND status <> 'review_required' "
+                "AND COALESCE(quote_payload ->> 'selection_tier', 'missing') = 'missing' "
+                "AND COALESCE(quote_payload ->> 'selection_method', '') <> 'workbook_mapping'"
+            ),
+            {"run_id": row["id"]},
+        ).scalars().all()
+        lease.connection.commit()
+        finished = row["status"] in {"completed", "completed_with_errors"}
+        return set(names), finished
 
     def list_recent_runs(self, limit: int = 20) -> list[dict[str, Any]]:
         query, params = run_rows_query(limit)

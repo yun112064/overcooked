@@ -148,21 +148,47 @@ def _unusable_reason(quote: PriceQuote | None, now: datetime) -> str | None:
     return None
 
 
-LATEST_QUOTE_SQL = """
+# 每個來源（全聯、萬家福）各取最新一筆成功快照
+LATEST_SUCCESS_PER_PROVIDER_SQL = """
+    SELECT DISTINCT ON (provider) quote_payload FROM price_quote_snapshots
+    WHERE status = 'success' AND quote_payload -> 'food_ids' ? :food_id
+    ORDER BY provider, queried_at DESC, id DESC
+"""
+LATEST_ANY_SQL = """
     SELECT quote_payload FROM price_quote_snapshots
-    WHERE provider = 'pxmart' AND quote_payload -> 'food_ids' ? :food_id
-    ORDER BY (status = 'success') DESC, queried_at DESC
+    WHERE quote_payload -> 'food_ids' ? :food_id
+    ORDER BY queried_at DESC, id DESC
     LIMIT 1
 """
+PRIMARY_RETAILER = "PX Mart"
+
+
+def _unit_price(quote: PriceQuote) -> Decimal:
+    return quote.price / quote.package_quantity if quote.package_quantity else Decimal("Infinity")
 
 
 def latest_quote(db: Session, food_id: str) -> PriceQuote | None:
-    """某 FOOD 編號最新的可用報價（唯讀查 T02 快照）。
+    """某 FOOD 編號最新的可用報價（唯讀查 T02 快照，含第二來源萬家福）。
 
-    有成功快照時取最新一筆成功的（保留原查詢時間，不冒充新取得）；從未成功則回最新一筆
-    失敗快照，讓呼叫端保留來源的缺值原因。完全沒查過回 None。
+    每個來源取最新一筆成功快照（保留原查詢時間，不冒充新取得）。兩個來源都有可用價時，
+    T02 沒有跨來源規則，因此取「完整包裝（克）且單位價最低」者，同價優先全聯，理由寫入
+    selection_reasons。從未成功則回最新一筆失敗快照，保留來源的缺值原因（估價不算已知價格）。
+    完全沒查過回 None。
     """
-    payload = db.execute(text(LATEST_QUOTE_SQL), {"food_id": food_id}).scalar_one_or_none()
+    params = {"food_id": food_id}
+    successes = [PriceQuote.model_validate(p) for p in
+                 db.execute(text(LATEST_SUCCESS_PER_PROVIDER_SQL), params).scalars().all()]
+    if successes:
+        ranked = sorted(successes, key=lambda q: (q.package_unit != "g", _unit_price(q),
+                                                  q.retailer != PRIMARY_RETAILER))
+        chosen = ranked[0]
+        if len(ranked) == 1:
+            return chosen
+        others = ", ".join(f"{q.retailer} {q.price}/{q.package_quantity}{q.package_unit}" for q in ranked[1:])
+        reason = (f"cross-source: {chosen.retailer} {chosen.price}/{chosen.package_quantity}"
+                  f"{chosen.package_unit} has the lowest unit price for a complete package (vs {others})")
+        return chosen.model_copy(update={"selection_reasons": [*chosen.selection_reasons, reason]})
+    payload = db.execute(text(LATEST_ANY_SQL), params).scalars().first()
     return PriceQuote.model_validate(payload) if payload is not None else None
 
 

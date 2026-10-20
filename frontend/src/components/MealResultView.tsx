@@ -303,8 +303,8 @@ export default function MealResultView({ requestId, mealDate, onChanged }: Props
                     {i.price_status === 'unknown'
                       ? `查無價格（${i.missing_reason ?? '原因未知'}）`
                       : <>
-                          {i.product_url ? <Link href={i.product_url} target="_blank" rel="noreferrer">{i.retailer ?? i.source}</Link> : (i.retailer ?? i.source)}
-                          {i.queried_at && ` · ${new Date(i.queried_at).toLocaleString()}`}
+                          {i.product_url ? <Link href={i.product_url} target="_blank" rel="noreferrer">{i.source_name ?? i.retailer ?? i.source}</Link> : (i.source_name ?? i.retailer ?? i.source)}
+                          {i.queried_at && ` · 查詢於 ${new Date(i.queried_at).toLocaleString()}`}
                         </>}
                   </TableCell>
                 </TableRow>

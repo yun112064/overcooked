@@ -4,7 +4,7 @@
 
 ## 範圍與結論
 
-本階段只接入全聯福利中心「全聯小時達」，未實作萬家福或其他供應商。程式以 `recipe_ingredients.Food_ID` 的唯一值建立查價範圍，使用活頁簿現有 `canonical_name` 對應標準名稱；`ingredient_aliases.alias` 只作商品匹配提示。相同標準名稱只查全聯一次，結果保留其全部 Food_ID。
+本階段只接入全聯福利中心「全聯小時達」。2026-10-20 起依決策 #25 加入第二來源「萬家福線上購物」，只在全聯查無／不可用時查詢，見下方〈第二來源：萬家福線上購物〉。程式以 `recipe_ingredients.Food_ID` 的唯一值建立查價範圍，使用活頁簿現有 `canonical_name` 對應標準名稱；`ingredient_aliases.alias` 只作商品匹配提示。相同標準名稱只查全聯一次，結果保留其全部 Food_ID。
 
 本機 `data/recipe_dataset_1017.xlsx` 實測有 **434 個唯一 Food_ID**，434 個皆可對應名稱，去重後需搜尋 **434 種標準食材**，無法對應 0 個。CLI 每次執行都重新計算，不將數字硬編碼；找不到或有衝突的名稱會記為缺值，不會送到全聯搜尋或填入假價格。
 
@@ -158,7 +158,7 @@ docker compose logs -f scheduler
 - 每筆 snapshot 寫完即提交。單一食材發生未預期錯誤時寫入 `source_error` snapshot 後繼續；run row 最後記錄成功、待確認、失敗、各狀態與缺值原因次數、開始／完成時間及耗時。
 - 若 process 在中途崩潰，advisory lock 會由 PostgreSQL 連線關閉自動釋放，已提交 snapshot 與 `running` run row保留供調查；同一日不會被自動偽裝成新的完整更新，可另用新的 manual run key 人工重跑。
 
-目前未執行完整 434 種的每日 production run，也沒有接入萬家福。下方三筆真實小量驗證只證明公開全聯頁面在驗證時間可取得候選，不代表每日雲端更新已成功上線。
+目前未執行完整 434 種的每日 production run。萬家福第二來源見下節。下方三筆真實小量驗證只證明公開全聯頁面在驗證時間可取得候選，不代表每日雲端更新已成功上線。
 
 ## 本機開發環境（start-dev，決策 #23）
 
@@ -182,6 +182,63 @@ docker compose logs -f scheduler
 **需要多久**：工作簿 423 種標準名稱（扣除 2 種不計價）＝ 421 次查詢，每種之間限速 1.5 秒（`PRICE_COLLECTION_DELAY_SECONDS`），
 實測每種約 1.7 秒（10 種 17 秒），完整一輪約 **12 分鐘**；來源變慢時每次請求最多 15 秒逾時＋重試 1 次，最壞會更久。
 不要為了加快而調低限速。中途關掉沒關係，下次同一個 run key 會續跑。
+## 第二來源：萬家福線上購物（決策 #25）
+
+萬家福（原家樂福台灣線上購物，`https://online.uni-prosperity.com.tw/`，Salesforce Commerce Cloud）只在全聯該食材
+**查無或不可用**時才查詢。實作：`backend/app/source_adapters/uni_prosperity.py`。
+
+**何時查**：同一次 run 的全聯快照 `selection_tier=missing`（`not_found`、`unusable_package`、`out_of_stock`、
+`missing_price`、`stale_price`、`timeout`、`source_error`、`schema_changed`）。`review_required`（只有估價、待審）
+與工作簿 Food_ID 對應失敗不送萬家福。
+
+**怎麼查**：公開搜尋頁 `GET /zh/search/?q=<關鍵字>`（第一頁，不翻頁、不排序、不篩選）。關鍵字沿用 T02 的
+`build_search_terms`（標準名稱＋已確認別名，最多 3 個）。解析搜尋頁商品磚 `a.gtm-product-alink` 的
+`data-pid`、`data-name`、`data-price`（目前售價）、`data-variant`（規格；名稱沒寫重量時取其中的 g／kg／ml／l）、
+`data-ifavailable`、`href`（商品網址；路徑中的品牌段落作為品牌）。之後完全沿用 T02 的商品比對
+（`evaluate_match`／`select_candidate`）、包裝換算（`parse_package_details`）、可用性與狀態判斷
+（`build_price_quote_from_candidates`）與 `PriceQuote` 快照格式；`retailer="萬家福"`。
+
+**只存事實資料**：商品名稱、售價、包裝規格、商品網址、查詢時間、來源。不存圖片、商品描述或頁面 HTML。
+
+**取得邊界（robots.txt，2026-10-20 檢視）**：禁止 `/on/demandware.store/`（含 `Search-UpdateGrid`）、`*/filter/*`、
+`cgid`、`srule`、`prefn`／`prefv`、`pmin`／`pmax`，以及購物車／結帳／會員／訂單；搜尋頁與商品頁未被禁止。
+Adapter 每個請求送出前以 `is_allowed_url()` 檢查（只允許該網域的 https、且不落入上述路徑／參數），不符合就不送出、
+記為 `source_error`；不跟隨轉址。可識別 User-Agent `overcooked-t02-price-research/1.0`，任兩個請求間隔 **≥ 2 秒**
+（Adapter 內建節流，與食材間的 `PRICE_COLLECTION_DELAY_SECONDS` 疊加），單次 15 秒逾時、重試上限沿用
+`PRICE_COLLECTION_RETRIES`。HTTP 401/403/429 或封鎖頁字樣（access denied／robot check）立即記為 `source_error`，
+不繞過。（萬家福正常頁面的前端字串本來就含「驗證碼」「captcha」，因此不使用全聯的那組字樣。）
+
+**條款**：會員服務條款「參：智慧財產權」要求重製網站資訊須事前書面同意；使用者 2026-10-21 決定照用並承擔風險，
+記錄於 `docs/acceptance/limitations.md`。
+
+**排程與統計**：同一次 `service.run()` 先跑全聯（run key `K`），再以獨立 run（run key `K:uniprosperity`，
+`provider=uniprosperity`）查萬家福，`price_collection_runs` 各一列、統計分來源；CLI 輸出的 JSON 中萬家福統計在
+`fallback` 欄位。萬家福 run 也可續跑：全聯 run 尚未完成（`partial`）時萬家福 run 維持 `partial`，下次同一個 key
+會補查新出現的查無食材；兩者都完成後重跑同一 key 皆為 `skipped`（冪等）。全聯 run 已完成而萬家福從未跑過時，
+用同一個 key 重跑會只補跑萬家福。設定 `PRICE_FALLBACK_UNI_PROSPERITY_ENABLED=false` 可停用第二來源。
+T15 缺價定向查價同樣先全聯、查無再萬家福。
+
+**選價（T13 缺料價格）**：每個來源各取最新一筆成功快照。T02 原本沒有跨來源規則，因此兩個來源都可用時取
+「完整包裝（克）且單位價最低」者，同價優先全聯，並把理由（雙方單位價）附加到 `selection_reasons`。
+兩個來源都沒有成功快照時回最新一筆失敗快照、價格未知（不填 0；估價不算已知價格，決策 #8）。
+
+**畫面**：缺料價格區顯示來源名稱（`source_name`：全聯／萬家福，連到商品頁）與查詢時間。
+
+**補抓既有那次全聯 run**（只查萬家福，不重查全聯）：
+
+```powershell
+# 1. 找出那次全聯 run 的 run_key
+.\scripts\dev-run.ps1 -m app.pricing_scheduler --show-runs 5
+# 2. 用同一個 run_key 重跑：全聯那次已完成會略過，只補查萬家福
+.\scripts\dev-run.ps1 -m app.pricing_scheduler --run-once --run-key <run_key>
+```
+
+**需要多久**：約 174 種（2026-10-20 全聯 not_found 173＋unusable_package 1），每種 1–3 次搜尋、請求間隔 ≥ 2 秒，
+加上食材間 1.5 秒，約 **15–25 分鐘**。中斷後同一指令會續跑。
+
+**2026-10-20 實際冒煙測試**：共 4 個請求（含 2 個結構檢視）。「高麗菜」1 次搜尋即成功：24 個候選中 18 個被排除
+（水餃、泡菜等加工品），自動採用「有機高麗菜800g」99 元。只證明解析器與比對可運作，不代表覆蓋率。
+
 ## 測試與 G02 狀態
 
 固定 fixtures 覆蓋 Excel 欄位/去重、Decimal 價格、缺價、缺貨、包裝缺值、加工狀態不匹配、有限逾時重試、來源欄位變動、過期/未知有效期，以及缺值不得為 0。
