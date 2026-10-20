@@ -68,7 +68,22 @@ def _ingredient(r: dict) -> dict:
             "whole_meal_grams": r.get("whole_meal_grams"), "display_grams": r.get("display_grams"),
             "display_amount": r.get("display_amount", r.get("display_grams")),
             "display_unit": r.get("display_unit", "g" if r.get("display_grams") is not None else None),
-            "display_text": r.get("display_text")}
+            "display_text": r.get("display_text"),
+            # decisions #19：克數或烹調係數來自 LLM 推估時標示；estimates 保留模型、版本與覆核狀態供追溯
+            "llm_estimated": bool(r.get("llm_estimated")),
+            "estimate_label": LLM_ESTIMATE_LABEL if r.get("llm_estimated") else None,
+            "estimated_nutrients": r.get("estimated_nutrients") or [],
+            "estimates": r.get("estimates") or []}
+
+
+LLM_ESTIMATE_LABEL = "LLM 推估"
+
+
+def _llm_estimates(calc: dict) -> dict:
+    summary = calc.get("llm_estimates") or {}
+    return {"used": bool(summary.get("used")), "food_ids": summary.get("food_ids") or [],
+            "nutrients": summary.get("nutrients") or [],
+            "label": LLM_ESTIMATE_LABEL if summary.get("used") else None}
 
 
 def _dishes(payload: dict) -> list[dict]:
@@ -96,7 +111,7 @@ def staple_view(payload: dict) -> dict | None:
             "review_status": staple.get("review_status"), "unresolved_reason": staple.get("unresolved_reason"),
             "whole_meal_grams": row.get("whole_meal_grams"), "display_amount": row.get("display_amount"),
             "display_unit": row.get("display_unit"), "display_text": row.get("display_text"),
-            "counts_for_price": False}
+            "counts_for_price": False, "llm_estimated": bool(row.get("llm_estimated"))}
 
 
 def _nutrition(payload: dict) -> dict:
@@ -110,7 +125,8 @@ def _nutrition(payload: dict) -> dict:
             # P2：用量是否已通過驗證；不可採用時的具體調整建議
             "quantities_verified": calc.get("quantities_verified", calc.get("adoptable", False)),
             "suggestions": calc.get("suggestions") or [],
-            "unresolved_ingredients": calc.get("unresolved_ingredients") or []}
+            "unresolved_ingredients": calc.get("unresolved_ingredients") or [],
+            "llm_estimates": _llm_estimates(calc)}
 
 
 QUOTE_FIELDS = ("retailer", "source", "source_url", "product_name", "product_url", "price", "package_quantity",

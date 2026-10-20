@@ -437,13 +437,18 @@ def make_generation_handler(*, responder=_DEFAULT, knowledge_client=_DEFAULT, em
                             now=None):
     """建立 T10 工作處理函式；依賴可注入（測試用假物件），預設依設定建立。None 代表服務未設定。"""
     def handler(ctx) -> dict:
-        from app.services.meal_calculation import tfda_calculator
+        job_calculator = calculator
+        if job_calculator is None:
+            # decisions #19：每個工作載入一次換算係數快取；計算期間只查表、不呼叫 LLM
+            from app.services.meal_calculation import cached_factor_calculator
+            with ctx.factory() as db:
+                job_calculator = cached_factor_calculator(db)
         return _generate(
             ctx,
             responder=default_responder() if responder is _DEFAULT else responder,
             knowledge_client=knowledge.default_knowledge_client() if knowledge_client is _DEFAULT else knowledge_client,
             embedder=default_embedder() if embedder is _DEFAULT else embedder,
-            calculator=calculator or tfda_calculator,
+            calculator=job_calculator,
             now=now or datetime.now(timezone.utc),
         )
     handler.persist = persist_result

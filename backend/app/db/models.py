@@ -427,3 +427,57 @@ class KnowledgeCrawlRequest(Base):
     last_crawled_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     last_outcome: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
     claimed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+
+class ConversionFactorEstimate(Base):
+    """decisions #19 換算係數快取：烹調產率／保留率（kind=cooking）與每單位克數（kind=unit）。
+
+    批次指令（python -m app.estimation）以 gpt-5.4-mini 事先推估寫入；生成時只查表。
+    同一鍵可有多列（重新推估、人工覆寫各新增一列）；取用見 app.estimation.store.load_snapshot。
+    """
+    __tablename__ = "conversion_factor_estimates"
+    __table_args__ = (
+        CheckConstraint("kind IN ('cooking', 'unit')", name="ck_conversion_factor_kind"),
+        CheckConstraint("source IN ('tfda', 'human', 'llm_estimated')", name="ck_conversion_factor_source"),
+        CheckConstraint("status IN ('llm_estimated', 'approved', 'rejected', 'overridden')",
+                        name="ck_conversion_factor_status"),
+        CheckConstraint(
+            "(kind = 'cooking' AND grams_per_unit IS NULL AND energy_retention IS NOT NULL "
+            "AND protein_retention IS NOT NULL) OR "
+            "(kind = 'unit' AND grams_per_unit IS NOT NULL AND yield_factor IS NULL "
+            "AND energy_retention IS NULL AND protein_retention IS NULL)",
+            name="ck_conversion_factor_values"),
+        CheckConstraint("yield_factor IS NULL OR (yield_factor > 0 AND yield_factor <= 10)",
+                        name="ck_conversion_factor_yield_range"),
+        CheckConstraint("energy_retention IS NULL OR (energy_retention >= 0 AND energy_retention <= 1)",
+                        name="ck_conversion_factor_energy_retention_range"),
+        CheckConstraint("protein_retention IS NULL OR (protein_retention >= 0 AND protein_retention <= 1)",
+                        name="ck_conversion_factor_protein_retention_range"),
+        CheckConstraint("grams_per_unit IS NULL OR grams_per_unit > 0", name="ck_conversion_factor_grams_positive"),
+        CheckConstraint("source <> 'llm_estimated' OR (model IS NOT NULL AND prompt_version IS NOT NULL "
+                        "AND schema_version IS NOT NULL)", name="ck_conversion_factor_llm_trace"),
+        Index("ix_conversion_factor_estimates_key", "kind", "food_id", "factor_key"),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    kind: Mapped[str] = mapped_column(String(20), nullable=False)
+    food_id: Mapped[str] = mapped_column(String(32), nullable=False)
+    factor_key: Mapped[str] = mapped_column(String(100), nullable=False)
+    food_name: Mapped[str | None] = mapped_column(Text, nullable=True)
+    yield_factor: Mapped[Decimal | None] = mapped_column(Numeric(10, 4), nullable=True)
+    energy_retention: Mapped[Decimal | None] = mapped_column(Numeric(6, 4), nullable=True)
+    protein_retention: Mapped[Decimal | None] = mapped_column(Numeric(6, 4), nullable=True)
+    grams_per_unit: Mapped[Decimal | None] = mapped_column(Numeric(12, 4), nullable=True)
+    source: Mapped[str] = mapped_column(String(20), nullable=False)
+    status: Mapped[str] = mapped_column(String(20), nullable=False)
+    model: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    prompt_version: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    schema_version: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    input_snapshot: Mapped[dict] = mapped_column(JSONB, nullable=False, default=dict,
+                                                 server_default=text("'{}'::jsonb"))
+    assumptions: Mapped[list] = mapped_column(JSONB, nullable=False, default=list, server_default=text("'[]'::jsonb"))
+    call_key: Mapped[str | None] = mapped_column(String(200), nullable=True)
+    reviewer: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    review_note: Mapped[str | None] = mapped_column(Text, nullable=True)
+    reviewed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, nullable=False)

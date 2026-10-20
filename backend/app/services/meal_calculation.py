@@ -17,7 +17,7 @@ from fractions import Fraction
 from typing import Callable
 
 from app.core.config import PROJECT_ROOT
-from app.meal_calc.types import IngredientRequirement
+from app.meal_calc.types import EstimatedFactor, IngredientRequirement
 
 REQUIRED_NUTRIENTS = ("energy_kcal", "protein_g")
 LOWER, UPPER = Fraction(9, 10), Fraction(11, 10)
@@ -106,6 +106,10 @@ class IngredientLine:
     raw_text: str | None = None
     # dish（菜色食材）或 staple（主食，decisions #16：計入營養與 ±10%，不計價格／缺料）
     role: str = "dish"
+    # decisions #19：克數由快取的每單位克數推估換算時的係數（EstimatedFactor，kind="unit"）；否則 None
+    weight_estimate: EstimatedFactor | None = None
+    # 食譜層級有多種烹調方式時（cooking_method 不填）保留全部方式，只用於查組合鍵的推估係數
+    cooking_methods: tuple = ()
 
 
 @dataclass
@@ -205,6 +209,27 @@ def _align(lines, grams, rows, references):
 
 def calculate_meal(lines: list[IngredientLine], targets: MealTargets, *, mode: str,
                    calculator: Calculator) -> dict:
+    """驗證整餐並彙整「LLM 推估」標示（decisions #19）；計算本體見 _calculate_meal。"""
+    result = _calculate_meal(lines, targets, mode=mode, calculator=calculator)
+    result["llm_estimates"] = _llm_summary(result["ingredients"])
+    return result
+
+
+def _llm_summary(rows: list[dict]) -> dict:
+    """結果層級標示：哪些食材、哪些營養使用了 LLM 推估係數（含克數換算影響的全部營養）。"""
+    food_ids, nutrients = [], []
+    for row in rows:
+        if not row.get("llm_estimated"):
+            continue
+        if row["food_id"] not in food_ids:
+            food_ids.append(row["food_id"])
+        affected = row.get("estimated_nutrients") or []
+        nutrients += [k for k in affected if k not in nutrients]
+    return {"used": bool(food_ids), "food_ids": food_ids, "nutrients": nutrients}
+
+
+def _calculate_meal(lines: list[IngredientLine], targets: MealTargets, *, mode: str,
+                    calculator: Calculator) -> dict:
     """驗證整餐：基準對齊 → 乘 N → 重新計算 → ±10% 判定。mode 為 "database" 或 "ai"。
 
     不可採用時仍盡量可查看（P2）：克數已知的食材一律列出整餐用量與成本需求量（quantities_verified=False），
@@ -238,7 +263,7 @@ def calculate_meal(lines: list[IngredientLine], targets: MealTargets, *, mode: s
              "reason": "ingredient_weight_unresolved"},
         ]
         result["suggestions"].append({
-            "code": "INGREDIENT_UNRESOLVED", "action": "補上審核過的克數換算後重新計算",
+            "code": "INGREDIENT_UNRESOLVED", "action": "補上克數換算（人工值或批次 LLM 推估）後重新計算",
             "ingredients": [{"food_id": ln.food_id, "name": ln.name, "unit": ln.unit,
                              "reason": ln.unresolved_reason or "weight_unresolved"} for ln in unresolved]})
         grams = [ln.grams_per_n for ln in lines]
@@ -390,8 +415,22 @@ def _display(ln: IngredientLine, whole: Decimal | None, n: Decimal) -> dict:
     return {"display_amount": None, "display_unit": None, "display_text": ln.raw_text or ln.name}
 
 
+def _estimates(ln: IngredientLine, nutrition: IngredientNutrition | None) -> tuple[list[dict], list[str]]:
+    """每項食材使用的快取係數標示與受影響營養。克數推估影響該食材全部已算出的營養。"""
+    markers = [ln.weight_estimate.marker()] if ln.weight_estimate is not None else []
+    trace = nutrition.trace if nutrition and nutrition.trace else {}
+    markers += list(trace.get("estimated_factors") or [])
+    affected = list(trace.get("estimated_nutrients") or [])
+    if ln.weight_estimate is not None and nutrition is not None:
+        affected = [k for k, v in nutrition.nutrients.items() if v is not None]
+    return markers, affected
+
+
 def _row(ln: IngredientLine, grams, whole, nutrition: IngredientNutrition | None, n: Decimal) -> dict:
+    markers, affected = _estimates(ln, nutrition)
     return {
+        "estimates": markers, "llm_estimated": any(m["llm_estimated"] for m in markers),
+        "estimated_nutrients": affected if any(m["llm_estimated"] for m in markers) else [],
         "food_id": ln.food_id, "name": ln.name, "dish_id": ln.dish_id, "role": ln.role,
         "weight_basis": ln.weight_basis, "weight_basis_source": ln.weight_basis_source,
         "cooking_method": ln.cooking_method,
@@ -419,12 +458,22 @@ def _weight_basis(row) -> tuple[str, str]:
     return "raw", WORKBOOK_RAW_CONVENTION
 
 
-def load_recipe_lines(db, recipe_id: str) -> list[IngredientLine]:
+def cached_factor_calculator(db) -> Calculator:
+    """生成時使用的 TFDA calculator：載入一次換算係數快取（decisions #19），計算期間不呼叫 LLM。"""
+    from app.estimation.store import load_snapshot
+
+    return make_tfda_calculator(cooking_factors=load_snapshot(db).cooking)
+
+
+def load_recipe_lines(db, recipe_id: str, factors=None) -> list[IngredientLine]:
     """資料庫模式：把 T01 食譜的全部食材（含油與調味料）轉成每 1n 基準用量。
 
     - 每 1n 克數 = weight_g ÷ original_servings；原份數未知或無克數換算時為 None 並附原因。
+    - 沒有克數但有數量與單位（如「1 匙」）時，用快取的每單位克數推估（factors：FactorSnapshot，
+      未提供則自行載入）；換算後的列帶 weight_estimate 供結果標示與追溯。沒有推估值維持未知。
     - 可調範圍同樣換算為每 1n，只有 adjustment_status = approved 才可用於調整。
-    - 烹調方式取自食譜層級：恰好一種時套用，否則不填（缺依據即不可採用）。
+    - 烹調方式取自食譜層級：恰好一種時套用；多種時不猜（cooking_method 不填），只保留全部方式
+      （cooking_methods）以組合鍵查快取的推估係數（decisions #19），沒有推估值即不可採用。
     - 生熟（decisions #17）：工作簿克數一律視為生重（weight_basis=raw，依據 WORKBOOK_RAW_CONVENTION）；
       若資料表日後有生熟欄位，優先採用該欄位（依據 RECIPE_FIELD）。依據寫入 trace。
     """
@@ -444,21 +493,31 @@ def load_recipe_lines(db, recipe_id: str) -> list[IngredientLine]:
     def per_n(value):
         return None if value is None or not servings else Decimal(value) / Decimal(servings)
 
+    if factors is None:
+        from app.estimation.store import load_snapshot
+        factors = load_snapshot(db)
+
     lines = []
     for row in rows:
-        reason = None
+        reason, weight, estimate = None, row.weight_g, None
         if not servings:
             reason = "servings_unresolved"
-        elif row.weight_g is None:
-            reason = row.weight_status or "weight_unresolved"
+        elif weight is None:
+            # decisions #19：有數量、非克單位時，改用快取的每單位克數推估（人工值優先；rejected 不用）
+            estimate = factors.unit(row.food_id, row.unit) if row.amount is not None and row.unit else None
+            if estimate is not None and row.unit != "g":
+                weight = Decimal(row.amount) * estimate.grams_per_unit
+            else:
+                estimate, reason = None, row.weight_status or "weight_unresolved"
         basis, basis_source = _weight_basis(row)
         lines.append(IngredientLine(
-            food_id=row.food_id, name=row.canonical_name,
-            grams_per_n=None if reason else per_n(row.weight_g),
+            food_id=row.food_id, name=row.canonical_name, weight_estimate=estimate,
+            grams_per_n=None if reason else per_n(weight),
             cooking_method=method, weight_basis=basis, weight_basis_source=basis_source,
             adjustable_min=per_n(row.adjustable_min), adjustable_max=per_n(row.adjustable_max),
             adjustment_approved=row.adjustment_status == "approved",
             dish_id=recipe_id, unresolved_reason=reason,
+            cooking_methods=tuple(methods) if len(methods) > 1 else (),
             unit=row.unit, amount_per_n=per_n(row.amount), raw_text=row.raw_text,
         ))
     return lines
@@ -491,8 +550,90 @@ def _scaled(value, grams: Decimal) -> Decimal | None:
     return Decimal(str(value)) * grams / REFERENCE_GRAMS
 
 
-def tfda_calculator(rows: list[tuple[IngredientLine, Decimal]]) -> list[IngredientNutrition]:
-    """以 T04 TFDA 管線計算每項食材（estimator=None：不使用 LLM 烹調係數，見 P01）。
+def _no_request_time_llm(payload):
+    """計算期間絕不呼叫 LLM（decisions #19）：T04 估算器一律回報未設定，推估值只來自批次快取。
+
+    T04 的 estimator=None 會改用環境變數設定的估算器，因此必須明確傳入此函式。
+    """
+    return {"success": False, "error": "llm_not_configured"}
+
+
+def normalize_cooking_method(method: str | None) -> str | None:
+    """烹調方式正規化（沿用 T04 cooking_yield_service），作為快取係數的查表鍵。"""
+    if not method:
+        return None
+    _nutrition_model()
+    import cooking_yield_service
+
+    return cooking_yield_service.normalize_method(method) or None
+
+
+def combined_method_key(methods) -> str | None:
+    """多種烹調方式的組合鍵：各方式正規化、去重、排序後以「+」連接（批次推估與查表共用）。"""
+    keys = sorted({normalize_cooking_method(m) for m in methods or () if m and str(m).strip()} - {None})
+    return "+".join(keys) or None
+
+
+def _method_key(ln: IngredientLine) -> str | None:
+    if ln.cooking_method:
+        return normalize_cooking_method(ln.cooking_method)
+    return combined_method_key(ln.cooking_methods) if len(ln.cooking_methods) > 1 else None
+
+
+CookingFactorLookup = Callable[[str, str], "EstimatedFactor | None"]
+
+
+def _apply_cooking_factor(service, ln: IngredientLine, grams: Decimal, factor, nutrients: dict, trace: dict) -> None:
+    """T04 main 設計：係數（產率／保留率）來自快取，營養由此處以 Decimal 計算。
+
+    - TFDA 有熟樣品但缺產率 → 熟樣品每 100 g × 生重 × 推估產率；
+    - 只有生樣品 → 生樣品每 100 g × 生重 × 該營養的推估保留率（不含另列的油、鹽、醬）。
+    已由 TFDA／USDA 實測算出的營養不覆蓋（實測優先）；沒有推估值的營養維持 None。
+    """
+    raw = service.find_ingredient(ln.name)
+    raw = raw if raw and raw.get("state") == "raw" else None
+    # 熟樣品只對應單一烹調方式；多種方式組合只能套保留率
+    cooked = service.find_cooked_ingredient(ln.name, ln.cooking_method) if ln.cooking_method else None
+    retention = factor.retention or {}
+    used = []
+    for key in service.NUTRIENTS:
+        if nutrients.get(key) is not None:
+            continue
+        cooked_value = (cooked or {}).get("nutrition_per_100g", {}).get(key) if cooked else None
+        raw_value = raw["nutrition_per_100g"].get(key) if raw else None
+        if service.finite_number(cooked_value) and factor.yield_factor is not None:
+            nutrients[key] = Decimal(str(cooked_value)) * grams * factor.yield_factor / REFERENCE_GRAMS
+            used.append(key)
+        elif service.finite_number(raw_value) and retention.get(key) is not None:
+            nutrients[key] = Decimal(str(raw_value)) * grams / REFERENCE_GRAMS * retention[key]
+            used.append(key)
+    if not used:
+        return
+    basis = "human" if factor.source == "human" else "llm_estimated"
+    trace["estimated_factors"].append(factor.marker())
+    trace["estimated_nutrients"] = used
+    trace["is_estimated"] = True
+    if factor.yield_factor is not None and trace.get("cooked_weight_g") is None:
+        trace["cooked_weight_g"] = grams * factor.yield_factor
+        trace["yield_basis"] = basis
+    trace["nutrition_basis"] = ("cooked_tfda_" if cooked else "raw_tfda_") + basis
+    if all(nutrients.get(k) is not None for k in REQUIRED_NUTRIENTS):
+        trace["missing_reason"] = None
+
+
+def make_tfda_calculator(*, cooking_factors: CookingFactorLookup | None = None) -> Calculator:
+    """建立 TFDA calculator；cooking_factors(food_id, 正規化烹調方式) 回傳快取係數或 None。
+
+    優先順序（decisions #19）：TFDA／USDA 實測 > 人工核可／覆寫 > LLM 推估；rejected 永不使用。
+    人工與 LLM 的先後由查表端（app.estimation.store）決定，此處只在 T04 實測算不出必要營養時才套用。
+    """
+    def calculate(rows: list[tuple[IngredientLine, Decimal]]) -> list[IngredientNutrition]:
+        return _tfda_calculate(rows, cooking_factors)
+    return calculate
+
+
+def _tfda_calculate(rows, cooking_factors) -> list[IngredientNutrition]:
+    """以 T04 TFDA 管線計算每項食材（計算期間不呼叫 LLM，見 _no_request_time_llm）。
 
     為了讓 ±10% 邊界精確（AC12），克數不轉 float 送進 T04：每項食材一律以 100 g 呼叫 T04 取得
     「每 100 g」的營養（及生熟重比例），再以 Decimal(str()) 取值、在 T12 內以 Decimal 乘克數。
@@ -507,7 +648,7 @@ def tfda_calculator(rows: list[tuple[IngredientLine, Decimal]]) -> list[Ingredie
         if ln.cooking_method:
             item["cooking_method"] = ln.cooking_method
         items.append(item)
-    recipe = service.calculate_recipe_nutrition("meal", items, estimator=None)
+    recipe = service.calculate_recipe_nutrition("meal", items, estimator=_no_request_time_llm)
     out = []
     for (ln, grams), row in zip(rows, recipe.get("ingredients") or [{}] * len(rows)):
         grams = Decimal(grams)
@@ -522,10 +663,20 @@ def tfda_calculator(rows: list[tuple[IngredientLine, Decimal]]) -> list[Ingredie
             "yield_basis": row.get("yield_basis"), "raw_weight_g": _scaled(row.get("raw_weight_g"), grams),
             "cooked_weight_g": _scaled(row.get("cooked_weight_g"), grams),
             "is_estimated": bool(row.get("is_estimated")), "missing_reason": row.get("missing_reason"),
+            "estimated_factors": [], "estimated_nutrients": [],
         }
+        method_key = _method_key(ln)
+        if (cooking_factors and method_key and ln.weight_basis == "raw" and row.get("success")
+                and any(nutrients.get(k) is None for k in REQUIRED_NUTRIENTS)):
+            factor = cooking_factors(ln.food_id, method_key)
+            if factor is not None and factor.usable:
+                _apply_cooking_factor(service, ln, grams, factor, nutrients, trace)
         error = row.get("error") or (None if row.get("success") else "nutrition_unavailable")
         out.append(IngredientNutrition(nutrients, trace, error))
     return out
+
+
+tfda_calculator = make_tfda_calculator()
 
 
 def _requirements(lines, whole) -> list[IngredientRequirement]:

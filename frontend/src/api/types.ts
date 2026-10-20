@@ -225,6 +225,26 @@ export type ResultIngredient = {
   display_amount?: string | null
   display_unit?: string | null
   display_text?: string | null
+  /** decisions #19：克數或烹調係數來自批次 LLM 推估（gpt-5.4-mini）；人工覆寫值不算 */
+  llm_estimated?: boolean
+  estimate_label?: string | null
+  estimated_nutrients?: string[]
+  estimates?: {
+    kind: 'cooking' | 'unit'
+    source: string
+    status: string
+    model: string | null
+    prompt_version: string | null
+    schema_version: string | null
+    llm_estimated: boolean
+  }[]
+}
+
+export type LlmEstimates = {
+  used: boolean
+  food_ids: string[]
+  nutrients: string[]
+  label: string | null
 }
 
 export type NutritionSuggestion = {
@@ -290,6 +310,7 @@ export type MealResult = {
     display_unit: string | null
     display_text: string | null
     counts_for_price: false
+    llm_estimated?: boolean
   } | null
   nutrition: {
     total_n: string | null
@@ -303,6 +324,8 @@ export type MealResult = {
     /** false：用量未通過驗證（缺資料或無法在範圍內符合目標），僅供查看 */
     quantities_verified?: boolean
     suggestions?: NutritionSuggestion[]
+    /** 哪些食材、哪些營養用到 LLM 推估的換算係數（decisions #19） */
+    llm_estimates?: LlmEstimates
   }
   prices: {
     status: string
