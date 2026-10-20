@@ -20,7 +20,9 @@ DIMENSIONS = 1536
 FIELDS = ("knowledge_id", "ingredient_id", "excerpt", "source_url", "source_version", "rights", "conditions")
 # G07 外部來源的選填欄位（合成資料可省略）；顯示時必須帶出處
 SOURCE_FIELDS = ("source_name", "title", "published_at", "fetched_at", "content_hash", "authorization_ref",
-                 "article_id", "content_provider")
+                 "article_id", "content_provider", "license_status")
+# 轉載內容授權（pre-review #8）
+LICENSE_UNCONFIRMED, LICENSE_CONFIRMED = "third_party_unconfirmed", "third_party_confirmed"
 FOOD_ID = re.compile(r"^FOOD\d{6}$")
 SCHEMA_PATH = Path(__file__).resolve().parent / "schema.sql"
 
@@ -75,6 +77,8 @@ class KnowledgeStore:
         extra = {k: record[k] for k in SOURCE_FIELDS if record.get(k) is not None}
         if extra.get("source_name") and not str(extra.get("authorization_ref") or "").strip():
             raise ValueError("External-source knowledge requires an authorization_ref")
+        if extra.get("content_provider") and extra.get("license_status") != LICENSE_CONFIRMED:
+            extra["license_status"] = LICENSE_UNCONFIRMED  # 轉載內容一律先擱置，待審核者確認授權
         columns = [*FIELDS, *extra]
         with self._connect() as conn:
             try:
@@ -85,21 +89,34 @@ class KnowledgeStore:
             except psycopg.errors.UniqueViolation:
                 raise ValueError("Existing versions are immutable; import a new source_version") from None
 
-    def review(self, knowledge_id: str, source_version: str, *, reviewer: str, approved: bool, note: str) -> dict:
+    def review(self, knowledge_id: str, source_version: str, *, reviewer: str, approved: bool, note: str,
+               confirm_third_party_license: bool = False) -> dict:
+        """核准／退回一個版本。轉載內容（license_status=third_party_unconfirmed）核准時必須明確確認
+        授權涵蓋轉載內容（confirm_third_party_license），確認會寫入審核紀錄；退回不需要。"""
         if not all(isinstance(v, str) and v.strip() for v in (reviewer, note)) or not isinstance(approved, bool):
             raise ValueError("Reviewer, decision and citation-check note required")
         with self._connect() as conn:
             row = conn.execute(
-                "SELECT status FROM knowledge_records WHERE knowledge_id = %s AND source_version = %s FOR UPDATE",
+                "SELECT status, license_status, content_provider FROM knowledge_records "
+                "WHERE knowledge_id = %s AND source_version = %s FOR UPDATE",
                 (knowledge_id, source_version)).fetchone()
             if row is None:
                 raise ValueError("Knowledge version not found")
             if row["status"] != "pending":
                 raise ValueError("A reviewed version is immutable")
+            license_status = row["license_status"]
+            if approved and license_status == LICENSE_UNCONFIRMED:
+                if not confirm_third_party_license:
+                    raise ValueError(f"Reprinted third-party content ({row['content_provider']}) is held: confirm the "
+                                     "written permission covers it, then approve with --confirm-third-party-license")
+                license_status = LICENSE_CONFIRMED
+                note = f"[已確認轉載授權涵蓋原始供稿：{row['content_provider']}] {note}"
             return conn.execute(
-                "UPDATE knowledge_records SET status = %s, reviewer = %s, reviewed_at = now(), review_note = %s "
-                "WHERE knowledge_id = %s AND source_version = %s RETURNING knowledge_id, source_version, status",
-                ("approved" if approved else "rejected", reviewer, note, knowledge_id, source_version)).fetchone()
+                "UPDATE knowledge_records SET status = %s, reviewer = %s, reviewed_at = now(), review_note = %s, "
+                "license_status = %s WHERE knowledge_id = %s AND source_version = %s "
+                "RETURNING knowledge_id, source_version, status, license_status",
+                ("approved" if approved else "rejected", reviewer, note, license_status, knowledge_id,
+                 source_version)).fetchone()
 
     # --- 索引 ---
 
@@ -224,8 +241,13 @@ class KnowledgeStore:
                 "SELECT status, count(*) AS n FROM source_articles GROUP BY status")}
             index = conn.execute("SELECT index_version, embedding_model, record_count, activated_at "
                                  "FROM knowledge_indexes WHERE status = 'active'").fetchone()
+            holds = conn.execute(
+                "SELECT count(*) AS n FROM (SELECT DISTINCT ON (knowledge_id) status, license_status FROM "
+                "knowledge_records ORDER BY knowledge_id, seq DESC) c WHERE c.status = 'pending' "
+                "AND c.license_status = %s", (LICENSE_UNCONFIRMED,)).fetchone()["n"]
         return {"records": {k: counts.get(k, 0) for k in ("pending", "approved", "rejected")},
-                "approved_awaiting_new_version_review": superseded, "articles": articles, "active_index": index}
+                "approved_awaiting_new_version_review": superseded, "articles": articles, "active_index": index,
+                "license_holds": holds}
 
     def ingredient_coverage(self, food_ids) -> dict:
         food_ids = list(food_ids)

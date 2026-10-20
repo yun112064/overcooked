@@ -95,8 +95,15 @@ class KnowledgeAdminTests(unittest.TestCase):
         version = self.store.get_record(kid)["source_version"]
         code, _ = self.run_cli("approve", kid, version, "--reviewer", "審核者")
         self.assertNotEqual(code, 0)
-        code, res = self.run_cli("approve", kid, version, "--reviewer", "審核者", "--note", "已核對原文與出處")
+        # 轉載文章（內容授權提供／合成月刊）：沒有明確確認轉載授權不可核准
+        code, _ = self.run_cli("approve", kid, version, "--reviewer", "審核者", "--note", "已核對原文與出處")
+        self.assertNotEqual(code, 0)
+        self.assertIn("--confirm-third-party-license", self.last_err)
+        code, res = self.run_cli("approve", kid, version, "--reviewer", "審核者", "--note", "已核對原文與出處",
+                                 "--confirm-third-party-license")
         self.assertEqual((code, res["status"]), (0, "approved"))
+        code, shown = self.run_cli("show", kid)
+        self.assertEqual(shown["versions"][0]["license_status"], "third_party_confirmed")
         code, _ = self.run_cli("reject", kid, version, "--reviewer", "審核者", "--note", "改判")
         self.assertNotEqual(code, 0)  # 已審核不可再改
         other = f"hn-80003-FOOD001566-1"
@@ -108,7 +115,7 @@ class KnowledgeAdminTests(unittest.TestCase):
         self.crawl_one()
         kid = f"hn-80003-{BOKCHOY}-1"
         self.store.review(kid, self.store.get_record(kid)["source_version"], reviewer="審核者",
-                          approved=True, note="已核對")
+                          approved=True, note="已核對", confirm_third_party_license=True)
         code, res = self.run_cli("index", "build", "--version", "idx-hn-1")
         self.assertEqual(code, 0, self.last_err)
         self.assertEqual((res["index_version"], res["records"]), ("idx-hn-1", 1))
@@ -124,7 +131,7 @@ class KnowledgeAdminTests(unittest.TestCase):
         self.crawl_one()
         kid = f"hn-80003-{BOKCHOY}-1"
         self.store.review(kid, self.store.get_record(kid)["source_version"], reviewer="審核者",
-                          approved=True, note="已核對")
+                          approved=True, note="已核對", confirm_third_party_license=True)
         with patch.object(spend.settings, "monthly_budget_twd", Decimal("1400")):
             code, _ = self.run_cli("index", "build", "--version", "idx-hn-2")
         self.assertNotEqual(code, 0)

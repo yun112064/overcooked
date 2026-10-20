@@ -3,7 +3,8 @@
   status                                     知識狀態計數、待審新版本、active 索引、抓取統計、雲端待補食材數
   list [--status pending|approved|rejected] [--limit N]
   show <knowledge_id>                        所有版本（含出處與授權紀錄欄位）
-  approve <knowledge_id> <version> --reviewer 名字 --note 核對說明
+  approve <knowledge_id> <version> --reviewer 名字 --note 核對說明 [--confirm-third-party-license]
+                                             轉載文章（內容授權提供／X）必須加此旗標，確認授權涵蓋轉載內容
   reject  <knowledge_id> <version> --reviewer 名字 --note 退回原因
   index build --version <索引版本>            以 text-embedding-3-small 建索引並啟用（每批送雲端內部 API，經 T10 額度預留／結算）
   crawl --channel <頻道 ID> [--max-pages N] [--refresh]   （可重複 --channel；未指定時用營養飲食）
@@ -113,6 +114,9 @@ def _parser() -> argparse.ArgumentParser:
         r.add_argument("version")
         r.add_argument("--reviewer", required=True)
         r.add_argument("--note", required=True)
+        if name == "approve":
+            r.add_argument("--confirm-third-party-license", action="store_true",
+                           help="轉載文章：確認書面授權涵蓋原始供稿者的內容（寫入審核紀錄）")
     idx = sub.add_parser("index")
     idx_sub = idx.add_subparsers(dest="index_cmd", required=True)
     build = idx_sub.add_parser("build")
@@ -182,8 +186,8 @@ def main(argv: list[str] | None = None, *, deps: Deps | None = None) -> int:
         if args.cmd == "status":
             _print(_status(deps))
         elif args.cmd == "list":
-            _print([{k: r[k] for k in ("knowledge_id", "source_version", "ingredient_id", "status", "title",
-                                       "source_url", "published_at", "imported_at")}
+            _print([{k: r.get(k) for k in ("knowledge_id", "source_version", "ingredient_id", "status", "title",
+                                           "source_url", "published_at", "imported_at", "license_status")}
                     for r in deps.store().list_records(status=args.status, limit=args.limit)])
         elif args.cmd == "show":
             versions = deps.store().list_versions(args.knowledge_id)
@@ -192,7 +196,8 @@ def main(argv: list[str] | None = None, *, deps: Deps | None = None) -> int:
             _print({"knowledge_id": args.knowledge_id, "versions": versions})
         elif args.cmd in ("approve", "reject"):
             _print(deps.store().review(args.knowledge_id, args.version, reviewer=args.reviewer,
-                                       approved=args.cmd == "approve", note=args.note))
+                                       approved=args.cmd == "approve", note=args.note,
+                                       confirm_third_party_license=getattr(args, "confirm_third_party_license", False)))
         elif args.cmd == "index":
             _print(_index_build(args, deps))
         elif args.cmd == "crawl":

@@ -4,6 +4,8 @@
   再把段落切開，段落提到的相關食材各成一筆知識：
   knowledge_id = hn-<文章 ID>-<FOOD 編號>-<該食材在本文的第幾段>，source_version = sha256 前 16 碼。
 - 一律以 pending 匯入；只有人工審核通過＋重建索引後才可被檢索與顯示（spec：只用審核通過資料）。
+- 轉載文章（文末「內容授權提供／X」）標 license_status=third_party_unconfirmed：核准時必須另加
+  --confirm-third-party-license，確認寫入審核紀錄（pre-review #8）。
 - 冪等：已抓過的文章預設不再請求；refresh 時重抓，內容雜湊相同即略過。
   內容改變 → 匯入新版本（pending）；舊的已審核版本保留、不被覆寫，報告列在 superseded_approved，
   依 T11 規則新版本審核前該知識不再提供（不會顯示未審核的新內容，也不會讓舊內容冒充新原文）。
@@ -56,7 +58,9 @@ class HealthnewsCrawler:
                     "source_url": article.url, "rights": rights, "conditions": conditions,
                     "source_name": SOURCE_NAME, "title": article.title, "published_at": article.published_at,
                     "fetched_at": fetched_at, "content_hash": digest, "authorization_ref": self.authorization_ref,
-                    "article_id": article.article_id, "content_provider": article.content_provider})
+                    "article_id": article.article_id, "content_provider": article.content_provider,
+                    # pre-review #8：轉載文章預設擱置，審核時需明確確認授權（--confirm-third-party-license）
+                    "license_status": "third_party_unconfirmed" if article.content_provider else None})
         return records
 
     def ingest(self, article, report: dict) -> None:

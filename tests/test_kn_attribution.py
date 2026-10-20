@@ -30,7 +30,8 @@ class AttributionThroughServiceTests(unittest.TestCase):
         matcher = FoodMatcher([(i, name, aliases, []) for i, (name, aliases) in FOODS.items()])
         HealthnewsCrawler(store, FakeFetcher(site_pages()), matcher, authorization_ref=AUTH_REF).crawl_ids(80003, 80003)
         kid = f"hn-80003-{BOKCHOY}-1"
-        store.review(kid, store.get_record(kid)["source_version"], reviewer="審核者", approved=True, note="已核對原文")
+        store.review(kid, store.get_record(kid)["source_version"], reviewer="審核者", approved=True, note="已核對原文",
+                     confirm_third_party_license=True)
         embedder = FakeEmbedder()
         store.build_index("idx-1", embedder.model, lambda texts: embedder.embed(texts)[0])
         server, url = serve(store)
