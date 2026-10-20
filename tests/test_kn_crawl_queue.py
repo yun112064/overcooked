@@ -2,6 +2,7 @@
 
 記錄只含 FOOD 編號與次數（不含家庭或使用者資料）；記錄失敗絕不影響生成；未審核內容不會因此顯示。
 """
+import json
 import unittest
 from datetime import datetime, timedelta, timezone
 from unittest.mock import patch
@@ -77,6 +78,34 @@ class CrawlQueueServiceTests(GenerationTestCase):
         self.assertEqual(q.pending(self.factory), [])
         q.record_missing(self.factory, self.snap(CABBAGE), now=self.T0 + q.RECRAWL_AFTER + timedelta(days=1))
         self.assertEqual([p["food_id"] for p in q.pending(self.factory)], [CABBAGE])
+
+    def test_queue_failure_is_logged_through_the_shared_jsonl_logger(self):
+        """S1：佇列失敗經共用 JSONL logger（核准事件、經遮蔽），不用模組自建 logger。"""
+        from app.core.logging_config import JsonFormatter
+        from app.services import knowledge_queue as q
+        with patch("app.services.knowledge_queue._upsert", side_effect=RuntimeError("password=secret")), \
+                self.assertLogs("process", level="WARNING") as logs:
+            self.assertEqual(q.record_missing(self.factory, self.snap(CABBAGE)), [])
+        line = json.loads(JsonFormatter().format(logs.records[0]))
+        self.assertEqual(line["event"], "knowledge_queue_unavailable")
+        self.assertNotIn("secret", json.dumps(line))
+
+    def test_claim_hands_out_each_request_once_until_the_claim_expires(self):
+        from app.services import knowledge_queue as q
+        q.record_missing(self.factory, self.snap(CABBAGE, GARLIC), now=self.T0)
+        q.record_missing(self.factory, self.snap(GARLIC), now=self.T0)  # 大蒜需求較多，先被認領
+        first = q.claim(self.factory, limit=1, now=self.T0)
+        self.assertEqual([r["food_id"] for r in first], [GARLIC])
+        second = q.claim(self.factory, limit=5, now=self.T0)
+        self.assertEqual([r["food_id"] for r in second], [CABBAGE])
+        self.assertEqual(q.claim(self.factory, limit=5, now=self.T0), [])
+        self.assertEqual(q.pending_count(self.factory), 0)
+        later = self.T0 + q.CLAIM_TTL + timedelta(minutes=1)
+        self.assertEqual({r["food_id"] for r in q.claim(self.factory, limit=5, now=later)}, {CABBAGE, GARLIC})
+        q.mark_crawled(self.factory, {CABBAGE: {"pending": 1}}, now=later)
+        with self.factory() as db:
+            from app.db.models import KnowledgeCrawlRequest
+            self.assertEqual(db.get(KnowledgeCrawlRequest, CABBAGE).status, "crawled")
 
     def test_only_valid_food_ids_from_usable_snapshots_are_recorded(self):
         from app.services import knowledge_queue as q
