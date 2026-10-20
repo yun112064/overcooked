@@ -110,6 +110,9 @@ class IngredientLine:
     weight_estimate: EstimatedFactor | None = None
     # 食譜層級有多種烹調方式時（cooking_method 不填）保留全部方式，只用於查組合鍵的推估係數
     cooking_methods: tuple = ()
+    # 克數來源（decisions #20）：recipe_grams（原文 g）、workbook（工作簿該列 weight_g，非 LLM 推估）、
+    # unit_estimate（快取的每單位克數推估）；未解出或非資料庫模式為 None
+    weight_source: str | None = None
 
 
 @dataclass
@@ -405,13 +408,16 @@ def display_half(value: Decimal) -> Decimal:
 
 
 def _display(ln: IngredientLine, whole: Decimal | None, n: Decimal) -> dict:
-    """畫面用量：有克數 → 克到 1 g；只有原單位 → 容量單位到 0.5，其他單位照原單位；都沒有 → 原文。"""
-    if whole is not None:
-        return {"display_amount": _display_grams(whole), "display_unit": "g", "display_text": None}
-    if ln.amount_per_n is not None and ln.unit:
-        amount = ln.amount_per_n * n
+    """畫面用量（decisions #21）：有原數量＋原單位（非 g）→ 一律顯示原單位（容量單位到 0.5，其他照原單位），
+    克數只留在追溯欄位；原單位是 g 或沒有原單位但有克數 → 克到 1 g；都沒有 → 原文。
+    縮放倍率：有克數時用整餐克數 ÷ 每 1n 克數（含熱量對齊調整），否則用 n。"""
+    if ln.amount_per_n is not None and ln.unit and ln.unit != "g":
+        factor = whole / ln.grams_per_n if whole is not None and ln.grams_per_n else n
+        amount = ln.amount_per_n * factor
         shown = display_half(amount) if ln.unit in VOLUME_UNITS else amount.quantize(Decimal("0.01")).normalize()
         return {"display_amount": shown, "display_unit": ln.unit, "display_text": None}
+    if whole is not None:
+        return {"display_amount": _display_grams(whole), "display_unit": "g", "display_text": None}
     return {"display_amount": None, "display_unit": None, "display_text": ln.raw_text or ln.name}
 
 
@@ -433,6 +439,7 @@ def _row(ln: IngredientLine, grams, whole, nutrition: IngredientNutrition | None
         "estimated_nutrients": affected if any(m["llm_estimated"] for m in markers) else [],
         "food_id": ln.food_id, "name": ln.name, "dish_id": ln.dish_id, "role": ln.role,
         "weight_basis": ln.weight_basis, "weight_basis_source": ln.weight_basis_source,
+        "weight_source": ln.weight_source,
         "cooking_method": ln.cooking_method,
         "baseline_grams": grams, "whole_meal_grams": whole,
         "display_grams": _display_grams(whole) if whole is not None else None,
@@ -469,8 +476,10 @@ def load_recipe_lines(db, recipe_id: str, factors=None) -> list[IngredientLine]:
     """資料庫模式：把 T01 食譜的全部食材（含油與調味料）轉成每 1n 基準用量。
 
     - 每 1n 克數 = weight_g ÷ original_servings；原份數未知或無克數換算時為 None 並附原因。
-    - 沒有克數但有數量與單位（如「1 匙」）時，用快取的每單位克數推估（factors：FactorSnapshot，
-      未提供則自行載入）；換算後的列帶 weight_estimate 供結果標示與追溯。沒有推估值維持未知。
+    - 克數來源順序（decisions #20）：單位為 g → 原文克數；否則工作簿該列 weight_g（source_weight_g，
+      視為生重，來源 workbook，不標示 LLM 推估）；工作簿缺值時才用快取的每單位克數推估
+      （factors：FactorSnapshot，未提供則自行載入；人工值優先，rejected 不用），換算後的列帶
+      weight_estimate 供結果標示與追溯。都沒有即維持未知。
     - 可調範圍同樣換算為每 1n，只有 adjustment_status = approved 才可用於調整。
     - 烹調方式取自食譜層級：恰好一種時套用；多種時不猜（cooking_method 不填），只保留全部方式
       （cooking_methods）以組合鍵查快取的推估係數（decisions #19），沒有推估值即不可採用。
@@ -500,13 +509,16 @@ def load_recipe_lines(db, recipe_id: str, factors=None) -> list[IngredientLine]:
     lines = []
     for row in rows:
         reason, weight, estimate = None, row.weight_g, None
+        source = "recipe_grams" if weight is not None else None
+        if weight is None and row.unit != "g" and row.source_weight_g is not None:
+            weight, source = row.source_weight_g, "workbook"
         if not servings:
             reason = "servings_unresolved"
         elif weight is None:
             # decisions #19：有數量、非克單位時，改用快取的每單位克數推估（人工值優先；rejected 不用）
             estimate = factors.unit(row.food_id, row.unit) if row.amount is not None and row.unit else None
             if estimate is not None and row.unit != "g":
-                weight = Decimal(row.amount) * estimate.grams_per_unit
+                weight, source = Decimal(row.amount) * estimate.grams_per_unit, "unit_estimate"
             else:
                 estimate, reason = None, row.weight_status or "weight_unresolved"
         basis, basis_source = _weight_basis(row)
@@ -519,6 +531,7 @@ def load_recipe_lines(db, recipe_id: str, factors=None) -> list[IngredientLine]:
             dish_id=recipe_id, unresolved_reason=reason,
             cooking_methods=tuple(methods) if len(methods) > 1 else (),
             unit=row.unit, amount_per_n=per_n(row.amount), raw_text=row.raw_text,
+            weight_source=None if reason else source,
         ))
     return lines
 

@@ -265,6 +265,36 @@ class CachedFactorsInRecipeCalculationTests(unittest.TestCase):
         self.assertEqual(row["estimates"][0]["kind"], "unit")
         self.assertEqual(row["whole_meal_grams"], D("7.5"))
 
+    def import_more(self, *recipes):
+        from app.services.recipe_import import import_recipe_bundle, parse_recipe_workbook
+        bundle = parse_recipe_workbook(build(Path(self.folder.name) / "more.xlsx", list(recipes)))
+        with session_factory()() as session, session.begin():
+            import_recipe_bundle(session, bundle)
+
+    def test_workbook_weight_wins_over_unit_estimate_and_is_not_labelled_llm(self):
+        # decisions #20：該列有工作簿 weight_g 就直接採用，即使已有 LLM 單位推估
+        self.add_unit("15")
+        self.import_more(recipe("R009", "醬燒雞胸", servings="2人份", ingredients=[
+            ingredient("FOOD001541", "醬油", 1, raw_text="醬油 1大匙", unit="大匙", weight_g=18)]))
+        with session_factory()() as db:
+            [soy] = mc.load_recipe_lines(db, "R009")
+        self.assertEqual(soy.grams_per_n, D("9"))  # 18 g ÷ 2 人份
+        self.assertIsNone(soy.weight_estimate)
+        self.assertEqual(soy.weight_source, "workbook")
+        result = mc.calculate_meal([soy], mc.MealTargets(Fraction(1), Fraction(1), Fraction(1)), mode="ai",
+                                   calculator=mc.tfda_calculator)
+        [row] = result["ingredients"]
+        self.assertFalse(row["llm_estimated"])
+        self.assertEqual(row["estimates"], [])
+        self.assertEqual(row["weight_source"], "workbook")
+        self.assertEqual(row["whole_meal_grams"], D("9"))
+
+    def test_weight_source_marks_gram_lines_and_unit_estimates(self):
+        self.add_unit("15")
+        chicken, soy, garlic = self.load()
+        self.assertEqual((chicken.weight_source, soy.weight_source, garlic.weight_source),
+                         ("recipe_grams", "unit_estimate", None))
+
     def test_without_unit_estimate_the_line_stays_unresolved(self):
         _, soy, _ = self.load()
         self.assertIsNone(soy.grams_per_n)
@@ -358,6 +388,37 @@ class BatchEstimationTests(unittest.TestCase):
         chicken = next(g for g in gaps if (g.kind, g.food_id) == ("cooking", "FOOD000100"))
         self.assertEqual(chicken.input_snapshot["tfda_raw"]["sample_id"], "I0402402")
         self.assertEqual(sorted(chicken.input_snapshot["recipe_ids"]), ["R001", "R002"])
+
+    def test_lines_with_workbook_weight_never_become_unit_gaps(self):
+        # decisions #20：以真實工作簿的形狀（每種非 g 單位各取一列，weight_g 皆有值）匯入，單位缺口為 0
+        from openpyxl import load_workbook
+        from app.core.config import PROJECT_ROOT
+        rows = load_workbook(PROJECT_ROOT / "data/recipe_dataset_1017.xlsx", read_only=True,
+                             data_only=True)["recipe_ingredients"].iter_rows(values_only=True)
+        header = list(next(rows))
+        col = {name: header.index(name) for name in ("raw_text", "amount", "unit", "weight_g")}
+        samples = {}
+        for row in rows:
+            unit = row[col["unit"]]
+            if unit and unit != "g" and row[col["amount"]] is not None and unit not in samples:
+                samples[unit] = row
+        self.assertGreaterEqual(len(samples), 10)
+        self.assertTrue(all(r[col["weight_g"]] is not None for r in samples.values()))
+        lines = [ingredient("FOOD001541", "醬油", r[col["amount"]], raw_text=f"醬油 {r[col['amount']]}{u}",
+                            unit=u, weight_g=r[col["weight_g"]]) for u, r in samples.items()]
+        truncate_all()
+        from app.services.recipe_import import import_recipe_bundle, parse_recipe_workbook
+        bundle = parse_recipe_workbook(build(Path(self.folder.name) / "real.xlsx", [
+            recipe("R100", "醬油試算", servings="2人份", ingredients=lines)]))
+        with session_factory()() as session, session.begin():
+            import_recipe_bundle(session, bundle)
+        with session_factory()() as db:
+            gaps = batch.scan(db)
+            loaded = mc.load_recipe_lines(db, "R100")
+        self.assertEqual([g for g in gaps if g.kind == "unit"], [])
+        resolved = [ln for ln in loaded if ln.unit and ln.unit != "g"]
+        self.assertTrue(resolved)
+        self.assertTrue(all(ln.grams_per_n is not None and ln.weight_source == "workbook" for ln in resolved))
 
     def test_recipe_with_several_methods_is_scanned_under_the_combined_key_and_then_adoptable(self):
         from sqlalchemy import text

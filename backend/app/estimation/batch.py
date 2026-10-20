@@ -144,6 +144,7 @@ def scan(db) -> list[Gap]:
     rows = db.execute(
         select(Recipe.recipe_id, Recipe.cooking_methods, Recipe.original_servings, RecipeIngredient.food_id,
                RecipeIngredient.canonical_name, RecipeIngredient.weight_g, RecipeIngredient.amount,
+               RecipeIngredient.source_weight_g,
                RecipeIngredient.unit, RecipeIngredient.raw_text)
         .join(RecipeIngredient, RecipeIngredient.recipe_id == Recipe.recipe_id)
         .where(Recipe.is_eligible.is_(True))
@@ -168,7 +169,9 @@ def scan(db) -> list[Gap]:
                         "normalized_method": method_key, **context, "recipe_ids": []})
             if key in cooking and r.recipe_id not in cooking[key].input_snapshot["recipe_ids"]:
                 cooking[key].input_snapshot["recipe_ids"].append(r.recipe_id)
-        if (r.weight_g is None and r.amount is not None and r.unit and r.unit != "g" and r.original_servings):
+        # decisions #20：工作簿該列已有 weight_g（source_weight_g）就不需要單位推估
+        if (r.weight_g is None and r.source_weight_g is None and r.amount is not None and r.unit
+                and r.unit != "g" and r.original_servings):
             key = ("unit", r.food_id, r.unit.strip())
             if key not in units:
                 if not _food_known(r.canonical_name):
