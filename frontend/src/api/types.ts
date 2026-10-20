@@ -149,7 +149,135 @@ export type Job = {
     mode: 'database_menu' | 'ai_generated_menu'
     mode_label: string
     fallback_reason: string | null
+    /** T15：awaiting_decision＝缺價或缺必要營養待決定；result_ready 不代表可採用 */
+    request_status?: 'result_ready' | 'awaiting_decision'
   } | null
   created_at: string
   updated_at: string
+}
+
+// --- T15 生成結果與缺值決策（金額、克數、營養以字串保存精確值；null 代表未知，不是 0） ---
+
+export type DecisionKind = 'accept_missing_price' | 'continue_missing_nutrition'
+
+export type ResultBlock = { code: string; message: string; [key: string]: unknown }
+
+export type PendingDecision = {
+  kind: DecisionKind
+  message: string
+  missing_food_ids?: string[]
+  known_cost_total?: string | null
+}
+
+export type ResultDecision = {
+  id: string
+  kind: DecisionKind | 'retry_missing_price'
+  result_version: number
+  request_version: number
+  missing_food_ids: string[] | null
+  produced_result_version: number | null
+  created_at: string
+}
+
+export type PriceItem = {
+  food_id: string
+  name: string
+  shortage_grams: string
+  price_status: 'known' | 'unknown'
+  packs: number | null
+  purchase_price: string | null
+  cost: string | null
+  missing_reason: string | null
+  retailer: string | null
+  source: string | null
+  product_name: string | null
+  product_url: string | null
+  package_description: string | null
+  queried_at: string | null
+  valid_until: string | null
+}
+
+export type KnowledgeCitation = {
+  knowledge_id: string
+  source_version: string
+  ingredient_id: string
+  excerpt: string
+  source_url: string | null
+  rights: string | null
+  conditions: string | null
+}
+
+export type MealResult = {
+  meal_request_id: string
+  request_status: string
+  current_request_version: number
+  result_version: number
+  request_version: number
+  derived_from_result_version: number | null
+  created_at: string
+  mode: 'database_menu' | 'ai_generated_menu'
+  mode_label: string
+  fallback_reason: string | null
+  fallback_message: string | null
+  dishes: {
+    standard_dish_id: string
+    dish_name: string
+    aliases: string[]
+    source: 'database' | 'ai'
+    recipe_id: string | null
+    specified: boolean
+    cooking_method: string | null
+    steps: string[]
+    ingredients: { food_id: string; name: string; weight_basis: string | null; whole_meal_grams: string | null; display_grams: string | null }[]
+  }[]
+  nutrition: {
+    total_n: string | null
+    target: { energy_kcal: string; protein_g: string } | null
+    energy_kcal: string | null
+    protein_g: string | null
+    gap: { energy_kcal?: string; protein_g?: string }
+    within_range: boolean
+    other_nutrients: Record<string, string | null>
+    missing_nutrients: Record<string, string[]>
+  }
+  prices: {
+    status: string
+    budget: string | null
+    budget_status: 'OK' | 'PRICE_INCOMPLETE' | 'BUDGET_EXCEEDED' | null
+    price_complete: boolean
+    purchase_total: string | null
+    cost_total: string | null
+    known_purchase_total: string | null
+    known_cost_total: string | null
+    items: PriceItem[]
+  }
+  knowledge: {
+    status: 'available' | 'not_found' | 'unavailable'
+    code?: string
+    reason?: string | null
+    items: { ingredient_id: string; ingredient_name: string | null; explanation: string; citations: KnowledgeCitation[] }[]
+  }
+  previous_day: {
+    previous_date: string | null
+    has_records: boolean
+    excluded_dishes: { standard_dish_id: string; dish_name: string; aliases: string[] }[]
+    specified_repeats: string[]
+  }
+  eligibility: {
+    adoptable: boolean
+    viewable: boolean
+    blocks: ResultBlock[]
+    pending_decisions: PendingDecision[]
+    price_exception_accepted: boolean
+    decisions: ResultDecision[]
+  }
+}
+
+export type MealResultSummary = {
+  result_version: number
+  request_version: number
+  mode: 'database_menu' | 'ai_generated_menu'
+  mode_label: string
+  created_at: string
+  adoptable: boolean
 }

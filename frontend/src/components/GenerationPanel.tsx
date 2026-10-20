@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useEffect, useRef } from 'react'
 import { api, errorMessage } from '../api/client'
 import type { Job, MealRequest } from '../api/types'
+import MealResultView from './MealResultView'
 
 const STAGE_LABELS: Record<string, string> = {
   queued: '排隊中',
@@ -25,7 +26,7 @@ const ACTIVE = new Set(['queued', 'running'])
 
 type Props = { row: MealRequest; onChanged: () => void }
 
-/** 送出生成並追蹤工作狀態。結果頁（採用資格等）由後續功能提供。 */
+/** 送出生成並追蹤工作狀態；有結果時顯示結果頁（T15）。查無資料庫菜單會自動改由 AI 生成，不詢問同意。 */
 export default function GenerationPanel({ row, onChanged }: Props) {
   const queryClient = useQueryClient()
   // 同一問卷版本固定使用同一把冪等鍵：網路重送或重複點擊不會建立第二個工作
@@ -43,16 +44,18 @@ export default function GenerationPanel({ row, onChanged }: Props) {
   })
 
   const submit = useMutation({
-    mutationFn: async () =>
-      (await api.post<{ job: Job }>(`/meal-requests/${row.id}/submit`, { version: row.version },
-        { headers: { 'Idempotency-Key': keyFor(row.version) } })).data.job,
+    mutationFn: async (regenerate: boolean = false) => {
+      // 重新生成是新的命令：換一把冪等鍵，產生新的結果版本
+      if (regenerate) keys.current.delete(row.version)
+      return (await api.post<{ job: Job }>(`/meal-requests/${row.id}/submit`, { version: row.version },
+        { headers: { 'Idempotency-Key': keyFor(row.version) } })).data.job
+    },
     onSuccess: async (job) => {
       if (job.status === 'failed') keys.current.delete(row.version)
       queryClient.setQueryData(['jobs', row.id], job)
       onChanged()
     },
   })
-
   const job = latest.data
   const active = job && ACTIVE.has(job.status)
 
@@ -67,6 +70,7 @@ export default function GenerationPanel({ row, onChanged }: Props) {
     wasActive.current = !!active
   }, [active, job, onChanged])
   const lastJobForThisVersion = job && job.input_version === row.version
+  const hasResult = row.status === 'result_ready' || row.status === 'awaiting_decision'
   const canSubmit = row.complete && !active && !(lastJobForThisVersion && job.status === 'succeeded')
 
   return (
@@ -85,16 +89,25 @@ export default function GenerationPanel({ row, onChanged }: Props) {
           {job.status === 'succeeded' && (
             <Alert severity="success" sx={{ mt: 1 }}>
               已產生結果{job.result_summary ? `（${job.result_summary.mode_label}，第 ${job.result_summary.result_version} 版）` : ''}。
-              {job.result_summary?.mode === 'ai_generated_menu' && ' 資料庫沒有可行菜單，已自動改由 AI 生成。'}
+              {row.status === 'awaiting_decision' && ' 有缺少的價格或營養資料，請在下方決定如何處理。'}
             </Alert>
           )}
         </Box>
       )}
       {submit.isError && <Alert severity="error">{errorMessage(submit.error)}</Alert>}
+      {hasResult && !active && <MealResultView requestId={row.id} onChanged={onChanged} />}
       <Box>
-        <Button variant="contained" disabled={!canSubmit || submit.isPending} onClick={() => submit.mutate()}>
-          {job && lastJobForThisVersion && job.status === 'failed' ? '重新送出生成' : '送出生成'}
-        </Button>
+        <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+          <Button variant="contained" disabled={!canSubmit || submit.isPending} onClick={() => submit.mutate(false)}>
+            {job && lastJobForThisVersion && job.status === 'failed' ? '重新送出生成' : '送出生成'}
+          </Button>
+          {hasResult && (
+            <Button variant="outlined" disabled={!row.complete || !!active || submit.isPending}
+              onClick={() => submit.mutate(true)}>
+              重新生成
+            </Button>
+          )}
+        </Box>
         {!row.complete && (
           <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>補齊上方項目後才能送出。</Typography>
         )}

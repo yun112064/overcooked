@@ -101,10 +101,10 @@ def submit_generation(db: Session, *, household_id, meal_request: MealRequest, v
     return job, True
 
 
-def _mirror(db: Session, job: BackgroundJob) -> None:
+def _mirror(db: Session, job: BackgroundJob, status: str | None = None) -> None:
     if job.meal_request_id:
         db.execute(text("UPDATE meal_requests SET status = :s, updated_at = now() WHERE id = :id"),
-                   {"s": REQUEST_STATUS[job.status], "id": job.meal_request_id})
+                   {"s": status or REQUEST_STATUS[job.status], "id": job.meal_request_id})
 
 
 def claim(factory: sessionmaker, owner: str) -> BackgroundJob | None:
@@ -164,7 +164,8 @@ def complete(factory: sessionmaker, job_id, owner: str, result: dict, persist=No
         job.result_version = version
         job.lease_owner = job.lease_expires_at = None
         job.finished_at = job.updated_at = _now()
-        _mirror(db, job)
+        # T15：結果需要使用者決定（缺價／缺必要營養）時問卷進入 awaiting_decision
+        _mirror(db, job, result.get("request_status") if isinstance(result, dict) else None)
     _log("job_succeeded", job)
     return True
 

@@ -6,7 +6,10 @@ import { useNavigate } from 'react-router'
 import { api, errorMessage } from '../api/client'
 import { MEAL_LABELS, type MealRequest, type MealRequestSummary } from '../api/types'
 
-const STATUS_LABELS: Record<string, string> = { draft: '草稿' }
+const STATUS_LABELS: Record<string, string> = {
+  draft: '草稿', queued: '排隊中', running: '生成中', awaiting_decision: '待決定', result_ready: '已有結果',
+  failed: '失敗', confirmed: '已採用',
+}
 
 // 使用者本機時區的今天（YYYY-MM-DD）；toISOString 是 UTC，台灣早上 8 點前會變成昨天
 function localToday() {
