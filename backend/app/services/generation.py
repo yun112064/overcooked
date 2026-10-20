@@ -34,6 +34,7 @@ from app.core.config import settings
 from app.db.models import GenerationResult, MealRequest, Member
 from app.models import IngredientAlias, RecipeStep
 from app.services import jobs, knowledge, meal_history, recipe_retrieval, spend
+from app.services import knowledge_queue
 from app.services import meal_request as meal_request_service
 from app.services.llm_client import default_embedder, default_responder
 from app.services.meal_calculation import IngredientLine, calculate_meal, load_recipe_lines, targets_from_t03
@@ -314,6 +315,14 @@ def _menu_input(draft, restrictions: dict, foods: FoodDictionary, context: dict,
 
 # --- 知識說明 ---
 
+def _citation(cite: dict, record: dict) -> dict:
+    """引用＋原紀錄的片段、連結、權利與出處（G07：來源名稱、標題、發布日、顯示用出處文字，不可移除）。"""
+    out = {**cite, **{k: record[k] for k in ("excerpt", "source_url", "rights", "conditions")}}
+    out.update({k: record.get(k) for k in knowledge.ATTRIBUTION_FIELDS})
+    out["attribution"] = knowledge.attribution(record)
+    return out
+
+
 def _explain(ctx_paid_call, responder, snapshot: dict, foods: FoodDictionary, stage) -> dict:
     if snapshot["status"] == "unavailable":
         return {"status": "unavailable", "code": knowledge.UNAVAILABLE_CODE, "reason": snapshot.get("reason"),
@@ -363,8 +372,7 @@ def _explain(ctx_paid_call, responder, snapshot: dict, foods: FoodDictionary, st
         seen.add(item.ingredient_id)
         items.append({"ingredient_id": item.ingredient_id, "ingredient_name": foods.names.get(item.ingredient_id),
                       "explanation": item.explanation.strip(),
-                      "citations": [{**c, **{k: records[(c["knowledge_id"], c["source_version"], c["ingredient_id"])][k]
-                                             for k in ("excerpt", "source_url", "rights", "conditions")}}
+                      "citations": [_citation(c, records[(c["knowledge_id"], c["source_version"], c["ingredient_id"])])
                                     for c in check["citations"]]})
     return {"status": "available" if items else "not_found", "items": items, "dropped": dropped}
 
@@ -472,6 +480,8 @@ def _generate(ctx, *, responder, knowledge_client, embedder, calculator, now) ->
     snapshot = knowledge.retrieve_knowledge(
         final_food_ids=final_ids, query_text="食材營養知識：" + "、".join(foods.names.get(i, i) for i in final_ids),
         client=knowledge_client, embedder=embedder, paid_call=paid_call)
+    # G07：缺審核知識的最終食材排入補抓佇列（盡力而為，失敗不影響生成；抓到的內容審核前不顯示）
+    knowledge_queue.record_missing(ctx.factory, snapshot)
     explanation = _explain(paid_call, responder, snapshot, foods, ctx.stage)
     explained = explanation["status"] == "available"
 

@@ -10,6 +10,7 @@
 """
 import copy
 from collections.abc import Callable
+from datetime import datetime, timedelta, timezone
 
 import httpx
 from sqlalchemy.orm import sessionmaker
@@ -18,6 +19,36 @@ from app.core.config import settings
 from app.services import spend
 
 RECORD_FIELDS = ("knowledge_id", "source_version", "ingredient_id", "excerpt", "source_url", "rights", "conditions")
+# G07 出處欄位（外部來源必帶；合成資料為 None）。顯示時一律保留，不可移除（健康醫療網使用條款第 7 條）
+ATTRIBUTION_FIELDS = ("source_name", "title", "published_at", "content_provider")
+TAIPEI = timezone(timedelta(hours=8))
+
+
+def _attribution_fields(r: dict) -> dict:
+    out = {}
+    for k in ATTRIBUTION_FIELDS:
+        v = r.get(k)
+        if v is not None and not isinstance(v, str):
+            raise ValueError  # 由 _validated 轉成 INVALID_RESPONSE
+        out[k] = v.strip() if isinstance(v, str) and v.strip() else None
+    if out["source_name"] and not out["title"]:
+        raise ValueError  # 外部來源缺標題不可顯示
+    return out
+
+
+def attribution(record: dict) -> str | None:
+    """顯示用出處文字：來源：<網站>《標題》（發布日，台灣日期）；無來源名稱（合成資料）回傳 None。"""
+    name = (record or {}).get("source_name")
+    if not name:
+        return None
+    text = f"來源：{name}《{record.get('title') or ''}》"
+    published = record.get("published_at")
+    if published:
+        try:
+            text += f"（{datetime.fromisoformat(published).astimezone(TAIPEI).date().isoformat()}）"
+        except (TypeError, ValueError):
+            pass
+    return text
 UNAVAILABLE_CODE = "KNOWLEDGE_UNAVAILABLE"
 
 
@@ -81,7 +112,8 @@ def _validated(body, wanted: set[str], embedding_model: str) -> dict:
             if not (isinstance(r.get("reviewer"), str) and r.get("reviewed_at")):
                 raise ValueError
             clean.append({**{k: r[k] for k in RECORD_FIELDS}, "reviewer": r["reviewer"],
-                          "reviewed_at": r["reviewed_at"], "distance": r.get("distance")})
+                          "reviewed_at": r["reviewed_at"], "distance": r.get("distance"),
+                          **_attribution_fields(r)})
     except (KeyError, TypeError, ValueError, AttributeError):
         raise KnowledgeUnavailable("INVALID_RESPONSE") from None
     return {"records": clean, "index_version": index_version}

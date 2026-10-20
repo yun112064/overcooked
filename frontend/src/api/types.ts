@@ -205,6 +205,12 @@ export type KnowledgeCitation = {
   source_url: string | null
   rights: string | null
   conditions: string | null
+  // G07 出處（外部來源必帶，顯示時不可移除）：來源名稱、文章標題、發布時間、顯示用文字
+  source_name?: string | null
+  title?: string | null
+  published_at?: string | null
+  content_provider?: string | null
+  attribution?: string | null
 }
 
 export type MealResult = {

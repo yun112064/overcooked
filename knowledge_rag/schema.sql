@@ -45,3 +45,33 @@ CREATE TABLE IF NOT EXISTS knowledge_embeddings (
     PRIMARY KEY (index_version, knowledge_id, source_version),
     FOREIGN KEY (knowledge_id, source_version) REFERENCES knowledge_records (knowledge_id, source_version)
 );
+
+-- G07 外部來源（健康醫療網）欄位：顯示時必須帶出處（網站使用條款第 7 條不得移除著作權聲明）。
+-- 合成／舊資料可為 NULL；來源轉接器匯入的紀錄一律填寫。授權紀錄欄位指向團隊保存的書面授權證據。
+ALTER TABLE knowledge_records ADD COLUMN IF NOT EXISTS source_name       TEXT;
+ALTER TABLE knowledge_records ADD COLUMN IF NOT EXISTS title             TEXT;
+ALTER TABLE knowledge_records ADD COLUMN IF NOT EXISTS published_at      TIMESTAMPTZ;
+ALTER TABLE knowledge_records ADD COLUMN IF NOT EXISTS fetched_at        TIMESTAMPTZ;
+ALTER TABLE knowledge_records ADD COLUMN IF NOT EXISTS content_hash      CHAR(64);
+ALTER TABLE knowledge_records ADD COLUMN IF NOT EXISTS authorization_ref TEXT;
+ALTER TABLE knowledge_records ADD COLUMN IF NOT EXISTS article_id        VARCHAR(32);
+ALTER TABLE knowledge_records ADD COLUMN IF NOT EXISTS content_provider  TEXT;
+CREATE INDEX IF NOT EXISTS ix_knowledge_records_article ON knowledge_records (source_name, article_id);
+
+-- 抓取狀態：每篇來源文章一列，用來跳過已抓過的文章與判斷內容是否改變（不存原文全文）。
+CREATE TABLE IF NOT EXISTS source_articles (
+    source_name      TEXT         NOT NULL,
+    article_id       VARCHAR(32)  NOT NULL,
+    url              TEXT         NOT NULL,
+    title            TEXT,
+    published_at     TIMESTAMPTZ,
+    modified_at      TIMESTAMPTZ,
+    content_hash     CHAR(64),
+    status           VARCHAR(20)  NOT NULL,
+    matched_food_ids TEXT[]       NOT NULL DEFAULT '{}',
+    first_fetched_at TIMESTAMPTZ  NOT NULL DEFAULT now(),
+    last_fetched_at  TIMESTAMPTZ  NOT NULL DEFAULT now(),
+    last_changed_at  TIMESTAMPTZ,
+    PRIMARY KEY (source_name, article_id),
+    CONSTRAINT ck_source_article_status CHECK (status IN ('matched', 'no_match', 'not_found'))
+);
