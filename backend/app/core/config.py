@@ -52,6 +52,18 @@ class Settings(BaseSettings):
     recognition_min_confidence: Decimal = Decimal("0.25")
     recognition_labels_path: Path = PROJECT_ROOT / "config/recognition_labels.json"
 
+    # T11 團隊電腦營養知識 RAG 與 OpenAI 向量化
+    # 未設定代表知識服務不可用（KNOWLEDGE_UNAVAILABLE），不是「沒有知識」
+    knowledge_service_url: str | None = None
+    knowledge_service_token: str | None = None
+    knowledge_timeout_seconds: float = 10.0
+    knowledge_limit_per_ingredient: int = 3
+    # 未設定 API key 代表付費模型不可用；一律經 T10 額度預留後才呼叫
+    openai_api_key: str | None = None
+    openai_base_url: str = "https://api.openai.com/v1"
+    openai_timeout_seconds: float = 30.0
+    embedding_model: str = "text-embedding-3-small"
+
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",
