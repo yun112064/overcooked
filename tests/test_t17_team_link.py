@@ -13,14 +13,19 @@ URL = "https://knowledge.team.example.invalid"
 ACCESS = {"CF-Access-Client-Id": "placeholder-id.access", "CF-Access-Client-Secret": "placeholder-secret"}
 
 
+def _creds(**kw):
+    from app.services.team_link import TeamCredentials
+    return TeamCredentials("svc-token", **kw)
+
+
 def _recognizer(**kw):
     from app.services.recognition import HttpRecognizer
-    return HttpRecognizer("https://yolo.team.example.invalid", "svc-token", 1, **kw)
+    return HttpRecognizer("https://yolo.team.example.invalid", _creds(**kw), 1)
 
 
 def _knowledge(**kw):
     from app.services.knowledge import HttpKnowledgeClient
-    return HttpKnowledgeClient(URL, "svc-token", 1, **kw)
+    return HttpKnowledgeClient(URL, _creds(**kw), 1)
 
 
 def _recognize(client):
@@ -84,7 +89,8 @@ class AccessHeaderTests(unittest.TestCase):
                             recognition_service_token="r", knowledge_service_url=URL, knowledge_service_token="k",
                             team_access_client_id="cid", team_access_client_secret="csecret"):
             for client in (default_recognizer(), default_knowledge_client()):
-                self.assertEqual((client.access_client_id, client.access_client_secret), ("cid", "csecret"))
+                self.assertEqual((client.credentials.access_client_id, client.credentials.access_client_secret),
+                                 ("cid", "csecret"))
 
 
 if __name__ == "__main__":

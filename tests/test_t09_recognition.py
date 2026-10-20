@@ -8,6 +8,7 @@ import httpx
 from PIL import Image
 
 from db_support import seed_foods, make_client, migrate_fresh, requires_db, truncate_all
+from app.services.team_link import TeamCredentials
 
 PASSWORD = "correct-horse-42"
 
@@ -98,7 +99,7 @@ class SelectionTests(unittest.TestCase):
 
     def test_http_adapter_distinguishes_failures(self):
         from app.services.recognition import HttpRecognizer, RecognizerUnavailable
-        rec = HttpRecognizer("https://team-pc.invalid", "token", 1)
+        rec = HttpRecognizer("https://team-pc.invalid", TeamCredentials("token"), 1)
         req = httpx.Request("POST", "https://team-pc.invalid/v1/detect")
         cases = [
             (httpx.ConnectTimeout("t", request=req), "TIMEOUT"),

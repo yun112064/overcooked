@@ -13,6 +13,7 @@ import httpx
 from sqlalchemy import select
 
 from db_support import migrate_fresh, requires_db, session_factory, truncate_all
+from app.services.team_link import TeamCredentials
 
 BOKCHOY, TOMATO, EGG, CABBAGE = "FOOD000585", "FOOD001016", "FOOD001566", "FOOD000867"
 TOKEN = "test-knowledge-token"
@@ -57,7 +58,7 @@ class KnowledgeServiceTests(unittest.TestCase):
         self.embedder.calls.clear()
         self.server, self.url = serve(self.store)
         self.addCleanup(self.server.shutdown)
-        self.client = HttpKnowledgeClient(self.url, TOKEN, timeout=5)
+        self.client = HttpKnowledgeClient(self.url, TeamCredentials(TOKEN), timeout=5)
 
     def retrieve(self, food_ids, *, client="default", embedder="default", query="鈣", call_name="embed_query"):
         from app.services.knowledge import retrieve_knowledge
@@ -150,14 +151,14 @@ class KnowledgeServiceTests(unittest.TestCase):
 
     def test_wrong_token_is_unavailable(self):
         from app.services.knowledge import HttpKnowledgeClient
-        snap = self.retrieve([BOKCHOY], client=HttpKnowledgeClient(self.url, "wrong-token", timeout=5))
+        snap = self.retrieve([BOKCHOY], client=HttpKnowledgeClient(self.url, TeamCredentials("wrong-token"), timeout=5))
         self.assertEqual((snap["status"], snap["reason"]), ("unavailable", "AUTH_FAILED"))
 
     def test_unreachable_service_is_unavailable(self):
         from app.services.knowledge import HttpKnowledgeClient
         self.server.shutdown()
         self.server.server_close()
-        snap = self.retrieve([BOKCHOY], client=HttpKnowledgeClient(self.url, TOKEN, timeout=8))
+        snap = self.retrieve([BOKCHOY], client=HttpKnowledgeClient(self.url, TeamCredentials(TOKEN), timeout=8))
         self.assertEqual((snap["status"], snap["reason"]), ("unavailable", "UNREACHABLE"))
 
     def test_broken_knowledge_database_is_unavailable_not_zero_rows(self):
@@ -165,7 +166,7 @@ class KnowledgeServiceTests(unittest.TestCase):
         from knowledge_rag.store import KnowledgeStore
         server, url = serve(KnowledgeStore("postgresql://nobody:wrong@127.0.0.1:1/none?connect_timeout=2"))
         self.addCleanup(server.shutdown)
-        snap = self.retrieve([BOKCHOY], client=HttpKnowledgeClient(url, TOKEN, timeout=10))
+        snap = self.retrieve([BOKCHOY], client=HttpKnowledgeClient(url, TeamCredentials(TOKEN), timeout=10))
         self.assertEqual((snap["status"], snap["reason"]), ("unavailable", "SERVICE_ERROR"))
 
     def test_missing_active_index_is_unavailable(self):

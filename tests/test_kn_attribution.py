@@ -5,6 +5,7 @@
 import unittest
 
 from db_support import FOODS, migrate_fresh, requires_db, session_factory, truncate_all
+from app.services.team_link import TeamCredentials
 from test_kn_healthnews_crawler import AUTH_REF, BOKCHOY, SITE, FakeFetcher, site_pages
 from test_t11_knowledge_service import TOKEN, paid_call_for, serve
 from test_t14_generation import EGG, TOMATO, FakeKnowledgeClient, FakeResponder, GenerationTestCase, knowledge_record
@@ -34,7 +35,7 @@ class AttributionThroughServiceTests(unittest.TestCase):
         store.build_index("idx-1", embedder.model, lambda texts: embedder.embed(texts)[0])
         server, url = serve(store)
         self.addCleanup(server.shutdown)
-        snap = retrieve_knowledge(final_food_ids=[BOKCHOY], query_text="鈣", client=HttpKnowledgeClient(url, TOKEN, 5),
+        snap = retrieve_knowledge(final_food_ids=[BOKCHOY], query_text="鈣", client=HttpKnowledgeClient(url, TeamCredentials(TOKEN), 5),
                                   embedder=embedder, paid_call=paid_call_for(session_factory()))
         [rec] = snap["records"]
         self.assertEqual((rec["source_name"], rec["title"], rec["source_url"]),
