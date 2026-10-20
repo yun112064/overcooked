@@ -4,3 +4,4 @@ nutrition_target/rules/*.json -text
 
 # 模型權重是二進位檔，不做換行轉換或文字 diff
 *.pt binary
+*.xlsx binary
