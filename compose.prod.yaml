@@ -5,7 +5,9 @@
 #
 # - 主機不開任何連入埠：所有容器的 ports 清空；cloudflared 主動連出到 Cloudflare，HTTPS 憑證由 Cloudflare 處理。
 # - Cloudflare 後台 tunnel 的 Public Hostname：${PUBLIC_HOSTNAME} → http://frontend:80
-#   （frontend 容器只在內部網路提供靜態檔並把 /api/* 轉給 backend:8000，不處理任何憑證）。
+#   （frontend 容器只在內部網路提供靜態檔並把 /api/* 轉給 backend:8000，不處理任何憑證；/api/internal/* 一律 404）。
+# - 團隊電腦用的內部 hostname：cloud-internal.<網域> → http://backend:8000，前面有只允許團隊電腦服務權杖的
+#   Cloudflare Access 應用程式；後端再核對 INTERNAL_API_TOKEN（pre-review #6）。
 # - db 與 backend 只在 Compose 內部網路可達。
 # - 秘密只放主機上的 .env.prod（不進 Git），變數名稱見 .env.prod.example。
 
@@ -23,6 +25,8 @@ services:
       AUTO_MIGRATE: "false"
       TEAM_ACCESS_CLIENT_ID: ${TEAM_ACCESS_CLIENT_ID:-}
       TEAM_ACCESS_CLIENT_SECRET: ${TEAM_ACCESS_CLIENT_SECRET:-}
+      # 團隊電腦呼叫雲端內部 API 的 Bearer token（另有 Access 應用程式保護內部 hostname）
+      INTERNAL_API_TOKEN: ${INTERNAL_API_TOKEN:-}
     volumes:
       - ${PROJECT_DATA_ROOT:?Set PROJECT_DATA_ROOT}:/app/data
       - ${PROJECT_RUNTIME_ROOT:?Set PROJECT_RUNTIME_ROOT}:/app/runtime

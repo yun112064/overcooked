@@ -77,6 +77,10 @@ def _cloud(env: dict, errors: list, warnings: list) -> None:
         _secret(env, "TEAM_ACCESS_CLIENT_SECRET", 32, errors)
     if not env.get("OPENAI_API_KEY"):
         warnings.append("OPENAI_API_KEY 未設定：AI 回退與知識向量化將不可用")
+    if env.get("INTERNAL_API_TOKEN"):
+        _secret(env, "INTERNAL_API_TOKEN", 32, errors)
+    else:
+        warnings.append("INTERNAL_API_TOKEN 未設定：團隊電腦的補抓佇列與建索引向量化（雲端內部 API）將無法使用")
 
 
 def _team(env: dict, errors: list, warnings: list) -> None:
@@ -89,6 +93,18 @@ def _team(env: dict, errors: list, warnings: list) -> None:
             errors.append(f"{key} 未設定")
         elif not _absolute(env[key]):
             errors.append(f"{key} 必須是絕對路徑")
+    # pre-review #6：團隊電腦只經雲端內部 API（Access＋Bearer）存取佇列與向量化，不可持有雲端資料庫連線
+    if env.get("DATABASE_URL"):
+        errors.append("DATABASE_URL 不應設定在團隊電腦（雲端資料庫不直接公開；改用 CLOUD_INTERNAL_URL）")
+    url = env.get("CLOUD_INTERNAL_URL") or ""
+    if not url:
+        warnings.append("CLOUD_INTERNAL_URL 未設定：crawl --queued、index build 與佇列狀態將無法使用")
+        return
+    if urlsplit(url).scheme != "https":
+        errors.append("CLOUD_INTERNAL_URL 必須是 https（經 Cloudflare Tunnel 的內部 hostname）")
+    _secret(env, "CLOUD_INTERNAL_TOKEN", 32, errors)
+    _secret(env, "CLOUD_ACCESS_CLIENT_ID", 8, errors)
+    _secret(env, "CLOUD_ACCESS_CLIENT_SECRET", 32, errors)
 
 
 def check(env: dict, *, side: str) -> tuple[list[str], list[str]]:

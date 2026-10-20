@@ -193,15 +193,13 @@ def verify_citations(citations, snapshot: dict) -> dict:
     return {"valid": not invalid, "citations": valid, "invalid": invalid}
 
 
-def index_embedder(factory: sessionmaker, embedder, index_version: str) -> Callable[[list[str]], list[list[float]]]:
-    """建知識索引用：每批向量化各自預留並結算（呼叫鍵含索引版本與批次，重建請用新版本）。"""
-    batch_no = 0
+def embed_index_batch(factory: sessionmaker, embedder, index_version: str, batch_no: int,
+                      texts: list[str]) -> list[list[float]]:
+    """建知識索引的一批向量化（雲端內部 API 代團隊電腦呼叫）：各批各自預留並結算。
 
-    def embed(texts: list[str]) -> list[list[float]]:
-        nonlocal batch_no
-        key = f"knowledge-index:{index_version}:{batch_no}"
-        batch_no += 1
-        return spend.paid_call(factory, call_key=key, purpose="knowledge_index_embedding", provider="openai",
-                               model=embedder.model, max_input_tokens=max(1, sum(len(t.encode("utf-8")) for t in texts)),
-                               max_output_tokens=0, call=lambda: embedder.embed(texts))
-    return embed
+    呼叫鍵含索引版本與批次；同一鍵不可重複預留，重建或失敗後重試請用新的索引版本。
+    """
+    key = f"knowledge-index:{index_version}:{batch_no}"
+    return spend.paid_call(factory, call_key=key, purpose="knowledge_index_embedding", provider="openai",
+                           model=embedder.model, max_input_tokens=max(1, sum(len(t.encode("utf-8")) for t in texts)),
+                           max_output_tokens=0, call=lambda: embedder.embed(texts))

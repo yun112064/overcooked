@@ -75,6 +75,9 @@ class Settings(BaseSettings):
     price_retry_max_foods: int = 10
     price_retry_delay_seconds: float = 2.0
 
+    # 團隊電腦呼叫雲端內部 API（補抓佇列、建索引向量化；pre-review #6）的 Bearer token；未設定即關閉內部 API
+    internal_api_token: str | None = None
+
     # T17 團隊電腦服務經 Cloudflare Tunnel＋Access：雲端呼叫時附上的 Access 服務權杖（兩個服務共用）
     team_access_client_id: str | None = None
     team_access_client_secret: str | None = None

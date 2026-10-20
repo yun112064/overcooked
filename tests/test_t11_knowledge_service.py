@@ -225,11 +225,13 @@ class KnowledgeServiceTests(unittest.TestCase):
     # --- 建索引的向量化同樣受額度控制 ---
 
     def test_index_build_embeddings_are_reserved_and_settled(self):
-        from app.services.knowledge import index_embedder
+        from app.services.knowledge import embed_index_batch
         self.store.import_record(__import__("knowledge_support").record("K6", CABBAGE, "高麗菜含纖維（合成）"))
         self.store.review("K6", "v1", reviewer="審核者", approved=True, note="已核對")
-        built = self.store.build_index("idx-2", self.embedder.model,
-                                       index_embedder(self.factory, self.embedder, "idx-2"), batch_size=2)
+        batches = iter(range(100))
+        built = self.store.build_index(
+            "idx-2", self.embedder.model,
+            lambda texts: embed_index_batch(self.factory, self.embedder, "idx-2", next(batches), texts), batch_size=2)
         self.assertEqual(built["records"], 5)
         rows = self.reservations()
         self.assertEqual([r.call_key for r in rows], ["knowledge-index:idx-2:0", "knowledge-index:idx-2:1",
