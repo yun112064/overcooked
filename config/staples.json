@@ -1,0 +1,63 @@
+{
+  "version": "staples-2026-10-21",
+  "review_status": "pending_review",
+  "note": "主食選項（decisions #16）：每個選項對應一個 TFDA 食材，給每人（1n）預設份量與可調範圍（克）。計入營養與 ±10% 驗證、資料庫模式與菜色一起對齊調整；不計價格與缺料。份量與範圍為開發者先填的合理值，待營養審核者確認（review_status=pending_review）。food_id 是食譜工作簿的 FOOD 編號，用於過敏／禁吃檢查。",
+  "none_values": ["不需要主食", "不需要", "無", "沒有", "不用", "免"],
+  "options": {
+    "白飯": {
+      "aliases": ["米飯", "白米飯", "飯"],
+      "food_id": "FOOD000296",
+      "tfda_name": "白飯",
+      "tfda_sample_id": "A0550601",
+      "weight_basis": "cooked",
+      "consumed_as_is": false,
+      "default_grams_per_n": "150",
+      "adjustable_min": "100",
+      "adjustable_max": "250",
+      "basis_note": "熟重；TFDA 熟食樣品（粳米飯），不再套烹調係數"
+    },
+    "麵": {
+      "aliases": ["麵條", "乾麵條"],
+      "food_id": "FOOD001650",
+      "tfda_name": "乾麵條",
+      "tfda_sample_id": "R2000101",
+      "weight_basis": "raw",
+      "consumed_as_is": true,
+      "default_grams_per_n": "80",
+      "adjustable_min": "50",
+      "adjustable_max": "120",
+      "basis_note": "乾重；水煮只吸水，營養以乾麵條成分計"
+    },
+    "麵包": {
+      "aliases": ["吐司", "土司", "白吐司"],
+      "food_id": "FOOD000014",
+      "tfda_name": "土司",
+      "tfda_sample_id": "Q1000101",
+      "weight_basis": "raw",
+      "consumed_as_is": true,
+      "default_grams_per_n": "60",
+      "adjustable_min": "30",
+      "adjustable_max": "120",
+      "basis_note": "即食，重量即食用量"
+    },
+    "地瓜": {
+      "aliases": ["甘藷", "番薯", "甘薯"],
+      "food_id": "FOOD000325",
+      "tfda_name": "黃肉甘藷",
+      "tfda_sample_id": "B0400601",
+      "weight_basis": "raw",
+      "consumed_as_is": true,
+      "default_grams_per_n": "150",
+      "adjustable_min": "100",
+      "adjustable_max": "250",
+      "basis_note": "生重；蒸烤不另加油，營養以生地瓜成分計"
+    },
+    "糙米飯": {
+      "aliases": ["糙米"],
+      "food_id": "FOOD001487",
+      "tfda_name": null,
+      "unresolved_reason": "no_tfda_cooked_sample",
+      "basis_note": "TFDA 沒有糙米飯熟食樣品，也沒有一般糙米生樣品；營養無法計算（不可採用），待補資料"
+    }
+  }
+}

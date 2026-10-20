@@ -15,6 +15,8 @@ from test_t14_generation import (CABBAGE, EGG, GARLIC, TOMATO, FakeKnowledgeClie
                                  GenerationTestCase, ai_dish, menu, per_gram_calculator)
 
 ALL = (TOMATO, EGG, CABBAGE, GARLIC)
+AI_MENU = menu(ai_dish("番茄蛋花湯", [(TOMATO, 50), (EGG, 50)], method="煮"),
+               ai_dish("蒜香高麗菜", [(CABBAGE, 50), (GARLIC, 50)]))
 
 
 def money(value):
@@ -305,7 +307,8 @@ class MissingNutritionDecisionTests(ResultTestCase):
             energy, protein = self.reference()
             return per_gram_calculator(energy / 100, protein / 100)  # 兩倍 → 超出 ±10%
         doubled.factory = True
-        self.generate(calculator=doubled)
+        # 資料庫候選組合全部不可行 → 自動 AI 回退；AI 菜同樣超出 ±10%
+        self.generate(calculator=doubled, responder=FakeResponder(AI_MENU))
         self.assertEqual(self.status(), "result_ready")
         view = self.result()
         self.assertFalse(view["eligibility"]["adoptable"])

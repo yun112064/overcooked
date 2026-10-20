@@ -28,7 +28,7 @@ RETRY_MISSING_PRICE = "retry_missing_price"
 FALLBACK_MESSAGES = {
     "NO_MATCHING_RECIPES": "食譜資料庫沒有符合條件的組合，已自動改由 AI 生成。",
     "SPECIFIED_DISH_NOT_IN_DATABASE": "指定的菜不在食譜資料庫，已自動改由 AI 生成。",
-    "SPECIFIED_DISH_DIETARY_CONFLICT": "資料庫中的指定菜含過敏或禁吃食材，已自動改由 AI 生成（仍避開這些食材）。",
+    "DATABASE_MENU_NUTRITION_INFEASIBLE": "資料庫的候選菜單都無法在可調範圍內符合熱量與蛋白質目標，已自動改由 AI 生成。",
     "ALL_EXCLUDED_BY_PREVIOUS_DAY": "排除昨日已採用的菜後資料庫沒有可行組合，已自動改由 AI 生成（仍避開昨日菜）。",
 }
 
@@ -89,6 +89,20 @@ def _dishes(payload: dict) -> list[dict]:
             "ingredients": [_ingredient(r) for r in rows if r.get("dish_id") == key],
         })
     return out
+
+
+def staple_view(payload: dict) -> dict | None:
+    """主食（decisions #16）：名稱、TFDA 食材、整餐用量；計入營養、不計價格。設定待營養審核者確認。"""
+    staple = payload.get("staple")
+    if not staple:
+        return None
+    rows = [r for r in (payload.get("calculation") or {}).get("ingredients") or [] if r.get("role") == "staple"]
+    row = _ingredient(rows[0]) if rows else {}
+    return {"label": staple["label"], "tfda_name": staple.get("tfda_name"), "food_id": staple.get("food_id"),
+            "review_status": staple.get("review_status"), "unresolved_reason": staple.get("unresolved_reason"),
+            "whole_meal_grams": row.get("whole_meal_grams"), "display_amount": row.get("display_amount"),
+            "display_unit": row.get("display_unit"), "display_text": row.get("display_text"),
+            "counts_for_price": False}
 
 
 def _nutrition(payload: dict) -> dict:
@@ -152,7 +166,7 @@ def view(db: Session, request: MealRequest, result: GenerationResult) -> dict:
         "mode": result.mode, "mode_label": p["mode_label"], "fallback_reason": result.fallback_reason,
         "fallback_message": FALLBACK_MESSAGES.get(result.fallback_reason, "食譜資料庫沒有可行組合，已自動改由 AI 生成。")
         if result.fallback_reason else None,
-        "dishes": _dishes(p), "nutrition": _nutrition(p), "prices": _prices(p),
+        "dishes": _dishes(p), "staple": staple_view(p), "nutrition": _nutrition(p), "prices": _prices(p),
         "knowledge": p.get("explanation") or {"status": "not_found", "items": []},
         "previous_day": _previous_day(p),
         "eligibility": eligibility(db, request, result),

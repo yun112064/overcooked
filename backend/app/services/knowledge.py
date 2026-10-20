@@ -137,6 +137,11 @@ def _snapshot(food_ids: list[str], status: str, *, records=(), index_version=Non
     return snap
 
 
+def unavailable_snapshot(food_ids: list[str], reason: str, *, embedding_model: str | None = None) -> dict:
+    """知識不可用的快照（例如 T10 額度不足）：KNOWLEDGE_UNAVAILABLE，不偽裝成零筆。"""
+    return _snapshot(sorted(set(food_ids)), "unavailable", embedding_model=embedding_model, reason=reason)
+
+
 def retrieve_knowledge(*, final_food_ids: list[str], query_text: str, client, embedder,
                        paid_call: Callable, limit_per_ingredient: int | None = None,
                        call_name: str = "embed_query") -> dict:

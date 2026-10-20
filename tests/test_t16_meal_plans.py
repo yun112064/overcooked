@@ -15,7 +15,7 @@ from sqlalchemy import text
 from test_t11_recipe_retrieval import BASIL, SOY, seed_recipes
 from test_t14_generation import (CABBAGE, EGG, GARLIC, TOMATO, FakeKnowledgeClient, FakeResponder, ai_dish,
                                  knowledge_record, menu, per_gram_calculator)
-from test_t15_meal_results import ALL, ResultTestCase, money, seed_prices
+from test_t15_meal_results import AI_MENU, ALL, ResultTestCase, money, seed_prices
 
 _keys = itertools.count(1)
 
@@ -186,7 +186,8 @@ class EligibilityTests(PlanTestCase):
             energy, protein = self.reference()
             return per_gram_calculator(energy / Decimal(50), protein / Decimal(50))  # 約為目標的 2 倍
         too_much.factory = True
-        self.generate(calculator=too_much)
+        # 資料庫候選組合全部不可行 → 自動 AI 回退；AI 菜同樣超出 ±10%，可查看但不可採用
+        self.generate(calculator=too_much, responder=FakeResponder(AI_MENU))
         res = self.adopt()
         self.assertEqual(res.status_code, 422, res.text)
         self.assertIn("NUTRITION_OUT_OF_RANGE", [b["code"] for b in res.json()["error"]["details"]["blocks"]])
