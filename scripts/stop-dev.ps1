@@ -1,6 +1,6 @@
 ﻿<#
 .SYNOPSIS
-  關閉 start-dev.ps1 啟動的所有服務，並停止資料庫容器（資料保留）。
+  關閉 start-dev.ps1 啟動的所有服務（後端、worker、排程、查價、知識 RAG、前端、YOLO），並停止資料庫容器（資料保留）。
 
 .PARAMETER KeepDb
   只關服務，資料庫容器繼續執行。

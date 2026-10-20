@@ -142,6 +142,47 @@ Windows 可用「工作排程器」執行，例如：
 `cmd /c "cd /d D:\overcooked && set PYTHONPATH=backend && .venv\Scripts\python.exe -m knowledge_rag.admin crawl --max-pages 3"`。
 第一次完整抓取（約 145 頁、上千篇文章）以每 2 秒一個請求計算需要約 1 小時以上，請在離峰時間執行。
 
+## 本機開發環境一鍵流程（決策 #23、#24）
+
+`scripts/start-dev.ps1` 會：在同一個 dev 資料庫容器建立 `<DEV_DB_NAME>_knowledge`（預設 `meal_planner_dev_knowledge`）並套用
+`knowledge_rag/schema.sql`（可重複執行）；第一次執行時在 `.env.dev` 產生 `KNOWLEDGE_SERVICE_TOKEN`、`INTERNAL_API_TOKEN`
+（隨機值，不顯示）；啟動 `[knowledge]`（`python -m knowledge_rag.server`，`127.0.0.1:8766`），並把
+`KNOWLEDGE_SERVICE_URL`／`KNOWLEDGE_SERVICE_TOKEN` 傳給後端與 worker。不需要時設 `DEV_SKIP_KNOWLEDGE=1`。
+
+`scripts/dev-run.ps1` 會替管理指令設好 `KNOWLEDGE_DATABASE_URL`、`CLOUD_INTERNAL_URL=http://127.0.0.1:8000`（本機後端當「雲端內部 API」）、
+`CLOUD_INTERNAL_TOKEN`（＝`INTERNAL_API_TOKEN`）與 `APP_ENV=development`。開發環境不需要 Cloudflare Access 權杖。
+
+事前要由人工提供（`.env.dev`）：
+
+- `KNOWLEDGE_AUTHORIZATION_REF`：書面授權證據的存放位置（見上方「授權紀錄」）；沒填 crawl 會拒絕。
+- `OPENAI_API_KEY`：建索引與生成時的查詢向量化都要（經 T10 額度預留）。
+
+start-dev 執行中（後端要在線，index build 經本機內部 API 向量化），另開一個 PowerShell：
+
+```powershell
+# 1. 抓取營養飲食分類（每次請求 ≥2 秒；先用 --max-pages 5 試，之後再拿掉抓全部）
+.\scripts\dev-run.ps1 -m knowledge_rag.admin crawl --max-pages 5
+# 2. 僅限開發：整批核准待審的非轉載紀錄（reviewer=dev-bulk；轉載文章 third_party_unconfirmed 一律排除，
+#    要用轉載文章仍須逐筆 approve --confirm-third-party-license）。APP_ENV 不是 development（例如 production）時拒絕執行
+.\scripts\dev-run.ps1 -m knowledge_rag.admin approve-all --dev-bulk --reviewer dev-bulk --note "開發環境整批核准，未逐筆人工審核"
+# 3. 建索引並啟用（版本名稱每次要新的）
+.\scripts\dev-run.ps1 -m knowledge_rag.admin index build --version idx-dev-2026-10-21
+# 4. 確認：active_index 有值、records.approved > 0
+.\scripts\dev-run.ps1 -m knowledge_rag.admin status
+```
+
+確認生成有知識：
+
+1. 知識服務健康檢查應回 200 與 `index_version`（沒有 active 索引時是 503 `NO_ACTIVE_INDEX`，生成會顯示知識不可用）：
+   ```powershell
+   . .\scripts\dev-env.ps1; $c = Read-DevConfig .env.dev
+   Invoke-RestMethod http://127.0.0.1:8766/v1/health -Headers @{ Authorization = "Bearer $($c.KNOWLEDGE_SERVICE_TOKEN)" }
+   ```
+2. 在 http://localhost:5173 重新生成一份菜單（舊結果不會自動更新；知識不可用的舊結果可按「只重試知識說明」）。
+   結果的知識說明應為可用、每則顯示「來源：健康醫療網」＋原文連結；API 回應的 `knowledge.status` 是 `available`
+   （食材剛好沒有已核准知識時是 `not_found`，不是 `unavailable`）。
+
+`approve-all` 只為了讓開發環境能看到知識；正式環境仍須逐筆人工審核（spec：只用審核通過資料）。
 ## 限制
 
 - 一篇文章最多對應 8 種相關食材（見上），但仍可能有順帶提到的；只是順帶提到的請退回。

@@ -14,7 +14,7 @@ from unittest.mock import patch
 from sqlalchemy import select, text
 
 from db_support import FOODS, migrate_fresh, requires_db, session_factory, truncate_all
-from test_kn_healthnews_crawler import AUTH_REF, BOKCHOY, CABBAGE, CHANNEL, SITE, TOMATO, FakeFetcher, site_pages
+from test_kn_healthnews_crawler import AUTH_REF, BOKCHOY, CABBAGE, CHANNEL, EGG, SITE, TOMATO, FakeFetcher, site_pages
 
 INTERNAL_TOKEN = "internal-token-for-tests-0123456789"
 
@@ -110,6 +110,34 @@ class KnowledgeAdminTests(unittest.TestCase):
         code, res = self.run_cli("reject", other, self.store.get_record(other)["source_version"],
                                  "--reviewer", "審核者", "--note", "只是順帶提到")
         self.assertEqual((code, res["status"]), (0, "rejected"))
+
+    def bulk(self, *extra, app_env="development"):
+        with patch.dict("os.environ", {"APP_ENV": app_env} if app_env is not None else {}, clear=False):
+            if app_env is None:
+                import os
+                os.environ.pop("APP_ENV", None)
+            return self.run_cli("approve-all", *extra)
+
+    def test_dev_bulk_approve_skips_reprinted_articles(self):
+        # 決策 #24：開發環境可整批核准，紀錄 reviewer=dev-bulk＋註記；轉載文章（third_party_unconfirmed）仍排除
+        code, _ = self.run_cli("crawl", "--ids", "80001-80003")
+        self.assertEqual(code, 0, self.last_err)
+        code, res = self.bulk("--dev-bulk", "--reviewer", "dev-bulk", "--note", "開發環境整批核准")
+        self.assertEqual(code, 0, self.last_err)
+        self.assertEqual(sorted(res["approved"]), sorted([f"hn-80001-{TOMATO}-1", f"hn-80001-{EGG}-1"]))
+        self.assertIn(f"hn-80003-{BOKCHOY}-1", res["skipped_third_party"])
+        tomato = self.store.get_record(f"hn-80001-{TOMATO}-1")
+        self.assertEqual((tomato["status"], tomato["reviewer"]), ("approved", "dev-bulk"))
+        self.assertIn("開發環境整批核准", tomato["review_note"])
+        self.assertEqual(self.store.get_record(f"hn-80003-{BOKCHOY}-1")["status"], "pending")
+
+    def test_dev_bulk_approve_refused_outside_development(self):
+        self.crawl_one()
+        self.run_cli("crawl", "--ids", "80001-80001")
+        for env, extra in (("production", ("--dev-bulk",)), (None, ("--dev-bulk",)), ("development", ())):
+            code, _ = self.bulk(*extra, "--reviewer", "dev-bulk", "--note", "x", app_env=env)
+            self.assertNotEqual(code, 0, (env, extra))
+        self.assertEqual(self.run_cli("list", "--status", "approved")[1], [])
 
     def test_index_build_reserves_spend_and_activates_approved_only(self):
         self.crawl_one()
