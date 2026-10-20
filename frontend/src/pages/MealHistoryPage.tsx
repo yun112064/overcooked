@@ -79,7 +79,9 @@ function PlanCard({ plan }: { plan: MealPlanDetail }) {
                 <Typography key={k.ingredient_id} variant="body2">
                   <b>{k.ingredient_name ?? k.ingredient_id}</b>：{k.explanation}
                   <Typography component="span" variant="caption" color="text.secondary">
-                    （來源：{k.citations.map((c) => `${c.knowledge_id} ${c.source_version}`).join('、')}）
+                    （{k.citations.map((c) => (c.attribution
+                      ? `${c.attribution} ${c.source_url ?? ''}`.trim()
+                      : `來源：${c.knowledge_id} ${c.source_version}`)).join('、')}）
                   </Typography>
                 </Typography>
               ))}

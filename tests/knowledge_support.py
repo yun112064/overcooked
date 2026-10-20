@@ -32,7 +32,7 @@ def fresh_knowledge_db() -> str:
             conn.execute(f'CREATE DATABASE "{name}"')
     from knowledge_rag import store
     with psycopg.connect(url, autocommit=True) as conn:
-        conn.execute("DROP TABLE IF EXISTS knowledge_embeddings, knowledge_indexes, knowledge_records CASCADE")
+        conn.execute("DROP TABLE IF EXISTS knowledge_embeddings, knowledge_indexes, knowledge_records, source_articles CASCADE")
     store.apply_schema(url)
     return url
 

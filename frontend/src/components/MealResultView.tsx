@@ -251,11 +251,21 @@ export default function MealResultView({ requestId, mealDate, onChanged }: Props
             <Box key={k.ingredient_id} sx={{ mb: 1 }}>
               <Typography variant="body2"><b>{k.ingredient_name ?? k.ingredient_id}</b>：{k.explanation}</Typography>
               <Typography variant="caption" color="text.secondary">
-                來源：{k.citations.map((c, idx) => (
+                {k.citations.map((c, idx) => (
                   <span key={c.knowledge_id}>
                     {idx > 0 && '、'}
-                    {c.source_url ? <Link href={c.source_url} target="_blank" rel="noreferrer">{c.knowledge_id}</Link> : c.knowledge_id}
-                    （{c.source_version}）
+                    {c.attribution ? (
+                      <>
+                        {c.attribution}{' '}
+                        {c.source_url && <Link href={c.source_url} target="_blank" rel="noreferrer">{c.source_url}</Link>}
+                      </>
+                    ) : (
+                      <>
+                        來源：
+                        {c.source_url ? <Link href={c.source_url} target="_blank" rel="noreferrer">{c.knowledge_id}</Link> : c.knowledge_id}
+                        （{c.source_version}）
+                      </>
+                    )}
                   </span>
                 ))}
               </Typography>
