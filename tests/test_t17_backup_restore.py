@@ -129,6 +129,23 @@ class CloudBackupTests(BackupRestoreTestCase):
         self.assertIn("adopted_meal_plans", " ".join(report["problems"]))
 
 
+class PredeployBackupTests(BackupRestoreTestCase):
+    def test_predeploy_backup_is_labelled_and_mirrored(self):
+        from ops.backup import verify_backup
+        from ops.deploy import predeploy_backup
+        path = predeploy_backup(pg=self.pg, database=self.db, backup_root=self.backup_root,
+                                data_root=self.data_root, mirror_root=self.tmp / "offsite", now=NOW)
+        self.assertEqual(path.name, "20261020T023000Z-predeploy")
+        self.assertEqual(verify_backup(self.tmp / "offsite" / "cloud" / path.name)["label"], "predeploy")
+
+    def test_first_deploy_on_empty_database_needs_no_backup(self):
+        from ops.deploy import predeploy_backup
+        self.pg.create_db(self.scratch)
+        self.assertIsNone(predeploy_backup(pg=self.pg, database=self.scratch, backup_root=self.backup_root,
+                                           data_root=self.data_root, mirror_root=None, now=NOW))
+        self.assertFalse(self.backup_root.exists())
+
+
 class RetentionTests(BackupRestoreTestCase):
     def test_backups_older_than_seven_days_are_pruned_but_newest_is_kept(self):
         from ops.backup import prune_backups

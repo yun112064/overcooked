@@ -36,7 +36,7 @@ $env:INFERENCE_DEVICE = "0"   # GPU；未設定時用 cpu
 D:\AIPE04期末專題\yolo_training\.venv\Scripts\python.exe inference\server.py
 ```
 
-服務預設只聽 `127.0.0.1:8765`。雲端連線須經加密通道並驗證（T17 負責），不要直接把這個埠開到外網。服務不記錄請求內容或照片。
+服務預設只聽 `127.0.0.1:8765`。雲端連線經團隊電腦的 Cloudflare Tunnel＋Access 服務權杖並驗證 Bearer token（見 docs/T17-deployment.md），不要直接把這個埠開到外網。服務不記錄請求內容或照片。
 
 - `GET /v1/health`：模型版本、前處理、類別數（需 token）
 - `POST /v1/detect`：multipart 欄位 `image`；回傳 `model_version`、`preprocess`、`inference_ms` 與 `detections`（`label`、`confidence`、`box`）

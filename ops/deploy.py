@@ -16,6 +16,21 @@ def compose_cmd(env_file: str) -> list[str]:
     return ["docker", "compose", "--env-file", env_file, "-f", "compose.yaml", "-f", "compose.prod.yaml"]
 
 
+def predeploy_backup(*, pg, database: str, backup_root: Path, data_root: Path, mirror_root: Path | None,
+                     now=None) -> Path | None:
+    """部署前備份（label=predeploy）並複製到獨立位置；首次部署的空資料庫沒有可備份的資料，回 None。"""
+    from ops.backup import create_backup, mirror_backup
+    if not pg.database_exists(database):
+        return None
+    if not int(pg.query(database, "SELECT count(*) FROM pg_tables WHERE schemaname = 'public'")[0][0]):
+        return None
+    path = create_backup("cloud", pg=pg, database=database, backup_root=backup_root, data_root=data_root,
+                         now=now, label="predeploy")
+    if mirror_root:
+        mirror_backup(path, mirror_root)
+    return path
+
+
 def deploy(*, preflight, backup, run, out=print, env_file: str = ".env.prod") -> int:
     problems = preflight()
     if problems:
@@ -28,7 +43,7 @@ def deploy(*, preflight, backup, run, out=print, env_file: str = ".env.prod") ->
     except Exception as exc:  # noqa: BLE001
         out(f"部署中止：部署前備份失敗（{exc}），未做任何變更")
         return 3
-    out(f"部署前備份：{backup_path}")
+    out(f"部署前備份：{backup_path}" if backup_path else "部署前備份：資料庫是空的（首次部署），不需備份")
     compose = compose_cmd(env_file)
     if run([*compose, "build"]) != 0:
         out("部署中止：建置失敗，資料庫未變更")
@@ -47,7 +62,7 @@ def deploy(*, preflight, backup, run, out=print, env_file: str = ".env.prod") ->
 
 
 def main(argv=None) -> int:
-    from ops.backup import _load_env, create_backup, mirror_backup
+    from ops.backup import _load_env
     from ops.pg import PgTools
     from ops.preflight import check
 
@@ -57,13 +72,13 @@ def main(argv=None) -> int:
     env = _load_env(REPO_ROOT / args.env_file)
 
     def do_backup():
-        path = create_backup("cloud", pg=PgTools(container=env.get("BACKUP_PG_CONTAINER", "meal-planner-db")),
-                             database=env.get("BACKUP_DATABASE", "meal_planner"),
-                             backup_root=Path(env["PROJECT_BACKUP_ROOT"]), data_root=Path(env["PROJECT_DATA_ROOT"]),
-                             label="predeploy")
-        if env.get("BACKUP_MIRROR_ROOT"):
-            mirror_backup(path, Path(env["BACKUP_MIRROR_ROOT"]))
-        return path
+        # 先確保資料庫容器在執行（首次部署時會建立空資料庫）
+        if subprocess.run([*compose_cmd(args.env_file), "up", "-d", "--wait", "db"], cwd=REPO_ROOT).returncode:
+            raise RuntimeError("資料庫容器無法啟動")
+        return predeploy_backup(pg=PgTools(container=env.get("BACKUP_PG_CONTAINER", "meal-planner-db")),
+                                database=env.get("BACKUP_DATABASE", "meal_planner"),
+                                backup_root=Path(env["PROJECT_BACKUP_ROOT"]), data_root=Path(env["PROJECT_DATA_ROOT"]),
+                                mirror_root=Path(env["BACKUP_MIRROR_ROOT"]) if env.get("BACKUP_MIRROR_ROOT") else None)
 
     def do_run(cmd):
         print("$ " + " ".join(cmd))
