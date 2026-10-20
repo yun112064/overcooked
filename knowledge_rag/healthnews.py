@@ -8,7 +8,10 @@
 
 食材比對只用標準名稱與無歧義別名（與 T14 FoodDictionary 同規則），單字別名不用、最長名稱優先，
 已確認的同義組（config/ingredient_synonyms.json status=confirmed）共享結果。
+文章層級再篩相關食材（pre-review #7）：通用調味／水等詞只在標題出現才算；超過 SMALL_ARTICLE_FOODS 種
+候選時，只留標題食材或出現 MIN_MENTIONS 次以上者；依（標題、次數、首次出現）排序，最多 MAX_FOODS_PER_ARTICLE 種。
 """
+from collections import Counter
 import json
 import re
 import unicodedata
@@ -24,6 +27,13 @@ PROVIDER = re.compile(r"^[（(]\s*內容授權提供\s*[／/]\s*(.+?)\s*[）)]$"
 TITLE_SUFFIX = re.compile(r"\s*[-－|｜]\s*健康醫療網\s*$")
 # 以食材名稱開頭但不是食材的營養詞（比對時整詞吃掉，不對應任何 FOOD）
 NON_FOOD_TERMS = ("蛋白質", "蛋白酶", "乳酸菌", "乳糖不耐", "油脂", "糖尿病", "鹽分", "糖分")
+# 到處出現的通用詞（調味、油、水、糖）：只有出現在文章標題時才視為該文章的主題食材
+GENERIC_TERMS = ("清水", "開水", "熱水", "冷水", "溫水", "冰水", "滾水", "飲用水", "冰塊", "食鹽", "鹽巴", "海鹽",
+                 "砂糖", "白糖", "細砂糖", "二砂糖", "冰糖", "沙拉油", "食用油", "植物油", "調味料", "味精", "米酒",
+                 "太白粉", "胡椒粉", "白胡椒粉", "醬油")
+MIN_MENTIONS = 2
+SMALL_ARTICLE_FOODS = 5
+MAX_FOODS_PER_ARTICLE = 8
 
 
 def channel_url(channel_id: str, page: int = 1) -> str:
@@ -241,26 +251,57 @@ class FoodMatcher:
             self.names[food_id] = names
         for term in NON_FOOD_TERMS:
             self.index.setdefault(_norm(term), set())
+        self.generic_keys = {_norm(t) for t in GENERIC_TERMS}
         self.max_len = max((len(k) for k in self.index), default=0)
         self.groups = [set(g) for g in self.synonym_groups]
 
-    def match(self, text: str) -> set[str]:
+    def _scan(self, text: str) -> tuple[Counter, Counter, dict]:
+        """最長名稱優先掃描；回傳（一般名稱次數、通用詞次數、首次出現位置）。"""
         text = _norm(text)
-        found: set[str] = set()
+        normal, generic, first = Counter(), Counter(), {}
         i = 0
         while i < len(text):
             for size in range(min(self.max_len, len(text) - i), 0, -1):
-                ids = self.index.get(text[i:i + size])
+                key = text[i:i + size]
+                ids = self.index.get(key)
                 if ids is not None:
-                    found |= ids
+                    target = generic if key in self.generic_keys else normal
+                    for food_id in ids:
+                        target[food_id] += 1
+                        first.setdefault(food_id, i)
                     i += size
                     break
             else:
                 i += 1
+        return normal, generic, first
+
+    def _expand(self, found: set[str]) -> set[str]:
         for group in self.groups:
             if found & group:
                 found |= group
         return found
+
+    def match(self, text: str) -> set[str]:
+        normal, generic, _ = self._scan(text)
+        return self._expand(set(normal) | set(generic))
+
+    def relevant(self, title: str, paragraphs: list[str]) -> list[str]:
+        """文章的相關食材（依相關程度排序、有上限）：見模組說明。"""
+        t_normal, t_generic, _ = self._scan(title or "")
+        in_title = self._expand(set(t_normal) | set(t_generic))
+        normal, generic, first = self._scan("\n".join([title or "", *paragraphs]))
+        counts = Counter({f: c for f, c in normal.items()})
+        for food_id in in_title:
+            counts[food_id] = normal[food_id] + generic[food_id]
+        for group in self.groups:  # 已確認同義組共享次數
+            shared = sum(counts[f] for f in group if f in counts)
+            if shared:
+                for f in group:
+                    counts[f] = shared
+        if len(counts) > SMALL_ARTICLE_FOODS:
+            counts = Counter({f: c for f, c in counts.items() if f in in_title or c >= MIN_MENTIONS})
+        ranked = sorted(counts, key=lambda f: (f not in in_title, -counts[f], first.get(f, 0), f))
+        return ranked[:MAX_FOODS_PER_ARTICLE]
 
     def names_for(self, food_ids) -> list[str]:
         out: list[str] = []

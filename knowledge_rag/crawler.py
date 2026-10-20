@@ -1,6 +1,7 @@
 """G07 健康醫療網爬蟲（團隊電腦）：分類頁／文章 ID 範圍／待補食材 → 知識庫 PENDING 紀錄。
 
-- 每篇文章切段落，段落提到的標準食材（標準名稱＋無歧義別名）各成一筆知識：
+- 先以 FoodMatcher.relevant 篩出文章的相關食材（標題食材或多次出現、排除通用詞、有上限；pre-review #7），
+  再把段落切開，段落提到的相關食材各成一筆知識：
   knowledge_id = hn-<文章 ID>-<FOOD 編號>-<該食材在本文的第幾段>，source_version = sha256 前 16 碼。
 - 一律以 pending 匯入；只有人工審核通過＋重建索引後才可被檢索與顯示（spec：只用審核通過資料）。
 - 冪等：已抓過的文章預設不再請求；refresh 時重抓，內容雜湊相同即略過。
@@ -44,8 +45,9 @@ class HealthnewsCrawler:
         conditions = CONDITIONS + (f"；原始供稿：{article.content_provider}（審核時確認授權涵蓋轉載內容）"
                                    if article.content_provider else "")
         records, ordinal = [], {}
+        relevant = set(self.matcher.relevant(article.title, article.paragraphs))
         for passage in split_passages(article.paragraphs, self.max_passage_chars):
-            for food_id in sorted(self.matcher.match(passage)):
+            for food_id in sorted(self.matcher.match(passage) & relevant):
                 ordinal[food_id] = ordinal.get(food_id, 0) + 1
                 digest = _sha(passage)
                 records.append({
