@@ -45,3 +45,7 @@
 - 真實知識來源、審核與索引（G07）；團隊電腦實際部署、加密通道（T17）。
 - 知識匯入／審核／建索引目前是 Python API，尚無管理指令。
 - 次日生成的真實寫入整合由 Ticket 16／19 驗收。
+
+## 2026-10-20 追加：真實來源（G07）
+
+知識來源改為健康醫療網，爬蟲、管理指令（`python -m knowledge_rag.admin`）、補抓佇列與出處顯示見 [knowledge-source-healthnews.md](knowledge-source-healthnews.md)。上方「尚無管理指令」已由該文件取代；授權證據仍待使用者存檔。
