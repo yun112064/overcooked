@@ -345,6 +345,30 @@ class TfdaCalculatorTests(unittest.TestCase):
         self.assertEqual(oil.nutrients["energy_kcal"], D("44.2"))
         self.assertEqual(oil.trace["sample_id"], "M1100101")
 
+    def test_grams_are_multiplied_exactly_with_decimal_not_float(self):
+        # P5：白飯 183 kcal／3.1 g 每 100 g；33.3 g → 60.939 kcal、1.0323 g（float 會得到 60.93899999999999）
+        [rice] = self.calc(line("白飯", "33.3", weight_basis="cooked"))
+        self.assertEqual(rice.nutrients["energy_kcal"], D("60.939"))
+        self.assertEqual(rice.nutrients["protein_g"], D("1.0323"))
+        self.assertEqual(rice.trace["cooked_weight_g"], D("33.3"))
+
+    def test_trace_records_the_weight_basis_source(self):
+        [egg] = self.calc(line("大豆油", "5", consumed_as_is=True, weight_basis_source=mc.WORKBOOK_RAW_CONVENTION))
+        self.assertEqual((egg.trace["weight_basis"], egg.trace["weight_basis_source"]),
+                         ("raw", mc.WORKBOOK_RAW_CONVENTION))
+
+    def test_exact_90_and_110_percent_boundaries_pass_with_real_tfda_values(self):
+        # AC12：熱量正好 90%（下界）、47.1 g 時熱量與蛋白質正好 110%（上界），都必須可採用
+        lower = mc.MealTargets(Fraction(1), Fraction(60939, 900), Fraction(10323, 10000))
+        result = mc.calculate_meal([line("白飯", "33.3", weight_basis="cooked")], lower, mode="ai",
+                                   calculator=mc.tfda_calculator)
+        self.assertTrue(result["adoptable"], result["block_reasons"])
+        self.assertEqual(result["baseline"]["energy_kcal"], D("60.939"))
+        upper = mc.MealTargets(Fraction(1), Fraction(86193, 1100), Fraction(14601, 11000))
+        result = mc.calculate_meal([line("白飯", "47.1", weight_basis="cooked")], upper, mode="ai",
+                                   calculator=mc.tfda_calculator)
+        self.assertTrue(result["adoptable"], result["block_reasons"])
+
     def test_unknown_food_is_unresolved(self):
         [x] = self.calc(line("不存在的食材", "10", consumed_as_is=True))
         self.assertEqual(x.error, "ingredient_not_found")
@@ -384,6 +408,8 @@ class RecipeLoaderTests(unittest.TestCase):
         self.assertTrue(rice.adjustment_approved)
         self.assertEqual(rice.cooking_method, "炒")
         self.assertEqual(rice.dish_id, "R001")
+        # P6／decisions #17：工作簿克數一律視為生重，依據可追溯
+        self.assertEqual((rice.weight_basis, rice.weight_basis_source), ("raw", mc.WORKBOOK_RAW_CONVENTION))
         self.assertEqual(oil.grams_per_n, D("5"))
         self.assertFalse(oil.adjustment_approved)
         self.assertIsNone(soy.grams_per_n)

@@ -37,7 +37,8 @@ from app.services import jobs, knowledge, meal_history, recipe_retrieval, spend
 from app.services import knowledge_queue
 from app.services import meal_request as meal_request_service
 from app.services.llm_client import default_embedder, default_responder
-from app.services.meal_calculation import IngredientLine, calculate_meal, load_recipe_lines, targets_from_t03
+from app.services.meal_calculation import (MODEL_DECLARED, IngredientLine, calculate_meal, load_recipe_lines,
+                                          targets_from_t03)
 from app.services.meal_cost import meal_cost_from_db
 from app.services.recipe_import import normalize_name, standard_dish_id
 
@@ -264,6 +265,7 @@ def _ai_dishes(candidate: MenuCandidate, foods: FoodDictionary, specified: list[
                                 "weight_basis": ing.weight_basis})
             lines.append(IngredientLine(food_id=food_id, name=foods.names[food_id], grams_per_n=grams,
                                         cooking_method=method or None, weight_basis=ing.weight_basis,
+                                        weight_basis_source=MODEL_DECLARED,
                                         dish_id=dish_id))
         aliases = [a.strip() for a in item.aliases if a.strip() and a.strip() != name]
         dishes.append({

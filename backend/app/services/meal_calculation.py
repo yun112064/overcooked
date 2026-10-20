@@ -98,6 +98,8 @@ class IngredientLine:
     adjustment_approved: bool = False
     dish_id: str | None = None
     unresolved_reason: str | None = None
+    # 生熟依據（P6／decisions #17）：工作簿克數一律視為生重；有生熟欄位時優先採用該欄位
+    weight_basis_source: str | None = None
 
 
 @dataclass
@@ -305,13 +307,28 @@ def _ingredient_rows(lines, grams, whole, rows):
     return out
 
 
+# 生熟依據代碼（寫入每項食材的 trace，結果可追溯）
+WORKBOOK_RAW_CONVENTION = "recipe_workbook_raw_convention"  # decisions #17：工作簿克數＝生重
+RECIPE_FIELD = "recipe_weight_basis_field"                  # 未來工作簿有生熟欄位時
+MODEL_DECLARED = "model_declared"                           # AI 菜：模型逐項標示 raw／cooked
+
+
+def _weight_basis(row) -> tuple[str, str]:
+    """有生熟欄位（raw／cooked）時優先；否則依資料規範視為生重。"""
+    field = getattr(row, "weight_basis", None)
+    if field in ("raw", "cooked"):
+        return field, RECIPE_FIELD
+    return "raw", WORKBOOK_RAW_CONVENTION
+
+
 def load_recipe_lines(db, recipe_id: str) -> list[IngredientLine]:
     """資料庫模式：把 T01 食譜的全部食材（含油與調味料）轉成每 1n 基準用量。
 
     - 每 1n 克數 = weight_g ÷ original_servings；原份數未知或無克數換算時為 None 並附原因。
     - 可調範圍同樣換算為每 1n，只有 adjustment_status = approved 才可用於調整。
     - 烹調方式取自食譜層級：恰好一種時套用，否則不填（缺依據即不可採用）。
-    - 資料庫未保存各食材生熟狀態，預設 weight_basis = raw（假設，見 docs/T12）。
+    - 生熟（decisions #17）：工作簿克數一律視為生重（weight_basis=raw，依據 WORKBOOK_RAW_CONVENTION）；
+      若資料表日後有生熟欄位，優先採用該欄位（依據 RECIPE_FIELD）。依據寫入 trace。
     """
     from sqlalchemy import select
 
@@ -336,10 +353,11 @@ def load_recipe_lines(db, recipe_id: str) -> list[IngredientLine]:
             reason = "servings_unresolved"
         elif row.weight_g is None:
             reason = row.weight_status or "weight_unresolved"
+        basis, basis_source = _weight_basis(row)
         lines.append(IngredientLine(
             food_id=row.food_id, name=row.canonical_name,
             grams_per_n=None if reason else per_n(row.weight_g),
-            cooking_method=method,
+            cooking_method=method, weight_basis=basis, weight_basis_source=basis_source,
             adjustable_min=per_n(row.adjustable_min), adjustable_max=per_n(row.adjustable_max),
             adjustment_approved=row.adjustment_status == "approved",
             dish_id=recipe_id, unresolved_reason=reason,
@@ -364,34 +382,47 @@ def _sample_source(row: dict) -> dict | None:
             or (row.get("raw_reference") or {}).get("source"))
 
 
+REFERENCE_GRAMS = Decimal(100)
+
+
+def _scaled(value, grams: Decimal) -> Decimal | None:
+    """T04 以 100 g 計算的值（float）→ Decimal(str()) 後在 T12 內以 Decimal 乘上實際克數。"""
+    if value is None:
+        return None
+    return Decimal(str(value)) * grams / REFERENCE_GRAMS
+
+
 def tfda_calculator(rows: list[tuple[IngredientLine, Decimal]]) -> list[IngredientNutrition]:
     """以 T04 TFDA 管線計算每項食材（estimator=None：不使用 LLM 烹調係數，見 P01）。
 
-    T04 以 float 計算，結果經 Decimal(str(v)) 轉回；缺值維持 None。生熟依 weight_basis 傳入，
-    熟食樣品配熟重時不再套烹調修正（由 T04 保證）。
+    為了讓 ±10% 邊界精確（AC12），克數不轉 float 送進 T04：每項食材一律以 100 g 呼叫 T04 取得
+    「每 100 g」的營養（及生熟重比例），再以 Decimal(str()) 取值、在 T12 內以 Decimal 乘克數。
+    T04 的營養對重量為線性（固定的每克含量與熟成率），因此結果與直接以實際克數計算相同，只是沒有
+    float 誤差。缺值維持 None。生熟依 weight_basis 傳入，熟食樣品配熟重時不再套烹調修正（由 T04 保證）。
     """
     service = _nutrition_model()
     items = []
-    for ln, grams in rows:
-        item = {"name": ln.name, "weight_g": float(grams), "weight_basis": ln.weight_basis,
+    for ln, _ in rows:
+        item = {"name": ln.name, "weight_g": float(REFERENCE_GRAMS), "weight_basis": ln.weight_basis,
                 "consumed_as_is": ln.consumed_as_is}
         if ln.cooking_method:
             item["cooking_method"] = ln.cooking_method
         items.append(item)
     recipe = service.calculate_recipe_nutrition("meal", items, estimator=None)
     out = []
-    for ln, row in zip((ln for ln, _ in rows), recipe.get("ingredients") or [{}] * len(rows)):
+    for (ln, grams), row in zip(rows, recipe.get("ingredients") or [{}] * len(rows)):
+        grams = Decimal(grams)
         values = row.get("nutrition") if row.get("success") else None
-        nutrients = {k: (Decimal(str(v)) if v is not None else None)
-                     for k, v in (values or {k: None for k in service.NUTRIENTS}).items()}
+        nutrients = {k: _scaled(v, grams) for k, v in (values or {k: None for k in service.NUTRIENTS}).items()}
         source = _sample_source(row) or {}
         trace = {
             "sample_id": source.get("source_id"), "provider": source.get("provider"),
             "source_version": source.get("source_version"), "source_url": source.get("source_url"),
             "nutrition_basis": row.get("nutrition_basis"), "weight_basis": ln.weight_basis,
-            "yield_basis": row.get("yield_basis"), "raw_weight_g": row.get("raw_weight_g"),
-            "cooked_weight_g": row.get("cooked_weight_g"), "is_estimated": bool(row.get("is_estimated")),
-            "missing_reason": row.get("missing_reason"),
+            "weight_basis_source": ln.weight_basis_source,
+            "yield_basis": row.get("yield_basis"), "raw_weight_g": _scaled(row.get("raw_weight_g"), grams),
+            "cooked_weight_g": _scaled(row.get("cooked_weight_g"), grams),
+            "is_estimated": bool(row.get("is_estimated")), "missing_reason": row.get("missing_reason"),
         }
         error = row.get("error") or (None if row.get("success") else "nutrition_unavailable")
         out.append(IngredientNutrition(nutrients, trace, error))
