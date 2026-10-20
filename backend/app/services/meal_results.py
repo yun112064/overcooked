@@ -67,6 +67,16 @@ def public_decision(db: Session, row: MealResultDecision) -> dict:
             "created_at": row.created_at.isoformat()}
 
 
+def _ingredient(r: dict) -> dict:
+    """整餐用量；display_* 為畫面取整（克到 1 g、容量單位到 0.5，無換算照原單位／原文）。"""
+    return {"food_id": r["food_id"], "name": r["name"], "weight_basis": r.get("weight_basis"),
+            "weight_basis_source": r.get("weight_basis_source"),
+            "whole_meal_grams": r.get("whole_meal_grams"), "display_grams": r.get("display_grams"),
+            "display_amount": r.get("display_amount", r.get("display_grams")),
+            "display_unit": r.get("display_unit", "g" if r.get("display_grams") is not None else None),
+            "display_text": r.get("display_text")}
+
+
 def _dishes(payload: dict) -> list[dict]:
     rows = (payload.get("calculation") or {}).get("ingredients") or []
     out = []
@@ -76,9 +86,7 @@ def _dishes(payload: dict) -> list[dict]:
             "standard_dish_id": d["standard_dish_id"], "dish_name": d["dish_name"], "aliases": d.get("aliases", []),
             "source": d["source"], "recipe_id": d.get("recipe_id"), "specified": d.get("specified", False),
             "cooking_method": d.get("cooking_method"), "steps": d.get("steps", []),
-            "ingredients": [{"food_id": r["food_id"], "name": r["name"], "weight_basis": r.get("weight_basis"),
-                             "whole_meal_grams": r.get("whole_meal_grams"), "display_grams": r.get("display_grams")}
-                            for r in rows if r.get("dish_id") == key],
+            "ingredients": [_ingredient(r) for r in rows if r.get("dish_id") == key],
         })
     return out
 
@@ -90,7 +98,11 @@ def _nutrition(payload: dict) -> dict:
             "protein_g": final.get("protein_g"), "gap": final.get("gap") or {},
             "within_range": final.get("within_range", False), "other_nutrients": final.get("other_nutrients") or {},
             "missing_nutrients": final.get("missing_nutrients") or {},
-            "baseline_adjusted": (calc.get("baseline") or {}).get("adjusted", False)}
+            "baseline_adjusted": (calc.get("baseline") or {}).get("adjusted", False),
+            # P2：用量是否已通過驗證；不可採用時的具體調整建議
+            "quantities_verified": calc.get("quantities_verified", calc.get("adoptable", False)),
+            "suggestions": calc.get("suggestions") or [],
+            "unresolved_ingredients": calc.get("unresolved_ingredients") or []}
 
 
 QUOTE_FIELDS = ("retailer", "source", "source_url", "product_name", "product_url", "price", "package_quantity",

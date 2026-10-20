@@ -286,6 +286,13 @@ class MissingNutritionDecisionTests(ResultTestCase):
         self.assertIsNone(view["nutrition"]["protein_g"])
         self.assertEqual([d["kind"] for d in view["eligibility"]["pending_decisions"]], ["continue_missing_nutrition"])
         self.assertIn("NUTRITION_INCOMPLETE", [b["code"] for b in view["eligibility"]["blocks"]])
+        # P2：缺營養仍可查看每項用量（未驗證）、可計算的成本與具體建議
+        self.assertFalse(view["nutrition"]["quantities_verified"])
+        self.assertEqual(view["nutrition"]["suggestions"][0]["code"], "NUTRITION_INCOMPLETE")
+        first = view["dishes"][0]["ingredients"][0]
+        self.assertEqual((Decimal(first["display_amount"]), first["display_unit"]), (Decimal(50), "g"))
+        self.assertEqual(view["prices"]["status"], "computed")
+        self.assertEqual(money(view["prices"]["known_cost_total"]), money(20))
         self.assertEqual(self.decide("continue_missing_nutrition").status_code, 201)
         self.assertEqual(self.status(), "result_ready")
         view = self.result()

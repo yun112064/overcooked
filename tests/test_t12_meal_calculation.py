@@ -156,6 +156,21 @@ class ScalingTests(unittest.TestCase):
         self.assertEqual(rice["display_grams"], D("191"))
         self.assertEqual(result["requirements"][1].grams, D("191.25"))
 
+    def test_volume_units_are_displayed_to_half_a_spoon_and_unconverted_units_as_written(self):
+        # P4（decisions #3）：每 1n 1.5 大匙 × 1.3 = 1.95 → 顯示 2 大匙；0.5 小匙 × 1.3 = 0.65 → 0.5 小匙
+        lines = BASE_LINES + [
+            line("醬油", None, unresolved_reason="unverified_conversion", unit="大匙", amount_per_n=D("1.5")),
+            line("鹽", None, unresolved_reason="unverified_conversion", unit="小匙", amount_per_n=D("0.5")),
+            line("雞蛋", None, unresolved_reason="unverified_conversion", unit="顆", amount_per_n=D("1")),
+            line("胡椒", None, unresolved_reason="unresolved", raw_text="胡椒 少許"),
+        ]
+        rows = mc.calculate_meal(lines, single("1.3"), mode="ai", calculator=FakeCalculator())["ingredients"]
+        shown = [(r["display_amount"], r["display_unit"], r["display_text"]) for r in rows]
+        self.assertEqual(shown, [(D("195"), "g", None), (D("293"), "g", None), (D("2.0"), "大匙", None),
+                                 (D("0.5"), "小匙", None), (D("1.3"), "顆", None), (None, None, "胡椒 少許")])
+        self.assertEqual(mc.display_half(D("1.25")), D("1.5"))
+        self.assertEqual(mc.display_half(D("1.24")), D("1.0"))
+
     def test_same_food_in_two_dishes_is_one_requirement(self):
         lines = [line("雞胸肉", "100", dish_id="d1"), line("白飯", "225", dish_id="d1"),
                  line("雞胸肉", "50", dish_id="d2")]
@@ -262,9 +277,36 @@ class DatabaseModeAlignmentTests(unittest.TestCase):
         self.assertIn("NO_FEASIBLE_BASELINE", codes)
         self.assertEqual(result["baseline"]["reference"], {"energy_kcal": D("600"), "protein_g": D("30")})
         self.assertEqual(result["final"]["target"], {"energy_kcal": D("780"), "protein_g": D("39")})
-        self.assertEqual(result["requirements"], [])
         out = [r for r in result["block_reasons"] if r["code"] == "NUTRITION_OUT_OF_RANGE"][0]
         self.assertEqual((out["lower"], out["upper"]), (D("540"), D("660")))
+        # P2：仍可查看——每項整餐用量（標示未驗證）、可計算的成本需求量與具體調整建議
+        self.assertFalse(result["quantities_verified"])
+        self.assertEqual(result["requirements"], [IngredientRequirement("F-糖", D("156")),
+                                                  IngredientRequirement("F-蛋白", D("39"))])
+        self.assertEqual(result["ingredients"][0]["whole_meal_grams"], D("156"))
+        self.assertEqual(result["final"]["energy_kcal"], D("624"))
+        [hint] = result["suggestions"]
+        self.assertEqual((hint["code"], hint["nutrient"], hint["direction"], hint["needed_change"]),
+                         ("NUTRITION_OUT_OF_RANGE", "energy_kcal", "increase", D("60")))
+        self.assertFalse(hint["within_adjustable_ranges"])
+        [sugar] = hint["ingredients"]
+        self.assertEqual((sugar["name"], sugar["direction"], sugar["adjustable_min"], sugar["adjustable_max"],
+                          sugar["max_change"], sugar["adjustment_approved"]),
+                         ("糖", "increase", D("100"), D("130"), D("40"), True))
+
+    def test_suggestion_says_when_the_approved_range_would_be_enough_for_one_nutrient(self):
+        # 糖可調 100–200 g，但蛋白質 20 g 不足且蛋白不可調：熱量可補、蛋白質無法在範圍內補足
+        lines = sugar_protein("120", "20", adjustable_min=D("100"), adjustable_max=D("200"),
+                              adjustment_approved=True)
+        result = mc.calculate_meal(lines, single("1"), mode="database", calculator=FakeCalculator())
+        hints = {h["nutrient"]: h for h in result["suggestions"]}
+        self.assertTrue(hints["energy_kcal"]["within_adjustable_ranges"])
+        protein = hints["protein_g"]
+        self.assertEqual((protein["direction"], protein["needed_change"]), ("increase", D("7")))
+        self.assertFalse(protein["within_adjustable_ranges"])
+        [egg_white] = protein["ingredients"]
+        self.assertEqual((egg_white["name"], egg_white["adjustment_approved"], egg_white["max_change"]),
+                         ("蛋白", False, None))
 
     def test_both_energy_and_protein_must_fit_at_once(self):
         # 只有糖可調：熱量可修正，但蛋白質 20 g（67%）仍不合格 → 無解
@@ -286,6 +328,12 @@ class CompletenessTests(unittest.TestCase):
         self.assertIn("NUTRITION_INCOMPLETE", codes)
         self.assertIsNone(result["baseline"]["energy_kcal"])
         self.assertEqual(result["unresolved_ingredients"][0]["reason"], "unverified_conversion")
+        # P2：已知克數的食材仍列出整餐用量與成本需求量；無法換算者不填 0
+        self.assertEqual([r.food_id for r in result["requirements"]], ["F-雞胸肉", "F-白飯"])
+        self.assertEqual(result["ingredients"][0]["whole_meal_grams"], D("150"))
+        self.assertIsNone(result["ingredients"][2]["whole_meal_grams"])
+        [hint] = result["suggestions"]
+        self.assertEqual((hint["code"], [i["name"] for i in hint["ingredients"]]), ("INGREDIENT_UNRESOLVED", ["醬油"]))
 
     def test_missing_required_nutrient_blocks_until_filled_and_revalidated(self):
         lines = BASE_LINES + [line("沙拉油", "0.5")]  # 假表中沒有沙拉油
@@ -294,6 +342,10 @@ class CompletenessTests(unittest.TestCase):
         self.assertIsNone(result["baseline"]["energy_kcal"])
         block = [r for r in result["block_reasons"] if r["code"] == "NUTRITION_INCOMPLETE"][0]
         self.assertEqual(block["ingredients"]["energy_kcal"], ["沙拉油"])
+        self.assertEqual(len(result["requirements"]), 3)  # P2：成本仍可計算
+        self.assertFalse(result["quantities_verified"])
+        [hint] = result["suggestions"]
+        self.assertEqual((hint["code"], [i["name"] for i in hint["ingredients"]]), ("NUTRITION_INCOMPLETE", ["沙拉油"]))
         # 補齊 TFDA 資料後重新驗證即可採用（沙拉油 0.5 g = 4 kcal，仍在範圍內）
         filled = dict(TABLE, 沙拉油={"energy_kcal": D("800"), "protein_g": D("0"), "fat_g": D("100")})
         again = mc.calculate_meal(lines, single("1"), mode="ai", calculator=FakeCalculator(filled))
