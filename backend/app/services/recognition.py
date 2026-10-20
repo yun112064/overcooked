@@ -18,6 +18,7 @@ import httpx
 from PIL import Image, ImageOps, UnidentifiedImageError
 
 from app.api.errors import invalid_input
+from app.services.team_link import failure_reason, team_headers
 from app.core.config import settings
 
 ALLOWED_FORMATS = {"JPEG", "PNG", "WEBP"}
@@ -142,13 +143,15 @@ def parse_output(body: dict) -> RecognizerOutput:
 class HttpRecognizer:
     """團隊電腦推論服務：POST {url}/v1/detect，Bearer token，經 HTTPS 或加密通道。"""
 
-    def __init__(self, url: str, token: str | None, timeout: float):
+    def __init__(self, url: str, token: str | None, timeout: float, *, access_client_id: str | None = None,
+                 access_client_secret: str | None = None):
         self.url = url.rstrip("/")
         self.token = token
         self.timeout = timeout
+        self.access_client_id, self.access_client_secret = access_client_id, access_client_secret
 
     def detect(self, jpeg: bytes) -> RecognizerOutput:
-        headers = {"Authorization": f"Bearer {self.token}"} if self.token else {}
+        headers = team_headers(self.token, self.access_client_id, self.access_client_secret)
         try:
             res = httpx.post(f"{self.url}/v1/detect", headers=headers, timeout=self.timeout,
                              files={"image": ("photo.jpg", jpeg, "image/jpeg")})
@@ -156,10 +159,8 @@ class HttpRecognizer:
             raise RecognizerUnavailable("TIMEOUT") from None
         except httpx.HTTPError:
             raise RecognizerUnavailable("UNREACHABLE") from None
-        if res.status_code in (401, 403):
-            raise RecognizerUnavailable("AUTH_FAILED")
-        if res.status_code != 200:
-            raise RecognizerUnavailable("SERVICE_ERROR")
+        if (reason := failure_reason(res.status_code)) is not None:
+            raise RecognizerUnavailable(reason)
         try:
             body = res.json()
         except ValueError:
@@ -171,7 +172,8 @@ def default_recognizer() -> Recognizer | None:
     if not settings.recognition_service_url:
         return None
     return HttpRecognizer(settings.recognition_service_url, settings.recognition_service_token,
-                          settings.recognition_timeout_seconds)
+                          settings.recognition_timeout_seconds, access_client_id=settings.team_access_client_id,
+                          access_client_secret=settings.team_access_client_secret)
 
 
 def _upload_dir(household_id) -> Path:

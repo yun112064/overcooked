@@ -69,6 +69,10 @@ class Settings(BaseSettings):
     generation_max_output_tokens: int = 6000
     explanation_max_output_tokens: int = 2000
 
+    # T17 團隊電腦服務經 Cloudflare Tunnel＋Access：雲端呼叫時附上的 Access 服務權杖（兩個服務共用）
+    team_access_client_id: str | None = None
+    team_access_client_secret: str | None = None
+
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",

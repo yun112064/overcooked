@@ -23,4 +23,6 @@ COPY migrations /app/migrations
 # T12 整餐營養驗證使用 T04 TFDA 營養模組（平面匯入，由 meal_calculation 加入 sys.path）
 COPY nutrition_model /app/nutrition_model
 
-CMD ["sh", "-c", "alembic -c /app/alembic.ini upgrade head && exec uvicorn app.main:app --host 0.0.0.0 --port 8000 --no-access-log"]
+# T17：開發預設啟動時自動升級；正式環境 AUTO_MIGRATE=false，只由部署腳本在部署前備份後升級，
+# 啟動前以 schema 閘門確認資料庫已在 head，否則拒絕啟動
+CMD ["sh", "-c", "if [ \"${AUTO_MIGRATE:-true}\" = \"true\" ]; then alembic -c /app/alembic.ini upgrade head; else python -m app.core.schema_gate; fi && exec uvicorn app.main:app --host 0.0.0.0 --port 8000 --no-access-log"]

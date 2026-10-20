@@ -16,6 +16,7 @@ from sqlalchemy.orm import sessionmaker
 
 from app.core.config import settings
 from app.services import spend
+from app.services.team_link import failure_reason, team_headers
 
 RECORD_FIELDS = ("knowledge_id", "source_version", "ingredient_id", "excerpt", "source_url", "rights", "conditions")
 UNAVAILABLE_CODE = "KNOWLEDGE_UNAVAILABLE"
@@ -32,25 +33,25 @@ class KnowledgeUnavailable(Exception):
 class HttpKnowledgeClient:
     """團隊電腦知識服務：POST {url}/v1/knowledge/search，Bearer token，經 HTTPS 或加密通道（T17）。"""
 
-    def __init__(self, url: str, token: str | None, timeout: float):
+    def __init__(self, url: str, token: str | None, timeout: float, *, access_client_id: str | None = None,
+                 access_client_secret: str | None = None):
         self.url = url.rstrip("/")
         self.token = token
         self.timeout = timeout
+        self.access_client_id, self.access_client_secret = access_client_id, access_client_secret
 
     def _post(self, payload: dict) -> dict:
-        headers = {"Authorization": f"Bearer {self.token}"} if self.token else {}
+        headers = team_headers(self.token, self.access_client_id, self.access_client_secret)
         try:
             res = httpx.post(f"{self.url}/v1/knowledge/search", json=payload, headers=headers, timeout=self.timeout)
         except httpx.TimeoutException:
             raise KnowledgeUnavailable("TIMEOUT") from None
         except httpx.HTTPError:
             raise KnowledgeUnavailable("UNREACHABLE") from None
-        if res.status_code in (401, 403):
-            raise KnowledgeUnavailable("AUTH_FAILED")
         if res.status_code == 409:
             raise KnowledgeUnavailable("MODEL_MISMATCH")
-        if res.status_code != 200:
-            raise KnowledgeUnavailable("SERVICE_ERROR")
+        if (reason := failure_reason(res.status_code)) is not None:
+            raise KnowledgeUnavailable(reason)
         try:
             return res.json()
         except ValueError:
@@ -91,7 +92,8 @@ def default_knowledge_client() -> HttpKnowledgeClient | None:
     if not settings.knowledge_service_url:
         return None
     return HttpKnowledgeClient(settings.knowledge_service_url, settings.knowledge_service_token,
-                               settings.knowledge_timeout_seconds)
+                               settings.knowledge_timeout_seconds, access_client_id=settings.team_access_client_id,
+                               access_client_secret=settings.team_access_client_secret)
 
 
 def _snapshot(food_ids: list[str], status: str, *, records=(), index_version=None, embedding_model=None,
