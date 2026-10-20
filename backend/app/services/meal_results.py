@@ -169,8 +169,23 @@ def view(db: Session, request: MealRequest, result: GenerationResult) -> dict:
         "dishes": _dishes(p), "staple": staple_view(p), "nutrition": _nutrition(p), "prices": _prices(p),
         "knowledge": p.get("explanation") or {"status": "not_found", "items": []},
         "previous_day": _previous_day(p),
+        "previous_day_check": previous_day_check(db, p),
         "eligibility": eligibility(db, request, result),
     }
+
+
+def previous_day_check(db: Session, payload: dict) -> dict:
+    """pre-review #4：以目前的前一日已採用紀錄重新比對（與 T16 採用交易同一函式）。
+
+    衝突時前端停用採用並說明；採用交易內仍會再驗一次（這裡只是預先提示，不能取代交易內重驗）。
+    """
+    check = meal_history.recheck_previous_day(db, payload["previous_day"], payload["dishes"])
+    out = {"status": check["status"], "history_changed": bool(check.get("history_changed"))}
+    if check["status"] == "conflict":
+        out.update(code=check["code"], conflicting_dishes=[d["dish_name"] for d in check["conflicting_dishes"]],
+                   previous_date=check["context"]["previous_date"],
+                   message="生成後前一日的已採用紀錄有變動，此菜單與昨日菜重複，不能採用；請重新生成。")
+    return out
 
 
 def summaries(db: Session, request: MealRequest) -> list[dict]:
