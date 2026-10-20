@@ -142,6 +142,14 @@ export type Job = {
   input_version: number | null
   result_version: number | null
   error: { code: string; message: string } | null
+  /** T14：成功的生成工作附結果摘要；完整結果由 T15 結果頁讀取 */
+  result_summary?: {
+    generation_result_id: string
+    result_version: number
+    mode: 'database_menu' | 'ai_generated_menu'
+    mode_label: string
+    fallback_reason: string | null
+  } | null
   created_at: string
   updated_at: string
 }

@@ -49,18 +49,21 @@ class JobContext:
         )
 
 
-def generation_not_available(ctx: JobContext) -> dict:
-    """T14 完成前的生成處理：明確回報未開放，不假裝產生菜單、不呼叫付費服務。"""
-    ctx.stage("validating_input")
-    ctx.input_payload()
-    raise jobs.JobFailure(
-        "GENERATION_NOT_AVAILABLE",
-        "菜單生成功能尚未開放（待 Ticket 14）；問卷已保留，開放後可重新送出。",
-    )
+def _generation_handler(ctx: "JobContext") -> dict:
+    """T14 菜單生成：資料庫菜單優先，查無可行方案自動 AI 生成，最後附知識說明。"""
+    from app.services import generation
+    return generation.make_generation_handler()(ctx)
 
+
+def _persist_generation(db, job, result):
+    from app.services import generation
+    return generation.persist_result(db, job, result)
+
+
+_generation_handler.persist = _persist_generation
 
 HANDLERS: dict[str, Callable[[JobContext], dict]] = {
-    jobs.GENERATION: generation_not_available,
+    jobs.GENERATION: _generation_handler,
 }
 
 
@@ -88,13 +91,15 @@ def run_once(factory: sessionmaker, owner: str, handlers: dict | None = None) ->
                   retryable=False)
     except (jobs.RetryableJobError, spend.CallNotBilled, TimeoutError) as exc:
         # TimeoutError 只在付費呼叫之外發生（付費呼叫的逾時會轉成 UncertainBilling）
-        jobs.fail(factory, job.id, owner, code="SERVICE_TIMEOUT" if isinstance(exc, TimeoutError) else "GENERATION_FAILED",
-                  message="暫時性錯誤，系統會自動重試一次。", retryable=True)
+        code = getattr(exc, "code", None) or ("SERVICE_TIMEOUT" if isinstance(exc, TimeoutError) else "GENERATION_FAILED")
+        message = getattr(exc, "user_message", None) or "暫時性錯誤，系統會自動重試一次。"
+        jobs.fail(factory, job.id, owner, code=code, message=message, retryable=True)
     except Exception:
         jobs.fail(factory, job.id, owner, code="GENERATION_FAILED",
                   message="生成過程發生錯誤；問卷已保留，可重新送出。", retryable=False)
     else:
-        jobs.complete(factory, job.id, owner, result)
+        # 處理函式可附 persist（例如 T14 生成結果表），與完成狀態在同一交易寫入
+        jobs.complete(factory, job.id, owner, result, persist=getattr(handler, "persist", None))
     return job
 
 

@@ -8,6 +8,12 @@ const STAGE_LABELS: Record<string, string> = {
   queued: '排隊中',
   started: '開始處理',
   validating_input: '檢查問卷',
+  retrieving: '查詢資料庫食譜',
+  ai_generating: 'AI 生成菜單中',
+  validating: '檢查菜單條件',
+  calculating: '計算營養與價格',
+  knowledge: '查詢營養知識',
+  explaining: '整理知識說明',
   retry_scheduled: '稍後自動重試',
   recovered: '重新排入佇列',
   result_ready: '已完成',
@@ -72,11 +78,16 @@ export default function GenerationPanel({ row, onChanged }: Props) {
           </Typography>
           {active && <LinearProgress sx={{ mt: 1 }} />}
           {job.status === 'failed' && job.error && (
-            <Alert severity={job.error.code === 'GENERATION_NOT_AVAILABLE' ? 'info' : 'error'} sx={{ mt: 1 }}>
+            <Alert severity="error" sx={{ mt: 1 }}>
               {job.error.message}
             </Alert>
           )}
-          {job.status === 'succeeded' && <Alert severity="success" sx={{ mt: 1 }}>已產生結果。</Alert>}
+          {job.status === 'succeeded' && (
+            <Alert severity="success" sx={{ mt: 1 }}>
+              已產生結果{job.result_summary ? `（${job.result_summary.mode_label}，第 ${job.result_summary.result_version} 版）` : ''}。
+              {job.result_summary?.mode === 'ai_generated_menu' && ' 資料庫沒有可行菜單，已自動改由 AI 生成。'}
+            </Alert>
+          )}
         </Box>
       )}
       {submit.isError && <Alert severity="error">{errorMessage(submit.error)}</Alert>}

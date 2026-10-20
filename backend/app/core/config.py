@@ -63,6 +63,11 @@ class Settings(BaseSettings):
     openai_base_url: str = "https://api.openai.com/v1"
     openai_timeout_seconds: float = 30.0
     embedding_model: str = "text-embedding-3-small"
+    # T14 菜單生成／AI 回退與知識說明：固定版本模型（decisions #11），輸出上限即預留的最壞情況
+    generation_model: str = "gpt-5.4-mini-2026-03-17"
+    generation_timeout_seconds: float = 90.0
+    generation_max_output_tokens: int = 6000
+    explanation_max_output_tokens: int = 2000
 
     model_config = SettingsConfigDict(
         env_file=".env",
