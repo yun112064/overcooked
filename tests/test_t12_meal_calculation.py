@@ -171,6 +171,16 @@ class ScalingTests(unittest.TestCase):
         self.assertEqual(mc.display_half(D("1.25")), D("1.5"))
         self.assertEqual(mc.display_half(D("1.24")), D("1.0"))
 
+    def test_resolved_lines_keep_the_original_unit_for_display_and_grams_only_for_trace(self):
+        # decisions #21：有克數（工作簿 weight_g）時仍顯示原數量＋原單位；克數只留在追溯欄位
+        soy = line("醬油", "9", unit="大匙", amount_per_n=D("0.5"), weight_source="workbook")
+        garlic = line("大蒜", "5", unit="瓣", amount_per_n=D("1"), weight_source="workbook")
+        rows = mc.calculate_meal(BASE_LINES + [soy, garlic], single("1.3"), mode="ai",
+                                 calculator=FakeCalculator())["ingredients"]
+        shown = {r["name"]: (r["display_amount"], r["display_unit"], r["whole_meal_grams"]) for r in rows}
+        self.assertEqual(shown["醬油"], (D("0.5"), "大匙", D("11.7")))  # 0.65 大匙 → 顯示 0.5
+        self.assertEqual(shown["大蒜"], (D("1.3"), "瓣", D("6.5")))
+
     def test_same_food_in_two_dishes_is_one_requirement(self):
         lines = [line("雞胸肉", "100", dish_id="d1"), line("白飯", "225", dish_id="d1"),
                  line("雞胸肉", "50", dish_id="d2")]

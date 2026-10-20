@@ -408,13 +408,16 @@ def display_half(value: Decimal) -> Decimal:
 
 
 def _display(ln: IngredientLine, whole: Decimal | None, n: Decimal) -> dict:
-    """畫面用量：有克數 → 克到 1 g；只有原單位 → 容量單位到 0.5，其他單位照原單位；都沒有 → 原文。"""
-    if whole is not None:
-        return {"display_amount": _display_grams(whole), "display_unit": "g", "display_text": None}
-    if ln.amount_per_n is not None and ln.unit:
-        amount = ln.amount_per_n * n
+    """畫面用量（decisions #21）：有原數量＋原單位（非 g）→ 一律顯示原單位（容量單位到 0.5，其他照原單位），
+    克數只留在追溯欄位；原單位是 g 或沒有原單位但有克數 → 克到 1 g；都沒有 → 原文。
+    縮放倍率：有克數時用整餐克數 ÷ 每 1n 克數（含熱量對齊調整），否則用 n。"""
+    if ln.amount_per_n is not None and ln.unit and ln.unit != "g":
+        factor = whole / ln.grams_per_n if whole is not None and ln.grams_per_n else n
+        amount = ln.amount_per_n * factor
         shown = display_half(amount) if ln.unit in VOLUME_UNITS else amount.quantize(Decimal("0.01")).normalize()
         return {"display_amount": shown, "display_unit": ln.unit, "display_text": None}
+    if whole is not None:
+        return {"display_amount": _display_grams(whole), "display_unit": "g", "display_text": None}
     return {"display_amount": None, "display_unit": None, "display_text": ln.raw_text or ln.name}
 
 

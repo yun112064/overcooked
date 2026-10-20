@@ -26,8 +26,14 @@
 ## 規則與決定
 
 - 比較一律用 Fraction／Decimal 精確值，90%、110% 含邊界；`display_grams` 只供畫面（四捨五入到 1 g），驗證與 T13 都用未取整值（decisions #3）。
-- 顯示用量（P4）：`display_amount`／`display_unit`／`display_text`。有克數 → 克到 1 g；只有原單位時，大匙、小匙、匙、杯、米杯、ml
-  取到 0.5，其他單位照原單位（到 0.01），都沒有就顯示原文（例如「胡椒 少許」）。
+- 顯示用量（P4，decisions #21）：`display_amount`／`display_unit`／`display_text`。有原數量＋原單位（非 g）時**一律顯示原單位**
+  （即使已有克數；倍率＝整餐克數 ÷ 每 1n 克數，含熱量對齊，沒有克數時用 n）：大匙、小匙、匙、杯、米杯、ml 取到 0.5，
+  其他單位照原單位（到 0.01）；原單位是 g 或只有克數 → 克到 1 g；都沒有就顯示原文（例如「胡椒 少許」）。
+  克數只用於營養計算，保留在 `whole_meal_grams`／`display_grams` 供追溯。
+- 克數來源（decisions #20）：單位 g → 原文克數（`weight_source = "recipe_grams"`）；其他單位 → 工作簿該列 `weight_g`
+  （T01 存於 `source_weight_g`，視為生重，`weight_source = "workbook"`，不標示 LLM 推估）；工作簿缺值才用快取的每單位克數推估
+  （`weight_source = "unit_estimate"`，人工值優先、rejected 不用）；都沒有 → 未知（`INGREDIENT_UNRESOLVED`）。
+  批次推估的單位掃描只看 `weight_g` 與 `source_weight_g` 皆缺的列。
 - 精確度（P5）：`tfda_calculator` 不把克數轉 float 送進 T04；每項食材以 100 g 呼叫 T04 取得每 100 g 營養（T04 對重量線性），
   以 `Decimal(str())` 取值後在 T12 內以 Decimal 乘克數。正好 90%／110% 的真實 TFDA 案例有測試。
 - 生熟資料規範（P6，decisions #17）：**食譜工作簿的克數一律視為生重**（`weight_basis = raw`，依據 `recipe_workbook_raw_convention`）；
