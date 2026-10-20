@@ -346,6 +346,10 @@ class KnowledgeRetryTests(ResultTestCase):
         self.assertEqual(res.status_code, 202, res.text)
         self.assertEqual(res.json()["job"]["kind"], "knowledge_retry")
         self.assertEqual(self.result()["retries"]["knowledge"]["status"], "queued")
+        # 生成面板只追蹤生成工作：可依種類篩選，重試工作不會被當成「生成中」
+        jobs = self.client.get("/jobs", params={"meal_request_id": self.request["id"], "kind": "meal_generation"})
+        self.assertEqual({j["kind"] for j in jobs.json()["jobs"]}, {"meal_generation"})
+        self.assertEqual(self.status(), "result_ready")
         client = FakeKnowledgeClient([knowledge_record("K1", TOMATO, "番茄含維生素（合成）")])
         responder = FakeResponder({"items": [{"ingredient_id": TOMATO, "explanation": "番茄含維生素。", "citations": [
             {"knowledge_id": "K1", "source_version": "v1", "ingredient_id": TOMATO}]}]})

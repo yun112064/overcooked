@@ -209,6 +209,7 @@ def detail(plan: AdoptedMealPlan) -> dict:
         "fallback_message": meal_results.FALLBACK_MESSAGES.get(payload.get("fallback_reason"))
         if payload.get("fallback_reason") else None,
         "dishes": dishes,
+        "staple": meal_results.staple_view(payload),
         "request": {k: snap["request"].get(k) for k in ("meal_date", "meal_type", "budget", "staple", "dish_count",
                                                        "specified_dishes", "taste_preferences",
                                                        "available_ingredient_ids")},

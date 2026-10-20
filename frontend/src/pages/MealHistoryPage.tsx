@@ -37,7 +37,9 @@ function PlanCard({ plan }: { plan: MealPlanDetail }) {
                 {d.aliases.length > 0 && <Typography component="span" variant="caption" color="text.secondary">（又名 {d.aliases.join('、')}）</Typography>}
               </Typography>
               {d.ingredients && (
-                <Typography variant="body2">{d.ingredients.map((i) => `${i.name} ${grams(i.display_grams)}`).join('、')}</Typography>
+                <Typography variant="body2">{d.ingredients.map((i) => `${i.name} ${
+                  i.display_amount != null && i.display_unit ? `${Number(i.display_amount)} ${i.display_unit}`
+                    : i.display_text ?? grams(i.display_grams)}`).join('、')}</Typography>
               )}
               {d.steps && d.steps.length > 0 && (
                 <Box component="ol" sx={{ my: 0.5, pl: 3 }}>

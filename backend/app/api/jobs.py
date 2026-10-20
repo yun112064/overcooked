@@ -14,11 +14,14 @@ router = APIRouter(prefix="/jobs", tags=["jobs"])
 
 
 @router.get("")
-def list_jobs(meal_request_id: uuid.UUID | None = Query(None), household_id=Depends(current_household_id),
-              db: Session = Depends(get_db)):
+def list_jobs(meal_request_id: uuid.UUID | None = Query(None), kind: str | None = Query(None, max_length=40),
+              household_id=Depends(current_household_id), db: Session = Depends(get_db)):
+    """kind 可篩選工作種類（meal_generation、knowledge_retry、price_retry）。"""
     query = select(BackgroundJob).where(BackgroundJob.household_id == household_id)
     if meal_request_id is not None:
         query = query.where(BackgroundJob.meal_request_id == meal_request_id)
+    if kind is not None:
+        query = query.where(BackgroundJob.kind == kind)
     rows = db.scalars(query.order_by(BackgroundJob.created_at.desc()).limit(50)).all()
     return {"jobs": [public_view(j) for j in rows]}
 

@@ -1,4 +1,4 @@
-import { Alert, Box, Button, LinearProgress, Stack, Typography } from '@mui/material'
+import { Alert, Box, Button, Chip, LinearProgress, Stack, Typography } from '@mui/material'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useEffect, useRef } from 'react'
 import { api, errorMessage } from '../api/client'
@@ -24,6 +24,32 @@ const STAGE_LABELS: Record<string, string> = {
 
 const ACTIVE = new Set(['queued', 'running'])
 
+type ServiceState = { status: 'online' | 'offline' | 'not_configured'; reason: string | null }
+const SERVICE_LABEL: Record<ServiceState['status'], string> = { online: '在線', offline: '離線', not_configured: '未設定' }
+
+/** 團隊電腦（YOLO 辨識、營養知識）是否在線：離線時生成仍可用，只是辨識與知識說明暫時無法使用。 */
+function TeamStatus() {
+  const status = useQuery({
+    queryKey: ['team-status'],
+    queryFn: async () =>
+      (await api.get<{ recognition: ServiceState; knowledge: ServiceState }>('/health/team')).data,
+    staleTime: 30_000,
+  })
+  if (!status.data) return null
+  const { recognition, knowledge } = status.data
+  const color = (s: ServiceState) => (s.status === 'online' ? 'success' : s.status === 'offline' ? 'warning' : 'default')
+  return (
+    <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', alignItems: 'center' }}>
+      <Typography variant="caption" color="text.secondary">團隊電腦服務：</Typography>
+      <Chip size="small" color={color(recognition)} label={`蔬菜辨識 ${SERVICE_LABEL[recognition.status]}`} />
+      <Chip size="small" color={color(knowledge)} label={`營養知識 ${SERVICE_LABEL[knowledge.status]}`} />
+      {knowledge.status !== 'online' && (
+        <Typography variant="caption" color="text.secondary">（菜單照常生成，知識說明之後可單獨重試）</Typography>
+      )}
+    </Box>
+  )
+}
+
 type Props = { row: MealRequest; onChanged: () => void }
 
 /** 送出生成並追蹤工作狀態；有結果時顯示結果頁（T15）。查無資料庫菜單會自動改由 AI 生成，不詢問同意。 */
@@ -39,7 +65,9 @@ export default function GenerationPanel({ row, onChanged }: Props) {
   const latest = useQuery({
     queryKey: ['jobs', row.id],
     queryFn: async () =>
-      (await api.get<{ jobs: Job[] }>('/jobs', { params: { meal_request_id: row.id } })).data.jobs[0] ?? null,
+      // 只看生成工作；結果重試（知識說明、定向查價）由結果頁自己追蹤
+      (await api.get<{ jobs: Job[] }>('/jobs', { params: { meal_request_id: row.id, kind: 'meal_generation' } }))
+        .data.jobs[0] ?? null,
     refetchInterval: (q) => (q.state.data && ACTIVE.has(q.state.data.status) ? 2000 : false),
   })
 
@@ -77,6 +105,7 @@ export default function GenerationPanel({ row, onChanged }: Props) {
 
   return (
     <Stack spacing={1.5}>
+      <TeamStatus />
       {job && lastJobForThisVersion && (
         <Box>
           <Typography>

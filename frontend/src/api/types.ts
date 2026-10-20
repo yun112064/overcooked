@@ -141,6 +141,8 @@ export type Job = {
   meal_request_id: string | null
   input_version: number | null
   result_version: number | null
+  /** T15 結果重試工作（knowledge_retry／price_retry）的來源結果版本 */
+  source_result_version?: number | null
   error: { code: string; message: string } | null
   /** T14：成功的生成工作附結果摘要；完整結果由 T15 結果頁讀取 */
   result_summary?: {
@@ -213,6 +215,46 @@ export type KnowledgeCitation = {
   attribution?: string | null
 }
 
+export type ResultIngredient = {
+  food_id: string
+  name: string
+  weight_basis: string | null
+  whole_meal_grams: string | null
+  display_grams: string | null
+  /** 畫面用量：克到 1 g；湯匙等容量單位到 0.5；無換算者照原單位，都沒有時顯示原文 */
+  display_amount?: string | null
+  display_unit?: string | null
+  display_text?: string | null
+}
+
+export type NutritionSuggestion = {
+  code: 'NUTRITION_OUT_OF_RANGE' | 'NUTRITION_INCOMPLETE' | 'INGREDIENT_UNRESOLVED'
+  nutrient?: 'energy_kcal' | 'protein_g'
+  direction?: 'increase' | 'decrease'
+  needed_change?: string
+  within_adjustable_ranges?: boolean
+  action?: string
+  ingredients: {
+    food_id: string
+    name: string
+    direction?: 'increase' | 'decrease'
+    adjustable_min?: string | null
+    adjustable_max?: string | null
+    adjustment_approved?: boolean
+    max_change?: string | null
+  }[]
+}
+
+export type RetryState = {
+  job_id: string
+  status: 'queued' | 'running' | 'succeeded' | 'failed'
+  stage: string | null
+  attempts: number
+  error: { code: string; message: string } | null
+  produced_result_version: number | null
+  created_at: string
+}
+
 export type MealResult = {
   meal_request_id: string
   request_status: string
@@ -234,8 +276,21 @@ export type MealResult = {
     specified: boolean
     cooking_method: string | null
     steps: string[]
-    ingredients: { food_id: string; name: string; weight_basis: string | null; whole_meal_grams: string | null; display_grams: string | null }[]
+    ingredients: ResultIngredient[]
   }[]
+  /** 主食（decisions #16）：計入營養與 ±10%，不計價格；份量設定待營養審核者確認 */
+  staple: {
+    label: string
+    tfda_name: string | null
+    food_id: string | null
+    review_status: string | null
+    unresolved_reason: string | null
+    whole_meal_grams: string | null
+    display_amount: string | null
+    display_unit: string | null
+    display_text: string | null
+    counts_for_price: false
+  } | null
   nutrition: {
     total_n: string | null
     target: { energy_kcal: string; protein_g: string } | null
@@ -245,6 +300,9 @@ export type MealResult = {
     within_range: boolean
     other_nutrients: Record<string, string | null>
     missing_nutrients: Record<string, string[]>
+    /** false：用量未通過驗證（缺資料或無法在範圍內符合目標），僅供查看 */
+    quantities_verified?: boolean
+    suggestions?: NutritionSuggestion[]
   }
   prices: {
     status: string
@@ -261,7 +319,20 @@ export type MealResult = {
     status: 'available' | 'not_found' | 'unavailable'
     code?: string
     reason?: string | null
+    /** 知識服務故障或額度不足時可「只重試知識說明」 */
+    retry_available?: boolean
     items: { ingredient_id: string; ingredient_name: string | null; explanation: string; citations: KnowledgeCitation[] }[]
+  }
+  /** 重試工作狀態（查價中／說明產生中、失敗原因、產生的新版本） */
+  retries?: { price: RetryState | null; knowledge: RetryState | null }
+  /** 目前的昨日已採用紀錄比對（衝突時不可採用，按鈕停用） */
+  previous_day_check?: {
+    status: 'ok' | 'conflict'
+    history_changed: boolean
+    code?: string
+    conflicting_dishes?: string[]
+    previous_date?: string
+    message?: string
   }
   previous_day: {
     previous_date: string | null
@@ -269,6 +340,8 @@ export type MealResult = {
     excluded_dishes: { standard_dish_id: string; dish_name: string; aliases: string[] }[]
     specified_repeats: string[]
   }
+  knowledge_retry?: { from_result_version: number; retried_at: string } | null
+  price_retry?: { from_result_version: number; retried_at: string; price_source: string } | null
   eligibility: {
     adoptable: boolean
     viewable: boolean
