@@ -1,6 +1,7 @@
 {
   "model_id": "yolo26s-food41-denoise-seed45-50e",
   "architecture": "YOLO26s",
+  "weights_path": "inference/models/yolo26s-food41-denoise-seed45-50e.pt",
   "weights_source": "yolo_training/runs/yolo26s_opencv_full_20261017/denoise_seed45_50e/weights/best.pt",
   "weights_sha256": "6f72205222e3b20ba0edd477f8f6ad44b1ca0082d5309383e2759cde0cad205f",
   "initial_weights_sha256": "646f8bc3fe0a656803d95c294f7852321748cb29d13466a1af8862e2db384a1b",

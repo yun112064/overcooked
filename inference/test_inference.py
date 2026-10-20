@@ -133,6 +133,11 @@ class ManifestTests(unittest.TestCase):
         self.assertEqual(sorted(manifest["classes"]), sorted(labels))
         self.assertIn(manifest["preprocess"], preprocess.PREPROCESSORS)
 
+    def test_committed_weights_match_manifest(self):
+        root = Path(__file__).resolve().parents[1]
+        manifest = json.loads((root / "inference/model_manifest.json").read_text(encoding="utf-8"))
+        self.assertEqual(server.sha256_file(root / manifest["weights_path"]), manifest["weights_sha256"])
+
 
 if __name__ == "__main__":
     unittest.main()

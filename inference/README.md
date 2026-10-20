@@ -6,14 +6,14 @@
 
 | 項目 | 內容 |
 |---|---|
-| 模型 | YOLO26s，Food41 39 類，`yolo_training/runs/yolo26s_opencv_full_20261017/denoise_seed45_50e/weights/best.pt` |
+| 模型 | YOLO26s，Food41 39 類，權重 `inference/models/yolo26s-food41-denoise-seed45-50e.pt`（20 MB，已放在 Git；來源 `yolo_training/runs/yolo26s_opencv_full_20261017/denoise_seed45_50e/weights/best.pt`） |
 | SHA-256 | `6f72205222e3b20ba0edd477f8f6ad44b1ca0082d5309383e2759cde0cad205f`（啟動時核對，不符就拒絕啟動） |
 | 前處理 | `denoise`：`cv2.medianBlur(image, 3)` 中值濾波降噪，與訓練資料相同 |
 | 選擇依據 | YOLO26s 各次訓練中，同一份 591 張獨立 test 集 mAP50–95 最高（63.39%；mAP50 82.98%、P 77.79%、R 76.99%） |
 
 完整比較與尚未納入的組合前處理實驗見 [model_manifest.json](model_manifest.json)。**AC22 尚未通過**：整體 precision／recall 仍未達 80%，且需另外報告主要類別 macro 指標。
 
-權重檔不進 Git，請放在 Runtime Root 並以 `INFERENCE_WEIGHTS` 指定。換模型時要同時更新 `model_manifest.json`（雜湊、類別、前處理、指標）與雲端的 `config/recognition_labels.json`，並發行新版本。
+權重檔放在 `inference/models/`，隊友下載分支即可使用；其他訓練產生的 `*.pt` 仍不進 Git。換模型時把新權重放進 `inference/models/`，並同時更新 `model_manifest.json`（`weights_path`、雜湊、類別、前處理、指標）與雲端的 `config/recognition_labels.json`，再發行新版本。
 
 ## 前處理模式
 
@@ -26,11 +26,12 @@
 
 ## 啟動
 
-使用已安裝 Ultralytics 的訓練環境即可，不需另外安裝套件（只用標準函式庫的 HTTP 伺服器）：
+本機開發直接雙擊 `start-dev.cmd`：腳本會自動建立 `.venv-yolo`、安裝 `inference/requirements.txt`（第一次需下載 PyTorch，約數分鐘），再用 Git 裡的權重啟動本服務並接到後端。已有訓練環境可在 `.env.dev` 填 `YOLO_PYTHON`；不需要辨識時設 `DEV_SKIP_YOLO=1`。
+
+手動啟動時 `INFERENCE_WEIGHTS` 可省略（預設為 manifest 的 `weights_path`）；服務只用標準函式庫的 HTTP 伺服器：
 
 ```powershell
 $env:INFERENCE_TOKEN = "與雲端 RECOGNITION_SERVICE_TOKEN 相同的隨機字串"
-$env:INFERENCE_WEIGHTS = "D:\AIPE04期末專題_runtime\models\yolo26s-food41-denoise-seed45-50e.pt"
 $env:INFERENCE_DEVICE = "0"   # GPU；未設定時用 cpu
 D:\AIPE04期末專題\yolo_training\.venv\Scripts\python.exe inference\server.py
 ```

@@ -20,9 +20,11 @@ logs/
 # T04 source downloads are large raw inputs; generated JSON is committed.
 nutrition_model/data/raw/
 
-# 模型權重放在 Runtime Root，不進 Git
+# 模型權重一般不進 Git；只有 T09 正式使用的那一份放在 inference/models/，讓隊友下載就能辨識
 *.pt
 *.onnx
+!inference/models/*.pt
+.venv-yolo/
 
 # T01 raw recipe workbooks are local source material and require separate approval.
 data/*.xlsx

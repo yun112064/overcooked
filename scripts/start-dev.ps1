@@ -116,13 +116,31 @@ New-Item -ItemType Directory -Force $DataRoot | Out-Null
 $env:PROJECT_DATA_ROOT = $DataRoot
 # 其餘設定（例如之後新增的 API key）原樣傳下去；DEV_ 開頭與腳本專用的不傳
 foreach ($k in $Cfg.Keys) {
-    if ($k -like 'DEV_*' -or $k -in @('PROJECT_DATA_ROOT', 'YOLO_PYTHON', 'RECIPE_WORKBOOK')) { continue }
+    if ($k -like 'DEV_*' -or $k -in @('PROJECT_DATA_ROOT', 'YOLO_PYTHON', 'RECIPE_WORKBOOK', 'INFERENCE_WEIGHTS')) { continue }
     Set-Item "env:$k" $Cfg[$k]
 }
-$YoloPy = Cfg 'YOLO_PYTHON'
-$Weights = Cfg 'INFERENCE_WEIGHTS'
+$Weights = Resolve-FromRoot (Cfg 'INFERENCE_WEIGHTS' 'inference/models/yolo26s-food41-denoise-seed45-50e.pt')
+$env:INFERENCE_WEIGHTS = $Weights
 $YoloPort = Cfg 'INFERENCE_PORT' '8765'
-$UseYolo = $YoloPy -and $Weights -and (Test-Path $YoloPy) -and (Test-Path $Weights) -and (Cfg 'INFERENCE_TOKEN')
+$YoloPy = Cfg 'YOLO_PYTHON'
+if ((Cfg 'DEV_SKIP_YOLO') -eq '1') {
+    $YoloPy = ''
+} elseif (-not $YoloPy) {
+    # 沒指定訓練環境 → 用專案內的 .venv-yolo（第一次會下載 Ultralytics 與 PyTorch，約數分鐘）
+    $YoloPy = Join-Path $Root '.venv-yolo\Scripts\python.exe'
+    if (-not (Test-Path $YoloPy)) {
+        Step '建立 YOLO 推論環境 .venv-yolo'
+        if (Get-Command py -ErrorAction SilentlyContinue) { & py -3.12 -m venv .venv-yolo } else { & python -m venv .venv-yolo }
+    }
+    $YoloStamp = Join-Path $Root '.venv-yolo\.requirements.sha256'
+    $YoloHash = (Get-FileHash (Join-Path $Root 'inference\requirements.txt')).Hash
+    if ((Test-Path $YoloPy) -and (-not (Test-Path $YoloStamp) -or (Get-Content $YoloStamp) -ne $YoloHash)) {
+        Step '安裝 YOLO 推論套件（inference/requirements.txt 有更新；第一次較久）'
+        & $YoloPy -m pip install --disable-pip-version-check -r inference/requirements.txt
+        if ($LASTEXITCODE -eq 0) { Set-Content $YoloStamp $YoloHash } else { Write-Host '    YOLO 套件安裝失敗，先略過辨識服務。' -ForegroundColor Yellow; $YoloPy = '' }
+    }
+}
+$UseYolo = $YoloPy -and (Test-Path $YoloPy) -and (Test-Path $Weights) -and (Cfg 'INFERENCE_TOKEN')
 if ($UseYolo) {
     $env:RECOGNITION_SERVICE_URL = "http://127.0.0.1:$YoloPort"
     $env:RECOGNITION_SERVICE_TOKEN = Cfg 'INFERENCE_TOKEN'
@@ -174,7 +192,7 @@ Start-Service-Window 'frontend' 5173 'npm --prefix frontend run dev -- --host 12
 if ($UseYolo) {
     Start-Service-Window 'yolo' $YoloPort "& '$YoloPy' inference/server.py"
 } else {
-    Write-Host '    YOLO 未啟動（.env.dev 的 YOLO_PYTHON／INFERENCE_WEIGHTS 未設定或路徑不存在）；辨識會顯示不可用，仍可手動輸入食材。' -ForegroundColor Yellow
+    Write-Host '    YOLO 未啟動（DEV_SKIP_YOLO=1、套件安裝失敗，或 YOLO_PYTHON／INFERENCE_WEIGHTS 路徑不存在）；辨識會顯示不可用，仍可手動輸入食材。' -ForegroundColor Yellow
 }
 
 Step '等待後端就緒'

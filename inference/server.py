@@ -8,7 +8,7 @@
 
 環境變數：
   INFERENCE_TOKEN       必填，與雲端 RECOGNITION_SERVICE_TOKEN 相同
-  INFERENCE_WEIGHTS     權重檔路徑（放在 Runtime Root，不進 Git）
+  INFERENCE_WEIGHTS     權重檔路徑（預設為 manifest 的 weights_path，已放在 Git）
   INFERENCE_PREPROCESS  none／denoise，預設使用 manifest 指定、與訓練相同的前處理
   INFERENCE_DEVICE      cpu 或 GPU 編號（預設 cpu）
   INFERENCE_CONF        偵測信心下限（預設 0.25）
@@ -30,7 +30,8 @@ from urllib.parse import parse_qs, urlsplit
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import preprocess  # noqa: E402
 
-MANIFEST_PATH = Path(__file__).resolve().parent / "model_manifest.json"
+ROOT = Path(__file__).resolve().parents[1]
+MANIFEST_PATH = ROOT / "inference/model_manifest.json"
 MAX_BYTES = 12 * 1024 * 1024
 
 
@@ -157,9 +158,9 @@ def main() -> None:
     if not token:
         raise SystemExit("Set INFERENCE_TOKEN")
     manifest = json.loads(MANIFEST_PATH.read_text(encoding="utf-8"))
-    weights = Path(os.environ.get("INFERENCE_WEIGHTS", ""))
+    weights = Path(os.environ.get("INFERENCE_WEIGHTS") or ROOT / manifest["weights_path"])
     if not weights.is_file():
-        raise SystemExit("Set INFERENCE_WEIGHTS to the model file listed in model_manifest.json")
+        raise SystemExit(f"Weights not found: {weights}")
     mode = os.environ.get("INFERENCE_PREPROCESS", manifest["preprocess"])
     if mode not in preprocess.PREPROCESSORS:
         raise SystemExit(f"Unknown INFERENCE_PREPROCESS {mode!r}")
