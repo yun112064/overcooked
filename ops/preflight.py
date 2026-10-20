@@ -100,12 +100,12 @@ def check(env: dict, *, side: str) -> tuple[list[str], list[str]]:
 def main(argv=None) -> int:
     from pathlib import Path
 
-    from ops.backup import _load_env
+    from ops.env import load_env
     parser = argparse.ArgumentParser(description="T17 正式設定檢查（不印秘密值）")
     parser.add_argument("side", choices=("cloud", "team"))
     parser.add_argument("--env-file", type=Path, required=True)
     args = parser.parse_args(argv)
-    errors, warnings = check(_load_env(args.env_file), side=args.side)
+    errors, warnings = check(load_env(args.env_file), side=args.side)
     for w in warnings:
         print(f"警告：{w}")
     for e in errors:

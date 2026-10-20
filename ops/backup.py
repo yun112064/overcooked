@@ -10,7 +10,6 @@
 import argparse
 import hashlib
 import json
-import os
 import shutil
 import subprocess
 import sys
@@ -18,6 +17,7 @@ import tarfile
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
+from ops.env import load_env, safe_error
 from ops.pg import PgTools
 
 FORMAT = "meal-planner-backup/1"
@@ -195,17 +195,6 @@ def mirror_backup(path: Path, mirror_root: Path) -> Path:
     return final
 
 
-def _load_env(env_file: Path | None) -> dict:
-    env = dict(os.environ)
-    if env_file and Path(env_file).is_file():
-        for line in Path(env_file).read_text(encoding="utf-8").splitlines():
-            line = line.strip()
-            if line and not line.startswith("#") and "=" in line:
-                key, value = line.split("=", 1)
-                env.setdefault(key.strip().removeprefix("export ").strip(), value.strip().strip('"').strip("'"))
-    return env
-
-
 def main(argv=None) -> int:
     parser = argparse.ArgumentParser(description="T17 每日備份（含保留期與獨立位置副本）")
     parser.add_argument("side", choices=SIDES)
@@ -218,7 +207,7 @@ def main(argv=None) -> int:
     parser.add_argument("--keep-days", type=int)
     parser.add_argument("--label", help="例如 predeploy")
     args = parser.parse_args(argv)
-    env = _load_env(args.env_file)
+    env = load_env(args.env_file)
     cloud = args.side == "cloud"
     container = args.container or env.get("BACKUP_PG_CONTAINER") or ("meal-planner-db" if cloud else "meal-knowledge-db")
     database = args.database or env.get("BACKUP_DATABASE") or ("meal_planner" if cloud else "meal_knowledge")
@@ -242,7 +231,7 @@ def main(argv=None) -> int:
         for d in removed:
             print(f"pruned: {d}")
     except Exception as exc:  # noqa: BLE001 — 排程器只看結束碼與訊息
-        print(f"backup FAILED: {exc}", file=sys.stderr)
+        print(f"backup FAILED: {safe_error(exc)}", file=sys.stderr)
         return 1
     return 0
 

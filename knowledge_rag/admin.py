@@ -209,8 +209,9 @@ def main(argv: list[str] | None = None, *, deps: Deps | None = None) -> int:
     except SystemExit as exc:
         print(str(exc), file=sys.stderr)
         return 2
-    except Exception as exc:  # noqa: BLE001 — 管理指令：顯示錯誤類型與訊息，不印堆疊
-        print(f"{type(exc).__name__}: {exc}", file=sys.stderr)
+    except Exception as exc:  # noqa: BLE001 — 管理指令：顯示錯誤類型與經遮蔽的訊息，不印堆疊
+        from ops.env import safe_error
+        print(safe_error(exc), file=sys.stderr)
         return 1
 
 
