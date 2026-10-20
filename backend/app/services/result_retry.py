@@ -82,9 +82,9 @@ def make_knowledge_retry_handler(*, responder=_DEFAULT, knowledge_client=_DEFAUL
 # --- 缺價定向查價 ---
 
 def default_price_lookup(food_ids: list[str]) -> dict:
-    """以 T02 PriceCollectionService 只查指定 FOOD 編號（PX Mart、低頻率），結果寫入價格快照。"""
+    """以 T02 PriceCollectionService 只查指定 FOOD 編號（全聯；查無時萬家福；低頻率），結果寫入價格快照。"""
     from app.core.config import settings
-    from app.pricing_scheduler import SchedulerSettings
+    from app.pricing_scheduler import SchedulerSettings, create_service
     from app.source_adapters.price_collection import PriceCollectionService
     from app.source_adapters.pricing_repository import PricingRepository
     from app.source_adapters.pxmart import PxMartAdapter
@@ -93,14 +93,20 @@ def default_price_lookup(food_ids: list[str]) -> dict:
     service = PriceCollectionService(
         workbook_path=config.workbook_path, repository=PricingRepository(),
         adapter_factory=lambda: PxMartAdapter(timeout=config.timeout_seconds, retries=config.retries),
-        delay_seconds=max(settings.price_retry_delay_seconds, config.delay_seconds))
+        delay_seconds=max(settings.price_retry_delay_seconds, config.delay_seconds),
+        fallback_adapter_factory=create_service(config).fallback_adapter_factory)
     now = datetime.now(timezone.utc)
     result = service.run(trigger_type="targeted", scheduled_for=now, run_key=f"pxmart-targeted-{uuid.uuid4()}",
                          food_ids=set(food_ids))
     if result.status == "skipped":
         raise PriceLookupBusy(result.skipped_reason or "busy")
-    return {"status": result.status, "auto_adopted": result.auto_adopted_count, "estimates": result.estimate_count,
-            "missing": result.missing_count}
+    outcome = {"status": result.status, "auto_adopted": result.auto_adopted_count, "estimates": result.estimate_count,
+               "missing": result.missing_count}
+    if result.fallback is not None:  # 第二來源（萬家福）統計分開呈現
+        outcome["fallback"] = {"provider": result.fallback.provider, "status": result.fallback.status,
+                               "auto_adopted": result.fallback.auto_adopted_count,
+                               "missing": result.fallback.missing_count}
+    return outcome
 
 
 def make_price_retry_handler(*, price_lookup=None, now=None):

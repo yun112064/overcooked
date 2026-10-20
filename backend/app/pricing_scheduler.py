@@ -1,4 +1,4 @@
-"""T02 daily PX Mart collection: settings, service factory and manual CLI.
+"""T02 daily PX Mart collection (+ Uni-Prosperity fallback): settings, service factory and manual CLI.
 
 The recurring job is registered in the single scheduler process
 (app.jobs.scheduler); this module no longer starts its own scheduler.
@@ -20,6 +20,7 @@ from apscheduler.triggers.cron import CronTrigger
 from app.source_adapters.price_collection import PriceCollectionService
 from app.source_adapters.pricing_repository import PricingRepository
 from app.source_adapters.pxmart import PxMartAdapter
+from app.source_adapters.uni_prosperity import UniProsperityAdapter
 
 
 def _boolean(value: str) -> bool:
@@ -42,6 +43,8 @@ class SchedulerSettings:
     timeout_seconds: float
     retries: int
     batch_size: int | None = None
+    # 決策 #25：全聯查無／不可用時改查萬家福
+    fallback_uni_prosperity: bool = True
 
     @property
     def timezone(self) -> ZoneInfo:
@@ -77,6 +80,9 @@ class SchedulerSettings:
             batch_size=(
                 int(os.getenv("PRICE_COLLECTION_BATCH_SIZE", "0")) or None
             ),
+            fallback_uni_prosperity=_boolean(
+                os.getenv("PRICE_FALLBACK_UNI_PROSPERITY_ENABLED", "true")
+            ),
         )
         if not 0 <= settings.hour <= 23:
             raise ValueError("PRICE_SCHEDULER_HOUR must be 0..23")
@@ -101,6 +107,13 @@ def create_service(settings: SchedulerSettings) -> PriceCollectionService:
             retries=settings.retries,
         ),
         delay_seconds=settings.delay_seconds,
+        fallback_adapter_factory=(
+            (lambda: UniProsperityAdapter(
+                timeout=settings.timeout_seconds,
+                retries=settings.retries,
+            ))
+            if settings.fallback_uni_prosperity else None
+        ),
     )
 
 

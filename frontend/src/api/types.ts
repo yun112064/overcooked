@@ -191,6 +191,8 @@ export type PriceItem = {
   cost: string | null
   missing_reason: string | null
   retailer: string | null
+  /** 畫面顯示的來源名稱（全聯／萬家福） */
+  source_name: string | null
   source: string | null
   product_name: string | null
   product_url: string | null
