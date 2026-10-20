@@ -6,6 +6,9 @@
   approve <knowledge_id> <version> --reviewer 名字 --note 核對說明 [--confirm-third-party-license]
                                              轉載文章（內容授權提供／X）必須加此旗標，確認授權涵蓋轉載內容
   reject  <knowledge_id> <version> --reviewer 名字 --note 退回原因
+  approve-all --dev-bulk --reviewer dev-bulk --note 說明
+                                             僅限開發環境（APP_ENV=development；production 一律拒絕）：整批核准所有
+                                             待審的非轉載紀錄；轉載文章（third_party_unconfirmed）一律排除（決策 #24）
   index build --version <索引版本>            以 text-embedding-3-small 建索引並啟用（每批送雲端內部 API，經 T10 額度預留／結算）
   crawl --channel <頻道 ID> [--max-pages N] [--refresh]   （可重複 --channel；未指定時用營養飲食）
   crawl --ids <起>-<迄> [--refresh]
@@ -117,6 +120,10 @@ def _parser() -> argparse.ArgumentParser:
         if name == "approve":
             r.add_argument("--confirm-third-party-license", action="store_true",
                            help="轉載文章：確認書面授權涵蓋原始供稿者的內容（寫入審核紀錄）")
+    bulk = sub.add_parser("approve-all", help="僅限開發環境：整批核准待審的非轉載紀錄")
+    bulk.add_argument("--dev-bulk", action="store_true", required=True, help="確認這是開發環境的整批核准")
+    bulk.add_argument("--reviewer", default="dev-bulk")
+    bulk.add_argument("--note", required=True)
     idx = sub.add_parser("index")
     idx_sub = idx.add_subparsers(dest="index_cmd", required=True)
     build = idx_sub.add_parser("build")
@@ -161,6 +168,25 @@ def _crawl(args, deps: Deps) -> dict:
     return reports[channels[0]] if len(channels) == 1 else reports
 
 
+def _approve_all(args, deps: Deps) -> dict:
+    """決策 #24：只在明確標示為開發環境時可用；正式環境（APP_ENV=production）或未標示一律拒絕。"""
+    from knowledge_rag.store import LICENSE_UNCONFIRMED
+    app_env = (os.environ.get("APP_ENV") or "").strip().lower()
+    if app_env != "development":
+        raise ValueError(f"approve-all --dev-bulk is development-only: requires APP_ENV=development "
+                         f"(current: {app_env or 'unset'})")
+    store = deps.store()
+    approved, skipped = [], []
+    for row in store.list_records(status="pending", limit=100_000):
+        if row.get("license_status") == LICENSE_UNCONFIRMED:
+            skipped.append(row["knowledge_id"])
+            continue
+        store.review(row["knowledge_id"], row["source_version"], reviewer=args.reviewer, approved=True,
+                     note=f"[開發環境整批核准，未經人工逐筆審核] {args.note}")
+        approved.append(row["knowledge_id"])
+    return {"approved": approved, "skipped_third_party": skipped}
+
+
 def _index_build(args, deps: Deps) -> dict:
     return deps.store().build_index(args.version, args.embedding_model,
                                     deps.cloud().index_embedder(args.version, args.embedding_model),
@@ -198,6 +224,8 @@ def main(argv: list[str] | None = None, *, deps: Deps | None = None) -> int:
             _print(deps.store().review(args.knowledge_id, args.version, reviewer=args.reviewer,
                                        approved=args.cmd == "approve", note=args.note,
                                        confirm_third_party_license=getattr(args, "confirm_third_party_license", False)))
+        elif args.cmd == "approve-all":
+            _print(_approve_all(args, deps))
         elif args.cmd == "index":
             _print(_index_build(args, deps))
         elif args.cmd == "crawl":

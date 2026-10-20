@@ -1,6 +1,6 @@
 ﻿<#
 .SYNOPSIS
-  一鍵啟動本機開發環境：資料庫、後端、worker、前端、YOLO 推論服務。
+  一鍵啟動本機開發環境：資料庫、後端、worker、排程（含 T02 每日查價）、前端、知識 RAG、YOLO 推論服務。
 
 .DESCRIPTION
   每次執行都會自動同步，新增功能通常不用改這支腳本：
@@ -10,9 +10,14 @@
     - 資料庫容器不存在 → 建立（資料存在具名 volume）；已存在 → 啟動
     - alembic upgrade head 套用新的 migration
     - 資料庫沒有食譜 → 從工作簿匯入
+    - .env.dev 缺 KNOWLEDGE_SERVICE_TOKEN／INTERNAL_API_TOKEN → 產生隨機值寫入（不顯示）
+    - 知識庫 <DEV_DB_NAME>_knowledge 不存在 → 在同一個容器建立，並套用 knowledge_rag/schema.sql（可重複執行）
+    - 今天的全聯查價（run key pxmart-daily-<日期>）還沒完成 → 背景補跑／續跑（T02 限速，約 12～15 分鐘）
+  不需要的服務可在 .env.dev 設 DEV_SKIP_YOLO=1、DEV_SKIP_KNOWLEDGE=1、DEV_SKIP_PRICES=1 略過。
+  一次性指令（查價、知識抓取／審核／建索引）用 scripts/dev-run.ps1，見 docs/knowledge-source-healthnews.md、docs/T02-pricing.md。
   所有服務都在同一個視窗執行，輸出以 [backend]、[frontend] 等前綴區分；
   在該視窗按 Ctrl+C 或執行 scripts/stop-dev.ps1 全部關閉。
-  只有新增「獨立程序」（例如 T11 的知識 RAG 服務）時才需要修改這支腳本。
+  只有新增「獨立程序」時才需要修改這支腳本；共用的環境變數組裝在 scripts/dev-env.ps1。
 
 .PARAMETER NoBrowser
   啟動完成後不要自動開瀏覽器。
@@ -40,14 +45,12 @@ if (-not (Test-Path $EnvFile)) {
     [IO.File]::WriteAllText($EnvFile, $text, (New-Object Text.UTF8Encoding $false))
     Info '已建立，可依自己電腦修改路徑（例如 YOLO 權重位置）。'
 }
-$Cfg = [ordered]@{}
-foreach ($line in Get-Content $EnvFile -Encoding UTF8) {
-    $t = $line.Trim()
-    if ($t -eq '' -or $t.StartsWith('#') -or -not $t.Contains('=')) { continue }
-    $i = $t.IndexOf('=')
-    $Cfg[$t.Substring(0, $i).Trim()] = $t.Substring($i + 1).Trim().Trim('"')
-}
-function Cfg($key, $default = '') { if ($Cfg.Contains($key) -and $Cfg[$key] -ne '') { $Cfg[$key] } else { $default } }
+. (Join-Path $PSScriptRoot 'dev-env.ps1')
+# 知識 RAG 與內部 API 的開發用 token：缺少或留空時產生隨機值寫回 .env.dev（只顯示鍵名）
+$newKeys = Add-MissingDevSecrets $EnvFile @('KNOWLEDGE_SERVICE_TOKEN', 'INTERNAL_API_TOKEN')
+if ($newKeys) { Info "已在 .env.dev 產生開發用 token：$($newKeys -join '、')（值不顯示）" }
+$Cfg = Read-DevConfig $EnvFile
+function Cfg($key, $default = '') { Get-DevValue $Cfg $key $default }
 function Resolve-FromRoot($p) { if ([IO.Path]::IsPathRooted($p)) { $p } else { [IO.Path]::GetFullPath((Join-Path $Root $p)) } }
 
 # ---------- 2. Python 虛擬環境 ----------
@@ -109,17 +112,8 @@ if ("$hasDb".Trim() -ne '1') {
 }
 
 # ---------- 5. 傳給各服務的環境變數 ----------
-$env:DATABASE_URL = "postgresql+psycopg://postgres:$DbPassword@127.0.0.1:$DbPort/$DbName"
-$env:PYTHONPATH = "$Root;$Root\backend"
-$env:PYTHONUTF8 = '1'
-$DataRoot = Resolve-FromRoot (Cfg 'PROJECT_DATA_ROOT' '../AIPE04期末專題_data')
-New-Item -ItemType Directory -Force $DataRoot | Out-Null
-$env:PROJECT_DATA_ROOT = $DataRoot
-# 其餘設定（例如之後新增的 API key）原樣傳下去；DEV_ 開頭與腳本專用的不傳
-foreach ($k in $Cfg.Keys) {
-    if ($k -like 'DEV_*' -or $k -in @('PROJECT_DATA_ROOT', 'YOLO_PYTHON', 'RECIPE_WORKBOOK', 'INFERENCE_WEIGHTS')) { continue }
-    Set-Item "env:$k" $Cfg[$k]
-}
+# DATABASE_URL、PYTHONPATH、其餘設定原樣傳下去，以及知識 RAG／內部 API 的連線（見 scripts/dev-env.ps1）
+$DevEnv = Set-DevEnvironment $Cfg $Root
 $Weights = Resolve-FromRoot (Cfg 'INFERENCE_WEIGHTS' 'inference/models/yolo26s-food41-denoise-seed45-50e.pt')
 $env:INFERENCE_WEIGHTS = $Weights
 $YoloPort = Cfg 'INFERENCE_PORT' '8765'
@@ -165,6 +159,24 @@ if ("$count".Trim() -eq '0') {
     }
 }
 
+# ---------- 6b. 知識資料庫（決策 #23：同一個 dev 容器內的 <DEV_DB_NAME>_knowledge） ----------
+if (-not $DevEnv.SkipKnowledge) {
+    $KnDb = $DevEnv.KnowledgeDbName
+    if ($KnDb -notmatch '^[A-Za-z0-9_]+$') { Fail "知識庫名稱只能用英數與底線：$KnDb" }
+    Step "準備知識資料庫 $KnDb"
+    $hasKn = docker exec $Db psql -U postgres -tAc "SELECT 1 FROM pg_database WHERE datname = '$KnDb'"
+    if ("$hasKn".Trim() -ne '1') {
+        docker exec $Db psql -U postgres -c "CREATE DATABASE $KnDb" | Out-Null
+    }
+    # schema.sql 全部是 IF NOT EXISTS，可重複套用
+    & $Py -c "import os; from knowledge_rag.store import apply_schema; apply_schema(os.environ['KNOWLEDGE_DATABASE_URL'])"
+    if ($LASTEXITCODE -ne 0) {
+        Write-Host '    知識庫 schema 套用失敗，先略過知識服務（知識說明會顯示不可用）。' -ForegroundColor Yellow
+        $DevEnv.SkipKnowledge = $true
+        Remove-Item env:KNOWLEDGE_SERVICE_URL -ErrorAction SilentlyContinue
+    }
+}
+
 # ---------- 7. 啟動各服務 ----------
 $Running = @{}
 if (Test-Path $PidFile) {
@@ -196,6 +208,21 @@ function Start-Service-Here($name, $port, $command) {
 Step '啟動服務（全部在這個視窗，輸出以 [服務名稱] 區分）'
 Start-Service-Here 'backend' 8000 "& '$Py' -m uvicorn app.main:app --app-dir backend --host 127.0.0.1 --port 8000 --reload --reload-dir backend"
 Start-Service-Here 'worker' $null "& '$Py' -m app.jobs.worker"
+if ($DevEnv.SkipKnowledge) {
+    Write-Host '    知識 RAG 未啟動（DEV_SKIP_KNOWLEDGE=1 或知識庫無法使用）；知識說明會顯示不可用。' -ForegroundColor Yellow
+} else {
+    Start-Service-Here 'knowledge' $DevEnv.KnowledgePort "& '$Py' -m knowledge_rag.server"
+}
+# 單一排程程序（T10）：回收逾時工作、日誌清理、T02 每日 03:00 全聯查價
+if ($DevEnv.SkipPrices) {
+    Start-Service-Here 'scheduler' $null "`$env:PRICE_SCHEDULER_ENABLED = 'false'; & '$Py' -m app.jobs.scheduler"
+    Write-Host '    價格收集未啟動（DEV_SKIP_PRICES=1）；成本會顯示缺價。' -ForegroundColor Yellow
+} else {
+    Start-Service-Here 'scheduler' $null "& '$Py' -m app.jobs.scheduler"
+    # 開發機通常不在 03:00 開著：啟動時以「今天的排程 run key」補跑；已完成會立即略過，中斷過會續跑
+    $Today = [TimeZoneInfo]::ConvertTimeBySystemTimeZoneId([DateTime]::UtcNow, 'Taipei Standard Time').ToString('yyyy-MM-dd')
+    Start-Service-Here 'prices' $null "& '$Py' -m app.pricing_scheduler --run-once --run-key pxmart-daily-$Today"
+}
 Start-Service-Here 'frontend' 5173 'npm --prefix frontend run dev -- --host 127.0.0.1 --port 5173 --strictPort'
 if ($UseYolo) {
     Start-Service-Here 'yolo' $YoloPort "& '$YoloPy' inference/server.py"
@@ -212,6 +239,12 @@ if (-not $up) { Write-Host '    後端 60 秒內沒有回應，請看上方 [bac
 
 Write-Host ''
 Write-Host '開發環境已啟動：http://localhost:5173' -ForegroundColor Green
+if (-not $DevEnv.SkipKnowledge) {
+    Write-Host "知識 RAG：http://127.0.0.1:$($DevEnv.KnowledgePort)（尚未抓取／審核／建索引前，知識說明仍顯示不可用；步驟見 docs/knowledge-source-healthnews.md）"
+}
+if (-not $DevEnv.SkipPrices) {
+    Write-Host '全聯查價在背景執行（[prices]，T02 限速約 12～15 分鐘）；進度：.\scripts\dev-run.ps1 -m app.pricing_scheduler --show-runs 3'
+}
 Write-Host '關閉全部服務：在這個視窗按 Ctrl+C（或雙擊 stop-dev.cmd）'
 if (-not $NoBrowser) { Start-Process 'http://localhost:5173' }
 if (-not $Started) { exit 0 }  # 服務都已在別處執行，沒有要看守的輸出
