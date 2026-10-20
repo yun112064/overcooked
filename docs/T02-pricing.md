@@ -188,8 +188,9 @@ docker compose logs -f scheduler
 **查無或不可用**時才查詢。實作：`backend/app/source_adapters/uni_prosperity.py`。
 
 **何時查**：同一次 run 的全聯快照 `selection_tier=missing`（`not_found`、`unusable_package`、`out_of_stock`、
-`missing_price`、`stale_price`、`timeout`、`source_error`、`schema_changed`）。`review_required`（只有估價、待審）
-與工作簿 Food_ID 對應失敗不送萬家福。
+`missing_price`、`stale_price`、`timeout`、`source_error`、`schema_changed`），以及 `review_required`（全聯只有估價；
+估價不算已知價格，2026-10-21 使用者決定也送萬家福查實際價格）。工作簿 Food_ID 對應失敗不送萬家福。
+萬家福查到實際價格時，跨來源選價只比較成功快照，全聯的估價不參與，因此會採用萬家福的實際價格。
 
 **怎麼查**：公開搜尋頁 `GET /zh/search/?q=<關鍵字>`（第一頁，不翻頁、不排序、不篩選）。關鍵字沿用 T02 的
 `build_search_terms`（標準名稱＋已確認別名，最多 3 個）。解析搜尋頁商品磚 `a.gtm-product-alink` 的

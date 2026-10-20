@@ -383,8 +383,9 @@ class PricingRepository:
     def fallback_targets(self, lease: RunLease, *, primary_run_key: str) -> tuple[set[str], bool]:
         """主要來源（全聯）那次 run 查無／不可用的食材，以及該 run 是否已跑完。
 
-        只取 selection_tier=missing（not_found、unusable_package、out_of_stock、逾時等）；
-        review_required（估價待審）與工作簿 Food_ID 對應失敗不送第二來源。
+        取 selection_tier=missing（not_found、unusable_package、out_of_stock、逾時等），以及
+        review_required（全聯只有估價，估價不算已知價格，改到第二來源查實際價格）；
+        工作簿 Food_ID 對應失敗不送第二來源。
         """
         row = lease.connection.execute(
             text("SELECT id, status FROM price_collection_runs WHERE run_key = :run_key"),
@@ -396,8 +397,8 @@ class PricingRepository:
         names = lease.connection.execute(
             text(
                 "SELECT canonical_name FROM price_quote_snapshots WHERE run_id = :run_id "
-                "AND status <> 'review_required' "
-                "AND COALESCE(quote_payload ->> 'selection_tier', 'missing') = 'missing' "
+                "AND (status = 'review_required' "
+                "OR COALESCE(quote_payload ->> 'selection_tier', 'missing') = 'missing') "
                 "AND COALESCE(quote_payload ->> 'selection_method', '') <> 'workbook_mapping'"
             ),
             {"run_id": row["id"]},

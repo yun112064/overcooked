@@ -3,6 +3,7 @@
 萬家福頁面皆為假 HTTP 客戶端回傳的合成 HTML，不對外連線。
 """
 import html
+import json
 import tempfile
 import unittest
 from datetime import datetime, timedelta, timezone
@@ -257,6 +258,30 @@ class FallbackCollectionTests(unittest.TestCase):
         self.assertIn(("uniprosperity", "高麗菜", "success", "pxmart-daily-2026-10-20:uniprosperity"), rows)
         self.assertEqual(sum(1 for r in rows if r[0] == "uniprosperity"), 2)
         self.assertEqual(set(runs), {"pxmart", "uniprosperity"})
+
+    def test_px_estimates_are_also_queried_at_uni_prosperity(self):
+        """全聯只有估價（review_required）不算已知價格，也送萬家福查實際價格；工作簿對應失敗仍不送。"""
+        from app.source_adapters.pricing_repository import PricingRepository, RunLease
+        snapshots = [("查無", "not_found", {"selection_tier": "missing"}),
+                     ("估價", "review_required", {"selection_tier": "estimate"}),
+                     ("已成功", "success", {"selection_tier": "exact"}),
+                     ("對應失敗", "not_found", {"selection_tier": "missing",
+                                               "selection_method": "workbook_mapping"})]
+        with self.engine.connect() as conn:
+            run_id = conn.execute(text(
+                "INSERT INTO price_collection_runs (id, run_key, provider, trigger_type, scheduled_for, "
+                "started_at, status, ingredient_total) VALUES (gen_random_uuid(), 'px', 'pxmart', 'manual', "
+                "now(), now(), 'completed', 4) RETURNING id")).scalar_one()
+            for name, status, payload in snapshots:
+                conn.execute(text(
+                    "INSERT INTO price_quote_snapshots (run_id, provider, canonical_name, status, queried_at, "
+                    "currency, source_url, quote_payload) VALUES (:run_id, 'pxmart', :name, :status, now(), "
+                    "'TWD', 'https://example.test/', CAST(:payload AS jsonb))"),
+                    {"run_id": run_id, "name": name, "status": status, "payload": json.dumps(payload)})
+            conn.commit()
+            lease = RunLease(run_id="unused", run_key="px:uniprosperity", connection=conn, provider="uniprosperity")
+            targets, finished = PricingRepository(self.engine).fallback_targets(lease, primary_run_key="px")
+        self.assertEqual((targets, finished), ({"查無", "估價"}, True))
 
     def test_rerun_is_idempotent_and_backfills_an_already_completed_px_run(self):
         from app.source_adapters.price_collection import PriceCollectionService
