@@ -82,13 +82,15 @@ python -m unittest discover -s nutrition_model
 
 在團隊電腦 repo 根目錄、`PYTHONPATH=backend` 執行；完整說明見 [docs/knowledge-source-healthnews.md](../knowledge-source-healthnews.md)。
 
-1. 設定 `KNOWLEDGE_DATABASE_URL`（團隊電腦知識庫，`127.0.0.1:55433`）與 `KNOWLEDGE_AUTHORIZATION_REF`（授權證據存放路徑）。沒填授權路徑就不能抓取。
+1. 設定 `KNOWLEDGE_DATABASE_URL`（團隊電腦知識庫，`127.0.0.1:55433`）與 `KNOWLEDGE_AUTHORIZATION_REF`（授權證據存放路徑）。沒填授權路徑就不能抓取。佇列與建索引另需雲端內部 API：`CLOUD_INTERNAL_URL`、`CLOUD_INTERNAL_TOKEN`、`CLOUD_ACCESS_CLIENT_ID`／`SECRET`（團隊電腦不設定雲端 `DATABASE_URL`）。
 2. 抓取：`python -m knowledge_rag.admin crawl --max-pages 3`（每日新文章）；`crawl --queued`（雲端待補食材優先）。限速 ≥2 秒／請求，遵守 robots.txt。
-3. 審核：`list --status pending` → `show <knowledge_id>` → `approve <id> <版本> --reviewer <姓名> --note <理由>` 或 `reject`。只是順帶提到、錯食材、轉載內容授權不明的一律退回。**抓到的內容在審核前絕不會被檢索或顯示。**
+3. 審核：`list --status pending` → `show <knowledge_id>` → `approve <id> <版本> --reviewer <姓名> --note <理由>` 或 `reject`。只是順帶提到、錯食材、轉載內容授權不明的一律退回；轉載文章（內容授權提供／X）確認授權涵蓋後才可加 `--confirm-third-party-license` 核准。**抓到的內容在審核前絕不會被檢索或顯示。**
 4. 建索引：`index build --version idx-<日期>`（每次新版本名稱）。向量化經雲端 T10 額度預留，團隊電腦不直接花錢。
 5. 狀態：`status`（待審數、active 索引、佇列）。
 
-> 注意：目前 `crawl --queued`、`index build`、`status` 的佇列數需要直連雲端資料庫（已知問題 #6，違反 T17「資料庫不對外」界線，修正前不可在正式環境開放雲端資料庫連線）。
+> `crawl --queued`、`index build`、`status` 的佇列數經雲端內部 API（Access 服務權杖＋`INTERNAL_API_TOKEN`），不直連雲端資料庫（已知問題 #6 已修正）。
+>
+> QA 注意：每戶 24 小時最多 20 次生成（`GENERATION_DAILY_LIMIT`），多人測試請分戶或在測試環境調高；生成面板會顯示團隊電腦（辨識、知識）是否在線。
 
 ## 4. 正式部署（Cloudflare Tunnel）
 

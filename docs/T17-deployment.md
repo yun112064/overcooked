@@ -29,6 +29,11 @@
 **RAG 資料與索引在團隊電腦**：知識紀錄、審核狀態與 pgvector 索引都在 `meal-knowledge-db`。
 
 - 查詢向量由雲端 worker 經 T10 額度預留後向 OpenAI 取得，再送到團隊電腦。團隊電腦不呼叫付費 API。
+- **團隊電腦→雲端（pre-review #6）**：知識管理指令的補抓佇列與建索引向量化走雲端內部 API
+  `https://cloud-internal.<網域>/internal/knowledge/*`（cloudflared 直接轉到 `backend:8000`），同樣兩層驗證：
+  Access 應用程式只允許團隊電腦專用的服務權杖（團隊端 `CLOUD_ACCESS_CLIENT_ID`／`SECRET`），後端再核對 `INTERNAL_API_TOKEN`。
+  團隊電腦**不持有雲端 `DATABASE_URL`**；公開網站的 Caddy 對 `/api/internal/*` 回 404。詳見 `docs/knowledge-source-healthnews.md`。
+- **團隊電腦在線狀態（pre-review #5）**：登入後 `GET /api/health/team` 回報辨識與知識服務 online／offline／not_configured（快取 30 秒），生成面板顯示。
 - 結構化食譜查詢在雲端 PostgreSQL，不依賴團隊電腦。
 
 ## 2. 秘密與設定（只列名稱，不含值）
@@ -37,8 +42,8 @@
 
 | 位置 | 秘密 | 其他必要設定 |
 |---|---|---|
-| 雲端 `.env.prod` | `CLOUDFLARE_TUNNEL_TOKEN`<br>`POSTGRES_PASSWORD`<br>`RECOGNITION_SERVICE_TOKEN`<br>`KNOWLEDGE_SERVICE_TOKEN`<br>`TEAM_ACCESS_CLIENT_ID`<br>`TEAM_ACCESS_CLIENT_SECRET`<br>`OPENAI_API_KEY` | `PUBLIC_HOSTNAME`<br>`ALLOWED_ORIGINS=https://<PUBLIC_HOSTNAME>`<br>`COOKIE_SECURE=true`<br>`PROJECT_DATA_ROOT`、`PROJECT_RUNTIME_ROOT`、`PROJECT_BACKUP_ROOT`<br>`BACKUP_MIRROR_ROOT`<br>`RECOGNITION_SERVICE_URL`、`KNOWLEDGE_SERVICE_URL` |
-| 團隊電腦 `deploy/team/.env.team` | `TEAM_TUNNEL_TOKEN`<br>`INFERENCE_TOKEN`<br>`KNOWLEDGE_TOKEN`<br>`KNOWLEDGE_DB_PASSWORD` | `TEAM_BACKUP_ROOT`<br>`BACKUP_MIRROR_ROOT` |
+| 雲端 `.env.prod` | `CLOUDFLARE_TUNNEL_TOKEN`<br>`POSTGRES_PASSWORD`<br>`RECOGNITION_SERVICE_TOKEN`<br>`KNOWLEDGE_SERVICE_TOKEN`<br>`TEAM_ACCESS_CLIENT_ID`<br>`TEAM_ACCESS_CLIENT_SECRET`<br>`OPENAI_API_KEY`<br>`INTERNAL_API_TOKEN` | `PUBLIC_HOSTNAME`<br>`ALLOWED_ORIGINS=https://<PUBLIC_HOSTNAME>`<br>`COOKIE_SECURE=true`<br>`PROJECT_DATA_ROOT`、`PROJECT_RUNTIME_ROOT`、`PROJECT_BACKUP_ROOT`<br>`BACKUP_MIRROR_ROOT`<br>`RECOGNITION_SERVICE_URL`、`KNOWLEDGE_SERVICE_URL` |
+| 團隊電腦 `deploy/team/.env.team` | `TEAM_TUNNEL_TOKEN`<br>`INFERENCE_TOKEN`<br>`KNOWLEDGE_TOKEN`<br>`KNOWLEDGE_DB_PASSWORD`<br>`CLOUD_INTERNAL_TOKEN`<br>`CLOUD_ACCESS_CLIENT_ID`／`SECRET` | `TEAM_BACKUP_ROOT`<br>`BACKUP_MIRROR_ROOT` |
 
 檢查設定（只列變數名稱，絕不印值）：`python -m ops.preflight cloud --env-file .env.prod`、`python -m ops.preflight team --env-file deploy/team/.env.team`。
 
@@ -52,6 +57,8 @@
    - Zero Trust → Networks → Tunnels → Create tunnel（Cloudflared），命名 `meal-planner-cloud`，複製權杖填入 `.env.prod` 的 `CLOUDFLARE_TUNNEL_TOKEN`。
    - 在 tunnel 的 Public Hostname 新增 `<PUBLIC_HOSTNAME>`（例如 `meal.<網域>`）→ Service `HTTP`、URL `frontend:80`。DNS CNAME 會自動建立。
    - 網站本身不加 Access，讓一般使用者以 App 自己的登入使用。
+   - 另新增內部 hostname `cloud-internal.<網域>` → Service `HTTP`、URL `backend:8000`，並為它建 Access 應用程式（Service Auth，
+     只允許團隊電腦專用的服務權杖 `meal-planner-team-computer`）；雲端 `.env.prod` 設 `INTERNAL_API_TOKEN`，團隊端設 `CLOUD_INTERNAL_*`。
 3. **團隊電腦 tunnel**：
    - 另建 tunnel `meal-planner-team`。在團隊電腦以系統管理員執行 `cloudflared service install <TEAM_TUNNEL_TOKEN>`，安裝成 Windows 服務、開機自動啟動。
    - 新增兩個 Public Hostname：`yolo.<網域>` → `HTTP` `127.0.0.1:8765`；`knowledge.<網域>` → `HTTP` `127.0.0.1:8766`。
@@ -111,7 +118,7 @@
   - 辨識回 `unavailable`、`retryable=true`，照片保留可重試，也可手動輸入。
   - 菜單生成照常使用雲端結構化食譜，知識說明標 `KNOWLEDGE_UNAVAILABLE`（不是 `not_found`，也不呼叫說明模型）。
 - 登入、草稿與已採用歷史照常可用。
-- 恢復後，辨識可用「重試」；知識需重新生成該餐結果。
+- 恢復後，辨識可用「重試」；知識說明可在結果頁「只重試知識說明」（不重新生成菜單，存成新版本）。
 
 ## 5. 備份內容與保留
 
@@ -220,6 +227,7 @@ R11 規定每月總上限 NT$2,000，包含主機、模型、向量化、資料�
 - [ ] 從外網以 `https://<PUBLIC_HOSTNAME>` 完成註冊、登入、建立家庭與問卷（AC24 外網 HTTPS）
 - [ ] 確認雲端主機沒有任何對外連入埠（例如外部掃描 80／443／5432／8000 都不通），資料庫不對外
 - [ ] 不帶 Access 權杖或 Bearer 呼叫團隊電腦兩個 hostname 都被拒絕，帶齊才成功
+- [ ] 雲端內部 hostname 同樣：不帶團隊電腦的 Access 權杖或 `INTERNAL_API_TOKEN` 被拒絕；公開網站的 `/api/internal/*` 回 404；團隊電腦以 `crawl --queued`、`index build` 成功（未設定雲端 `DATABASE_URL`）
 - [ ] 團隊電腦在線時，雲端實際完成一次辨識與一次含知識說明的生成
 - [ ] 團隊電腦關機或停掉 cloudflared 時，畫面顯示服務不可用、照片保留，歷史與一般功能可用；恢復後重試成功
 - [ ] 在正式主機啟用每日備份 timer 與團隊電腦工作排程，確認連續數日產生備份、獨立位置有副本，並在第 8 天開始清掉舊備份

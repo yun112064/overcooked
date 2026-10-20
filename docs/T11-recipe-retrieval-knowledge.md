@@ -10,7 +10,8 @@
 | `backend/app/services/meal_history.py` | `previous_day_context(db, household_id, meal_date, specified_dish_ids=...)`、`recheck_previous_day(db, context, dishes)`、`record_adopted(...)` |
 
 - 只查 `recipes.is_eligible IS TRUE`；同一 `standard_dish_id` 的多個來源視為同一道菜，只選一次。
-- 指定菜：名稱正規化（`recipe_import.normalize_name`）後比對菜名與別名。查無 → `no_feasible_database_menu`／`SPECIFIED_DISH_NOT_IN_DATABASE`；對到多道不同菜 → `dish_identity_unresolved`／`SPECIFIED_DISH_AMBIGUOUS`（回報問題，不默認為不同菜，也不自動轉 AI）；指定菜含排除食材 → `SPECIFIED_DISH_DIETARY_CONFLICT`。
+- 指定菜：名稱正規化（`recipe_import.normalize_name`）後比對菜名與別名。查無 → `no_feasible_database_menu`／`SPECIFIED_DISH_NOT_IN_DATABASE`；對到多道不同菜 → `dish_identity_unresolved`／`SPECIFIED_DISH_AMBIGUOUS`（回報問題，不默認為不同菜，也不自動轉 AI）；指定菜的所有食譜都含排除食材 → `specified_dish_conflict`／`SPECIFIED_DISH_DIETARY_CONFLICT`（`details.conflicts` 列出菜名與衝突食材），T14 回報衝突、**不轉 AI、不換菜**（2026-10-21 修正，pre-review #1）。
+- 候選組合：`database_menu` 另回 `alternatives`（依排名，第一組即 `selected`，最多 `MAX_COMBINATIONS = 20` 組），由 T14 依序以 T12 驗證（pre-review #2）。
 - 禁忌：呼叫端傳入 `meal_request.restrictions(...)["excluded_food_ids"]`（已含同義／上位展開），含任一排除食材的食譜不入選。
 - 昨日排除：餐食日期減一個日曆日、同家庭、全部餐別、`status='adopted'`；不往前回溯。同菜以標準菜色 ID 加名稱／別名換算的 ID 交集判定。明確指定菜只豁免它自己。
 - 不足菜數時的原因：排除昨日菜前足夠 → `ALL_EXCLUDED_BY_PREVIOUS_DAY`，否則 `NO_MATCHING_RECIPES`。兩者皆是自動 AI 回退原因（`code = NO_FEASIBLE_DATABASE_MENU`），結果附 `previous_day`，AI 模式仍須避開其中的 `excluded_dishes`。
@@ -28,12 +29,13 @@
 | `knowledge_rag/schema.sql` | 團隊電腦知識庫（PostgreSQL＋pgvector）：`knowledge_records`、`knowledge_indexes`、`knowledge_embeddings(vector(1536))`。**不在雲端 Alembic 鏈內** |
 | `knowledge_rag/store.py` | 匯入（一律 pending）、審核（不可再改）、新版本取代舊版、`build_index`、`search` |
 | `knowledge_rag/server.py` | `python -m knowledge_rag.server`；`GET /v1/health`、`POST /v1/knowledge/search`，Bearer token，預設綁 127.0.0.1:8766 |
-| `backend/app/services/knowledge.py` | 雲端：`HttpKnowledgeClient`、`retrieve_knowledge(...)`、`verify_citations(...)`、`index_embedder(...)` |
+| `backend/app/services/knowledge.py` | 雲端：`HttpKnowledgeClient`（`TeamCredentials`）、`retrieve_knowledge(...)`、`unavailable_snapshot(...)`、`verify_citations(...)`、`embed_index_batch(...)` |
+| `backend/app/api/internal_knowledge.py` | 雲端內部 API（團隊電腦呼叫）：補抓佇列 claim／complete／summary、建索引向量化；見 knowledge-source-healthnews.md |
 | `backend/app/services/llm_client.py` | `OpenAIEmbedder`（`text-embedding-3-small`）；未設定 `OPENAI_API_KEY` 時不可用 |
 
 - 檢索：先限定最終食材 FOOD 編號＋現行版本＋已審核＋active 索引，再依向量距離每食材取前 `KNOWLEDGE_LIMIT_PER_INGREDIENT`（預設 3）筆。回傳知識 ID、片段、來源、版本、審核者、索引版本與向量模型。
-- 費用：查詢向量在雲端 worker 以 `ctx.paid_call(name="embed_query", ...)` 預留／結算後才送到團隊電腦；同一次嘗試內重新對應請改 `call_name`。建索引用 `index_embedder(factory, embedder, index_version)`，每批各自預留（呼叫鍵 `knowledge-index:<版本>:<批次>`，重建請用新版本）。
-- 狀態：`available`；`not_found`（可省略，`by_ingredient` 逐食材標示）；`unavailable`＋`reason`（`NOT_CONFIGURED`、`EMBEDDING_NOT_CONFIGURED`、`EMBEDDING_UNAVAILABLE`、`TIMEOUT`、`UNREACHABLE`、`AUTH_FAILED`、`SERVICE_ERROR`、`MODEL_MISMATCH`、`INVALID_RESPONSE`），`code = KNOWLEDGE_UNAVAILABLE`。回應含錯食材或未審核紀錄時整份視為 `INVALID_RESPONSE`。額度不足與計費不明照 T10 規則往上拋。
+- 費用：查詢向量在雲端 worker 以 `ctx.paid_call(name="embed_query", ...)` 預留／結算後才送到團隊電腦；同一次嘗試內重新對應請改 `call_name`。建索引時團隊電腦把每批文字送到雲端內部 API `POST /internal/knowledge/embeddings`，由雲端 `embed_index_batch` 各自預留（呼叫鍵 `knowledge-index:<版本>:<批次>`，重建請用新版本）；團隊電腦不持有 OpenAI 金鑰或雲端資料庫連線（pre-review #6）。
+- 狀態：`available`；`not_found`（可省略，`by_ingredient` 逐食材標示）；`unavailable`＋`reason`（`NOT_CONFIGURED`、`EMBEDDING_NOT_CONFIGURED`、`EMBEDDING_UNAVAILABLE`、`TIMEOUT`、`UNREACHABLE`、`AUTH_FAILED`、`SERVICE_ERROR`、`MODEL_MISMATCH`、`INVALID_RESPONSE`），`code = KNOWLEDGE_UNAVAILABLE`。回應含錯食材或未審核紀錄時整份視為 `INVALID_RESPONSE`。額度不足與計費不明照 T10 規則往上拋；T14 的知識步驟會把它們轉成 `unavailable`（`BUDGET_EXHAUSTED`／`BILLING_UNCERTAIN`），不讓生成失敗（P7）。
 - 設定：雲端 `KNOWLEDGE_SERVICE_URL`、`KNOWLEDGE_SERVICE_TOKEN`、`OPENAI_API_KEY`；團隊電腦 `KNOWLEDGE_DATABASE_URL`、`KNOWLEDGE_TOKEN`。`config/model_pricing.json` 新增 `text-embedding-3-small`（pricing_version `plan-2026-10-20`）。
 
 ## 測試

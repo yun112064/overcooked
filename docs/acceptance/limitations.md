@@ -1,6 +1,6 @@
 # 成果與限制說明
 
-- 適用版本：整合分支 `feature/t11-t20` @ `870230f`（2026-10-20）
+- 適用版本：整合分支 `feature/t11-t20` @ `870230f`（2026-10-20）；第 3 節的修正與 decisions #16–#18 已併入 `fix/review`（2026-10-21）
 - **MVP 尚未完成。** 依 spec「全部必要交付與驗收完成後才稱 MVP 完成」，目前 AC28 未通過、G01–G07 無一完整通過、T18／T19 實測為 0。合成測試通過只證明程式邏輯，不是真實功能驗收。
 
 ## 1. 已有成果（程式層面）
@@ -14,7 +14,8 @@
 |---|---|---|
 | 食譜數量與 150 道目標 | 真實工作簿 293 道，合格 281 道，**數量已超過 150**。未合格 12 道：重複非 primary 8 道、步驟中找不到烹調方式 4 道 | 數量本身不是缺口；但 G01 仍為「部分」：授權文件編號與審核人姓名待補，審核是整批確認、缺逐道抽查紀錄。這些補齊前不能宣稱正式食譜庫驗收完成 |
 | 「可採用」食譜比例未知 | 281 道合格只代表資料結構完整，**不代表能算出完整營養**。真實語料有多少道能通過 T12 計算並落在 ±10%，從未量測 | 實際使用時資料庫菜單可能常因營養缺值或不符而不可採用，或觸發 AI 回退；展示前應先量測 |
-| 缺少烹調依據 | 資料庫沒有逐食材的生熟狀態，T12 一律假設生重；沒有 TFDA 熟食樣品或實測熟重的生食，營養為缺值。LLM 烹調係數（P01）未核准、不使用 | 許多含烹調步驟的菜熱量／蛋白質會是「缺必要營養」，可查看但不能採用 |
+| 缺少烹調依據 | 工作簿克數一律視為生重（decisions #17，資料規範見 docs/T12；結果的 `weight_basis_source` 標示依據，未來有生熟欄位時優先）；沒有 TFDA 熟食樣品或實測熟重的生食，營養為缺值。LLM 烹調係數（P01）未核准、不使用 | 許多含烹調步驟的菜熱量／蛋白質會是「缺必要營養」，可查看（含用量、成本與補資料建議）但不能採用 |
+| 主食份量 | 主食（decisions #16）的 TFDA 對應、預設每人份量與可調範圍由開發者先填（`config/staples.json`，`review_status=pending_review`）；糙米飯沒有 TFDA 樣品，選它時營養無法計算 | 主食計入營養與 ±10%，份量未經營養審核者確認前不能視為正式建議 |
 | `匙`、`顆`、`片` 等單位 | 沒有換算依據的單位標為 `unverified_conversion`；「適量／少許」等 582 筆用工作簿 amount 作參考用量 | 含這些單位的食材重量無法驗證時阻擋採用（`INGREDIENT_UNRESOLVED`），不填 0 |
 | TFDA 完整度 | 2,213 筆 TFDA 中只有 878 筆七項營養完整；643 個歧義別名拒絕自動配對 | 熱量、蛋白質以外的營養常顯示「未知」（不擋採用）；必要營養缺時擋採用 |
 | 可調範圍 | 多數食材 `adjustment_status = not_reviewed`，T12 只調整已核准範圍；格點搜尋不保證窮舉 | 基準對齊空間小，`NO_FEASIBLE_BASELINE` 機率偏高 |
@@ -23,20 +24,31 @@
 | YOLO | 591 張獨立測試集 P 77.79%、R 76.99%（未達 80%），未報主要類別 macro 指標與延遲 | AC22 未達標；辨識結果須人工確認（產品本來就允許修正），但不能宣稱模型驗收通過 |
 | 營養知識 | 來源已定為健康醫療網，使用者表示已取得書面授權，但**授權證據尚未存檔**；**目前沒有任何經人工審核的真實知識**，也沒有正式索引 | G07 未通過：不能宣稱知識功能完成；展示知識只能用合成資料並聲明 |
 
-## 3. 已知未修問題（交付前審查清單）
+## 3. 交付前審查清單（已修正，branch `fix/review`）
 
-以下問題已查證、修正中；修正並補測試前，對應 AC 不能判定通過。
+以下問題已修正並補自動化測試（合成資料）。修正只代表程式邏輯符合 spec，真實環境驗證仍見第 4 節。
 
-| # | 問題 | 性質 | 影響的驗收 |
+| # | 問題 | 修正 | 測試 |
 |---|---|---|---|
-| 1 | 指定菜含禁忌／過敏原時，T14 以 `SPECIFIED_DISH_DIETARY_CONFLICT` 自動 AI 回退，生出同名換料的菜；spec 要求回報衝突、不偷偷換菜、保留問卷草稿 | 違反 spec | AC09（判為未完成） |
-| 2 | 資料庫模式只取排名第一的組合，遇 `NUTRITION_OUT_OF_RANGE`／`NO_FEASIBLE_BASELINE` 直接不可採用，不試其他組合也不回退 AI | 應修 | AC07、AC31 |
-| 3 | 知識服務故障時畫面說可稍後重試，但唯一方式是整份重新生成（新菜單、再扣額度）；spec 要求保留供重試 | 違反 spec | AC32、R12 |
-| 4 | 結果頁不預先檢查昨日歷史，要按採用才收到 409 `PREVIOUS_DAY_DISH_CONFLICT` | 體驗 | AC30、AC31（T19 可用性） |
-| 5 | 沒有顯示團隊電腦是否在線的 UI；每戶每日 20 次生成上限，QA 測試者需分戶 | QA 阻礙 | AC23、AC24（T19 執行） |
-| 6 | 知識管理指令 `index build`、`crawl --queued`、`status` 佇列數需要團隊電腦直連雲端資料庫，違反 T17「資料庫不對外」 | 違反部署安全界線 | AC24、G06、G07 |
-| 7 | 食材比對過鬆：一篇真實文章比對到約 52 種食材（鹽、油、水、糖等短名到處命中） | 品質 | AC29、G07（審核量暴增、相關性差） |
-| 8 | 轉載文章（「內容授權提供／某刊物」）預設可被核准，沒有額外確認旗標 | 授權風險 | G07、AC29 |
+| 1 | 指定菜含禁忌時自動 AI 回退、生出同名換料的菜 | T11 回 `specified_dish_conflict`；T14 以 `SPECIFIED_DISH_DIETARY_CONFLICT` 回報衝突菜與食材，不轉 AI、不換菜，問卷保留（主食含禁忌同樣回報 `STAPLE_DIETARY_CONFLICT`） | `test_t14_generation.py`::SpecifiedDishConflictTests；`test_t11_recipe_retrieval.py` 情境 13 |
+| 2 | 資料庫模式只取第一組合 | 依排名逐組（上限 20 組）以 T12 驗證，第一個可採用者勝出；只缺資料的組合保留供決定；全部不可行才以 `DATABASE_MENU_NUTRITION_INFEASIBLE` 自動 AI 回退 | `test_t14_generation.py`::DatabaseCandidateTests |
+| 3 | 知識故障只能整份重新生成 | `POST .../knowledge-retry`：同一結果的最終食材只重試知識說明（背景工作、經 T10 額度），菜單／份量／TFDA 不變，存成新版本；額度不足時菜單保留、知識標 `KNOWLEDGE_UNAVAILABLE`（P7） | `test_t15_meal_results.py`::KnowledgeRetryTests；`test_t14_generation.py`::KnowledgeBudgetTests |
+| 4 | 按採用才知道昨日衝突 | 結果讀取 API 回 `previous_day_check`，前端衝突時停用採用並說明；交易內重驗不變 | `test_t16_meal_plans.py`::PreviousDayRecheckTests |
+| 5 | 沒有團隊電腦在線狀態 | `GET /health/team`（需登入、快取 30 秒）與生成面板狀態；每戶每日 20 次生成上限維持，QA 仍需分戶或調整 `GENERATION_DAILY_LIMIT`（見 handoff） | `test_t17_team_status.py` |
+| 6 | 團隊電腦直連雲端資料庫 | 雲端內部 API `/internal/knowledge/*`（Access 服務權杖＋`INTERNAL_API_TOKEN`）處理補抓佇列與建索引向量化；團隊電腦不需要也不可設定雲端 `DATABASE_URL` | `test_kn_internal_api.py`、`test_kn_admin.py`、`test_t17_deploy.py` |
+| 7 | 食材比對過鬆 | 通用詞只在標題才算；候選超過 5 種時只留標題食材或出現 2 次以上者；每篇最多 8 種 | `test_kn_healthnews_parser.py` |
+| 8 | 轉載文章可直接核准 | 標 `license_status=third_party_unconfirmed`；核准需 `--confirm-third-party-license`，寫入審核紀錄 | `test_kn_healthnews_crawler.py`、`test_kn_admin.py` |
+
+Code review（2026-10-20）的 S1–S9、P1–P8 也已在同一分支修正，逐項見 [matrix.md](matrix.md) 附錄。
+
+### 3.1 與 spec／ticket 的已知偏離（使用者決定）
+
+| 項目 | spec／ticket | 實際 | 依據 |
+|---|---|---|---|
+| 食譜工作簿 | spec.md:278 要求原始資料不進 Git | `data/recipe_dataset_1017.xlsx` 保留在 Git（commit bae1bfa） | decisions #18（使用者決策）；P8 |
+| 主食 | 問卷有主食欄位，原本不計算 | 主食對應 TFDA 食材，計入營養與 ±10%，不計價格／缺料；份量待審核 | decisions #16；P1 |
+| 生熟 | spec 要求生熟依據可追溯 | 工作簿克數＝生重的資料規範，結果逐項標示依據 | decisions #17；P6 |
+| HTTPS | ticket 17「Compose＋Caddy」 | Cloudflare Tunnel；前端容器內 Caddy 只服務靜態檔 | decisions #13、#15 |
 
 ## 4. 只能在正式環境或由真人完成的驗證
 
@@ -60,7 +72,7 @@
 ## 5. 其他行為限制（設計如此，非缺陷）
 
 - 已採用不代表實際食用；系統不回寫攝取量，營養是估算。
-- 缺價重試只重讀資料庫最新價格快照，不即時查價；新價格要等每日排程。
+- 缺價重試會排入 T02 定向查價（只查缺價食材、每戶每小時 3 次、請求間隔 ≥2 秒），可能需要數分鐘；查價結果存成新版本，原版本不變，新版本需重新接受缺價例外。
 - 已採用紀錄沒有取消／改採用流程；同一問卷只能採用一次，要重規劃請另建問卷。
 - 採用只重驗前一日歷史；之後才補採用的前一天餐食不會讓已採用的次日紀錄失效（spec 未要求）。
 - 知識說明的文字無法逐句比對片段，只能保證引用的知識 ID、版本、食材正確。
