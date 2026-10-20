@@ -14,6 +14,7 @@ from sqlalchemy import select
 
 from db_support import make_client, migrate_fresh, requires_db, seed_foods, session_factory, truncate_all
 from test_t11_recipe_retrieval import BASIL, BOKCHOY, CABBAGE, CARROT, EGG, GARLIC, SOY, TOMATO, seed_recipes, RECIPES
+from test_t11_recipe_retrieval import fix_tie_break_order
 
 PASSWORD = "correct-horse-42"
 ALIASES = {r[1]: r[2] for r in RECIPES}  # 已採用紀錄保存的別名（與 T11 合成食譜相同）
@@ -89,6 +90,7 @@ class GenerationTestCase(unittest.TestCase):
         migrate_fresh()
 
     def setUp(self):
+        fix_tie_break_order(self)  # 合成食譜的期望值依 recipe_id 平手順序寫定（輪替另由 T11 測試）
         truncate_all()
         seed_foods()
         self.factory = session_factory()
@@ -543,6 +545,20 @@ class RetrievalOutcomeTests(GenerationTestCase):
         self.assertEqual((job["status"], job["error"]["code"]), ("failed", "DISH_IDENTITY_UNRESOLVED"))
         self.assertIn("炒青菜", job["error"]["message"])
         self.assertEqual(responder.calls, [])
+
+    def test_specified_staple_category_dish_clashing_with_chosen_staple_is_reported(self):
+        # 決策 #22：有選主食時，指定一道主食類的菜 → 明確回報，不默默丟掉、不轉 AI
+        seed_recipes(self.factory, [("R20", "蛋炒飯", [], [EGG, CARROT], ["炒"], True, "主食")])
+        self.create_request(dish_count=2, staple="白飯", specified_dishes=["蛋炒飯"])
+        job_id = self.submit()
+        responder = FakeResponder()
+        self.run_job(responder)
+        job = self.job(job_id)
+        self.assertEqual((job["status"], job["error"]["code"]), ("failed", "SPECIFIED_DISH_STAPLE_CONFLICT"))
+        self.assertIn("蛋炒飯", job["error"]["message"])
+        self.assertIn("白飯", job["error"]["message"])
+        self.assertEqual(responder.calls, [])
+        self.assertEqual(self.results(), [])
 
 
 def per_food_calculator(base_energy, base_protein, factors):

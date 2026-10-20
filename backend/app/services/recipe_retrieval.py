@@ -11,15 +11,17 @@
 
 已有食材與口味偏好只影響排序；預算與營養由 T12／T13／T15 計算驗證。
 """
+import hashlib
 import itertools
 from dataclasses import asdict, dataclass, field
+from fractions import Fraction
 
 from sqlalchemy import select
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
 from app.models import Recipe, RecipeIngredient
-from app.services import meal_history, synonyms
+from app.services import meal_history, staples, synonyms
 from app.services.meal_request import MealRequestDraft
 from app.services.recipe_import import normalize_name
 
@@ -27,8 +29,11 @@ DATABASE_MENU = "database_menu"
 NO_FEASIBLE = "no_feasible_database_menu"
 UNRESOLVED = "dish_identity_unresolved"
 SPECIFIED_CONFLICT = "specified_dish_conflict"
+STAPLE_CONFLICT = "specified_dish_staple_conflict"
 # 資料庫模式最多交給 T12 驗證的候選組合數（每組都要計算營養）
 MAX_COMBINATIONS = 20
+# 食譜分類（recipes.category）；決策 #22 的菜色結構
+MAIN, STAPLE, SOUP, DESSERT = "主菜", "主食", "湯", "點心"
 
 
 class RecipeRetrievalError(Exception):
@@ -53,7 +58,8 @@ class RetrievalResult:
     @property
     def code(self) -> str | None:
         return {NO_FEASIBLE: "NO_FEASIBLE_DATABASE_MENU", UNRESOLVED: "DISH_IDENTITY_UNRESOLVED",
-                SPECIFIED_CONFLICT: "SPECIFIED_DISH_DIETARY_CONFLICT"}.get(self.status)
+                SPECIFIED_CONFLICT: "SPECIFIED_DISH_DIETARY_CONFLICT",
+                STAPLE_CONFLICT: "SPECIFIED_DISH_STAPLE_CONFLICT"}.get(self.status)
 
     def to_dict(self) -> dict:
         data = asdict(self)
@@ -92,6 +98,7 @@ def _load_recipes(db: Session) -> list[dict]:
     ):
         foods.setdefault(recipe_id, set()).add(food_id)
     return [{"recipe_id": r.recipe_id, "standard_dish_id": r.standard_dish_id, "recipe_name": r.recipe_name,
+             "category": r.category,
              "aliases": [a for a in (r.name_aliases or []) if isinstance(a, str) and a.strip()],
              "tags": [t for t in (r.category, r.cuisine, *(r.cooking_methods or [])) if isinstance(t, str) and t],
              "food_ids": sorted(foods.get(r.recipe_id, set()))} for r in rows]
@@ -120,8 +127,50 @@ def _resolve_specified(dishes: list[_Dish], names: list[str]) -> tuple[dict[str,
 
 def _summary(recipe: dict, dish: _Dish, specified: bool) -> dict:
     return {"recipe_id": recipe["recipe_id"], "recipe_name": recipe["recipe_name"],
-            "standard_dish_id": dish.standard_dish_id, "aliases": dish.identity()["aliases"],
+            "standard_dish_id": dish.standard_dish_id, "category": recipe["category"],
+            "aliases": dish.identity()["aliases"],
             "food_ids": recipe["food_ids"], "specified": specified}
+
+
+def tie_break(household_id, meal_date, recipe_id: str) -> str:
+    """同分食譜的輪替順序：由（家庭、餐食日期）決定，同一請求可重現，不同日期換菜。"""
+    return hashlib.sha256(f"{household_id}|{meal_date}|{recipe_id}".encode()).hexdigest()
+
+
+def _structured_picks(categories: list[str | None], needed: int, need_main: bool, soup_room: int):
+    """依排名順序（字典序）逐一產生符合菜色結構的索引組合，不先產生再丟棄。
+
+    以後綴計數剪枝：只走「剩下的菜仍湊得出合格組合」的分支，所以每個分支都會產出一組。
+    """
+    n = len(categories)
+    mains, others = [0] * (n + 1), [0] * (n + 1)  # 後綴：主菜數、非湯菜數
+    soups = [0] * (n + 1)
+    for i in range(n - 1, -1, -1):
+        mains[i] = mains[i + 1] + (categories[i] == MAIN)
+        soups[i] = soups[i + 1] + (categories[i] == SOUP)
+        others[i] = others[i + 1] + (categories[i] != SOUP)
+
+    def feasible(start: int, left: int, main: bool, room: int) -> bool:
+        if left == 0:
+            return not main
+        return others[start] + min(room, soups[start]) >= left and (not main or mains[start] > 0)
+
+    def walk(start: int, left: int, main: bool, room: int, prefix: tuple):
+        if left == 0:
+            yield prefix
+            return
+        for i in range(start, n):
+            if not feasible(i, left, main, room):
+                return  # 後綴只會越來越少，之後的起點也不可行
+            cat = categories[i]
+            if cat == SOUP and room == 0:
+                continue
+            nxt_main, nxt_room = main and cat != MAIN, room - (cat == SOUP)
+            if feasible(i + 1, left - 1, nxt_main, nxt_room):
+                yield from walk(i + 1, left - 1, nxt_main, nxt_room, prefix + (i,))
+
+    if feasible(0, needed, need_main, soup_room):
+        yield from walk(0, needed, need_main, soup_room, ())
 
 
 def retrieve_database_menu(db: Session, household_id, draft: MealRequestDraft, *,
@@ -152,11 +201,14 @@ def _retrieve(db: Session, household_id, draft: MealRequestDraft, excluded: set[
 
     available = synonyms.confirmed_equivalents(draft.available_ingredient_ids)
     taste = draft.taste_preferences
+    has_staple = staples.resolve(draft.staple) is not None
 
     def rank(recipe: dict):
+        # 決策 #22：已有食材重疊數 → 重疊比例 → 口味 → 家庭＋餐食日期決定的輪替順序（不再固定照 recipe_id）
         overlap = len(available.intersection(recipe["food_ids"]))
+        share = Fraction(overlap, len(recipe["food_ids"])) if recipe["food_ids"] else Fraction(0)
         taste_hit = int(any(tag in taste for tag in recipe["tags"])) if taste else 0
-        return (-overlap, -taste_hit, recipe["recipe_id"])
+        return (-overlap, -share, -taste_hit, tie_break(household_id, draft.meal_date, recipe["recipe_id"]))
 
     def allowed(recipe: dict) -> bool:
         return not excluded.intersection(recipe["food_ids"])
@@ -180,12 +232,21 @@ def _retrieve(db: Session, household_id, draft: MealRequestDraft, excluded: set[
         return RetrievalResult(SPECIFIED_CONFLICT, reason="SPECIFIED_DISH_DIETARY_CONFLICT",
                                details={"specified_dishes": [c["dish_name"] for c in conflicts],
                                         "conflicts": conflicts}, previous_day=context)
+    # 決策 #22：有選主食又指定主食類的菜 → 回報讓使用者擇一，不默默丟掉指定菜、也不轉 AI
+    staple_clash = [name for name, dish in found.items()
+                    if has_staple and any(r["category"] == STAPLE for r in dish.recipes if allowed(r))]
+    if staple_clash:
+        return RetrievalResult(STAPLE_CONFLICT, reason="SPECIFIED_DISH_STAPLE_CONFLICT",
+                               details={"specified_dishes": staple_clash, "staple": draft.staple},
+                               previous_day=context)
 
     selected = [group[0] for group in specified]
     chosen = {s["standard_dish_id"] for s in selected}
+    # 決策 #22：點心不放入正餐；有選主食時主食類食譜不進資料庫候選（指定菜另行處理）
+    skipped_categories = {DESSERT, STAPLE} if has_staple else {DESSERT}
     pool, pool_ignoring_history = [], 0
     for dish in dishes:
-        options = sorted((r for r in dish.recipes if allowed(r)), key=rank)
+        options = sorted((r for r in dish.recipes if allowed(r) and r["category"] not in skipped_categories), key=rank)
         if not options or dish.standard_dish_id in chosen:
             continue
         pool_ignoring_history += 1
@@ -201,10 +262,21 @@ def _retrieve(db: Session, household_id, draft: MealRequestDraft, excluded: set[
         return RetrievalResult(NO_FEASIBLE, reason=reason,
                                details={"dish_count": draft.dish_count, "feasible_dishes": len(selected) + len(pool)},
                                previous_day=context)
+    # 菜色結構：至少一道主菜（指定菜沒有主菜時由資料庫補），湯總數最多一道（指定菜已含湯則不再補）
+    need_main = needed > 0 and not any(s["category"] == MAIN for s in selected)
+    soup_room = max(0, 1 - sum(s["category"] == SOUP for s in selected))
+    if next(_structured_picks([o[0]["category"] for o, _ in pool], needed, need_main, soup_room), None) is None:
+        return RetrievalResult(NO_FEASIBLE, reason="MENU_STRUCTURE_UNMET",
+                               details={"dish_count": draft.dish_count, "need_main": need_main,
+                                        "soup_room": soup_room,
+                                        "main_dishes": sum(o[0]["category"] == MAIN for o, _ in pool)},
+                               previous_day=context)
+
     def combinations():
         for fixed in itertools.product(*specified):
-            for picked in itertools.combinations(pool, needed):
-                yield [*fixed, *(_summary(options[0], dish, False) for options, dish in picked)]
+            for picked in _structured_picks([options[0]["category"] for options, _ in pool],
+                                            needed, need_main, soup_room):
+                yield [*fixed, *(_summary(pool[i][0][0], pool[i][1], False) for i in picked)]
 
     alternatives = list(itertools.islice(combinations(), MAX_COMBINATIONS))
     return RetrievalResult(DATABASE_MENU, selected=alternatives[0], candidates=candidates, previous_day=context,

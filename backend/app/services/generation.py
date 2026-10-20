@@ -535,6 +535,12 @@ def _generate(ctx, *, responder, knowledge_client, embedder, calculator, now) ->
             raise jobs.JobFailure("SPECIFIED_DISH_DIETARY_CONFLICT",
                                   f"指定菜與過敏／禁吃限制衝突：{detail}。系統不會自動換成其他做法；"
                                   "請修改指定菜或飲食限制後重新送出，問卷已保留。")
+        if retrieval.status == recipe_retrieval.STAPLE_CONFLICT:
+            # 決策 #22：指定了主食類的菜又選了主食 → 回報讓使用者擇一，不默默丟掉指定菜、不轉 AI
+            names = "、".join(retrieval.details["specified_dishes"])
+            raise jobs.JobFailure("SPECIFIED_DISH_STAPLE_CONFLICT",
+                                  f"指定菜「{names}」屬於主食類，與所選主食「{retrieval.details['staple']}」重複；"
+                                  "請把主食改為「不需要主食」或換掉指定菜後重新送出，問卷已保留。")
         candidates = ([_database_dishes(db, combo) for combo in retrieval.alternatives]
                       if retrieval.status == recipe_retrieval.DATABASE_MENU else [])
 

@@ -16,6 +16,13 @@
 - 昨日排除：餐食日期減一個日曆日、同家庭、全部餐別、`status='adopted'`；不往前回溯。同菜以標準菜色 ID 加名稱／別名換算的 ID 交集判定。明確指定菜只豁免它自己。
 - 不足菜數時的原因：排除昨日菜前足夠 → `ALL_EXCLUDED_BY_PREVIOUS_DAY`，否則 `NO_MATCHING_RECIPES`。兩者皆是自動 AI 回退原因（`code = NO_FEASIBLE_DATABASE_MENU`），結果附 `previous_day`，AI 模式仍須避開其中的 `excluded_dishes`。
 - 已有食材（含已確認同義組）與口味偏好（比對菜類、菜系、烹調方法）只影響排序。預算、營養由 T12／T13／T15 驗證；主食不計入菜數。
+- 菜色結構（決策 #22，2026-10-21 使用者實測回報後修正）：
+  - 問卷有選主食（`staples.resolve(draft.staple)` 不為 None）時，`category=主食` 的食譜不進資料庫候選；選「不需要主食」則可入選。`category=點心` 一律不放入正餐。
+  - 指定菜仍計入菜數；若有選主食又指定主食類的菜 → `specified_dish_staple_conflict`／`SPECIFIED_DISH_STAPLE_CONFLICT`（`details` 含指定菜與主食），T14 以同名代碼失敗回報、請使用者擇一，**不默默丟掉指定菜、不轉 AI**。
+  - 組合至少一道主菜（指定菜已含主菜則不強制補）、湯總數最多一道（指定湯佔用名額）；指定菜只有湯／點心且菜數已滿時尊重指定。結構湊不出 → `no_feasible_database_menu`／`MENU_STRUCTURE_UNMET`，照常自動 AI 回退。
+  - 組合依排名字典序產生，以後綴計數剪枝，只走得出合格組合的分支（不先產生再丟棄）。
+  - 排序：已有食材重疊數 → 重疊比例（重疊數／食譜食材數）→ 口味 → `tie_break(household_id, meal_date, recipe_id)`（SHA-256）輪替；同一請求可重現，不同日期換菜，不再固定照 `recipe_id`。AC06 固定情境測試把輪替鍵固定為 `recipe_id` 以保持人工寫定的期望值，輪替本身另有測試。
+  - 每道摘要帶 `category`。
 - 結果 `to_dict()` 可直接保存為 GenerationResult 的「實際結構化查詢來源」與「昨日比對」。
 
 ### 已採用餐食紀錄（最小快照）
