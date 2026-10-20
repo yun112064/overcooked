@@ -163,5 +163,59 @@ class PreflightTests(unittest.TestCase):
         self.assertEqual(sorted(e.split(" ")[0] for e in errors), ["KNOWLEDGE_TOKEN", "TEAM_TUNNEL_TOKEN"])
 
 
+def compose_config(files, env, project_dir=None):
+    """以 docker compose config 取得合併後設定（不啟動任何容器）。"""
+    import json
+    import os
+    import subprocess
+    from db_support import ROOT
+    cmd = ["docker", "compose"]
+    if project_dir:
+        cmd += ["--project-directory", str(project_dir)]
+    for f in files:
+        cmd += ["-f", str(ROOT / f)]
+    full_env = {k: v for k, v in os.environ.items() if not k.startswith(("POSTGRES_", "PROJECT_", "CLOUDFLARE_"))}
+    proc = subprocess.run([*cmd, "config", "--format", "json"], cwd=ROOT, capture_output=True, text=True,
+                          encoding="utf-8", env={**full_env, **env}, timeout=120)
+    return proc.returncode, (json.loads(proc.stdout) if proc.returncode == 0 else proc.stderr)
+
+
+PROD_ENV = {"POSTGRES_PASSWORD": "placeholder-pw", "PUBLIC_HOSTNAME": "meal.team-domain.test",
+            "CLOUDFLARE_TUNNEL_TOKEN": "placeholder-tunnel", "PROJECT_DATA_ROOT": "/var/lib/meal-planner/data",
+            "PROJECT_RUNTIME_ROOT": "/var/lib/meal-planner/runtime", "PROJECT_BACKUP_ROOT": "/var/backups/meal-planner"}
+
+
+class ComposeTests(unittest.TestCase):
+    def test_production_publishes_nothing_and_goes_out_through_the_tunnel(self):
+        code, cfg = compose_config(["compose.yaml", "compose.prod.yaml"], PROD_ENV)
+        self.assertEqual(code, 0, cfg)
+        services = cfg["services"]
+        for name, svc in services.items():
+            self.assertFalse(svc.get("ports"), f"{name} 不可對主機開埠")
+        self.assertEqual(services["cloudflared"]["environment"]["TUNNEL_TOKEN"], "placeholder-tunnel")
+        backend = services["backend"]["environment"]
+        self.assertEqual((backend["AUTO_MIGRATE"], backend["COOKIE_SECURE"], backend["ALLOWED_ORIGINS"]),
+                         ("false", "true", "https://meal.team-domain.test"))
+        self.assertIn("TEAM_ACCESS_CLIENT_SECRET", services["worker"]["environment"])
+        self.assertEqual(sorted(v["source"] for v in services["backend"]["volumes"]),
+                         ["/var/backups/meal-planner", "/var/lib/meal-planner/data", "/var/lib/meal-planner/runtime"])
+
+    def test_production_refuses_to_render_without_tunnel_token_or_roots(self):
+        for missing in ("CLOUDFLARE_TUNNEL_TOKEN", "PROJECT_DATA_ROOT", "PUBLIC_HOSTNAME"):
+            env = {k: v for k, v in PROD_ENV.items() if k != missing}
+            code, err = compose_config(["compose.yaml", "compose.prod.yaml"], env)
+            self.assertNotEqual(code, 0, missing)
+            self.assertIn(missing, err)
+
+    def test_team_computer_services_bind_only_to_loopback(self):
+        code, cfg = compose_config(["deploy/team/compose.yaml"],
+                                   {"KNOWLEDGE_DB_PASSWORD": "placeholder-pw", "KNOWLEDGE_TOKEN": "placeholder-token"})
+        self.assertEqual(code, 0, cfg)
+        ports = [p for svc in cfg["services"].values() for p in svc.get("ports", [])]
+        self.assertTrue(ports)
+        self.assertEqual({p["host_ip"] for p in ports}, {"127.0.0.1"})
+        self.assertEqual(cfg["services"]["knowledge-rag"]["environment"]["KNOWLEDGE_TOKEN"], "placeholder-token")
+
+
 if __name__ == "__main__":
     unittest.main()

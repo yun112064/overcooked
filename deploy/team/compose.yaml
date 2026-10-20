@@ -1,0 +1,53 @@
+# T17 團隊電腦：營養知識庫（PostgreSQL＋pgvector）與知識 RAG 服務
+#
+#   docker compose --env-file deploy/team/.env.team -f deploy/team/compose.yaml up -d --build
+#
+# - 所有埠只綁 127.0.0.1；對外只經本機的 cloudflared（Windows 服務）以 Cloudflare Tunnel 連出，
+#   不開任何連入埠。tunnel 的 Public Hostname：knowledge.<網域> → http://127.0.0.1:8766、
+#   yolo.<網域> → http://127.0.0.1:8765（YOLO 直接在主機以 GPU 執行，見 docs/T17-deployment.md）。
+# - 兩個 hostname 都要建立 Cloudflare Access 應用程式，只允許雲端的服務權杖（Service Auth）。
+# - 知識資料庫在具名 volume meal-team_knowledge_pg；schema 由 knowledge_rag/schema.sql 初始化。
+
+name: meal-team
+
+services:
+  knowledge-db:
+    image: pgvector/pgvector:0.8.6-pg17
+    container_name: meal-knowledge-db
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${KNOWLEDGE_DB_PASSWORD:?Set KNOWLEDGE_DB_PASSWORD in deploy/team/.env.team}
+      POSTGRES_DB: meal_knowledge
+    ports:
+      # 只供本機匯入／審核／建索引工具使用
+      - "127.0.0.1:55433:5432"
+    volumes:
+      - knowledge_pg:/var/lib/postgresql/data
+      - ../../knowledge_rag/schema.sql:/docker-entrypoint-initdb.d/10-knowledge-schema.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d meal_knowledge"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+  knowledge-rag:
+    build:
+      context: ../..
+      dockerfile: deploy/team/knowledge.Dockerfile
+    image: meal-knowledge-rag
+    container_name: meal-knowledge-rag
+    environment:
+      KNOWLEDGE_DATABASE_URL: postgresql://postgres:${KNOWLEDGE_DB_PASSWORD:?Set KNOWLEDGE_DB_PASSWORD}@knowledge-db:5432/meal_knowledge
+      KNOWLEDGE_TOKEN: ${KNOWLEDGE_TOKEN:?Set KNOWLEDGE_TOKEN in deploy/team/.env.team}
+      KNOWLEDGE_HOST: 0.0.0.0
+      KNOWLEDGE_PORT: "8766"
+    ports:
+      - "127.0.0.1:8766:8766"
+    depends_on:
+      knowledge-db:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  knowledge_pg:
