@@ -121,3 +121,9 @@
 | P6 | 生熟依據 | decisions #17：工作簿克數＝生重，`weight_basis_source` 寫入追溯；有生熟欄位時優先 | `test_t12_meal_calculation.py` |
 | P7 | 知識額度不足讓工作失敗 | 菜單保留、知識標 `KNOWLEDGE_UNAVAILABLE`（`BUDGET_EXHAUSTED`），可只重試知識說明 | `test_t14_generation.py`::KnowledgeBudgetTests |
 | P8 | 工作簿在 Git | decisions #18 保留；偏離記錄於 limitations 3.1 | — |
+
+## 使用者決策覆蓋（2026-10-20）
+
+| AC | 原規定 | 覆蓋後 | 依據／證據 |
+|---|---|---|---|
+| AC13 | 必要依據（烹調換算）缺失 → 呈現缺營養並阻擋採用 | **由使用者決策 #19 覆蓋**：缺烹調產率／保留率或「匙」等單位克數時，改用事先批次推估並快取的 gpt-5.4-mini 係數（經 T10 額度），推估後可採用；TFDA 實測與人工審核值優先，rejected 不用；結果逐項標示「LLM 推估」與模型／版本；沒有推估值時仍維持缺營養並阻擋、未知不填 0。生／熟追溯與熟食不重複修正不變 | decisions #19；`docs/T12-meal-calculation.md`「LLM 推估換算係數」；`test_llm_estimation.py`（CachedCookingFactorTests、FactorStoreTests、CachedFactorsInRecipeCalculationTests、BatchEstimationTests、CommandLineTests、ResultViewLabelTests）。推估值不是實測，G04 仍未通過；真實批次尚未以正式金鑰執行 |

@@ -21,6 +21,8 @@ const shown = (i: ResultIngredient) =>
   i.display_amount != null && i.display_unit
     ? `${Number(i.display_amount)} ${i.display_unit}`
     : i.display_text ?? grams(i.display_grams)
+/** decisions #19：LLM 推估的克數或烹調係數要標示出來 */
+const estimateTag = (i: ResultIngredient) => (i.llm_estimated ? `（${i.estimate_label ?? 'LLM 推估'}）` : '')
 const NUTRIENT_LABELS: Record<string, string> = { energy_kcal: '熱量', protein_g: '蛋白質' }
 const NUTRIENT_UNITS: Record<string, string> = { energy_kcal: 'kcal', protein_g: 'g' }
 const ACTIVE = new Set(['queued', 'running'])
@@ -200,7 +202,7 @@ export default function MealResultView({ requestId, mealDate, onChanged }: Props
             {d.dish_name}{d.specified && '（指定菜）'}{d.cooking_method && ` · ${d.cooking_method}`}
           </Typography>
           <Typography variant="body2">
-            {d.ingredients.map((i) => `${i.name} ${shown(i)}`).join('、')}
+            {d.ingredients.map((i) => `${i.name} ${shown(i)}${estimateTag(i)}`).join('、')}
           </Typography>
           <Box component="ol" sx={{ my: 0.5, pl: 3 }}>
             {d.steps.map((s, idx) => <li key={idx}><Typography variant="body2">{s}</Typography></li>)}
@@ -214,6 +216,7 @@ export default function MealResultView({ requestId, mealDate, onChanged }: Props
           <Typography variant="body2">
             {r.staple.display_amount != null
               ? `${r.staple.tfda_name ?? r.staple.label} ${Number(r.staple.display_amount)} ${r.staple.display_unit ?? ''}`
+                + (r.staple.llm_estimated ? '（LLM 推估）' : '')
               : '無法換算營養（缺 TFDA 樣品），不可採用'}
             （計入營養與 ±10% 驗證，不計入價格{r.staple.review_status === 'pending_review' ? '；份量設定待營養審核' : ''}）
           </Typography>
@@ -246,6 +249,17 @@ export default function MealResultView({ requestId, mealDate, onChanged }: Props
               </li>
             ))}
           </Box>
+        </Alert>
+      )}
+      {r.nutrition.llm_estimates?.used && (
+        <Alert severity="info" icon={false}>
+          <Chip size="small" color="info" label={r.nutrition.llm_estimates.label ?? 'LLM 推估'} sx={{ mr: 1 }} />
+          <Typography variant="body2" component="span">
+            {(r.nutrition.llm_estimates.nutrients.filter((k) => k in NUTRIENT_LABELS)
+              .map((k) => NUTRIENT_LABELS[k]).join('、') || '部分數值')}
+            含 LLM 推估的換算係數（缺 TFDA 實測的產率／保留率或「匙」等單位克數；已標示的食材）。
+            TFDA 實測與人工審核值優先，推估值可由管理者覆核。
+          </Typography>
         </Alert>
       )}
       <Table size="small">
