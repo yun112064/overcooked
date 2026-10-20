@@ -1,0 +1,35 @@
+{
+  "note": "T18 負載情境範本。實機執行前請複製一份，依部署環境的實際食譜庫與照片調整；fallback_request 必須是在該環境中『資料庫無可行組合』的輸入，否則報告會記錄 FALLBACK_NOT_TRIGGERED。",
+  "base_meal_date": "2026-12-01",
+  "household_name": "T18 負載測試家庭",
+  "member": {
+    "display_name": "負載測試成員",
+    "birth_date": "1996-03-01",
+    "equation_sex": "M",
+    "weight_kg": "70",
+    "activity_category": "sedentary",
+    "goal": "maintain",
+    "portion": "1",
+    "allergen_ingredient_ids": [],
+    "avoided_ingredient_ids": []
+  },
+  "database_request": {
+    "meal_type": "dinner",
+    "budget": "300",
+    "staple": "白飯",
+    "dish_count": 2,
+    "specified_dishes": ["番茄炒蛋"]
+  },
+  "fallback_request": {
+    "meal_type": "lunch",
+    "budget": "300",
+    "staple": "白飯",
+    "dish_count": 2,
+    "specified_dishes": ["T18 測試用資料庫沒有的菜"]
+  },
+  "recognition": {
+    "image_files": [],
+    "confirm_ingredient_id": "FOOD000867",
+    "confirm_name": "高麗菜"
+  }
+}
