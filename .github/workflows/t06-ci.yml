@@ -42,7 +42,7 @@ jobs:
         run: pip install -r requirements.txt
 
       - name: Check Python syntax
-        run: python -m compileall -q backend migrations tests nutrition_target nutrition_model
+        run: python -m compileall -q backend migrations tests nutrition_target nutrition_model knowledge_rag
 
       - name: Run T03 nutrition target tests
         run: python -m unittest discover -s nutrition_target/tests -t . -p 'test_*.py' -v

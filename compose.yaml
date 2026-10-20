@@ -41,6 +41,10 @@ services:
       # T09 團隊電腦 YOLO 推論服務；未設定時辨識顯示不可用，可手動輸入
       RECOGNITION_SERVICE_URL: ${RECOGNITION_SERVICE_URL:-}
       RECOGNITION_SERVICE_TOKEN: ${RECOGNITION_SERVICE_TOKEN:-}
+      # T11 團隊電腦營養知識 RAG 與 OpenAI 向量化；未設定時知識顯示不可用
+      KNOWLEDGE_SERVICE_URL: ${KNOWLEDGE_SERVICE_URL:-}
+      KNOWLEDGE_SERVICE_TOKEN: ${KNOWLEDGE_SERVICE_TOKEN:-}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
 
     ports:
       - "127.0.0.1:8000:8000"
@@ -73,6 +77,10 @@ services:
       DATABASE_URL: postgresql+psycopg://postgres:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}@db:5432/meal_planner
       PROJECT_DATA_ROOT: /app/data
       PYTHONUNBUFFERED: "1"
+      # T11 知識 RAG 與向量化在 worker 中執行
+      KNOWLEDGE_SERVICE_URL: ${KNOWLEDGE_SERVICE_URL:-}
+      KNOWLEDGE_SERVICE_TOKEN: ${KNOWLEDGE_SERVICE_TOKEN:-}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
     volumes:
       - ${PROJECT_DATA_ROOT:-../AIPE04期末專題_data}:/app/data
     depends_on:
