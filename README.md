@@ -19,6 +19,7 @@
 | `migrations/` | 資料庫遷移 | `alembic.ini` |
 | `tests/` | T06 日誌與隱私、T07／T08／T10 API 與資料庫測試；T03 測試已移入模組 | CI 見 `.github/workflows/t06-ci.yml` |
 | `docs/` | 跨模組決議及 T04 驗收／交接記錄 | [決議與整合待辦](docs/T04-T06-merge-pending.md) |
+| `docs/acceptance/` | T20：AC／Gate 驗收矩陣、操作維護展示交接、限制說明（**MVP 尚未完成**，T18／T19 與正式環境證據待補） | [驗收矩陣](docs/acceptance/matrix.md)、[交接](docs/acceptance/handoff.md)、[限制](docs/acceptance/limitations.md) |
 
 T03 已決議以 Spec 為準，使用版本化規則 `hpa-dri8-mvp-0.3.0` 的目標限制。LLM 烹調係數用途及採用所需的必要營養欄位仍待決議。
 
