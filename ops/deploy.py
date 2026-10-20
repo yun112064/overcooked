@@ -41,7 +41,8 @@ def deploy(*, preflight, backup, run, out=print, env_file: str = ".env.prod") ->
     try:
         backup_path = backup()
     except Exception as exc:  # noqa: BLE001
-        out(f"部署中止：部署前備份失敗（{exc}），未做任何變更")
+        from ops.env import safe_error
+        out(f"部署中止：部署前備份失敗（{safe_error(exc)}），未做任何變更")
         return 3
     out(f"部署前備份：{backup_path}" if backup_path else "部署前備份：資料庫是空的（首次部署），不需備份")
     compose = compose_cmd(env_file)
@@ -62,14 +63,14 @@ def deploy(*, preflight, backup, run, out=print, env_file: str = ".env.prod") ->
 
 
 def main(argv=None) -> int:
-    from ops.backup import _load_env
+    from ops.env import load_env
     from ops.pg import PgTools
     from ops.preflight import check
 
     parser = argparse.ArgumentParser(description="T17 雲端部署（含部署前備份與 Alembic 閘門）")
     parser.add_argument("--env-file", default=".env.prod")
     args = parser.parse_args(argv)
-    env = _load_env(REPO_ROOT / args.env_file)
+    env = load_env(REPO_ROOT / args.env_file)
 
     def do_backup():
         # 先確保資料庫容器在執行（首次部署時會建立空資料庫）

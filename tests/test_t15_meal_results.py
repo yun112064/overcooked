@@ -15,6 +15,8 @@ from test_t14_generation import (CABBAGE, EGG, GARLIC, TOMATO, FakeKnowledgeClie
                                  GenerationTestCase, ai_dish, menu, per_gram_calculator)
 
 ALL = (TOMATO, EGG, CABBAGE, GARLIC)
+AI_MENU = menu(ai_dish("番茄蛋花湯", [(TOMATO, 50), (EGG, 50)], method="煮"),
+               ai_dish("蒜香高麗菜", [(CABBAGE, 50), (GARLIC, 50)]))
 
 
 def money(value):
@@ -232,38 +234,143 @@ class MissingPriceDecisionTests(ResultTestCase):
         res = self.decide("accept_missing_price", request_version=self.request["version"] + 1)
         self.assertEqual((res.status_code, res.json()["error"]["code"]), (409, "VERSION_CONFLICT"))
 
-    def test_price_retry_rereads_prices_into_a_new_result_version(self):
+    def run_retry(self, kind, handler):
+        from app.jobs.worker import run_once
+        from sqlalchemy import text
+        with self.factory() as db, db.begin():
+            db.execute(text("UPDATE background_jobs SET available_at = now() WHERE status = 'queued'"))
+        return run_once(self.factory, "worker-a", {kind: handler})
+
+    def lookup(self, *found, error=None):
+        """取代 T02 定向查價：記錄被要求的 FOOD 編號，並為 found 寫入價格快照。"""
+        calls = []
+
+        def lookup(food_ids):
+            calls.append(list(food_ids))
+            if error:
+                raise error
+            seed_prices(*found)
+            return {"status": "completed", "auto_adopted": len(found), "estimates": 0, "missing": 0}
+        lookup.calls = calls
+        return lookup
+
+    def test_price_retry_runs_a_targeted_lookup_and_produces_a_new_version(self):
+        from app.services.result_retry import make_price_retry_handler
         self.generate(prices=(TOMATO, EGG, CABBAGE))
-        seed_prices(GARLIC)
         res = self.retry_prices()
-        self.assertEqual(res.status_code, 201, res.text)
-        self.assertEqual(res.json()["result_version"], 2)
+        self.assertEqual(res.status_code, 202, res.text)
+        job = res.json()["job"]
+        self.assertEqual((job["kind"], job["status"], job["source_result_version"]), ("price_retry", "queued", 1))
+        # 查價中可辨識；問卷狀態不變、原結果仍可查看與決定
+        self.assertEqual(self.result()["retries"]["price"]["status"], "queued")
+        self.assertEqual(self.status(), "awaiting_decision")
+        again = self.retry_prices()  # 同鍵重送：同一工作
+        self.assertEqual((again.status_code, again.json()["job"]["id"]), (200, job["id"]))
+        lookup = self.lookup(GARLIC)
+        self.run_retry("price_retry", make_price_retry_handler(price_lookup=lookup))
+        self.assertEqual(lookup.calls, [[GARLIC]])  # 只查缺價食材
+        self.assertEqual(self.job(job["id"])["status"], "succeeded")
         self.assertEqual(self.status(), "result_ready")
         retried = self.result(2)
         self.assertEqual((retried["derived_from_result_version"], retried["mode_label"]), (1, "資料庫菜單"))
         self.assertEqual([d["dish_name"] for d in retried["dishes"]], ["番茄炒蛋", "清炒高麗菜"])
         self.assertEqual(money(retried["prices"]["cost_total"]), Decimal(20))
         self.assertTrue(retried["eligibility"]["adoptable"])
-        # 原版本不變
-        self.assertIsNone(self.result(1)["prices"]["cost_total"])
-        # 同鍵重送回同一新版本
-        again = self.retry_prices()
-        self.assertEqual((again.status_code, again.json()["result_version"]), (200, 2))
+        self.assertEqual(retried["price_retry"]["price_source"], "t02_targeted_lookup")
+        original = self.result(1)
+        self.assertIsNone(original["prices"]["cost_total"])  # 原版本不變
+        self.assertEqual((original["retries"]["price"]["status"], original["retries"]["price"]["produced_result_version"]),
+                         ("succeeded", 2))
+        self.assertIn("retry_missing_price", [d["kind"] for d in original["eligibility"]["decisions"]])
 
     def test_price_retry_still_missing_needs_a_fresh_acceptance(self):
+        from app.services.result_retry import make_price_retry_handler
         self.generate(prices=(TOMATO, EGG, CABBAGE))
         self.assertEqual(self.decide("accept_missing_price").status_code, 201)
-        res = self.retry_prices()
-        self.assertEqual(res.status_code, 201, res.text)
+        self.assertEqual(self.retry_prices().status_code, 202)
+        self.run_retry("price_retry", make_price_retry_handler(price_lookup=self.lookup()))
         self.assertEqual(self.status(), "awaiting_decision")
         retried = self.result(2)
         self.assertFalse(retried["eligibility"]["adoptable"])
         self.assertEqual([d["kind"] for d in retried["eligibility"]["pending_decisions"]], ["accept_missing_price"])
 
+    def test_failed_lookup_is_visible_and_keeps_the_original_result(self):
+        from app.services.result_retry import make_price_retry_handler
+        self.generate(prices=(TOMATO, EGG, CABBAGE))
+        job_id = self.retry_prices().json()["job"]["id"]
+        self.run_retry("price_retry", make_price_retry_handler(price_lookup=self.lookup(error=RuntimeError("down"))))
+        job = self.job(job_id)
+        self.assertEqual((job["status"], job["error"]["code"]), ("failed", "PRICE_LOOKUP_FAILED"))
+        view = self.result()
+        self.assertEqual((view["retries"]["price"]["status"], view["retries"]["price"]["error"]["code"]),
+                         ("failed", "PRICE_LOOKUP_FAILED"))
+        self.assertEqual(self.status(), "awaiting_decision")
+        self.assertEqual(len(self.results()), 1)
+        # 失敗後可用新的識別碼再試
+        self.assertEqual(self.retry_prices(key="retry-00000002").status_code, 202)
+
+    def test_price_retry_is_rate_limited_per_household(self):
+        from unittest.mock import patch
+        self.generate(prices=(TOMATO, EGG, CABBAGE))
+        with patch("app.core.config.settings.price_retry_hourly_limit", 1):
+            self.assertEqual(self.retry_prices().status_code, 202)
+            from app.services import jobs
+            from sqlalchemy import text
+            with self.factory() as db, db.begin():  # 第一個工作已結束（失敗），仍計入速率限制
+                db.execute(text("UPDATE background_jobs SET status = 'failed' WHERE kind = :k"), {"k": jobs.PRICE_RETRY})
+            res = self.retry_prices(key="retry-00000002")
+        self.assertEqual((res.status_code, res.json()["error"]["code"]), (429, "RATE_LIMITED"))
+
     def test_price_retry_is_refused_when_no_price_is_missing(self):
         self.generate()
         res = self.retry_prices()
         self.assertEqual((res.status_code, res.json()["error"]["details"]["reason"]), (422, "DECISION_NOT_APPLICABLE"))
+
+
+class KnowledgeRetryTests(ResultTestCase):
+    """pre-review #3：知識服務故障時「只重試知識說明」，不改菜單／份量／TFDA 數值，經 T10 額度。"""
+
+    def retry_knowledge(self, *, version=1, key="kretry-00000001"):
+        return self.client.post(f"/meal-requests/{self.request['id']}/results/{version}/knowledge-retry",
+                                json={"request_version": self.request["version"]}, headers={"Idempotency-Key": key})
+
+    def test_only_the_explanation_is_regenerated_into_a_new_version(self):
+        from knowledge_support import FakeEmbedder
+        from app.jobs.worker import run_once
+        from app.services.result_retry import make_knowledge_retry_handler
+        from test_t14_generation import knowledge_record
+        self.generate(knowledge=FakeKnowledgeClient(error="UNREACHABLE"))
+        first = self.result()
+        self.assertTrue(first["knowledge"]["retry_available"])
+        res = self.retry_knowledge()
+        self.assertEqual(res.status_code, 202, res.text)
+        self.assertEqual(res.json()["job"]["kind"], "knowledge_retry")
+        self.assertEqual(self.result()["retries"]["knowledge"]["status"], "queued")
+        # 生成面板只追蹤生成工作：可依種類篩選，重試工作不會被當成「生成中」
+        jobs = self.client.get("/jobs", params={"meal_request_id": self.request["id"], "kind": "meal_generation"})
+        self.assertEqual({j["kind"] for j in jobs.json()["jobs"]}, {"meal_generation"})
+        self.assertEqual(self.status(), "result_ready")
+        client = FakeKnowledgeClient([knowledge_record("K1", TOMATO, "番茄含維生素（合成）")])
+        responder = FakeResponder({"items": [{"ingredient_id": TOMATO, "explanation": "番茄含維生素。", "citations": [
+            {"knowledge_id": "K1", "source_version": "v1", "ingredient_id": TOMATO}]}]})
+        handler = make_knowledge_retry_handler(responder=responder, knowledge_client=client, embedder=FakeEmbedder())
+        run_once(self.factory, "worker-a", {"knowledge_retry": handler})
+        self.assertEqual(client.calls, [sorted(ALL)])  # 同一結果的最終食材
+        second = self.result(2)
+        self.assertEqual(second["derived_from_result_version"], 1)
+        self.assertEqual(second["knowledge"]["status"], "available")
+        self.assertEqual(second["knowledge"]["items"][0]["ingredient_id"], TOMATO)
+        for key in ("dishes", "nutrition", "prices"):  # 菜單、份量、營養、價格完全不變
+            self.assertEqual(second[key], first[key], key)
+        self.assertEqual(self.result()["knowledge"]["status"], "unavailable")  # 原版本不變
+        job_id = res.json()["job"]["id"]
+        purposes = [(r.purpose, r.status) for r in self.reservations() if str(r.job_id) == job_id]
+        self.assertEqual(purposes, [("knowledge_query_embedding", "settled"), ("knowledge_explanation", "settled")])
+
+    def test_knowledge_retry_is_refused_when_knowledge_is_merely_missing(self):
+        self.generate(knowledge=FakeKnowledgeClient([]))  # 查無知識（not_found）不是故障
+        res = self.retry_knowledge()
+        self.assertEqual((res.status_code, res.json()["error"]["details"]["reason"]), (422, "RETRY_NOT_APPLICABLE"))
 
 
 class MissingNutritionDecisionTests(ResultTestCase):
@@ -286,6 +393,13 @@ class MissingNutritionDecisionTests(ResultTestCase):
         self.assertIsNone(view["nutrition"]["protein_g"])
         self.assertEqual([d["kind"] for d in view["eligibility"]["pending_decisions"]], ["continue_missing_nutrition"])
         self.assertIn("NUTRITION_INCOMPLETE", [b["code"] for b in view["eligibility"]["blocks"]])
+        # P2：缺營養仍可查看每項用量（未驗證）、可計算的成本與具體建議
+        self.assertFalse(view["nutrition"]["quantities_verified"])
+        self.assertEqual(view["nutrition"]["suggestions"][0]["code"], "NUTRITION_INCOMPLETE")
+        first = view["dishes"][0]["ingredients"][0]
+        self.assertEqual((Decimal(first["display_amount"]), first["display_unit"]), (Decimal(50), "g"))
+        self.assertEqual(view["prices"]["status"], "computed")
+        self.assertEqual(money(view["prices"]["known_cost_total"]), money(20))
         self.assertEqual(self.decide("continue_missing_nutrition").status_code, 201)
         self.assertEqual(self.status(), "result_ready")
         view = self.result()
@@ -298,7 +412,8 @@ class MissingNutritionDecisionTests(ResultTestCase):
             energy, protein = self.reference()
             return per_gram_calculator(energy / 100, protein / 100)  # 兩倍 → 超出 ±10%
         doubled.factory = True
-        self.generate(calculator=doubled)
+        # 資料庫候選組合全部不可行 → 自動 AI 回退；AI 菜同樣超出 ±10%
+        self.generate(calculator=doubled, responder=FakeResponder(AI_MENU))
         self.assertEqual(self.status(), "result_ready")
         view = self.result()
         self.assertFalse(view["eligibility"]["adoptable"])

@@ -57,6 +57,9 @@ ALTER TABLE knowledge_records ADD COLUMN IF NOT EXISTS authorization_ref TEXT;
 ALTER TABLE knowledge_records ADD COLUMN IF NOT EXISTS article_id        VARCHAR(32);
 ALTER TABLE knowledge_records ADD COLUMN IF NOT EXISTS content_provider  TEXT;
 CREATE INDEX IF NOT EXISTS ix_knowledge_records_article ON knowledge_records (source_name, article_id);
+-- 轉載內容（文末「內容授權提供／X」）的授權狀態（pre-review #8）：third_party_unconfirmed＝待確認，不可核准；
+-- 審核者明確確認授權涵蓋轉載內容後才可核准，改為 third_party_confirmed 並寫入審核紀錄。非轉載為 NULL。
+ALTER TABLE knowledge_records ADD COLUMN IF NOT EXISTS license_status    VARCHAR(40);
 
 -- 抓取狀態：每篇來源文章一列，用來跳過已抓過的文章與判斷內容是否改變（不存原文全文）。
 CREATE TABLE IF NOT EXISTS source_articles (

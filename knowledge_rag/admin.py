@@ -3,9 +3,10 @@
   status                                     知識狀態計數、待審新版本、active 索引、抓取統計、雲端待補食材數
   list [--status pending|approved|rejected] [--limit N]
   show <knowledge_id>                        所有版本（含出處與授權紀錄欄位）
-  approve <knowledge_id> <version> --reviewer 名字 --note 核對說明
+  approve <knowledge_id> <version> --reviewer 名字 --note 核對說明 [--confirm-third-party-license]
+                                             轉載文章（內容授權提供／X）必須加此旗標，確認授權涵蓋轉載內容
   reject  <knowledge_id> <version> --reviewer 名字 --note 退回原因
-  index build --version <索引版本>            以 OpenAI text-embedding-3-small 建索引並啟用（每批經 T10 額度預留／結算）
+  index build --version <索引版本>            以 text-embedding-3-small 建索引並啟用（每批送雲端內部 API，經 T10 額度預留／結算）
   crawl --channel <頻道 ID> [--max-pages N] [--refresh]   （可重複 --channel；未指定時用營養飲食）
   crawl --ids <起>-<迄> [--refresh]
   crawl --queued [--limit N] [--max-pages N] [--max-articles N]   雲端待補食材優先
@@ -17,9 +18,11 @@
   KNOWLEDGE_AUTHORIZATION_REF  健康醫療網書面授權證據的存放位置（crawl 必填；見 docs/knowledge-source-healthnews.md）
   KNOWLEDGE_CRAWLER_USER_AGENT 選填，覆寫預設 User-Agent
   KNOWLEDGE_FOOD_WORKBOOK      選填，FOOD 字典來源工作簿（預設 data/recipe_dataset_1017.xlsx）
-  DATABASE_URL                 雲端業務庫：index build（額度控制）與 crawl --queued / status 的佇列需要
-  OPENAI_API_KEY               index build 需要
-需要 PYTHONPATH 含 backend（使用 app.services 的額度控制、OpenAIEmbedder、FOOD 字典解析）。
+  CLOUD_INTERNAL_URL           雲端內部 API（例如 https://cloud-internal.<網域>）：index build、crawl --queued、status 的佇列數
+  CLOUD_INTERNAL_TOKEN         與雲端 INTERNAL_API_TOKEN 相同
+  CLOUD_ACCESS_CLIENT_ID／CLOUD_ACCESS_CLIENT_SECRET  內部 hostname 的 Cloudflare Access 服務權杖
+團隊電腦不需要雲端 DATABASE_URL 或 OPENAI_API_KEY（pre-review #6）：佇列與向量化都經雲端內部 API。
+需要 PYTHONPATH 含 backend（只用 app.services.recipe_import 解析 FOOD 字典，不連雲端資料庫）。
 """
 import argparse
 import json
@@ -63,21 +66,16 @@ def load_food_matcher(workbook: str | Path | None = None, synonyms: str | Path |
     return FoodMatcher(rows, synonym_groups=groups)
 
 
-def _default_cloud_factory():
-    from sqlalchemy import create_engine
-    from sqlalchemy.orm import sessionmaker
-    url = os.environ.get("DATABASE_URL")
-    if not url:
-        raise SystemExit("DATABASE_URL (cloud database) is required for this command")
-    return sessionmaker(bind=create_engine(url, pool_pre_ping=True), autoflush=False, expire_on_commit=False)
+def _default_cloud():
+    from knowledge_rag.cloud import CloudClient
+    url, token = os.environ.get("CLOUD_INTERNAL_URL"), os.environ.get("CLOUD_INTERNAL_TOKEN")
+    if not url or not token:
+        raise SystemExit("CLOUD_INTERNAL_URL and CLOUD_INTERNAL_TOKEN are required for this command")
+    return CloudClient(url, token, access_client_id=os.environ.get("CLOUD_ACCESS_CLIENT_ID"),
+                       access_client_secret=os.environ.get("CLOUD_ACCESS_CLIENT_SECRET"))
 
 
-def _default_embedder():
-    from app.services.llm_client import default_embedder
-    embedder = default_embedder()
-    if embedder is None:
-        raise SystemExit("OPENAI_API_KEY is required for index build")
-    return embedder
+EMBEDDING_MODEL = "text-embedding-3-small"
 
 
 @dataclass
@@ -85,8 +83,7 @@ class Deps:
     store: Callable = _default_store
     fetcher: Callable = _default_fetcher
     matcher: Callable = load_food_matcher
-    cloud_factory: Callable = _default_cloud_factory
-    embedder: Callable = _default_embedder
+    cloud: Callable = _default_cloud
     authorization_ref: str | None = None
 
 
@@ -117,11 +114,15 @@ def _parser() -> argparse.ArgumentParser:
         r.add_argument("version")
         r.add_argument("--reviewer", required=True)
         r.add_argument("--note", required=True)
+        if name == "approve":
+            r.add_argument("--confirm-third-party-license", action="store_true",
+                           help="轉載文章：確認書面授權涵蓋原始供稿者的內容（寫入審核紀錄）")
     idx = sub.add_parser("index")
     idx_sub = idx.add_subparsers(dest="index_cmd", required=True)
     build = idx_sub.add_parser("build")
     build.add_argument("--version", required=True)
     build.add_argument("--batch-size", type=int, default=50)
+    build.add_argument("--embedding-model", default=EMBEDDING_MODEL)
     crawl = sub.add_parser("crawl")
     mode = crawl.add_mutually_exclusive_group()
     mode.add_argument("--ids", help="文章 ID 範圍，例如 69000-70078")
@@ -148,34 +149,29 @@ def _crawl(args, deps: Deps) -> dict:
         start, _, end = args.ids.partition("-")
         return crawler.crawl_ids(int(start), int(end or start), refresh=args.refresh)
     if args.queued:
-        from app.services import knowledge_queue
-        factory = deps.cloud_factory()
-        requests = knowledge_queue.pending(factory, limit=args.limit)
-        food_ids = [r["food_id"] for r in requests]
+        cloud = deps.cloud()
+        food_ids = [r["food_id"] for r in cloud.claim(args.limit)]
         if not food_ids:
             return {"queued": [], "by_food": {}}
         report = crawler.crawl_for_foods(food_ids, channels=channels, max_pages=args.max_pages or 20,
                                          max_articles=args.max_articles)
-        knowledge_queue.mark_crawled(factory, report["by_food"])
+        cloud.complete(report["by_food"])
         return {"queued": food_ids, **report}
     reports = {c: crawler.crawl_channel(c, max_pages=args.max_pages, refresh=args.refresh) for c in channels}
     return reports[channels[0]] if len(channels) == 1 else reports
 
 
 def _index_build(args, deps: Deps) -> dict:
-    from app.services.knowledge import index_embedder
-    embedder = deps.embedder()
-    return deps.store().build_index(args.version, embedder.model,
-                                    index_embedder(deps.cloud_factory(), embedder, args.version),
+    return deps.store().build_index(args.version, args.embedding_model,
+                                    deps.cloud().index_embedder(args.version, args.embedding_model),
                                     batch_size=args.batch_size)
 
 
 def _status(deps: Deps) -> dict:
     summary = deps.store().status_summary()
     try:
-        from app.services import knowledge_queue
-        summary["crawl_queue_pending"] = len(knowledge_queue.pending(deps.cloud_factory(), limit=10000))
-    except (SystemExit, ImportError, Exception):  # noqa: BLE001 — 雲端庫不可達時只略過這一項
+        summary["crawl_queue_pending"] = deps.cloud().pending_count()
+    except (SystemExit, Exception):  # noqa: BLE001 — 雲端內部 API 不可達時只略過這一項
         summary["crawl_queue_pending"] = None
     return summary
 
@@ -190,8 +186,8 @@ def main(argv: list[str] | None = None, *, deps: Deps | None = None) -> int:
         if args.cmd == "status":
             _print(_status(deps))
         elif args.cmd == "list":
-            _print([{k: r[k] for k in ("knowledge_id", "source_version", "ingredient_id", "status", "title",
-                                       "source_url", "published_at", "imported_at")}
+            _print([{k: r.get(k) for k in ("knowledge_id", "source_version", "ingredient_id", "status", "title",
+                                           "source_url", "published_at", "imported_at", "license_status")}
                     for r in deps.store().list_records(status=args.status, limit=args.limit)])
         elif args.cmd == "show":
             versions = deps.store().list_versions(args.knowledge_id)
@@ -200,7 +196,8 @@ def main(argv: list[str] | None = None, *, deps: Deps | None = None) -> int:
             _print({"knowledge_id": args.knowledge_id, "versions": versions})
         elif args.cmd in ("approve", "reject"):
             _print(deps.store().review(args.knowledge_id, args.version, reviewer=args.reviewer,
-                                       approved=args.cmd == "approve", note=args.note))
+                                       approved=args.cmd == "approve", note=args.note,
+                                       confirm_third_party_license=getattr(args, "confirm_third_party_license", False)))
         elif args.cmd == "index":
             _print(_index_build(args, deps))
         elif args.cmd == "crawl":
@@ -209,8 +206,9 @@ def main(argv: list[str] | None = None, *, deps: Deps | None = None) -> int:
     except SystemExit as exc:
         print(str(exc), file=sys.stderr)
         return 2
-    except Exception as exc:  # noqa: BLE001 — 管理指令：顯示錯誤類型與訊息，不印堆疊
-        print(f"{type(exc).__name__}: {exc}", file=sys.stderr)
+    except Exception as exc:  # noqa: BLE001 — 管理指令：顯示錯誤類型與經遮蔽的訊息，不印堆疊
+        from ops.env import safe_error
+        print(safe_error(exc), file=sys.stderr)
         return 1
 
 

@@ -35,6 +35,17 @@ def version_conflict() -> ApiError:
     return ApiError(409, "VERSION_CONFLICT", "資料已被更新，請重新載入後再修改。")
 
 
+def already_adopted() -> ApiError:
+    """T16：已採用（confirmed）的問卷保存特定結果版本與快照，不被新生成或修改覆寫。"""
+    return ApiError(409, "VERSION_CONFLICT", "此問卷已採用，不能再生成或修改；請另建新問卷。",
+                    {"reason": "ALREADY_ADOPTED"})
+
+
+def idempotency_conflict(message: str = "這個送出識別碼已用於不同的內容，請重新操作。") -> ApiError:
+    """同一 Idempotency-Key 搭配不同命令（request hash 不同）。"""
+    return ApiError(409, "IDEMPOTENCY_CONFLICT", message)
+
+
 def _body(code: str, message: str, details: dict) -> dict:
     return {"error": {"code": code, "message": message, "details": details}}
 

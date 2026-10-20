@@ -18,6 +18,19 @@ class ProviderError(Exception):
     """供應商回應異常且無法確定是否計費。"""
 
 
+def _post(url: str, *, api_key: str, payload: dict, timeout: float) -> httpx.Response:
+    """送出請求並依 HTTP 狀態判斷是否計費：確定未計費拋 CallNotBilled，其他非 200 拋 ProviderError。"""
+    try:
+        res = httpx.post(url, json=payload, timeout=timeout, headers={"Authorization": f"Bearer {api_key}"})
+    except (httpx.ConnectError, httpx.ConnectTimeout) as exc:
+        raise CallNotBilled(type(exc).__name__) from None
+    if 400 <= res.status_code < 500 and res.status_code != 408:
+        raise CallNotBilled(f"HTTP {res.status_code}")
+    if res.status_code != 200:
+        raise ProviderError(f"HTTP {res.status_code}")
+    return res
+
+
 class OpenAIEmbedder:
     def __init__(self, *, api_key: str, model: str, base_url: str, timeout: float):
         self.api_key = api_key
@@ -26,16 +39,8 @@ class OpenAIEmbedder:
         self.timeout = timeout
 
     def embed(self, texts: list[str]) -> tuple[list[list[float]], dict]:
-        try:
-            res = httpx.post(f"{self.base_url}/embeddings", timeout=self.timeout,
-                             headers={"Authorization": f"Bearer {self.api_key}"},
-                             json={"model": self.model, "input": list(texts)})
-        except (httpx.ConnectError, httpx.ConnectTimeout) as exc:
-            raise CallNotBilled(type(exc).__name__) from None
-        if 400 <= res.status_code < 500 and res.status_code != 408:
-            raise CallNotBilled(f"HTTP {res.status_code}")
-        if res.status_code != 200:
-            raise ProviderError(f"HTTP {res.status_code}")
+        res = _post(f"{self.base_url}/embeddings", api_key=self.api_key,
+                    payload={"model": self.model, "input": list(texts)}, timeout=self.timeout)
         try:
             body = res.json()
             rows = sorted(body["data"], key=lambda r: r["index"])
@@ -82,15 +87,7 @@ class OpenAIResponder:
             "max_output_tokens": max_output_tokens, "store": False,
             "text": {"format": {"type": "json_schema", "name": schema_name, "schema": schema, "strict": True}},
         }
-        try:
-            res = httpx.post(f"{self.base_url}/responses", json=payload, timeout=self.timeout,
-                             headers={"Authorization": f"Bearer {self.api_key}"})
-        except (httpx.ConnectError, httpx.ConnectTimeout) as exc:
-            raise CallNotBilled(type(exc).__name__) from None
-        if 400 <= res.status_code < 500 and res.status_code != 408:
-            raise CallNotBilled(f"HTTP {res.status_code}")
-        if res.status_code != 200:
-            raise ProviderError(f"HTTP {res.status_code}")
+        res = _post(f"{self.base_url}/responses", api_key=self.api_key, payload=payload, timeout=self.timeout)
         try:
             body = res.json()
             status = body["status"]

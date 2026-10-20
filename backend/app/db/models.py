@@ -183,6 +183,8 @@ class BackgroundJob(Base):
     error_code: Mapped[str | None] = mapped_column(String(50), nullable=True)
     error_message: Mapped[str | None] = mapped_column(Text, nullable=True)
     result: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
+    # 工作參數（T15 重試工作：來源結果 ID、要查價的 FOOD 編號）；不含個人資料
+    params: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
     result_version: Mapped[int | None] = mapped_column(Integer, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, nullable=False)
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, nullable=False)
@@ -336,7 +338,7 @@ class GenerationResult(Base):
         CheckConstraint("result_version > 0 AND request_version > 0", name="ck_generation_result_versions"),
         UniqueConstraint("job_id", name="uq_generation_result_job"),
         UniqueConstraint("meal_request_id", "result_version", name="uq_generation_result_version"),
-        CheckConstraint("(job_id IS NULL) <> (derived_from_result_id IS NULL)", name="ck_generation_result_origin"),
+        CheckConstraint("job_id IS NOT NULL OR derived_from_result_id IS NOT NULL", name="ck_generation_result_origin"),
     )
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
@@ -347,7 +349,8 @@ class GenerationResult(Base):
         UUID(as_uuid=True), ForeignKey("meal_requests.id", ondelete="CASCADE"), nullable=False
     )
     request_version: Mapped[int] = mapped_column(Integer, nullable=False)
-    # T15：缺價重試產生的新版本沒有工作（job_id 為 NULL），改以 derived_from_result_id 指向來源版本
+    # T15：重試（只重試知識說明、缺價定向查價）產生的新版本以 derived_from_result_id 指向來源版本；
+    # 由重試工作產生時 job_id 也有值
     job_id: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True), ForeignKey("background_jobs.id", ondelete="CASCADE"), nullable=True
     )
@@ -401,3 +404,26 @@ class MealResultDecision(Base):
         UUID(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL"), nullable=True
     )
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, nullable=False)
+
+
+class KnowledgeCrawlRequest(Base):
+    """G07 待補知識食材佇列（雲端）：最終食材缺審核知識時記錄 FOOD 編號，供團隊電腦爬蟲優先處理。
+
+    只存 FOOD 編號、次數與時間，不存家庭、使用者或問卷資料。團隊電腦經雲端內部 API 認領與回報
+    （不直接連雲端資料庫）；認領逾時（claimed_at 過舊）的請求可再被認領。
+    """
+    __tablename__ = "knowledge_crawl_requests"
+    __table_args__ = (
+        CheckConstraint("status IN ('pending', 'claimed', 'crawled')", name="ck_knowledge_crawl_request_status"),
+        CheckConstraint("food_id ~ '^FOOD[0-9]{6}$'", name="ck_knowledge_crawl_request_food_id"),
+        Index("ix_knowledge_crawl_requests_pending", "status", "request_count"),
+    )
+
+    food_id: Mapped[str] = mapped_column(String(32), primary_key=True)
+    status: Mapped[str] = mapped_column(String(20), nullable=False, default="pending", server_default="pending")
+    request_count: Mapped[int] = mapped_column(Integer, nullable=False, default=1, server_default="1")
+    first_requested_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    last_requested_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    last_crawled_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    last_outcome: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
+    claimed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)

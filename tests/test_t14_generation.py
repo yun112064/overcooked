@@ -108,7 +108,7 @@ class GenerationTestCase(unittest.TestCase):
         return []
 
     def draft(self, **fields):
-        base = {"meal_date": "2026-08-20", "meal_type": "dinner", "budget": "300", "staple": "白飯",
+        base = {"meal_date": "2026-08-20", "meal_type": "dinner", "budget": "300", "staple": "不需要主食",
                 "dish_count": 2, "participants": [{"member_id": self.member["id"]}]}
         return {**base, **fields}
 
@@ -240,8 +240,8 @@ class AiFallbackTests(GenerationTestCase):
         [call] = responder.calls
         self.assertEqual(call["model"], MODEL)
         self.assertEqual(call["schema"]["additionalProperties"], False)
-        self.assertNotIn("白飯", call["instructions"])
-        self.assertIn("白飯", call["input_text"])
+        self.assertNotIn("不需要主食", call["instructions"])
+        self.assertIn("不需要主食", call["input_text"])
         # 付費呼叫已預留並結算
         [usage] = self.reservations()
         self.assertEqual((usage.status, usage.purpose, usage.model), ("settled", "menu_generation", MODEL))
@@ -486,7 +486,7 @@ class ResultVersionTests(GenerationTestCase):
                                   json={"version": 1, "draft": self.draft(dish_count=1)}).json()
         self.request = updated
         second_job = self.submit(key="key-00000002")
-        self.run_job()
+        self.run_job(calculator=self.calculator_for(Decimal(100)))  # 一道菜 100 g/n
         rows = self.results()
         self.assertEqual([(r.result_version, r.request_version, str(r.job_id)) for r in rows],
                          [(1, 1, first_job), (2, 2, second_job)])
@@ -498,7 +498,7 @@ class ResultVersionTests(GenerationTestCase):
             summary = db.get(BackgroundJob, rows[1].job_id).result
         self.assertEqual(summary, {"generation_result_id": str(rows[1].id), "result_version": 2,
                                    "mode": "database_menu", "mode_label": "資料庫菜單", "fallback_reason": None,
-                                   "request_status": "result_ready"})  # T15：一道菜營養不符，缺價不再詢問
+                                   "request_status": "awaiting_decision"})  # T15：營養通過、缺價待使用者決定
 
     def test_result_is_not_written_when_the_lease_was_lost(self):
         from app.services import jobs
@@ -542,6 +542,120 @@ class RetrievalOutcomeTests(GenerationTestCase):
         job = self.job(job_id)
         self.assertEqual((job["status"], job["error"]["code"]), ("failed", "DISH_IDENTITY_UNRESOLVED"))
         self.assertIn("炒青菜", job["error"]["message"])
+        self.assertEqual(responder.calls, [])
+
+
+def per_food_calculator(base_energy, base_protein, factors):
+    """每克固定含量，個別食材（food_id）可乘倍數；用來讓特定候選組合超出範圍。"""
+    from app.services.meal_calculation import IngredientNutrition
+
+    def calc(rows):
+        out = []
+        for line, grams in rows:
+            f = Decimal(factors.get(line.food_id, 1))
+            out.append(IngredientNutrition({"energy_kcal": base_energy * grams * f,
+                                            "protein_g": base_protein * grams * f}, {"sample_id": "FAKE"}))
+        return out
+    return calc
+
+
+class SpecifiedDishConflictTests(GenerationTestCase):
+    """pre-review #1：指定菜含禁忌時回報衝突原因，不轉 AI、不生成同名換料的菜，問卷保留。"""
+
+    def allergens(self):
+        return [EGG]
+
+    def test_specified_dish_with_allergen_is_reported_without_ai_substitute(self):
+        self.create_request(dish_count=2, specified_dishes=["番茄炒蛋"])
+        job_id = self.submit()
+        responder = FakeResponder(menu(ai_dish("番茄炒蛋", [(TOMATO, 100)])))
+        self.run_job(responder)
+        job = self.job(job_id)
+        self.assertEqual((job["status"], job["error"]["code"]), ("failed", "SPECIFIED_DISH_DIETARY_CONFLICT"))
+        self.assertIn("番茄炒蛋", job["error"]["message"])
+        self.assertIn("雞蛋", job["error"]["message"])
+        self.assertEqual(responder.calls, [])
+        self.assertEqual(self.results(), [])
+        request = self.client.get(f"/meal-requests/{self.request['id']}").json()
+        self.assertEqual(request["draft"]["specified_dishes"], ["番茄炒蛋"])  # 問卷草稿保留供修改
+
+
+class DatabaseCandidateTests(GenerationTestCase):
+    """pre-review #2：資料庫模式依序評估候選組合，第一個通過 T12 者採用；全部不可行才自動 AI 回退。"""
+
+    def calculator(self, factors):
+        energy, protein = self.reference()
+        return per_food_calculator(energy / 200, protein / 200, factors)
+
+    def test_next_combination_is_used_when_the_first_fails_nutrition(self):
+        self.create_request(dish_count=2)
+        job_id = self.submit()
+        responder = FakeResponder()
+        self.run_job(responder, calculator=self.calculator({CABBAGE: 5}))  # 含高麗菜的組合熱量過高
+        self.assertEqual(self.job(job_id)["status"], "succeeded")
+        [row] = self.results()
+        self.assertEqual(row.mode, "database_menu")
+        self.assertEqual([d["recipe_id"] for d in row.payload["dishes"]], ["R01", "R03"])
+        self.assertTrue(row.payload["calculation"]["adoptable"])
+        tried = row.payload["database_candidates"]
+        self.assertEqual(tried[0]["recipe_ids"], ["R01", "R02"])
+        self.assertIn("NUTRITION_OUT_OF_RANGE", tried[0]["block_codes"])
+        self.assertEqual(responder.calls, [])
+
+    def test_all_combinations_infeasible_falls_back_to_ai_with_reason(self):
+        self.create_request(dish_count=2)
+        job_id = self.submit()
+        ai_menu = menu(ai_dish("番茄蛋花湯", [(TOMATO, 50), (EGG, 50)], method="煮"),
+                       ai_dish("蒜香高麗菜", [(CABBAGE, 50), (GARLIC, 50)]))
+        responder = FakeResponder(ai_menu)
+        # 所有食材熱量／蛋白質都是 3 倍 → 每個資料庫組合都超出 ±10%（AI 菜同樣超出，只能查看）
+        tripled = {f: 3 for f in (TOMATO, EGG, CABBAGE, GARLIC, BOKCHOY, CARROT, BASIL, SOY)}
+        self.run_job(responder, calculator=self.calculator(tripled))
+        self.assertEqual(self.job(job_id)["status"], "succeeded")
+        [row] = self.results()
+        self.assertEqual((row.mode, row.fallback_reason), ("ai_generated_menu", "DATABASE_MENU_NUTRITION_INFEASIBLE"))
+        self.assertEqual(len(responder.calls), 1)
+        self.assertGreater(len(row.payload["fallback_details"]["tried"]), 1)
+        self.assertFalse(row.payload["calculation"]["adoptable"])  # AI 結果仍可查看
+
+    def test_first_viewable_combination_is_kept_when_none_is_adoptable_but_some_only_miss_data(self):
+        from app.services.meal_calculation import IngredientNutrition
+        self.create_request(dish_count=2)
+        energy, _ = self.reference()
+
+        def missing_protein(rows):
+            return [IngredientNutrition({"energy_kcal": energy / 200 * g, "protein_g": None}, {}) for _, g in rows]
+        job_id = self.submit()
+        responder = FakeResponder()
+        self.run_job(responder, calculator=missing_protein)
+        self.assertEqual(self.job(job_id)["status"], "succeeded")
+        [row] = self.results()
+        self.assertEqual(row.mode, "database_menu")  # 缺資料不是「不可行」：保留資料庫菜單讓使用者決定
+        self.assertEqual(responder.calls, [])
+
+
+class KnowledgeBudgetTests(GenerationTestCase):
+    """P7：知識步驟額度不足不讓整個工作失敗；菜單保留，知識標 KNOWLEDGE_UNAVAILABLE（額度不足）。"""
+
+    def test_budget_exhausted_during_knowledge_keeps_the_database_menu(self):
+        from sqlalchemy import text
+        from knowledge_support import FakeEmbedder
+        self.create_request(dish_count=2)
+        job_id = self.submit()
+        with self.factory() as db, db.begin():
+            db.execute(text("UPDATE budget_months SET spent_twd = limit_twd - committed_twd"))
+        responder = FakeResponder()
+        self.run_job(responder, knowledge=FakeKnowledgeClient([knowledge_record("K1", TOMATO, "合成")]),
+                     embedder=FakeEmbedder())
+        job = self.job(job_id)
+        self.assertEqual(job["status"], "succeeded", job)
+        [row] = self.results()
+        self.assertEqual(row.mode, "database_menu")
+        self.assertEqual((row.payload["knowledge"]["status"], row.payload["knowledge"]["reason"]),
+                         ("unavailable", "BUDGET_EXHAUSTED"))
+        self.assertEqual((row.payload["explanation"]["code"], row.payload["explanation"]["reason"]),
+                         ("KNOWLEDGE_UNAVAILABLE", "BUDGET_EXHAUSTED"))
+        self.assertTrue(row.payload["calculation"]["adoptable"])
         self.assertEqual(responder.calls, [])
 
 

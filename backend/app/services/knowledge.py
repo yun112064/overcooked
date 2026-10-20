@@ -17,7 +17,7 @@ from sqlalchemy.orm import sessionmaker
 
 from app.core.config import settings
 from app.services import spend
-from app.services.team_link import failure_reason, team_headers
+from app.services.team_link import TeamCredentials, failure_reason, settings_credentials
 
 RECORD_FIELDS = ("knowledge_id", "source_version", "ingredient_id", "excerpt", "source_url", "rights", "conditions")
 # G07 出處欄位（外部來源必帶；合成資料為 None）。顯示時一律保留，不可移除（健康醫療網使用條款第 7 條）
@@ -64,15 +64,13 @@ class KnowledgeUnavailable(Exception):
 class HttpKnowledgeClient:
     """團隊電腦知識服務：POST {url}/v1/knowledge/search，Bearer token，經 HTTPS 或加密通道（T17）。"""
 
-    def __init__(self, url: str, token: str | None, timeout: float, *, access_client_id: str | None = None,
-                 access_client_secret: str | None = None):
+    def __init__(self, url: str, credentials: TeamCredentials, timeout: float):
         self.url = url.rstrip("/")
-        self.token = token
+        self.credentials = credentials
         self.timeout = timeout
-        self.access_client_id, self.access_client_secret = access_client_id, access_client_secret
 
     def _post(self, payload: dict) -> dict:
-        headers = team_headers(self.token, self.access_client_id, self.access_client_secret)
+        headers = self.credentials.headers()
         try:
             res = httpx.post(f"{self.url}/v1/knowledge/search", json=payload, headers=headers, timeout=self.timeout)
         except httpx.TimeoutException:
@@ -123,9 +121,8 @@ def _validated(body, wanted: set[str], embedding_model: str) -> dict:
 def default_knowledge_client() -> HttpKnowledgeClient | None:
     if not settings.knowledge_service_url:
         return None
-    return HttpKnowledgeClient(settings.knowledge_service_url, settings.knowledge_service_token,
-                               settings.knowledge_timeout_seconds, access_client_id=settings.team_access_client_id,
-                               access_client_secret=settings.team_access_client_secret)
+    return HttpKnowledgeClient(settings.knowledge_service_url, settings_credentials(settings.knowledge_service_token),
+                               settings.knowledge_timeout_seconds)
 
 
 def _snapshot(food_ids: list[str], status: str, *, records=(), index_version=None, embedding_model=None,
@@ -138,6 +135,11 @@ def _snapshot(food_ids: list[str], status: str, *, records=(), index_version=Non
     if status == "unavailable":
         snap.update(reason=reason, code=UNAVAILABLE_CODE)
     return snap
+
+
+def unavailable_snapshot(food_ids: list[str], reason: str, *, embedding_model: str | None = None) -> dict:
+    """知識不可用的快照（例如 T10 額度不足）：KNOWLEDGE_UNAVAILABLE，不偽裝成零筆。"""
+    return _snapshot(sorted(set(food_ids)), "unavailable", embedding_model=embedding_model, reason=reason)
 
 
 def retrieve_knowledge(*, final_food_ids: list[str], query_text: str, client, embedder,
@@ -191,15 +193,13 @@ def verify_citations(citations, snapshot: dict) -> dict:
     return {"valid": not invalid, "citations": valid, "invalid": invalid}
 
 
-def index_embedder(factory: sessionmaker, embedder, index_version: str) -> Callable[[list[str]], list[list[float]]]:
-    """建知識索引用：每批向量化各自預留並結算（呼叫鍵含索引版本與批次，重建請用新版本）。"""
-    batch_no = 0
+def embed_index_batch(factory: sessionmaker, embedder, index_version: str, batch_no: int,
+                      texts: list[str]) -> list[list[float]]:
+    """建知識索引的一批向量化（雲端內部 API 代團隊電腦呼叫）：各批各自預留並結算。
 
-    def embed(texts: list[str]) -> list[list[float]]:
-        nonlocal batch_no
-        key = f"knowledge-index:{index_version}:{batch_no}"
-        batch_no += 1
-        return spend.paid_call(factory, call_key=key, purpose="knowledge_index_embedding", provider="openai",
-                               model=embedder.model, max_input_tokens=max(1, sum(len(t.encode("utf-8")) for t in texts)),
-                               max_output_tokens=0, call=lambda: embedder.embed(texts))
-    return embed
+    呼叫鍵含索引版本與批次；同一鍵不可重複預留，重建或失敗後重試請用新的索引版本。
+    """
+    key = f"knowledge-index:{index_version}:{batch_no}"
+    return spend.paid_call(factory, call_key=key, purpose="knowledge_index_embedding", provider="openai",
+                           model=embedder.model, max_input_tokens=max(1, sum(len(t.encode("utf-8")) for t in texts)),
+                           max_output_tokens=0, call=lambda: embedder.embed(texts))

@@ -112,7 +112,9 @@ class PriceCollectionService:
         run_key: str | None = None,
         limit: int | None = None,
         batch_size: int | None = None,
+        food_ids: set[str] | None = None,
     ) -> CollectionResult:
+        """food_ids：只查這些 FOOD 編號（T15 缺價定向查價）；None 為全部。"""
         started_at = datetime.now(timezone.utc)
         started_monotonic = time.monotonic()
         if run_key is None:
@@ -173,6 +175,8 @@ class PriceCollectionService:
                 status_counts["exempt"] = len(exempt)
             ingredient_total = len(ingredients)
             self.repository.set_ingredient_total(lease, ingredient_total)
+            if food_ids is not None:
+                ingredients = [i for i in ingredients if set(i.food_ids or ()) & food_ids]
             selected_ingredients = ingredients[:limit] if limit else ingredients
             remaining = [
                 ingredient for ingredient in selected_ingredients

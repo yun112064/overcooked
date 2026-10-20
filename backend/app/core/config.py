@@ -69,6 +69,15 @@ class Settings(BaseSettings):
     generation_max_output_tokens: int = 6000
     explanation_max_output_tokens: int = 2000
 
+    # T15 結果重試：只重試知識說明（每戶每日）、缺價定向查價（每戶每小時；T02 每次最多查 N 種、請求間隔秒數）
+    knowledge_retry_daily_limit: int = 10
+    price_retry_hourly_limit: int = 3
+    price_retry_max_foods: int = 10
+    price_retry_delay_seconds: float = 2.0
+
+    # 團隊電腦呼叫雲端內部 API（補抓佇列、建索引向量化；pre-review #6）的 Bearer token；未設定即關閉內部 API
+    internal_api_token: str | None = None
+
     # T17 團隊電腦服務經 Cloudflare Tunnel＋Access：雲端呼叫時附上的 Access 服務權杖（兩個服務共用）
     team_access_client_id: str | None = None
     team_access_client_secret: str | None = None

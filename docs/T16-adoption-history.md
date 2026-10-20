@@ -29,6 +29,7 @@ Migration：`d9a4b7e2c5f1`（接在 `c8e3f6a1d2b4` 後）以 ALTER 擴充 T11 �
 7. 寫入 `adopted_meal_plans`（菜色識別、別名、模式供 T11 昨日排除）與 `snapshot`，問卷改為 `confirmed`。
 
 交易內只讀寫資料庫：價格、營養與知識說明都取自已保存的結果，不呼叫模型、知識服務或價格來源。
+結果頁讀取時也會以同一函式預先回報 `previous_day_check`（T15），前端在衝突時停用採用；交易內的重驗不因此省略。
 
 ## 快照（`adopted_meal_plans.snapshot`，MealPlanSnapshot）
 
@@ -36,6 +37,8 @@ Migration：`d9a4b7e2c5f1`（接在 `c8e3f6a1d2b4` 後）以 ALTER 擴充 T11 �
 模型／prompt／schema／知識索引／定價版本）、採用當下的問卷內容、資料庫菜的來源快照（名稱、網址、匯入批次、內容雜湊）、
 採用資格與決定紀錄、缺價接受紀錄、缺值標示（缺價食材、是否接受例外、缺少的其他營養）、
 生成時與採用時的昨日比對。讀取只讀快照：來源食譜、價格更新，甚至刪除原問卷（外鍵改為 NULL），歷史都不變。
+
+- 快照與讀取另含主食（`staple`）與顯示用量（`display_*`）；路由只 `commit`，失敗由 `get_db` 回滾（S3）。
 
 ## 問卷狀態
 

@@ -15,7 +15,7 @@ from sqlalchemy.orm import sessionmaker
 
 from app.core.config import settings
 from app.db.models import BackgroundJob, MealRequestRevision
-from app.services import jobs, spend
+from app.services import generation, jobs, result_retry, spend
 
 
 class LeaseLost(Exception):
@@ -49,22 +49,16 @@ class JobContext:
         )
 
 
-def _generation_handler(ctx: "JobContext") -> dict:
-    """T14 菜單生成：資料庫菜單優先，查無可行方案自動 AI 生成，最後附知識說明。"""
-    from app.services import generation
-    return generation.make_generation_handler()(ctx)
-
-
-def _persist_generation(db, job, result):
-    from app.services import generation
-    return generation.persist_result(db, job, result)
-
-
-_generation_handler.persist = _persist_generation
-
+# T14 菜單生成：資料庫菜單優先，查無可行方案自動 AI 生成，最後附知識說明。
+# 處理函式與其 persist 只來自 generation.make_generation_handler（單一來源）。
 HANDLERS: dict[str, Callable[[JobContext], dict]] = {
-    jobs.GENERATION: _generation_handler,
+    jobs.GENERATION: generation.make_generation_handler(),
+    # T15 結果重試：只重試知識說明、缺價定向查價（產生新結果版本）
+    jobs.KNOWLEDGE_RETRY: result_retry.make_knowledge_retry_handler(),
+    jobs.PRICE_RETRY: result_retry.make_price_retry_handler(),
 }
+
+RETRY_MESSAGE = "暫時性錯誤，系統會自動重試一次。"
 
 
 def run_once(factory: sessionmaker, owner: str, handlers: dict | None = None) -> BackgroundJob | None:
@@ -89,11 +83,14 @@ def run_once(factory: sessionmaker, owner: str, handlers: dict | None = None) ->
         jobs.fail(factory, job.id, owner, code="NEEDS_MANUAL_RETRY",
                   message="外部呼叫結果不明，為避免重複計費不自動重送；問卷已保留，請確認後重新送出。",
                   retryable=False)
-    except (jobs.RetryableJobError, spend.CallNotBilled, TimeoutError) as exc:
-        # TimeoutError 只在付費呼叫之外發生（付費呼叫的逾時會轉成 UncertainBilling）
-        code = getattr(exc, "code", None) or ("SERVICE_TIMEOUT" if isinstance(exc, TimeoutError) else "GENERATION_FAILED")
-        message = getattr(exc, "user_message", None) or "暫時性錯誤，系統會自動重試一次。"
-        jobs.fail(factory, job.id, owner, code=code, message=message, retryable=True)
+    except jobs.RetryableJobError as exc:
+        jobs.fail(factory, job.id, owner, code=exc.code or "GENERATION_FAILED",
+                  message=exc.user_message or RETRY_MESSAGE, retryable=True)
+    except spend.CallNotBilled:
+        jobs.fail(factory, job.id, owner, code="GENERATION_FAILED", message=RETRY_MESSAGE, retryable=True)
+    except TimeoutError:
+        # 只在付費呼叫之外發生（付費呼叫的逾時會轉成 UncertainBilling）
+        jobs.fail(factory, job.id, owner, code="SERVICE_TIMEOUT", message=RETRY_MESSAGE, retryable=True)
     except Exception:
         jobs.fail(factory, job.id, owner, code="GENERATION_FAILED",
                   message="生成過程發生錯誤；問卷已保留，可重新送出。", retryable=False)

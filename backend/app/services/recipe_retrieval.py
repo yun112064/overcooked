@@ -1,13 +1,17 @@
 """T11 RecipeRetrievalService：雲端結構化欄位及規則查詢（R04），不用 embedding。
 
-輸入問卷、必要限制（排除的 FOOD 編號）與 R13 昨日排除，回傳三種結果之一：
-- database_menu：只含資料庫合格食譜（is_eligible）的菜單與候選清單；
+輸入問卷、必要限制（排除的 FOOD 編號）與 R13 昨日排除，回傳四種結果之一：
+- database_menu：只含資料庫合格食譜（is_eligible）的菜單、依排名的候選組合（alternatives，
+  第一組即 selected，最多 MAX_COMBINATIONS 組，供 T14 依序以 T12 驗證）與候選清單；
 - no_feasible_database_menu：明確原因，供自動轉 AI 生成（不再詢問使用者）；
-- dish_identity_unresolved：指定菜對到多道不同菜，回報問題而不默認為不同菜。
+- dish_identity_unresolved：指定菜對到多道不同菜，回報問題而不默認為不同菜；
+- specified_dish_conflict：指定菜的所有食譜都含過敏／禁吃食材 → 回報衝突原因，不轉 AI、不偷偷換菜
+  （spec「與禁忌…衝突時回報原因，不偷偷換菜」、AC09）。
 資料庫故障拋出 RecipeRetrievalError，不當作查無結果。
 
 已有食材與口味偏好只影響排序；預算與營養由 T12／T13／T15 計算驗證。
 """
+import itertools
 from dataclasses import asdict, dataclass, field
 
 from sqlalchemy import select
@@ -22,6 +26,9 @@ from app.services.recipe_import import normalize_name
 DATABASE_MENU = "database_menu"
 NO_FEASIBLE = "no_feasible_database_menu"
 UNRESOLVED = "dish_identity_unresolved"
+SPECIFIED_CONFLICT = "specified_dish_conflict"
+# 資料庫模式最多交給 T12 驗證的候選組合數（每組都要計算營養）
+MAX_COMBINATIONS = 20
 
 
 class RecipeRetrievalError(Exception):
@@ -41,10 +48,12 @@ class RetrievalResult:
     reason: str | None = None
     details: dict = field(default_factory=dict)
     previous_day: dict | None = None
+    alternatives: list[list[dict]] = field(default_factory=list)
 
     @property
     def code(self) -> str | None:
-        return {NO_FEASIBLE: "NO_FEASIBLE_DATABASE_MENU", UNRESOLVED: "DISH_IDENTITY_UNRESOLVED"}.get(self.status)
+        return {NO_FEASIBLE: "NO_FEASIBLE_DATABASE_MENU", UNRESOLVED: "DISH_IDENTITY_UNRESOLVED",
+                SPECIFIED_CONFLICT: "SPECIFIED_DISH_DIETARY_CONFLICT"}.get(self.status)
 
     def to_dict(self) -> dict:
         data = asdict(self)
@@ -157,19 +166,22 @@ def _retrieve(db: Session, household_id, draft: MealRequestDraft, excluded: set[
                     "aliases": sorted(dish.names)}
         return bool(meal_history.conflicts(context, [identity]))
 
-    selected: list[dict] = []
-    conflicts: list[str] = []
+    specified: list[list[dict]] = []  # 每道指定菜依排名的可用食譜
+    conflicts: list[dict] = []
     for name, dish in found.items():
         options = sorted((r for r in dish.recipes if allowed(r)), key=rank)
         if not options:
-            conflicts.append(name)
+            hits = sorted({f for r in dish.recipes for f in excluded.intersection(r["food_ids"])})
+            conflicts.append({"dish_name": name, "food_ids": hits})
             continue
-        if not any(s["standard_dish_id"] == dish.standard_dish_id for s in selected):
-            selected.append(_summary(options[0], dish, True))
+        if not any(group[0]["standard_dish_id"] == dish.standard_dish_id for group in specified):
+            specified.append([_summary(r, dish, True) for r in options])
     if conflicts:
-        return RetrievalResult(NO_FEASIBLE, reason="SPECIFIED_DISH_DIETARY_CONFLICT",
-                               details={"specified_dishes": conflicts}, previous_day=context)
+        return RetrievalResult(SPECIFIED_CONFLICT, reason="SPECIFIED_DISH_DIETARY_CONFLICT",
+                               details={"specified_dishes": [c["dish_name"] for c in conflicts],
+                                        "conflicts": conflicts}, previous_day=context)
 
+    selected = [group[0] for group in specified]
     chosen = {s["standard_dish_id"] for s in selected}
     pool, pool_ignoring_history = [], 0
     for dish in dishes:
@@ -189,5 +201,11 @@ def _retrieve(db: Session, household_id, draft: MealRequestDraft, excluded: set[
         return RetrievalResult(NO_FEASIBLE, reason=reason,
                                details={"dish_count": draft.dish_count, "feasible_dishes": len(selected) + len(pool)},
                                previous_day=context)
-    selected += [_summary(options[0], dish, False) for options, dish in pool[:needed]]
-    return RetrievalResult(DATABASE_MENU, selected=selected, candidates=candidates, previous_day=context)
+    def combinations():
+        for fixed in itertools.product(*specified):
+            for picked in itertools.combinations(pool, needed):
+                yield [*fixed, *(_summary(options[0], dish, False) for options, dish in picked)]
+
+    alternatives = list(itertools.islice(combinations(), MAX_COMBINATIONS))
+    return RetrievalResult(DATABASE_MENU, selected=alternatives[0], candidates=candidates, previous_day=context,
+                           alternatives=alternatives)

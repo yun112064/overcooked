@@ -74,8 +74,8 @@ SCENARIOS = [
     ("11 過敏食材排除", {"dish_count": 3}, [EGG], [], ("database_menu", ["R02", "R03", "R06"])),
     ("12 排除後不足菜數 → AI 回退", {"dish_count": 4}, [EGG], [],
      ("no_feasible_database_menu", "NO_MATCHING_RECIPES")),
-    ("13 指定菜含過敏食材不放寬", {"dish_count": 1, "specified_dishes": ["番茄炒蛋"]}, [EGG], [],
-     ("no_feasible_database_menu", "SPECIFIED_DISH_DIETARY_CONFLICT")),
+    ("13 指定菜含過敏食材：回報衝突，不放寬也不轉 AI", {"dish_count": 1, "specified_dishes": ["番茄炒蛋"]}, [EGG], [],
+     ("specified_dish_conflict", "SPECIFIED_DISH_DIETARY_CONFLICT")),
     ("14 排除多種禁吃食材", {"dish_count": 2}, [CABBAGE, TOMATO], [], ("database_menu", ["R03", "R04"])),
     ("15 排除昨日菜", {"dish_count": 2}, [], [dish("番茄炒蛋")], ("database_menu", ["R02", "R03"])),
     ("16 昨日 AI 菜以別名判同菜（含同 ID 的另一來源）", {"dish_count": 2}, [], [dish("蕃茄炒蛋", source="ai")],
@@ -143,6 +143,24 @@ class RetrievalScenarioTests(unittest.TestCase):
                 if yesterday:
                     self.adopt(self.home, yesterday)
                 self.assert_outcome(self.retrieve(fields, excluded), expected)
+
+    def test_specified_dish_conflict_names_the_dish_and_ingredients(self):
+        result = self.retrieve({"dish_count": 2, "specified_dishes": ["番茄炒蛋"]}, excluded=[EGG])
+        self.assertEqual(result.code, "SPECIFIED_DISH_DIETARY_CONFLICT")
+        self.assertEqual(result.details["conflicts"], [{"dish_name": "番茄炒蛋", "food_ids": [EGG]}])
+
+    def test_alternative_combinations_are_ranked_and_bounded(self):
+        # 第一組即原本的選擇；其餘依排名換掉較後面的菜，且每組菜數相同、不重複、不超過上限
+        from app.services.recipe_retrieval import MAX_COMBINATIONS
+        result = self.retrieve({"dish_count": 2})
+        combos = [[d["recipe_id"] for d in c] for c in result.alternatives]
+        self.assertEqual(combos[0], ["R01", "R02"])
+        self.assertEqual(combos[1], ["R01", "R03"])
+        self.assertTrue(all(len(c) == 2 and len(set(c)) == 2 for c in combos))
+        self.assertEqual(len({tuple(c) for c in combos}), len(combos))
+        self.assertLessEqual(len(combos), MAX_COMBINATIONS)
+        specified = self.retrieve({"dish_count": 2, "specified_dishes": ["醬燒高麗菜"]})
+        self.assertTrue(all(c[0]["recipe_id"] == "R06" for c in specified.alternatives))
 
     def test_selected_dishes_carry_identity_and_specified_flag(self):
         result = self.retrieve({"dish_count": 2, "specified_dishes": ["蕃茄炒蛋"]})

@@ -1,6 +1,8 @@
 """G07 知識管理指令（python -m knowledge_rag.admin）：待審清單、檢視、核准／退回、建索引、抓取、狀態。
 
-依賴（知識庫、抓取器、食材比對、雲端資料庫、向量化）以注入取代；不連網、不呼叫付費 API。
+依賴（知識庫、抓取器、食材比對）以注入取代；佇列與建索引向量化經雲端內部 API（pre-review #6），
+測試以 FastAPI TestClient 當傳輸層、伺服器端的向量化以假物件取代：不連網、不呼叫付費 API，
+團隊電腦端不需要雲端 DATABASE_URL。
 """
 import io
 import json
@@ -13,6 +15,26 @@ from sqlalchemy import select, text
 
 from db_support import FOODS, migrate_fresh, requires_db, session_factory, truncate_all
 from test_kn_healthnews_crawler import AUTH_REF, BOKCHOY, CABBAGE, CHANNEL, SITE, TOMATO, FakeFetcher, site_pages
+
+INTERNAL_TOKEN = "internal-token-for-tests-0123456789"
+
+
+def internal_cloud(factory, embedder):
+    """CloudClient → 真實的雲端內部 API（TestClient），伺服器端以測試資料庫與假向量化器執行。"""
+    from fastapi.testclient import TestClient
+    from app.api import internal_knowledge
+    from app.main import app
+    from knowledge_rag.cloud import CloudClient
+    app.dependency_overrides[internal_knowledge.get_session_factory] = lambda: factory
+    app.dependency_overrides[internal_knowledge.get_index_embedder] = lambda: embedder
+    http = TestClient(app, base_url="https://cloud-internal.example.invalid")
+
+    def transport(method, url, headers, body, timeout):
+        res = http.request(method, url, headers=headers, content=body)
+        return res.status_code, res.content
+    return CloudClient("https://cloud-internal.example.invalid", INTERNAL_TOKEN, access_client_id="cid",
+                       access_client_secret="csecret", transport=transport)
+
 
 
 @requires_db
@@ -32,9 +54,14 @@ class KnowledgeAdminTests(unittest.TestCase):
         self.fetcher = FakeFetcher(site_pages())
         self.embedder = FakeEmbedder()
         matcher = FoodMatcher([(i, name, aliases, []) for i, (name, aliases) in FOODS.items()])
+        token = patch("app.core.config.settings.internal_api_token", INTERNAL_TOKEN)
+        token.start()
+        self.addCleanup(token.stop)
+        from app.main import app
+        self.addCleanup(app.dependency_overrides.clear)
+        cloud = internal_cloud(self.factory, self.embedder)
         self.deps = Deps(store=lambda: self.store, fetcher=lambda: self.fetcher, matcher=lambda: matcher,
-                         cloud_factory=lambda: self.factory, embedder=lambda: self.embedder,
-                         authorization_ref=AUTH_REF)
+                         cloud=lambda: cloud, authorization_ref=AUTH_REF)
 
     def run_cli(self, *argv):
         from knowledge_rag.admin import main
@@ -68,8 +95,15 @@ class KnowledgeAdminTests(unittest.TestCase):
         version = self.store.get_record(kid)["source_version"]
         code, _ = self.run_cli("approve", kid, version, "--reviewer", "審核者")
         self.assertNotEqual(code, 0)
-        code, res = self.run_cli("approve", kid, version, "--reviewer", "審核者", "--note", "已核對原文與出處")
+        # 轉載文章（內容授權提供／合成月刊）：沒有明確確認轉載授權不可核准
+        code, _ = self.run_cli("approve", kid, version, "--reviewer", "審核者", "--note", "已核對原文與出處")
+        self.assertNotEqual(code, 0)
+        self.assertIn("--confirm-third-party-license", self.last_err)
+        code, res = self.run_cli("approve", kid, version, "--reviewer", "審核者", "--note", "已核對原文與出處",
+                                 "--confirm-third-party-license")
         self.assertEqual((code, res["status"]), (0, "approved"))
+        code, shown = self.run_cli("show", kid)
+        self.assertEqual(shown["versions"][0]["license_status"], "third_party_confirmed")
         code, _ = self.run_cli("reject", kid, version, "--reviewer", "審核者", "--note", "改判")
         self.assertNotEqual(code, 0)  # 已審核不可再改
         other = f"hn-80003-FOOD001566-1"
@@ -81,7 +115,7 @@ class KnowledgeAdminTests(unittest.TestCase):
         self.crawl_one()
         kid = f"hn-80003-{BOKCHOY}-1"
         self.store.review(kid, self.store.get_record(kid)["source_version"], reviewer="審核者",
-                          approved=True, note="已核對")
+                          approved=True, note="已核對", confirm_third_party_license=True)
         code, res = self.run_cli("index", "build", "--version", "idx-hn-1")
         self.assertEqual(code, 0, self.last_err)
         self.assertEqual((res["index_version"], res["records"]), ("idx-hn-1", 1))
@@ -97,7 +131,7 @@ class KnowledgeAdminTests(unittest.TestCase):
         self.crawl_one()
         kid = f"hn-80003-{BOKCHOY}-1"
         self.store.review(kid, self.store.get_record(kid)["source_version"], reviewer="審核者",
-                          approved=True, note="已核對")
+                          approved=True, note="已核對", confirm_third_party_license=True)
         with patch.object(spend.settings, "monthly_budget_twd", Decimal("1400")):
             code, _ = self.run_cli("index", "build", "--version", "idx-hn-2")
         self.assertNotEqual(code, 0)

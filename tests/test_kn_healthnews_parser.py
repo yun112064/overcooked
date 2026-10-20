@@ -94,6 +94,29 @@ class MatchingAndPassageTests(unittest.TestCase):
     def test_names_for_food_ids(self):
         self.assertEqual(self.matcher().names_for(["FOOD000678"]), ["胡蘿蔔", "紅蘿蔔"])
 
+    def test_a_long_real_like_article_maps_to_only_a_few_relevant_foods(self):
+        # pre-review #7：一篇真實文章曾比對到約 52 種食材。標題食材與多次出現者才算相關；
+        # 鹽／油／水／糖等通用詞（含兩字以上的「食鹽」「沙拉油」「清水」「砂糖」）只有出現在標題才算；每篇有上限。
+        from knowledge_rag.healthnews import MAX_FOODS_PER_ARTICLE, FoodMatcher
+        filler = [(f"FOOD1{i:05d}", name, [], []) for i, name in enumerate(
+            "菠菜 芹菜 洋蔥 番茄 茄子 南瓜 冬瓜 絲瓜 苦瓜 玉米 馬鈴薯 地瓜 芋頭 山藥 牛蒡 蓮藕 竹筍 香菇 木耳 金針菇 "
+            "杏鮑菇 黃豆 黑豆 綠豆 紅豆 花生 芝麻 核桃 杏仁 腰果 蘋果 香蕉 橘子 芭樂 奇異果 鳳梨 木瓜 葡萄 草莓 西瓜".split())]
+        generic = [("FOOD200001", "食鹽", [], []), ("FOOD200002", "沙拉油", [], []), ("FOOD200003", "清水", [], []),
+                   ("FOOD200004", "砂糖", [], [])]
+        matcher = FoodMatcher(self.ROWS + filler + generic)
+        paragraphs = ["青江菜含鈣，炒青江菜時少放食鹽與沙拉油，起鍋前加一點清水。",
+                      "早餐可搭配雞蛋；雞蛋與青江菜一起吃更均衡，烹調少用砂糖、食鹽與沙拉油。",
+                      "其他常見蔬果：" + "、".join(name for _, name, _, _ in filler) + "。"]
+        relevant = matcher.relevant("青江菜補鈣小知識", paragraphs)
+        self.assertEqual(relevant, ["FOOD000585", "FOOD001566"])  # 標題食材優先，再依出現次數
+        self.assertLessEqual(len(relevant), MAX_FOODS_PER_ARTICLE)
+        # 標題提到的通用詞仍算相關（例如一篇談「食鹽」的文章）
+        self.assertIn("FOOD200001", matcher.relevant("食鹽吃太多怎麼辦", ["每天食鹽攝取量要控制。"]))
+
+    def test_a_short_focused_article_keeps_its_single_mentions(self):
+        relevant = self.matcher().relevant("青江菜補鈣", ["青江菜含鈣。", "雞蛋與紅蘿蔔也很好。"])
+        self.assertEqual(relevant, ["FOOD000585", "FOOD001566", "FOOD000678"])  # 標題優先，再依次數與首次出現
+
     def test_passages_group_short_paragraphs_and_attach_heading(self):
         from knowledge_rag.healthnews import split_passages
         paras = ["◎小標題", "甲" * 100, "乙" * 100, "丙" * 300, "丁" * 900]

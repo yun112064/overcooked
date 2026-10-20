@@ -86,6 +86,29 @@ class HealthnewsCrawlerTests(unittest.TestCase):
         # 蛋白質不是雞蛋；雞蛋片段來自真正提到雞蛋的段落
         self.assertIn("雞蛋", self.store.get_record(f"hn-80003-{EGG}-1")["excerpt"])
 
+    def test_reprinted_articles_are_held_until_the_third_party_license_is_confirmed(self):
+        # pre-review #8：「內容授權提供／X」的轉載文章預設不可核准；需明確確認授權並記錄於審核紀錄
+        self.crawler().crawl_channel(CHANNEL)
+        kid = f"hn-80003-{BOKCHOY}-1"
+        rec = self.store.get_record(kid)
+        self.assertEqual(rec["license_status"], "third_party_unconfirmed")
+        self.assertIsNone(self.store.get_record(f"hn-79990-{CABBAGE}-1")["license_status"])  # 非轉載
+        with self.assertRaises(ValueError) as ctx:
+            self.store.review(kid, rec["source_version"], reviewer="審核者", approved=True, note="已核對原文")
+        self.assertIn("third-party", str(ctx.exception))
+        self.assertEqual(self.store.get_record(kid)["status"], "pending")
+        done = self.store.review(kid, rec["source_version"], reviewer="審核者", approved=True, note="已核對原文",
+                                 confirm_third_party_license=True)
+        self.assertEqual(done["status"], "approved")
+        approved = self.store.get_record(kid)
+        self.assertEqual(approved["license_status"], "third_party_confirmed")
+        self.assertIn("合成月刊", approved["review_note"])
+        # 退回不需要確認授權
+        other = self.store.get_record(f"hn-80003-{EGG}-1")
+        self.assertEqual(self.store.review(other["knowledge_id"], other["source_version"], reviewer="審核者",
+                                           approved=False, note="只是順帶提到")["status"], "rejected")
+        self.assertEqual(self.store.status_summary()["license_holds"], 1)  # 紅蘿蔔仍待確認
+
     def test_pending_crawled_knowledge_is_never_searchable(self):
         from knowledge_support import fake_vector
         self.crawler().crawl_channel(CHANNEL)

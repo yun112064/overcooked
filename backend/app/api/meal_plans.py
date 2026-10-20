@@ -28,15 +28,11 @@ def adopt(body: AdoptBody, response: Response, idempotency_key: str = Header(min
           auth: AuthContext = Depends(current_auth), household_id=Depends(current_household_id),
           db: Session = Depends(get_db)):
     """單一交易：重驗版本、資格、缺價接受紀錄與前一日歷史，保存完整快照，問卷改為 confirmed。"""
-    try:
-        plan, created = service.adopt(
-            db, household_id=household_id, user_id=auth.user_id, meal_request_id=body.meal_request_id,
-            result_version=body.result_version, request_version=body.request_version,
-            price_exception_decision_id=body.price_exception_decision_id, idempotency_key=idempotency_key)
-        db.commit()
-    except Exception:
-        db.rollback()
-        raise
+    plan, created = service.adopt(
+        db, household_id=household_id, user_id=auth.user_id, meal_request_id=body.meal_request_id,
+        result_version=body.result_version, request_version=body.request_version,
+        price_exception_decision_id=body.price_exception_decision_id, idempotency_key=idempotency_key)
+    db.commit()  # 任一步失敗由 get_db 回滾
     response.status_code = 201 if created else 200
     return {"meal_plan": service.summary(plan), "created": created}
 

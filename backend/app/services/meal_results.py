@@ -3,39 +3,35 @@
 - view：把 T14 generation_results.payload 轉成結果頁需要的形狀（全家配方、缺料雙價格、數值營養、
   知識說明、昨日比對與指定重複說明、模式標示），並附後端判定的採用資格（meal_validation）。
 - decide：接受缺價例外／缺必要營養繼續查看，綁定單一結果版本，冪等並檢查問卷版本。
-- retry_prices：缺價重試只重讀 T02 價格快照（不呼叫外部來源、不重跑模型、不改菜），
-  以新結果版本保存（原版本不變）；仍缺價需重新接受例外。
+- request_price_retry：缺價食材排入 T02 定向查價背景工作（有速率限制），完成後以新結果版本保存
+  （原版本不變、不重跑模型、不改菜）；仍缺價需重新接受例外。查價中／失敗可由 retries 辨識。
+- request_knowledge_retry：知識服務故障或額度不足時，只重試知識說明（背景工作），產生新版本。
 採用交易與歷史在 T16，T16 必須以 meal_validation.evaluate 重新判定，不能信任前端或本模組的快取。
 """
-import copy
-import hashlib
 from datetime import datetime, timezone
-from decimal import Decimal
 
 from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from app.api.errors import ApiError, version_conflict
+from app.api.errors import ApiError, idempotency_conflict, version_conflict
 from app.db.models import GenerationResult, MealRequest, MealResultDecision
-from app.meal_calc.types import IngredientRequirement
-from app.services import meal_history, meal_validation
-from app.services import meal_request as meal_request_service
-from app.services.generation import _jsonable, cost_snapshot
-from app.services.meal_cost import meal_cost_from_db
+from app.services import idempotency, jobs, meal_history, meal_validation
 
-RETRY_MISSING_PRICE = "retry_missing_price"
 
 FALLBACK_MESSAGES = {
     "NO_MATCHING_RECIPES": "食譜資料庫沒有符合條件的組合，已自動改由 AI 生成。",
     "SPECIFIED_DISH_NOT_IN_DATABASE": "指定的菜不在食譜資料庫，已自動改由 AI 生成。",
-    "SPECIFIED_DISH_DIETARY_CONFLICT": "資料庫中的指定菜含過敏或禁吃食材，已自動改由 AI 生成（仍避開這些食材）。",
+    "DATABASE_MENU_NUTRITION_INFEASIBLE": "資料庫的候選菜單都無法在可調範圍內符合熱量與蛋白質目標，已自動改由 AI 生成。",
     "ALL_EXCLUDED_BY_PREVIOUS_DAY": "排除昨日已採用的菜後資料庫沒有可行組合，已自動改由 AI 生成（仍避開昨日菜）。",
 }
 
 
+CONFLICT_MESSAGE = "這個送出識別碼已用於不同的決定，請重新操作。"
+
+
 def _hash(kind: str, result: GenerationResult, request_version: int) -> str:
-    return hashlib.sha256(f"{kind}:{result.id}:{request_version}".encode()).hexdigest()
+    return idempotency.request_hash(kind, result.id, request_version)
 
 
 def decisions_for(db: Session, result: GenerationResult) -> list[MealResultDecision]:
@@ -65,6 +61,16 @@ def public_decision(db: Session, row: MealResultDecision) -> dict:
             "created_at": row.created_at.isoformat()}
 
 
+def _ingredient(r: dict) -> dict:
+    """整餐用量；display_* 為畫面取整（克到 1 g、容量單位到 0.5，無換算照原單位／原文）。"""
+    return {"food_id": r["food_id"], "name": r["name"], "weight_basis": r.get("weight_basis"),
+            "weight_basis_source": r.get("weight_basis_source"),
+            "whole_meal_grams": r.get("whole_meal_grams"), "display_grams": r.get("display_grams"),
+            "display_amount": r.get("display_amount", r.get("display_grams")),
+            "display_unit": r.get("display_unit", "g" if r.get("display_grams") is not None else None),
+            "display_text": r.get("display_text")}
+
+
 def _dishes(payload: dict) -> list[dict]:
     rows = (payload.get("calculation") or {}).get("ingredients") or []
     out = []
@@ -74,11 +80,23 @@ def _dishes(payload: dict) -> list[dict]:
             "standard_dish_id": d["standard_dish_id"], "dish_name": d["dish_name"], "aliases": d.get("aliases", []),
             "source": d["source"], "recipe_id": d.get("recipe_id"), "specified": d.get("specified", False),
             "cooking_method": d.get("cooking_method"), "steps": d.get("steps", []),
-            "ingredients": [{"food_id": r["food_id"], "name": r["name"], "weight_basis": r.get("weight_basis"),
-                             "whole_meal_grams": r.get("whole_meal_grams"), "display_grams": r.get("display_grams")}
-                            for r in rows if r.get("dish_id") == key],
+            "ingredients": [_ingredient(r) for r in rows if r.get("dish_id") == key],
         })
     return out
+
+
+def staple_view(payload: dict) -> dict | None:
+    """主食（decisions #16）：名稱、TFDA 食材、整餐用量；計入營養、不計價格。設定待營養審核者確認。"""
+    staple = payload.get("staple")
+    if not staple:
+        return None
+    rows = [r for r in (payload.get("calculation") or {}).get("ingredients") or [] if r.get("role") == "staple"]
+    row = _ingredient(rows[0]) if rows else {}
+    return {"label": staple["label"], "tfda_name": staple.get("tfda_name"), "food_id": staple.get("food_id"),
+            "review_status": staple.get("review_status"), "unresolved_reason": staple.get("unresolved_reason"),
+            "whole_meal_grams": row.get("whole_meal_grams"), "display_amount": row.get("display_amount"),
+            "display_unit": row.get("display_unit"), "display_text": row.get("display_text"),
+            "counts_for_price": False}
 
 
 def _nutrition(payload: dict) -> dict:
@@ -88,7 +106,11 @@ def _nutrition(payload: dict) -> dict:
             "protein_g": final.get("protein_g"), "gap": final.get("gap") or {},
             "within_range": final.get("within_range", False), "other_nutrients": final.get("other_nutrients") or {},
             "missing_nutrients": final.get("missing_nutrients") or {},
-            "baseline_adjusted": (calc.get("baseline") or {}).get("adjusted", False)}
+            "baseline_adjusted": (calc.get("baseline") or {}).get("adjusted", False),
+            # P2：用量是否已通過驗證；不可採用時的具體調整建議
+            "quantities_verified": calc.get("quantities_verified", calc.get("adoptable", False)),
+            "suggestions": calc.get("suggestions") or [],
+            "unresolved_ingredients": calc.get("unresolved_ingredients") or []}
 
 
 QUOTE_FIELDS = ("retailer", "source", "source_url", "product_name", "product_url", "price", "package_quantity",
@@ -138,11 +160,29 @@ def view(db: Session, request: MealRequest, result: GenerationResult) -> dict:
         "mode": result.mode, "mode_label": p["mode_label"], "fallback_reason": result.fallback_reason,
         "fallback_message": FALLBACK_MESSAGES.get(result.fallback_reason, "食譜資料庫沒有可行組合，已自動改由 AI 生成。")
         if result.fallback_reason else None,
-        "dishes": _dishes(p), "nutrition": _nutrition(p), "prices": _prices(p),
-        "knowledge": p.get("explanation") or {"status": "not_found", "items": []},
+        "dishes": _dishes(p), "staple": staple_view(p), "nutrition": _nutrition(p), "prices": _prices(p),
+        "knowledge": {**(p.get("explanation") or {"status": "not_found", "items": []}),
+                      "retry_available": knowledge_retry_available(p)},
+        "knowledge_retry": p.get("knowledge_retry"), "price_retry": p.get("price_retry"),
+        "retries": retries(db, result),
         "previous_day": _previous_day(p),
+        "previous_day_check": previous_day_check(db, p),
         "eligibility": eligibility(db, request, result),
     }
+
+
+def previous_day_check(db: Session, payload: dict) -> dict:
+    """pre-review #4：以目前的前一日已採用紀錄重新比對（與 T16 採用交易同一函式）。
+
+    衝突時前端停用採用並說明；採用交易內仍會再驗一次（這裡只是預先提示，不能取代交易內重驗）。
+    """
+    check = meal_history.recheck_previous_day(db, payload["previous_day"], payload["dishes"])
+    out = {"status": check["status"], "history_changed": bool(check.get("history_changed"))}
+    if check["status"] == "conflict":
+        out.update(code=check["code"], conflicting_dishes=[d["dish_name"] for d in check["conflicting_dishes"]],
+                   previous_date=check["context"]["previous_date"],
+                   message="生成後前一日的已採用紀錄有變動，此菜單與昨日菜重複，不能採用；請重新生成。")
+    return out
 
 
 def summaries(db: Session, request: MealRequest) -> list[dict]:
@@ -167,11 +207,7 @@ def _refresh_status(db: Session, request: MealRequest, result: GenerationResult)
 
 
 def _existing(db: Session, household_id, key: str, digest: str) -> MealResultDecision | None:
-    row = db.scalar(select(MealResultDecision).where(MealResultDecision.household_id == household_id,
-                                                     MealResultDecision.idempotency_key == key))
-    if row is not None and row.request_hash != digest:
-        raise ApiError(409, "IDEMPOTENCY_CONFLICT", "這個送出識別碼已用於不同的決定，請重新操作。")
-    return row
+    return idempotency.find_by_key(db, MealResultDecision, household_id, key, digest, message=CONFLICT_MESSAGE)
 
 
 def _check_versions(request: MealRequest, result: GenerationResult, request_version: int) -> None:
@@ -199,7 +235,7 @@ def _insert(db: Session, row: MealResultDecision, household_id, key: str) -> tup
                 MealResultDecision.generation_result_id == row.generation_result_id,
                 MealResultDecision.kind == row.kind))
         if raced is None or (raced.idempotency_key == key and raced.request_hash != row.request_hash):
-            raise ApiError(409, "IDEMPOTENCY_CONFLICT", "這個送出識別碼已用於不同的決定，請重新操作。") from None
+            raise idempotency_conflict(CONFLICT_MESSAGE) from None
         return raced, False
     return row, True
 
@@ -236,48 +272,44 @@ def decide(db: Session, *, household_id, request: MealRequest, result: Generatio
     return row, created
 
 
-def retry_prices(db: Session, *, household_id, request: MealRequest, result: GenerationResult, request_version: int,
-                 idempotency_key: str, user_id, now: datetime | None = None) -> tuple[MealResultDecision, bool]:
-    """缺價重試：重讀最新價格快照，產生新結果版本（呼叫端已鎖問卷列、負責 commit）。"""
-    digest = _hash(RETRY_MISSING_PRICE, result, request_version)
-    existing = _existing(db, household_id, idempotency_key, digest)
-    if existing is not None:
-        return existing, False
-    _check_versions(request, result, request_version)
-    same = next((r for r in decisions_for(db, result) if r.kind == RETRY_MISSING_PRICE), None)
-    if same is not None:
-        return same, False
+def _retry_state(job) -> dict | None:
+    """重試工作狀態：queued／running＝進行中（查價中／說明產生中），failed＝失敗（附原因），succeeded＝新版本。"""
+    if job is None:
+        return None
+    return {"job_id": str(job.id), "status": job.status, "stage": job.stage, "attempts": job.attempts,
+            "error": {"code": job.error_code, "message": job.error_message} if job.error_code else None,
+            "produced_result_version": job.result_version if job.status == "succeeded" else None,
+            "created_at": job.created_at.isoformat()}
+
+
+def retries(db: Session, result: GenerationResult) -> dict:
+    return {"price": _retry_state(jobs.latest_retry(db, result.id, jobs.PRICE_RETRY)),
+            "knowledge": _retry_state(jobs.latest_retry(db, result.id, jobs.KNOWLEDGE_RETRY))}
+
+
+def knowledge_retry_available(payload: dict) -> bool:
+    """知識服務故障或額度不足（KNOWLEDGE_UNAVAILABLE）時才可「只重試知識說明」；缺知識（not_found）不需要。"""
+    return (payload.get("explanation") or {}).get("status") == "unavailable"
+
+
+def request_knowledge_retry(db: Session, *, household_id, request: MealRequest, result: GenerationResult,
+                            request_version: int, idempotency_key: str):
+    """pre-review #3：同一結果版本只重新檢索知識並產生說明（背景工作、經 T10 額度），產生新版本。"""
+    if not knowledge_retry_available(result.payload):
+        raise ApiError(422, "INVALID_INPUT", "此結果的知識說明不需要重試。", {"reason": "RETRY_NOT_APPLICABLE"})
+    return jobs.submit_result_retry(db, household_id=household_id, meal_request=request, source=result,
+                                    kind=jobs.KNOWLEDGE_RETRY, request_version=request_version,
+                                    idempotency_key=idempotency_key, paid=True)
+
+
+def request_price_retry(db: Session, *, household_id, request: MealRequest, result: GenerationResult,
+                        request_version: int, idempotency_key: str):
+    """P3：缺價食材排入 T02 定向查價背景工作；完成後以新價格產生新版本（菜單與營養不變）。"""
     cost = result.payload.get("cost") or {}
     if cost.get("status") != "computed" or cost.get("budget_status") != "PRICE_INCOMPLETE":
         raise _not_applicable(meal_validation.evaluate(result.payload, decisions=[],
                                                        current_request_version=request.version))
-    draft = meal_request_service.load(request.payload)
-    requirements = [IngredientRequirement(food_id=r["food_id"], grams=Decimal(r["grams"]))
-                    for r in result.payload["calculation"]["requirements"]]
-    now = now or datetime.now(timezone.utc)
-    fresh = _jsonable(cost_snapshot(meal_cost_from_db(db, requirements, draft.available_ingredient_ids,
-                                                      draft.budget, now=now)))
-    version = _latest_version(db, request) + 1
-    payload = copy.deepcopy(result.payload)
-    payload["cost"] = fresh
-    payload["validation"] = {**payload.get("validation", {}), "budget_status": fresh["budget_status"]}
-    payload["result_version"] = version
-    payload["price_retry"] = {"from_result_version": result.result_version, "retried_at": now.isoformat(),
-                              "price_source": "latest_t02_snapshots"}
-    new = GenerationResult(household_id=household_id, meal_request_id=request.id,
-                           request_version=result.request_version, job_id=None, derived_from_result_id=result.id,
-                           result_version=version, mode=result.mode, fallback_reason=result.fallback_reason,
-                           payload=payload)
-    db.add(new)
-    db.flush()
-    row, created = _insert(db, MealResultDecision(
-        household_id=household_id, meal_request_id=request.id, generation_result_id=result.id,
-        result_version=result.result_version, request_version=request_version, kind=RETRY_MISSING_PRICE,
-        idempotency_key=idempotency_key, request_hash=digest,
-        details={"produced_result_version": version, "budget_status": fresh["budget_status"]},
-        produced_result_id=new.id, created_by=user_id), household_id, idempotency_key)
-    if not created:
-        db.delete(new)  # 並行重送已由另一請求產生新版本
-        return row, False
-    _refresh_status(db, request, new)
-    return row, True
+    missing = meal_validation.missing_price_food_ids(result.payload)
+    return jobs.submit_result_retry(db, household_id=household_id, meal_request=request, source=result,
+                                    kind=jobs.PRICE_RETRY, request_version=request_version,
+                                    idempotency_key=idempotency_key, params={"food_ids": missing}, paid=False)

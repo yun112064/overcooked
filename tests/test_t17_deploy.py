@@ -108,6 +108,7 @@ GOOD_CLOUD = {
     "TEAM_ACCESS_CLIENT_ID": "abc123.access",
     "TEAM_ACCESS_CLIENT_SECRET": "s" * 64,
     "OPENAI_API_KEY": "o" * 40,
+    "INTERNAL_API_TOKEN": "n" * 40,
 }
 
 
@@ -143,9 +144,13 @@ class PreflightTests(unittest.TestCase):
 
     def test_unconfigured_team_services_are_warnings_not_errors(self):
         errors, warnings = self.errors(RECOGNITION_SERVICE_URL="", KNOWLEDGE_SERVICE_URL="",
-                                       TEAM_ACCESS_CLIENT_ID=None, TEAM_ACCESS_CLIENT_SECRET=None, OPENAI_API_KEY="")
+                                       TEAM_ACCESS_CLIENT_ID=None, TEAM_ACCESS_CLIENT_SECRET=None, OPENAI_API_KEY="",
+                                       INTERNAL_API_TOKEN=None)
         self.assertEqual(errors, [])
-        self.assertEqual(len(warnings), 3)
+        self.assertEqual(len(warnings), 4)
+        self.assertTrue(any("INTERNAL_API_TOKEN" in w for w in warnings))
+        errors, _ = self.errors(INTERNAL_API_TOKEN="short")
+        self.assertTrue(any("INTERNAL_API_TOKEN" in e for e in errors))
 
     def test_errors_never_echo_secret_values(self):
         secret = "replace_me_" + "z" * 30
@@ -161,6 +166,18 @@ class PreflightTests(unittest.TestCase):
         self.assertEqual(check(good, side="team")[0], [])
         errors, _ = check({**good, "KNOWLEDGE_TOKEN": "short", "TEAM_TUNNEL_TOKEN": ""}, side="team")
         self.assertEqual(sorted(e.split(" ")[0] for e in errors), ["KNOWLEDGE_TOKEN", "TEAM_TUNNEL_TOKEN"])
+        # pre-review #6：團隊電腦只需雲端內部 API（https＋Bearer＋Access 服務權杖），不需要雲端 DATABASE_URL
+        _, warnings = check(good, side="team")
+        self.assertTrue(any("CLOUD_INTERNAL_URL" in w for w in warnings))
+        internal = {**good, "CLOUD_INTERNAL_URL": "https://cloud-internal.team-domain.test",
+                    "CLOUD_INTERNAL_TOKEN": "c" * 40, "CLOUD_ACCESS_CLIENT_ID": "id.access",
+                    "CLOUD_ACCESS_CLIENT_SECRET": "s" * 64}
+        self.assertEqual(check(internal, side="team"), ([], []))
+        errors, _ = check({**internal, "CLOUD_INTERNAL_URL": "http://x.test", "CLOUD_ACCESS_CLIENT_SECRET": ""},
+                          side="team")
+        self.assertEqual(sorted(e.split(" ")[0] for e in errors), ["CLOUD_ACCESS_CLIENT_SECRET", "CLOUD_INTERNAL_URL"])
+        errors, _ = check({**internal, "DATABASE_URL": "postgresql://u:p@cloud/db"}, side="team")
+        self.assertTrue(any("DATABASE_URL" in e for e in errors))
 
 
 def compose_config(files, env, project_dir=None):

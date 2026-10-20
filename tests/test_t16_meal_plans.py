@@ -15,7 +15,7 @@ from sqlalchemy import text
 from test_t11_recipe_retrieval import BASIL, SOY, seed_recipes
 from test_t14_generation import (CABBAGE, EGG, GARLIC, TOMATO, FakeKnowledgeClient, FakeResponder, ai_dish,
                                  knowledge_record, menu, per_gram_calculator)
-from test_t15_meal_results import ALL, ResultTestCase, money, seed_prices
+from test_t15_meal_results import AI_MENU, ALL, ResultTestCase, money, seed_prices
 
 _keys = itertools.count(1)
 
@@ -186,7 +186,8 @@ class EligibilityTests(PlanTestCase):
             energy, protein = self.reference()
             return per_gram_calculator(energy / Decimal(50), protein / Decimal(50))  # 約為目標的 2 倍
         too_much.factory = True
-        self.generate(calculator=too_much)
+        # 資料庫候選組合全部不可行 → 自動 AI 回退；AI 菜同樣超出 ±10%，可查看但不可採用
+        self.generate(calculator=too_much, responder=FakeResponder(AI_MENU))
         res = self.adopt()
         self.assertEqual(res.status_code, 422, res.text)
         self.assertIn("NUTRITION_OUT_OF_RANGE", [b["code"] for b in res.json()["error"]["details"]["blocks"]])
@@ -262,6 +263,10 @@ class PreviousDayRecheckTests(PlanTestCase):
     def test_history_change_after_generation_that_clashes_rejects_the_stale_result(self):
         self.generate()  # 8/20：番茄炒蛋、清炒高麗菜（生成當時 8/19 沒有紀錄）
         self.adopt_yesterday("蕃茄炒蛋")  # 生成後 8/19 採用了同一道菜（以別名記錄）
+        # pre-review #4：結果頁讀取時即回報目前的昨日衝突，前端可在按採用前停用並說明
+        check = self.result()["previous_day_check"]
+        self.assertEqual((check["status"], check["code"], check["conflicting_dishes"]),
+                         ("conflict", "PREVIOUS_DAY_DISH_CONFLICT", ["番茄炒蛋"]))
         res = self.adopt()
         self.assertEqual((res.status_code, res.json()["error"]["code"]), (409, "PREVIOUS_DAY_DISH_CONFLICT"))
         self.assertEqual(res.json()["error"]["details"]["conflicting_dishes"], ["番茄炒蛋"])
@@ -271,6 +276,7 @@ class PreviousDayRecheckTests(PlanTestCase):
     def test_history_change_without_clash_is_adopted_with_the_fresh_comparison_saved(self):
         self.generate()
         self.adopt_yesterday("紅蘿蔔炒蛋")
+        self.assertEqual(self.result()["previous_day_check"]["status"], "ok")
         res = self.adopt()
         self.assertEqual(res.status_code, 201, res.text)
         previous = self.plan(res.json()["meal_plan"]["id"])["previous_day"]

@@ -14,6 +14,11 @@
 }
 
 :80 {
+    # 團隊電腦專用的內部 API 只走 Access 保護的內部 hostname，不從公開網站轉發
+    handle_path /api/internal/* {
+        respond 404
+    }
+
     handle_path /api/* {
         reverse_proxy backend:8000
     }

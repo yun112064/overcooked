@@ -108,6 +108,7 @@ SAFE_LOG_EVENTS = {
         "scheduler",
         "Duplicate or concurrent price collection skipped",
     ),
+    "knowledge_queue_unavailable": ("process", "Knowledge crawl queue unavailable; skipped"),
 }
 
 # 可選追蹤欄位：只接受符合格式的值，避免任意內容寫入正式 Log

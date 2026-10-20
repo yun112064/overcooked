@@ -1,19 +1,25 @@
 """T14 MealGenerationService：資料庫菜單優先、AI 自動回退、最終食材的知識說明（R04、R05、R12、R13）。
 
 一個生成工作（一次嘗試）的流程：
-1. retrieving：讀鎖定的問卷版本、必要限制（過敏／禁吃＋同義展開）與 T03 本餐目標，呼叫 T11 結構化食譜查詢。
-   - database_menu：只用實際查得的食譜，不呼叫模型組菜（不新增庫外菜）。
+1. retrieving：讀鎖定的問卷版本、必要限制（過敏／禁吃＋同義展開）、主食（decisions #16）與 T03 本餐目標，
+   呼叫 T11 結構化食譜查詢。
+   - database_menu：只用實際查得的食譜，不呼叫模型組菜（不新增庫外菜）。依排名逐組以 T12 驗證候選組合，
+     第一個可採用者勝出；都不可採用但有「只缺資料」的組合時保留它供使用者決定；全部在可調範圍內
+     無法符合營養（不可行）才以 DATABASE_MENU_NUTRITION_INFEASIBLE 自動 AI 回退。
    - no_feasible_database_menu：直接進入 AI 生成（不詢問使用者），保存回退原因並標示「AI 生成菜單」。
    - dish_identity_unresolved：回報指定菜無法判定，不默認為不同菜、不回退。
+   - specified_dish_conflict：指定菜與禁忌衝突 → 回報原因，不回退、不偷偷換菜（主食含禁忌亦同）。
    - 資料庫故障：可重試的失敗，不當作查無、不回退。
 2. ai_generating／validating：Responses API＋Structured Outputs，Pydantic 驗證；拒答、截斷、格式錯、
    食材無法對應、禁忌、缺指定菜、重複昨日未指定菜、菜數不符都視為無效候選 → 可重試；
+   主食以預設份量計入，模型拿到扣除主食營養後的每份參考值；
    最多兩次自動嘗試（T10），回退與知識說明不重置次數，仍無解即失敗回報，不無限重送。
 3. calculating：營養（T12 calculate_meal；AI 模式只驗證不調整）與缺料成本（T13）一律由後端計算，
    模型輸出不含也不採信任何價格、營養或可採用判斷。
 4. knowledge／explaining：配方確定後才依最終食材 ID 取得審核知識（T11 RAG），模型只能引用實際取得的
-   片段；引用不符、錯食材、未審核的說明一律丟棄。缺知識省略；服務故障標 KNOWLEDGE_UNAVAILABLE 供重試，
-   不使整個生成失敗。知識不改菜、不改份量、不改 TFDA 數值。
+   片段；引用不符、錯食材、未審核的說明一律丟棄。缺知識省略；服務故障或 T10 額度不足標
+   KNOWLEDGE_UNAVAILABLE，不使整個生成失敗，之後可「只重試知識說明」（meal_results.request_knowledge_retry）。
+   知識不改菜、不改份量、不改 TFDA 數值。
 
 每筆付費呼叫（模型、向量化）都經 JobContext.paid_call 預留與結算。來源文字與使用者輸入只當資料放進
 input，不放進 instructions，也不影響後端驗證規則。不記錄模型原始輸入／輸出。
@@ -34,10 +40,11 @@ from app.core.config import settings
 from app.db.models import GenerationResult, MealRequest, Member
 from app.models import IngredientAlias, RecipeStep
 from app.services import jobs, knowledge, meal_history, recipe_retrieval, spend
-from app.services import knowledge_queue
+from app.services import knowledge_queue, staples
 from app.services import meal_request as meal_request_service
 from app.services.llm_client import default_embedder, default_responder
-from app.services.meal_calculation import IngredientLine, calculate_meal, load_recipe_lines, targets_from_t03
+from app.services.meal_calculation import (MODEL_DECLARED, IngredientLine, calculate_meal, load_recipe_lines,
+                                          targets_from_t03)
 from app.services.meal_cost import meal_cost_from_db
 from app.services.recipe_import import normalize_name, standard_dish_id
 
@@ -264,6 +271,7 @@ def _ai_dishes(candidate: MenuCandidate, foods: FoodDictionary, specified: list[
                                 "weight_basis": ing.weight_basis})
             lines.append(IngredientLine(food_id=food_id, name=foods.names[food_id], grams_per_n=grams,
                                         cooking_method=method or None, weight_basis=ing.weight_basis,
+                                        weight_basis_source=MODEL_DECLARED,
                                         dish_id=dish_id))
         aliases = [a.strip() for a in item.aliases if a.strip() and a.strip() != name]
         dishes.append({
@@ -298,17 +306,26 @@ EXPLAIN_INSTRUCTIONS = (
 )
 
 
-def _menu_input(draft, restrictions: dict, foods: FoodDictionary, context: dict, targets: dict) -> str:
+def _menu_input(draft, restrictions: dict, foods: FoodDictionary, context: dict, targets: dict,
+                staple: dict | None = None) -> str:
+    """staple：{"label", "grams_per_n", "nutrients"}；主食已提供的營養從每份參考值扣除（decisions #16）。"""
     n = Decimal(targets["total_n"])
+    reference = {k: Decimal(v) / n for k, v in targets["target"].items()}
+    if staple:
+        for k, v in (staple.get("nutrients") or {}).items():
+            if k in reference and v is not None:
+                reference[k] = max(Decimal(0), reference[k] - Decimal(v))
     data = {
-        "meal_type": draft.meal_type, "staple": draft.staple, "dish_count": draft.dish_count,
+        "meal_type": draft.meal_type, "staple": ({"label": staple["label"], "grams_per_n": str(staple["grams_per_n"])}
+                                                 if staple else draft.staple),
+        "dish_count": draft.dish_count,
         "specified_dishes": draft.specified_dishes, "taste_preferences": draft.taste_preferences,
         "forbidden_ingredients": [{"food_id": i, "name": foods.names.get(i)} for i in restrictions["excluded_food_ids"]],
         "known_ingredients": [{"food_id": i, "name": foods.names.get(i)} for i in draft.available_ingredient_ids
                               if i not in restrictions["excluded_food_ids"]],
         "avoid_dishes": [{"dish_name": d["dish_name"], "aliases": d.get("aliases", [])}
                          for d in context["excluded_dishes"]],
-        "per_n_reference": {k: str(Decimal(v) / n) for k, v in targets["target"].items()},
+        "per_n_reference": {k: str(v) for k, v in reference.items()},
     }
     return json.dumps(data, ensure_ascii=False)
 
@@ -323,38 +340,38 @@ def _citation(cite: dict, record: dict) -> dict:
     return out
 
 
-def _explain(ctx_paid_call, responder, snapshot: dict, foods: FoodDictionary, stage) -> dict:
+def _unavailable_explanation(reason) -> dict:
+    return {"status": "unavailable", "code": knowledge.UNAVAILABLE_CODE, "reason": reason, "items": [], "dropped": []}
+
+
+def _explain(ctx_paid_call, responder, snapshot: dict, names: dict, stage, call_name: str = "explain") -> dict:
     if snapshot["status"] == "unavailable":
-        return {"status": "unavailable", "code": knowledge.UNAVAILABLE_CODE, "reason": snapshot.get("reason"),
-                "items": [], "dropped": []}
+        return _unavailable_explanation(snapshot.get("reason"))
     if snapshot["status"] != "available":
         return {"status": "not_found", "items": [], "dropped": []}  # 缺知識：省略說明，不阻擋採用
     if responder is None:
-        return {"status": "unavailable", "code": knowledge.UNAVAILABLE_CODE, "reason": "EXPLANATION_NOT_CONFIGURED",
-                "items": [], "dropped": []}
+        return _unavailable_explanation("EXPLANATION_NOT_CONFIGURED")
     stage("explaining")
     available = {i for i, s in snapshot["by_ingredient"].items() if s == "available"}
     data = json.dumps({
-        "ingredients": [{"ingredient_id": i, "name": foods.names.get(i)} for i in sorted(available)],
+        "ingredients": [{"ingredient_id": i, "name": names.get(i)} for i in sorted(available)],
         "knowledge": [{k: r[k] for k in ("knowledge_id", "source_version", "ingredient_id", "excerpt", "conditions")}
                       for r in snapshot["records"]],
     }, ensure_ascii=False)
     schema = strict_schema(ExplanationOutput)
     try:
         response = ctx_paid_call(
-            name="explain", purpose="knowledge_explanation", provider="openai", model=settings.generation_model,
+            name=call_name, purpose="knowledge_explanation", provider="openai", model=settings.generation_model,
             max_input_tokens=_max_input_tokens(EXPLAIN_INSTRUCTIONS, data, schema),
             max_output_tokens=settings.explanation_max_output_tokens,
             call=lambda: responder.respond(model=settings.generation_model, instructions=EXPLAIN_INSTRUCTIONS,
                                            input_text=data, schema_name="knowledge_explanation", schema=schema,
                                            max_output_tokens=settings.explanation_max_output_tokens))
     except spend.CallNotBilled:
-        return {"status": "unavailable", "code": knowledge.UNAVAILABLE_CODE, "reason": "EXPLANATION_UNAVAILABLE",
-                "items": [], "dropped": []}
+        return _unavailable_explanation("EXPLANATION_UNAVAILABLE")
     output, failure = _parse(response, ExplanationOutput)
     if failure:
-        return {"status": "unavailable", "code": knowledge.UNAVAILABLE_CODE, "reason": f"EXPLANATION_{failure}",
-                "items": [], "dropped": []}
+        return _unavailable_explanation(f"EXPLANATION_{failure}")
     records = {(r["knowledge_id"], r["source_version"], r["ingredient_id"]): r for r in snapshot["records"]}
     items, dropped, seen = [], [], set()
     for item in output.items:
@@ -370,11 +387,48 @@ def _explain(ctx_paid_call, responder, snapshot: dict, foods: FoodDictionary, st
             dropped.append({"ingredient_id": item.ingredient_id, "reason": "CITATION_NOT_IN_SNAPSHOT"})
             continue
         seen.add(item.ingredient_id)
-        items.append({"ingredient_id": item.ingredient_id, "ingredient_name": foods.names.get(item.ingredient_id),
+        items.append({"ingredient_id": item.ingredient_id, "ingredient_name": names.get(item.ingredient_id),
                       "explanation": item.explanation.strip(),
                       "citations": [_citation(c, records[(c["knowledge_id"], c["source_version"], c["ingredient_id"])])
                                     for c in check["citations"]]})
     return {"status": "available" if items else "not_found", "items": items, "dropped": dropped}
+
+
+# T10 額度不足或可能已計費時，知識步驟改標不可用（菜單保留，之後可「只重試知識說明」；P7）
+_KNOWLEDGE_BILLING_FAILURES = {spend.BudgetExhausted: "BUDGET_EXHAUSTED", spend.UncertainBilling: "BILLING_UNCERTAIN"}
+
+
+def knowledge_section(*, final_food_ids: list[str], names: dict, paid_call, responder, knowledge_client, embedder,
+                      stage, factory, call_suffix: str = "") -> tuple[dict, dict]:
+    """依最終食材取得審核知識並產生說明；回傳 (知識快照, 說明)。知識不改菜、份量或 TFDA 數值。
+
+    生成與「只重試知識說明」（pre-review #3）共用。BudgetExhausted／UncertainBilling 不讓工作失敗：
+    知識標 KNOWLEDGE_UNAVAILABLE（原因 BUDGET_EXHAUSTED／BILLING_UNCERTAIN），菜單照常保存。
+    """
+    stage("knowledge")
+    try:
+        snapshot = knowledge.retrieve_knowledge(
+            final_food_ids=final_food_ids, query_text="食材營養知識：" + "、".join(names.get(i, i) for i in final_food_ids),
+            client=knowledge_client, embedder=embedder, paid_call=paid_call, call_name="embed_query" + call_suffix)
+    except (spend.BudgetExhausted, spend.UncertainBilling) as exc:
+        reason = _KNOWLEDGE_BILLING_FAILURES[type(exc)]
+        return knowledge.unavailable_snapshot(final_food_ids, reason), _unavailable_explanation(reason)
+    # G07：缺審核知識的最終食材排入補抓佇列（盡力而為，失敗不影響生成；抓到的內容審核前不顯示）
+    knowledge_queue.record_missing(factory, snapshot)
+    try:
+        explanation = _explain(paid_call, responder, snapshot, names, stage, call_name="explain" + call_suffix)
+    except (spend.BudgetExhausted, spend.UncertainBilling) as exc:
+        explanation = _unavailable_explanation(_KNOWLEDGE_BILLING_FAILURES[type(exc)])
+    return snapshot, explanation
+
+
+def explanation_evidence(snapshot: dict, explanation: dict) -> dict:
+    explained = explanation["status"] == "available"
+    return {"explanation_model": settings.generation_model if explained else None,
+            "explanation_prompt_version": EXPLAIN_PROMPT_VERSION if explained else None,
+            "explanation_schema_version": EXPLAIN_SCHEMA_VERSION if explained else None,
+            "knowledge_index_version": snapshot.get("index_version"),
+            "embedding_model": snapshot.get("embedding_model")}
 
 
 # --- 工作處理函式 ---
@@ -396,6 +450,45 @@ def make_generation_handler(*, responder=_DEFAULT, knowledge_client=_DEFAULT, em
     return handler
 
 
+# 資料庫候選組合若被這些原因擋下，代表在可調範圍內無法符合營養目標（「不可行」）；
+# 缺資料（NUTRITION_INCOMPLETE、INGREDIENT_UNRESOLVED）不是不可行，結果仍可查看並由使用者決定。
+INFEASIBLE_CODES = {"NUTRITION_OUT_OF_RANGE", "NO_FEASIBLE_BASELINE"}
+DATABASE_INFEASIBLE = "DATABASE_MENU_NUTRITION_INFEASIBLE"
+
+
+def _choose_database_menu(candidates, *, draft, excluded, context, targets, extra_lines, calculator):
+    """依排名逐組驗證（pre-review #2）：第一個可採用者勝出；都不可採用時取第一個「只缺資料」的組合；
+    全部不可行回傳 None。回傳 (選中的 (dishes, lines, calc) 或 None, 每組的評估紀錄)。"""
+    tried, viewable = [], None
+    for dishes, lines in candidates:
+        record = {"recipe_ids": [d["recipe_id"] for d in dishes]}
+        problems = check_menu(dishes, dish_count=draft.dish_count, specified=draft.specified_dishes,
+                              excluded=excluded, context=context)
+        if problems:
+            tried.append({**record, "problems": sorted({p["code"] for p in problems})})
+            continue
+        calc = calculate_meal(lines + extra_lines, targets, mode="database", calculator=calculator)
+        codes = {b["code"] for b in calc["block_reasons"]}
+        tried.append({**record, "block_codes": sorted(codes)})
+        if calc["adoptable"]:
+            return (dishes, lines, calc), tried
+        if viewable is None and not codes & INFEASIBLE_CODES:
+            viewable = (dishes, lines, calc)
+    return viewable, tried
+
+
+def _staple_prompt(staple, calculator) -> dict | None:
+    """AI 生成用：主食名稱、預設份量與其營養（之後從每份參考值扣除）。營養未知時不扣。"""
+    if staple is None:
+        return None
+    ln = staple.line
+    nutrients = {}
+    if ln.grams_per_n is not None:
+        [row] = calculator([(ln, ln.grams_per_n)])
+        nutrients = {k: v for k, v in row.nutrients.items() if k in ("energy_kcal", "protein_g") and v is not None}
+    return {"label": staple.label, "grams_per_n": ln.grams_per_n, "nutrients": nutrients}
+
+
 def _generate(ctx, *, responder, knowledge_client, embedder, calculator, now) -> dict:
     job = ctx.job
     call_keys: list[str] = []
@@ -413,6 +506,13 @@ def _generate(ctx, *, responder, knowledge_client, embedder, calculator, now) ->
         if targets_info.get("status") != "available":
             raise jobs.JobFailure("GENERATION_FAILED", "無法計算本餐營養目標，請檢查成員資料後重新送出；問卷已保留。")
         excluded = set(restrictions["excluded_food_ids"])
+        foods = FoodDictionary.load(db)
+        staple = staples.resolve(draft.staple)
+        if staple is not None and staple.line.food_id in excluded:
+            # 主食含過敏／禁吃食材：回報，不替換主食
+            raise jobs.JobFailure("STAPLE_DIETARY_CONFLICT",
+                                  f"主食「{staple.label}」含過敏或禁吃食材（{foods.names.get(staple.line.food_id, staple.label)}），"
+                                  "請修改主食後重新送出；問卷已保留。")
         try:
             retrieval = recipe_retrieval.retrieve_database_menu(db, job.household_id, draft,
                                                                 excluded_food_ids=sorted(excluded))
@@ -422,27 +522,47 @@ def _generate(ctx, *, responder, knowledge_client, embedder, calculator, now) ->
         if retrieval.status == recipe_retrieval.UNRESOLVED:
             names = "、".join(retrieval.details.get("ambiguous", {}))
             raise jobs.JobFailure("DISH_IDENTITY_UNRESOLVED",
-                                  f"指定菜「{names}」對應到多道不同的菜，無法判定是哪一道；請改用更明確的菜名後重新送出。")
-        foods = FoodDictionary.load(db)
-        if retrieval.status == recipe_retrieval.DATABASE_MENU:
+                                  f"指定菜「{names}」對到多道不同的菜，無法判定是哪一道；請改用更明確的菜名後重新送出。")
+        if retrieval.status == recipe_retrieval.SPECIFIED_CONFLICT:
+            # pre-review #1：指定菜與禁忌衝突 → 回報原因，不轉 AI、不偷偷換菜
+            detail = "；".join(f"「{c['dish_name']}」含 " + "、".join(foods.names.get(f, f) for f in c["food_ids"])
+                              for c in retrieval.details["conflicts"])
+            raise jobs.JobFailure("SPECIFIED_DISH_DIETARY_CONFLICT",
+                                  f"指定菜與過敏／禁吃限制衝突：{detail}。系統不會自動換成其他做法；"
+                                  "請修改指定菜或飲食限制後重新送出，問卷已保留。")
+        candidates = ([_database_dishes(db, combo) for combo in retrieval.alternatives]
+                      if retrieval.status == recipe_retrieval.DATABASE_MENU else [])
+
+    targets = targets_from_t03(targets_info)
+    staple_lines = [staple.line] if staple else []
+    mode, tried = None, []
+    fallback_reason, fallback_details = retrieval.reason, retrieval.details
+    if candidates:
+        ctx.stage("calculating")
+        chosen, tried = _choose_database_menu(candidates, draft=draft, excluded=excluded,
+                                              context=retrieval.previous_day, targets=targets,
+                                              extra_lines=staple_lines, calculator=calculator)
+        if chosen is not None:
             mode, context = DATABASE_MENU, retrieval.previous_day
-            dishes, lines = _database_dishes(db, retrieval.selected)
+            dishes, lines, calc = chosen
         else:
-            mode = AI_MENU
+            fallback_reason, fallback_details = DATABASE_INFEASIBLE, {"tried": tried}
+
+    menu_model = None
+    if mode is None:
+        mode = AI_MENU
+        with ctx.factory() as db:
             # 指定菜即使不在資料庫也只對它自己豁免昨日排除；其他昨日菜在 AI 模式仍排除
             specified_ids = list(dict.fromkeys([*retrieval.previous_day["specified_dish_ids"],
                                                 *(standard_dish_id(n) for n in draft.specified_dishes)]))
             context = meal_history.previous_day_context(db, job.household_id, draft.meal_date,
                                                         specified_dish_ids=specified_ids)
-
-    menu_model = None
-    if mode == AI_MENU:
         ctx.stage("ai_generating")
         if responder is None:
             raise jobs.JobFailure("GENERATION_FAILED",
                                   "資料庫沒有可行菜單，且 AI 生成服務未設定，無法自動生成；問卷已保留。")
         menu_model = settings.generation_model
-        data = _menu_input(draft, restrictions, foods, context, targets_info)
+        data = _menu_input(draft, restrictions, foods, context, targets_info, _staple_prompt(staple, calculator))
         schema = strict_schema(MenuCandidate)
         response = paid_call(
             name="menu", purpose="menu_generation", provider="openai", model=menu_model,
@@ -456,50 +576,44 @@ def _generate(ctx, *, responder, knowledge_client, embedder, calculator, now) ->
         if failure:
             raise _rejected(failure)
         dishes, lines, problems = _ai_dishes(candidate, foods, draft.specified_dishes)
-    else:
-        problems = []
-    problems += check_menu(dishes, dish_count=draft.dish_count, specified=draft.specified_dishes,
-                           excluded=excluded, context=context)
-    if problems:
-        if mode == AI_MENU:
+        problems += check_menu(dishes, dish_count=draft.dish_count, specified=draft.specified_dishes,
+                               excluded=excluded, context=context)
+        if problems:
             raise _rejected("CANDIDATE_INVALID", problems)
-        raise jobs.JobFailure("GENERATION_FAILED", "資料庫菜單未通過必要條件檢查；問卷已保留，可重新送出。")
+        ctx.stage("calculating")
+        calc = calculate_meal(lines + staple_lines, targets, mode="ai", calculator=calculator)
 
-    ctx.stage("calculating")
-    calc = calculate_meal(lines, targets_from_t03(targets_info), mode="database" if mode == DATABASE_MENU else "ai",
-                          calculator=calculator)
     if calc["requirements"]:
         with ctx.factory() as db:
             cost_view = cost_snapshot(
                 meal_cost_from_db(db, calc["requirements"], draft.available_ingredient_ids, draft.budget, now=now))
+        cost_view["unquantified_food_ids"] = sorted({r["food_id"] for r in calc["unresolved_ingredients"]
+                                                     if r["food_id"] not in {s.food_id for s in staple_lines}})
     else:
         cost_view = {"status": "not_computed", "reason": "NO_FINAL_REQUIREMENTS", "budget_status": None}
 
-    ctx.stage("knowledge")
-    final_ids = sorted({ln.food_id for ln in lines})
-    snapshot = knowledge.retrieve_knowledge(
-        final_food_ids=final_ids, query_text="食材營養知識：" + "、".join(foods.names.get(i, i) for i in final_ids),
-        client=knowledge_client, embedder=embedder, paid_call=paid_call)
-    # G07：缺審核知識的最終食材排入補抓佇列（盡力而為，失敗不影響生成；抓到的內容審核前不顯示）
-    knowledge_queue.record_missing(ctx.factory, snapshot)
-    explanation = _explain(paid_call, responder, snapshot, foods, ctx.stage)
-    explained = explanation["status"] == "available"
+    final_ids = sorted({ln.food_id for ln in lines})  # 主食不查知識
+    snapshot, explanation = knowledge_section(
+        final_food_ids=final_ids, names=foods.names, paid_call=paid_call, responder=responder,
+        knowledge_client=knowledge_client, embedder=embedder, stage=ctx.stage, factory=ctx.factory)
 
     return _jsonable({
         "schema_version": RESULT_SCHEMA_VERSION,
         "mode": mode, "mode_label": MODE_LABELS[mode],
-        "fallback_reason": retrieval.reason if mode == AI_MENU else None,
-        "fallback_details": retrieval.details if mode == AI_MENU else None,
+        "fallback_reason": fallback_reason if mode == AI_MENU else None,
+        "fallback_details": fallback_details if mode == AI_MENU else None,
         "request": {"meal_request_id": job.meal_request_id, "request_version": job.input_version},
         "query_source": {k: v for k, v in retrieval.to_dict().items() if k != "previous_day"},
+        "database_candidates": tried,
         "dishes": dishes,
+        "staple": staple.snapshot() if staple else None,
         "restrictions": {"excluded_food_ids": sorted(excluded)},
         "targets": targets_info,
         "previous_day": context,
         "calculation": calc,
         "cost": cost_view,
         "validation": {"hard_constraints_passed": True,
-                       "checked": ["dish_count", "dietary", "specified_dishes", "previous_day"],
+                       "checked": ["dish_count", "dietary", "specified_dishes", "previous_day", "staple"],
                        "nutrition_adoptable": calc["adoptable"], "budget_status": cost_view["budget_status"]},
         "knowledge": snapshot,
         "explanation": explanation,
@@ -508,12 +622,9 @@ def _generate(ctx, *, responder, knowledge_client, embedder, calculator, now) ->
             "menu_model": menu_model,
             "menu_prompt_version": MENU_PROMPT_VERSION if menu_model else None,
             "menu_schema_version": MENU_SCHEMA_VERSION if menu_model else None,
-            "explanation_model": settings.generation_model if explained else None,
-            "explanation_prompt_version": EXPLAIN_PROMPT_VERSION if explained else None,
-            "explanation_schema_version": EXPLAIN_SCHEMA_VERSION if explained else None,
-            "knowledge_index_version": snapshot.get("index_version"),
-            "embedding_model": snapshot.get("embedding_model"),
+            **explanation_evidence(snapshot, explanation),
             "pricing_version": spend.pricing().get("pricing_version"),
+            "staple_config_version": staple.config_version if staple else None,
             "paid_call_keys": call_keys,
         },
     })
@@ -531,18 +642,22 @@ def cost_snapshot(cost) -> dict:
                        "missing_reason": c.missing_reason, "quote": c.quote} for c in cost.lines]}
 
 
+def next_result_version(db, meal_request_id) -> int:
+    """鎖住問卷列以序列化同一問卷的版本編號，回傳下一個結果版本。"""
+    db.execute(select(MealRequest.id).where(MealRequest.id == meal_request_id).with_for_update())
+    return (db.scalar(select(func.max(GenerationResult.result_version))
+                      .where(GenerationResult.meal_request_id == meal_request_id)) or 0) + 1
+
+
 def persist_result(db, job, result: dict) -> tuple[dict, int]:
     """在 jobs.complete 的交易內（已確認租約）寫入結果；回傳 (工作摘要, 結果版本)。
 
-    鎖住問卷列以序列化同一問卷的版本編號；job_id 唯一保證同一工作只寫一次。
-    摘要的 request_status（T15）：缺價或缺必要營養需要使用者決定時為 awaiting_decision，否則 result_ready；
-    result_ready 不代表可採用。
+    job_id 唯一保證同一工作只寫一次。摘要的 request_status（T15）：缺價或缺必要營養需要使用者決定時
+    為 awaiting_decision，否則 result_ready；result_ready 不代表可採用。
     """
     from app.services import meal_validation
 
-    db.execute(select(MealRequest.id).where(MealRequest.id == job.meal_request_id).with_for_update())
-    version = (db.scalar(select(func.max(GenerationResult.result_version))
-                         .where(GenerationResult.meal_request_id == job.meal_request_id)) or 0) + 1
+    version = next_result_version(db, job.meal_request_id)
     row = GenerationResult(household_id=job.household_id, meal_request_id=job.meal_request_id,
                            request_version=job.input_version, job_id=job.id, result_version=version,
                            mode=result["mode"], fallback_reason=result["fallback_reason"],

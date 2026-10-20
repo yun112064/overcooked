@@ -2,10 +2,12 @@ import {
   Alert, Box, Button, Chip, Divider, Link, Stack, Table, TableBody, TableCell, TableHead, TableRow, Typography,
 } from '@mui/material'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { useRef } from 'react'
+import { useEffect, useRef } from 'react'
 import { Link as RouterLink } from 'react-router'
 import { api, errorMessage } from '../api/client'
-import type { DecisionKind, MealPlanSummary, MealResult, MealResultSummary } from '../api/types'
+import type {
+  DecisionKind, MealPlanSummary, MealResult, MealResultSummary, NutritionSuggestion, ResultIngredient,
+} from '../api/types'
 
 type Props = { requestId: string; mealDate?: string | null; onChanged: () => void }
 
@@ -14,6 +16,14 @@ const money = (v: string | null) => (v === null ? '未知' : `${Math.round(Numbe
 const grams = (v: string | null) => (v === null ? '無法換算' : `${Math.round(Number(v))} g`)
 const amount = (v: string | null | undefined, unit: string) =>
   v === null || v === undefined ? '未知' : `${Number(v).toFixed(1)} ${unit}`
+/** 後端已取整的畫面用量（克到 1 g、容量單位到 0.5）；沒有數量時顯示原文 */
+const shown = (i: ResultIngredient) =>
+  i.display_amount != null && i.display_unit
+    ? `${Number(i.display_amount)} ${i.display_unit}`
+    : i.display_text ?? grams(i.display_grams)
+const NUTRIENT_LABELS: Record<string, string> = { energy_kcal: '熱量', protein_g: '蛋白質' }
+const NUTRIENT_UNITS: Record<string, string> = { energy_kcal: 'kcal', protein_g: 'g' }
+const ACTIVE = new Set(['queued', 'running'])
 
 const DECISION_LABELS: Record<DecisionKind, string> = {
   accept_missing_price: '接受缺價例外並繼續',
@@ -41,7 +51,20 @@ export default function MealResultView({ requestId, mealDate, onChanged }: Props
     enabled: latestVersion !== undefined,
     queryFn: async () =>
       (await api.get<MealResult>(`/meal-requests/${requestId}/results/${latestVersion}`)).data,
+    // 重試工作（查價中／說明產生中）進行時定期更新，完成後會出現新版本
+    refetchInterval: (query) => {
+      const retries = query.state.data?.retries
+      return retries && [retries.price, retries.knowledge].some((s) => s && ACTIVE.has(s.status)) ? 2000 : false
+    },
   })
+  const retrying = result.data?.retries
+  useEffect(() => {
+    // 重試完成後重新讀取版本清單，畫面切到新版本
+    if ([retrying?.price, retrying?.knowledge].some((s) => s?.status === 'succeeded' && s.produced_result_version
+        && s.produced_result_version !== latestVersion)) {
+      void queryClient.invalidateQueries({ queryKey: ['meal-results', requestId] })
+    }
+  }, [retrying, latestVersion, queryClient, requestId])
 
   const refreshAll = async () => {
     await queryClient.invalidateQueries({ queryKey: ['meal-results', requestId] })
@@ -61,6 +84,13 @@ export default function MealResultView({ requestId, mealDate, onChanged }: Props
       api.post(`/meal-requests/${requestId}/results/${r.result_version}/price-retry`,
         { request_version: r.request_version },
         { headers: { 'Idempotency-Key': keyFor(`${r.result_version}:retry`) } }),
+    onSuccess: refreshAll,
+  })
+  const retryKnowledge = useMutation({
+    mutationFn: async (r: MealResult) =>
+      api.post(`/meal-requests/${requestId}/results/${r.result_version}/knowledge-retry`,
+        { request_version: r.request_version },
+        { headers: { 'Idempotency-Key': keyFor(`${r.result_version}:knowledge-retry`) } }),
     onSuccess: refreshAll,
   })
   // T16 採用：前端只負責送出指定版本；資格、版本、缺價接受與昨日歷史一律由後端在交易內重驗
@@ -84,6 +114,12 @@ export default function MealResultView({ requestId, mealDate, onChanged }: Props
   const el = r.eligibility
   const pricePending = el.pending_decisions.some((d) => d.kind === 'accept_missing_price')
   const confirmed = r.request_status === 'confirmed'
+  const priceRetry = r.retries?.price ?? null
+  const knowledgeRetry = r.retries?.knowledge ?? null
+  const priceRetrying = !!priceRetry && ACTIVE.has(priceRetry.status)
+  const knowledgeRetrying = !!knowledgeRetry && ACTIVE.has(knowledgeRetry.status)
+  const dayConflict = r.previous_day_check?.status === 'conflict'
+  const suggestions: NutritionSuggestion[] = r.nutrition.suggestions ?? []
 
   return (
     <Stack spacing={2}>
@@ -91,7 +127,8 @@ export default function MealResultView({ requestId, mealDate, onChanged }: Props
         <Typography variant="h6">生成結果（第 {r.result_version} 版）</Typography>
         <Chip color={r.mode === 'ai_generated_menu' ? 'secondary' : 'default'} label={r.mode_label} />
         {r.derived_from_result_version !== null && (
-          <Chip size="small" variant="outlined" label={`由第 ${r.derived_from_result_version} 版重新查價`} />
+          <Chip size="small" variant="outlined" label={`由第 ${r.derived_from_result_version} 版${
+            r.knowledge_retry ? '重試知識說明' : '重新查價'}`} />
         )}
       </Box>
       {r.fallback_message && <Alert severity="info">{r.fallback_message}</Alert>}
@@ -115,8 +152,9 @@ export default function MealResultView({ requestId, mealDate, onChanged }: Props
                 <Typography variant="body2">{d.message}</Typography>
                 <Box sx={{ display: 'flex', gap: 1, mt: 1, flexWrap: 'wrap' }}>
                   {d.kind === 'accept_missing_price' && (
-                    <Button size="small" variant="outlined" disabled={retry.isPending} onClick={() => retry.mutate(r)}>
-                      重新查價
+                    <Button size="small" variant="outlined" disabled={retry.isPending || priceRetrying}
+                      onClick={() => retry.mutate(r)}>
+                      {priceRetrying ? '查價中…' : '重新查價'}
                     </Button>
                   )}
                   <Button size="small" variant="contained" disabled={decide.isPending}
@@ -129,7 +167,16 @@ export default function MealResultView({ requestId, mealDate, onChanged }: Props
           </Stack>
         </Alert>
       )}
+      {priceRetrying && <Alert severity="info">正在向價格來源查詢缺價食材（低頻率查詢，可能需要幾分鐘）；完成後會出現新版本。</Alert>}
+      {priceRetry?.status === 'failed' && (
+        <Alert severity="warning">上次重新查價失敗：{priceRetry.error?.message ?? '原因未知'}。原結果不變，可再試或接受缺價例外。</Alert>
+      )}
       {(decide.isError || retry.isError) && <Alert severity="error">{errorMessage(decide.error ?? retry.error)}</Alert>}
+      {dayConflict && (
+        <Alert severity="error">
+          {r.previous_day_check?.message}（重複：{r.previous_day_check?.conflicting_dishes?.join('、')}）
+        </Alert>
+      )}
       {confirmed ? (
         <Alert severity="success">
           此問卷已採用並保存為已採用餐食紀錄（不代表實際已食用）。
@@ -137,7 +184,8 @@ export default function MealResultView({ requestId, mealDate, onChanged }: Props
         </Alert>
       ) : el.adoptable && (
         <Box>
-          <Button variant="contained" color="primary" disabled={adopt.isPending} onClick={() => adopt.mutate(r)}>
+          <Button variant="contained" color="primary" disabled={adopt.isPending || dayConflict}
+            onClick={() => adopt.mutate(r)}>
             採用此菜單（第 {r.result_version} 版）
           </Button>
         </Box>
@@ -152,7 +200,7 @@ export default function MealResultView({ requestId, mealDate, onChanged }: Props
             {d.dish_name}{d.specified && '（指定菜）'}{d.cooking_method && ` · ${d.cooking_method}`}
           </Typography>
           <Typography variant="body2">
-            {d.ingredients.map((i) => `${i.name} ${grams(i.display_grams)}`).join('、')}
+            {d.ingredients.map((i) => `${i.name} ${shown(i)}`).join('、')}
           </Typography>
           <Box component="ol" sx={{ my: 0.5, pl: 3 }}>
             {d.steps.map((s, idx) => <li key={idx}><Typography variant="body2">{s}</Typography></li>)}
@@ -160,8 +208,46 @@ export default function MealResultView({ requestId, mealDate, onChanged }: Props
         </Box>
       ))}
 
+      {r.staple && (
+        <Box>
+          <Typography sx={{ fontWeight: 'bold' }}>主食：{r.staple.label}</Typography>
+          <Typography variant="body2">
+            {r.staple.display_amount != null
+              ? `${r.staple.tfda_name ?? r.staple.label} ${Number(r.staple.display_amount)} ${r.staple.display_unit ?? ''}`
+              : '無法換算營養（缺 TFDA 樣品），不可採用'}
+            （計入營養與 ±10% 驗證，不計入價格{r.staple.review_status === 'pending_review' ? '；份量設定待營養審核' : ''}）
+          </Typography>
+        </Box>
+      )}
+
       <Divider />
       <Typography variant="subtitle1">營養估算</Typography>
+      {r.nutrition.quantities_verified === false && (
+        <Alert severity="warning">以上用量尚未通過營養驗證，僅供查看與估算成本，不可採用。</Alert>
+      )}
+      {suggestions.length > 0 && (
+        <Alert severity="info">
+          <Typography variant="body2" sx={{ fontWeight: 'bold' }}>調整建議</Typography>
+          <Box component="ul" sx={{ m: 0, pl: 3 }}>
+            {suggestions.map((s, idx) => (
+              <li key={idx}>
+                <Typography variant="body2">
+                  {s.code === 'NUTRITION_OUT_OF_RANGE' && s.nutrient
+                    ? `${NUTRIENT_LABELS[s.nutrient]}需${s.direction === 'increase' ? '增加' : '減少'}約 ${amount(s.needed_change, NUTRIENT_UNITS[s.nutrient])}；`
+                      + (s.ingredients.length
+                        ? s.ingredients.map((i) => `${i.name}${i.direction === 'increase' ? '增加' : '減少'}`
+                          + (i.adjustment_approved
+                            ? `（可調 ${grams(i.adjustable_min ?? null)}–${grams(i.adjustable_max ?? null)}，最多${amount(i.max_change, NUTRIENT_UNITS[s.nutrient!])}）`
+                            : '（未審核可調範圍）')).join('、')
+                        : '沒有可調整的食材')
+                      + (s.within_adjustable_ranges ? '。已審核範圍內補得足，但與另一項營養無法同時達成。' : '。已審核範圍內補不足。')
+                    : `${s.action ?? ''}：${s.ingredients.map((i) => i.name).join('、')}`}
+                </Typography>
+              </li>
+            ))}
+          </Box>
+        </Alert>
+      )}
       <Table size="small">
         <TableHead><TableRow><TableCell>項目</TableCell><TableCell>目標</TableCell><TableCell>估算</TableCell><TableCell>差距</TableCell></TableRow></TableHead>
         <TableBody>
@@ -242,8 +328,19 @@ export default function MealResultView({ requestId, mealDate, onChanged }: Props
 
       {r.knowledge.status !== 'not_found' && <Divider />}
       {r.knowledge.status === 'unavailable' && (
-        <Alert severity="warning">營養知識服務暫時無法使用，知識說明稍後可重試；菜單與採用資格不受影響。</Alert>
+        <Alert severity="warning" action={r.knowledge.retry_available && !confirmed ? (
+          <Button size="small" disabled={retryKnowledge.isPending || knowledgeRetrying}
+            onClick={() => retryKnowledge.mutate(r)}>
+            {knowledgeRetrying ? '重試中…' : '只重試知識說明'}
+          </Button>) : undefined}>
+          {r.knowledge.reason === 'BUDGET_EXHAUSTED'
+            ? '本月外部服務額度不足，知識說明暫時無法產生；'
+            : '營養知識服務暫時無法使用；'}
+          菜單、份量與採用資格不受影響。可「只重試知識說明」（不會重新生成菜單，結果存成新版本）。
+          {knowledgeRetry?.status === 'failed' && ` 上次重試失敗：${knowledgeRetry.error?.message ?? '原因未知'}`}
+        </Alert>
       )}
+      {retryKnowledge.isError && <Alert severity="error">{errorMessage(retryKnowledge.error)}</Alert>}
       {r.knowledge.status === 'available' && (
         <Box>
           <Typography variant="subtitle1">食材營養知識</Typography>
