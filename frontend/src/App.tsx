@@ -7,6 +7,7 @@ import { api, errorStatus } from './api/client'
 import type { Me } from './api/types'
 import HouseholdPage from './pages/HouseholdPage'
 import LoginPage from './pages/LoginPage'
+import MealHistoryPage from './pages/MealHistoryPage'
 import MealRequestEditor from './pages/MealRequestEditor'
 import MealRequestsPage from './pages/MealRequestsPage'
 import MembersPage from './pages/MembersPage'
@@ -72,6 +73,7 @@ function Layout() {
           {me.data?.current_household && (
             <>
               <Button color="inherit" component={Link} to="/plan">規劃餐食</Button>
+              <Button color="inherit" component={Link} to="/history">已採用紀錄</Button>
               <Button color="inherit" component={Link} to="/members">成員</Button>
               <Button color="inherit" component={Link} to="/households">{me.data.current_household.name}</Button>
             </>
@@ -107,6 +109,7 @@ const router = createBrowserRouter([
             { path: '/members', element: <MembersPage /> },
             { path: '/plan', element: <MealRequestsPage /> },
             { path: '/plan/:id', element: <MealRequestEditor /> },
+            { path: '/history', element: <MealHistoryPage /> },
           ],
         },
       ],

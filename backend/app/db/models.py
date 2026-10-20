@@ -8,6 +8,7 @@ from datetime import date, datetime, timezone
 from decimal import Decimal
 
 from sqlalchemy import (
+    Boolean,
     CheckConstraint,
     Date,
     DateTime,
@@ -278,6 +279,10 @@ class AdoptedMealPlan(Base):
         CheckConstraint("status IN ('adopted', 'superseded')", name="ck_adopted_meal_status"),
         CheckConstraint("version > 0", name="ck_adopted_meal_version_positive"),
         Index("ix_adopted_meal_plans_household_date", "household_id", "meal_date"),
+        # T16 採用交易：冪等鍵、同一問卷只採用一次
+        UniqueConstraint("household_id", "idempotency_key", name="uq_adopted_meal_plan_idempotency"),
+        UniqueConstraint("meal_request_id", name="uq_adopted_meal_plan_request"),
+        CheckConstraint("(idempotency_key IS NULL) = (request_hash IS NULL)", name="ck_adopted_meal_idempotency_pair"),
     )
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
@@ -291,6 +296,27 @@ class AdoptedMealPlan(Base):
     version: Mapped[int] = mapped_column(Integer, nullable=False, default=1, server_default="1")
     dishes: Mapped[list] = mapped_column(JSONB, nullable=False, default=list, server_default=text("'[]'::jsonb"))
     adopted_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, nullable=False)
+    # T16 擴充（T11 的最小紀錄這些欄位為 NULL／預設）：採用版本、冪等與 MealPlanSnapshot。
+    # 問卷或結果之後刪除時改為 NULL，歷史快照保留。
+    meal_request_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("meal_requests.id", ondelete="SET NULL",
+                                       name="fk_adopted_meal_plans_meal_request"), nullable=True
+    )
+    generation_result_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("generation_results.id", ondelete="SET NULL",
+                                       name="fk_adopted_meal_plans_generation_result"), nullable=True
+    )
+    result_version: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    request_version: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    idempotency_key: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    request_hash: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    price_exception_accepted: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False,
+                                                           server_default=text("false"))
+    snapshot: Mapped[dict] = mapped_column(JSONB, nullable=False, default=dict, server_default=text("'{}'::jsonb"))
+    adopted_by: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL", name="fk_adopted_meal_plans_adopted_by"),
+        nullable=True
+    )
 
 
 class GenerationResult(Base):

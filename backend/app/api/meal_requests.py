@@ -104,6 +104,8 @@ def update_request(request_id: uuid.UUID, body: DraftUpdate, auth: AuthContext =
     if row.status in ("queued", "running"):
         raise ApiError(409, "VERSION_CONFLICT", "此問卷正在生成中，請等待結果後再修改。",
                        {"reason": "GENERATION_IN_PROGRESS"})
+    if row.status == "confirmed":
+        raise job_service.already_adopted()
     if row.version != body.version:
         raise version_conflict()
     _reject_bad_references(db, household_id, body.draft)

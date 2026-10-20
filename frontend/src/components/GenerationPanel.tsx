@@ -70,8 +70,10 @@ export default function GenerationPanel({ row, onChanged }: Props) {
     wasActive.current = !!active
   }, [active, job, onChanged])
   const lastJobForThisVersion = job && job.input_version === row.version
-  const hasResult = row.status === 'result_ready' || row.status === 'awaiting_decision'
-  const canSubmit = row.complete && !active && !(lastJobForThisVersion && job.status === 'succeeded')
+  // 已採用（confirmed）：仍可查看結果，但不再生成或修改（後端同樣拒絕）
+  const confirmed = row.status === 'confirmed'
+  const hasResult = row.status === 'result_ready' || row.status === 'awaiting_decision' || confirmed
+  const canSubmit = row.complete && !active && !confirmed && !(lastJobForThisVersion && job.status === 'succeeded')
 
   return (
     <Stack spacing={1.5}>
@@ -95,13 +97,13 @@ export default function GenerationPanel({ row, onChanged }: Props) {
         </Box>
       )}
       {submit.isError && <Alert severity="error">{errorMessage(submit.error)}</Alert>}
-      {hasResult && !active && <MealResultView requestId={row.id} onChanged={onChanged} />}
+      {hasResult && !active && <MealResultView requestId={row.id} mealDate={row.draft.meal_date} onChanged={onChanged} />}
       <Box>
         <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
           <Button variant="contained" disabled={!canSubmit || submit.isPending} onClick={() => submit.mutate(false)}>
             {job && lastJobForThisVersion && job.status === 'failed' ? '重新送出生成' : '送出生成'}
           </Button>
-          {hasResult && (
+          {hasResult && !confirmed && (
             <Button variant="outlined" disabled={!row.complete || !!active || submit.isPending}
               onClick={() => submit.mutate(true)}>
               重新生成

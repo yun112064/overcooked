@@ -13,6 +13,7 @@
 | `backend/app/services/meal_calculation.py` | T12：基準營養對齊、n 倍縮放與整餐 ±10% 營養驗證；輸出整餐食材需求量給 T13 | [T12 說明](docs/T12-meal-calculation.md) |
 | `backend/app/services/generation.py`、`llm_client.py` | T14：資料庫菜單優先、查無可行方案自動「AI 生成菜單」、最終食材知識說明；結果存 `generation_results`（依問卷遞增版本） | [T14 說明](docs/T14-generation.md) |
 | `backend/app/services/meal_validation.py`、`meal_results.py`、`api/meal_results.py` | T15：結果讀取（全家配方、缺料雙價格、數值營養、知識說明、昨日比對）、R09 採用資格判定、缺價重試／接受例外與缺營養繼續查看的決定紀錄 | [T15 說明](docs/T15-meal-results.md) |
+| `backend/app/services/meal_plans.py`、`api/meal_plans.py`、`frontend/src/pages/MealHistoryPage.tsx` | T16：單一交易採用指定結果版本（重驗版本、資格、缺價接受與昨日歷史，冪等）、完整快照與依日期回看已採用餐食紀錄 | [T16 說明](docs/T16-adoption-history.md) |
 | `migrations/` | 資料庫遷移 | `alembic.ini` |
 | `tests/` | T06 日誌與隱私、T07／T08／T10 API 與資料庫測試；T03 測試已移入模組 | CI 見 `.github/workflows/t06-ci.yml` |
 | `docs/` | 跨模組決議及 T04 驗收／交接記錄 | [決議與整合待辦](docs/T04-T06-merge-pending.md) |

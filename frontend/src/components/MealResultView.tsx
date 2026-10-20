@@ -3,10 +3,11 @@ import {
 } from '@mui/material'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useRef } from 'react'
+import { Link as RouterLink } from 'react-router'
 import { api, errorMessage } from '../api/client'
-import type { DecisionKind, MealResult, MealResultSummary } from '../api/types'
+import type { DecisionKind, MealPlanSummary, MealResult, MealResultSummary } from '../api/types'
 
-type Props = { requestId: string; onChanged: () => void }
+type Props = { requestId: string; mealDate?: string | null; onChanged: () => void }
 
 /** 顯示用取整：金額到 1 元、克到 1 g、營養到 0.1；計算與判定一律由後端以精確值完成。 */
 const money = (v: string | null) => (v === null ? '未知' : `${Math.round(Number(v))} 元`)
@@ -20,7 +21,7 @@ const DECISION_LABELS: Record<DecisionKind, string> = {
 }
 
 /** T15 生成結果：全家配方、缺料雙價格、數值營養、知識說明、昨日比對與後端判定的採用資格。 */
-export default function MealResultView({ requestId, onChanged }: Props) {
+export default function MealResultView({ requestId, mealDate, onChanged }: Props) {
   const queryClient = useQueryClient()
   // 每個（結果版本、命令）固定一把冪等鍵：重複點擊或網路重送只產生一筆決定
   const keys = useRef(new Map<string, string>())
@@ -62,6 +63,19 @@ export default function MealResultView({ requestId, onChanged }: Props) {
         { headers: { 'Idempotency-Key': keyFor(`${r.result_version}:retry`) } }),
     onSuccess: refreshAll,
   })
+  // T16 採用：前端只負責送出指定版本；資格、版本、缺價接受與昨日歷史一律由後端在交易內重驗
+  const adopt = useMutation({
+    mutationFn: async (r: MealResult) => {
+      const accepted = r.eligibility.price_exception_accepted
+        ? r.eligibility.decisions.find((d) => d.kind === 'accept_missing_price')?.id
+        : undefined
+      return (await api.post<{ meal_plan: MealPlanSummary }>('/meal-plans', {
+        meal_request_id: requestId, result_version: r.result_version, request_version: r.request_version,
+        ...(accepted ? { price_exception_decision_id: accepted } : {}),
+      }, { headers: { 'Idempotency-Key': keyFor(`${r.result_version}:adopt`) } })).data.meal_plan
+    },
+    onSuccess: refreshAll,
+  })
 
   if (list.isError || result.isError) return <Alert severity="error">{errorMessage(list.error ?? result.error)}</Alert>
   if (list.data && list.data.length === 0) return null
@@ -69,6 +83,7 @@ export default function MealResultView({ requestId, onChanged }: Props) {
   if (!r) return <Typography color="text.secondary">讀取結果中…</Typography>
   const el = r.eligibility
   const pricePending = el.pending_decisions.some((d) => d.kind === 'accept_missing_price')
+  const confirmed = r.request_status === 'confirmed'
 
   return (
     <Stack spacing={2}>
@@ -115,6 +130,19 @@ export default function MealResultView({ requestId, onChanged }: Props) {
         </Alert>
       )}
       {(decide.isError || retry.isError) && <Alert severity="error">{errorMessage(decide.error ?? retry.error)}</Alert>}
+      {confirmed ? (
+        <Alert severity="success">
+          此問卷已採用並保存為已採用餐食紀錄（不代表實際已食用）。
+          {' '}<Link component={RouterLink} to={mealDate ? `/history?date=${mealDate}` : '/history'}>查看已採用紀錄</Link>
+        </Alert>
+      ) : el.adoptable && (
+        <Box>
+          <Button variant="contained" color="primary" disabled={adopt.isPending} onClick={() => adopt.mutate(r)}>
+            採用此菜單（第 {r.result_version} 版）
+          </Button>
+        </Box>
+      )}
+      {adopt.isError && <Alert severity="error">{errorMessage(adopt.error)}</Alert>}
 
       <Divider />
       <Typography variant="subtitle1">全家配方（整餐用量）</Typography>

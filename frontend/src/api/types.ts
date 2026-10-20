@@ -281,3 +281,42 @@ export type MealResultSummary = {
   created_at: string
   adoptable: boolean
 }
+
+export type MealPlanDish = {
+  standard_dish_id: string
+  dish_name: string
+  aliases: string[]
+  source: 'database' | 'ai' | null
+}
+
+/** T16 已採用餐食紀錄（不代表實際已食用）。 */
+export type MealPlanSummary = {
+  id: string
+  meal_date: string
+  meal_type: MealType
+  mode: 'database_menu' | 'ai_generated_menu'
+  mode_label: string
+  ai_generated: boolean
+  record_label: string
+  adopted_at: string
+  meal_request_id: string | null
+  result_version: number | null
+  request_version: number | null
+  price_exception_accepted: boolean
+  dishes: MealPlanDish[]
+}
+
+type ResultDish = MealResult['dishes'][number]
+
+export type MealPlanDetail = Omit<MealPlanSummary, 'dishes'> & {
+  snapshot_available: boolean
+  fallback_message?: string | null
+  dishes: (MealPlanDish & Partial<Pick<ResultDish, 'cooking_method' | 'steps' | 'ingredients'>> & {
+    recipe_source?: { recipe_id: string; source_name: string; source_url: string } | null
+  })[]
+  nutrition?: MealResult['nutrition']
+  prices?: MealResult['prices']
+  knowledge?: MealResult['knowledge']
+  previous_day?: MealResult['previous_day'] & { history_changed: boolean }
+  missing?: { price_food_ids: string[]; price_exception_accepted: boolean; nutrients: Record<string, string[]> }
+}
