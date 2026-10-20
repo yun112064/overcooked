@@ -22,7 +22,15 @@ REQUEST_STATUS = {"queued": "queued", "running": "running", "succeeded": "result
 
 
 class RetryableJobError(Exception):
-    """確定沒有產生費用的暫時性失敗，可在次數內自動重試。"""
+    """可在次數內自動重試的失敗（未產生費用，或費用已結算、重試不會重複計費）。
+
+    code／user_message 可選：未達上限時排入重試，達上限即以此錯誤碼與說明失敗。
+    """
+
+    def __init__(self, message: str = "", *, code: str | None = None, user_message: str | None = None):
+        super().__init__(message)
+        self.code = code
+        self.user_message = user_message
 
 
 class JobFailure(Exception):
@@ -143,13 +151,17 @@ def set_stage(factory: sessionmaker, job_id, owner: str, stage: str) -> bool:
         return True
 
 
-def complete(factory: sessionmaker, job_id, owner: str, result: dict) -> bool:
+def complete(factory: sessionmaker, job_id, owner: str, result: dict, persist=None) -> bool:
+    """persist(db, job, result) -> (工作摘要, 結果版本)：在同一交易、確認租約後寫入結果表（T14）。"""
     with factory() as db, db.begin():
         job = _owned(db, job_id, owner)
         if job is None:
             return False
+        version = job.attempts
+        if persist is not None:
+            result, version = persist(db, job, result)
         job.status, job.stage, job.result = "succeeded", "result_ready", result
-        job.result_version = job.attempts
+        job.result_version = version
         job.lease_owner = job.lease_expires_at = None
         job.finished_at = job.updated_at = _now()
         _mirror(db, job)
@@ -228,6 +240,9 @@ def public_view(job: BackgroundJob) -> dict:
         "input_version": job.input_version,
         "result_version": job.result_version,
         "error": {"code": job.error_code, "message": job.error_message} if job.error_code else None,
+        # T14：成功的生成工作附結果摘要（結果版本、模式與「AI 生成菜單」標示）；完整結果在 generation_results
+        "result_summary": (job.result if job.status == "succeeded" and isinstance(job.result, dict)
+                           and "generation_result_id" in job.result else None),
         "created_at": job.created_at.isoformat(),
         "updated_at": job.updated_at.isoformat(),
     }

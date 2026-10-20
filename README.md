@@ -11,6 +11,7 @@
 | `inference/` | T09 團隊電腦 YOLO26s 推論服務（OpenCV 降噪前處理），權重不進 Git | [推論服務 README](inference/README.md) |
 | `knowledge_rag/`、`backend/app/services/recipe_retrieval.py` 等 | T11 結構化食譜查詢、昨日去重、團隊電腦營養知識 RAG（只驗證合成資料，G07 未通過） | [T11 文件](docs/T11-recipe-retrieval-knowledge.md) |
 | `backend/app/services/meal_calculation.py` | T12：基準營養對齊、n 倍縮放與整餐 ±10% 營養驗證；輸出整餐食材需求量給 T13 | [T12 說明](docs/T12-meal-calculation.md) |
+| `backend/app/services/generation.py`、`llm_client.py` | T14：資料庫菜單優先、查無可行方案自動「AI 生成菜單」、最終食材知識說明；結果存 `generation_results`（依問卷遞增版本） | [T14 說明](docs/T14-generation.md) |
 | `migrations/` | 資料庫遷移 | `alembic.ini` |
 | `tests/` | T06 日誌與隱私、T07／T08／T10 API 與資料庫測試；T03 測試已移入模組 | CI 見 `.github/workflows/t06-ci.yml` |
 | `docs/` | 跨模組決議及 T04 驗收／交接記錄 | [決議與整合待辦](docs/T04-T06-merge-pending.md) |
@@ -46,7 +47,7 @@ python -m nutrition_target --rules nutrition_target/rules/hpa-dri8-mvp-0.3.0.jso
 - 工作程序：`python -m app.jobs.worker`，可視負載開多個副本；以短交易與 `SKIP LOCKED` 領取工作。
 - 排程程序：`python -m app.jobs.scheduler`，以 PostgreSQL advisory lock 保證只有一個在執行，負責回收逾時工作與每日日誌清理。
 - 費用追查：`python -m app.jobs.admin budget` 顯示本月額度帳與未結清呼叫；`python -m app.jobs.admin reconcile <id> <實際金額> <說明>` 依帳單核對結果不明的呼叫。
-- 菜單生成（Ticket 14）尚未完成：送出生成會建立工作並明確回報「生成功能尚未開放」，問卷保留可再送出。
+- 菜單生成（T14）：worker 先組資料庫菜單，查無可行方案自動改由 OpenAI（`gpt-5.4-mini-2026-03-17`，每筆呼叫經額度預留／結算）生成並標示「AI 生成菜單」；未設定 `OPENAI_API_KEY` 時資料庫菜單照常，AI 回退會明確失敗。詳見 [T14 說明](docs/T14-generation.md)。
 
 需要資料庫的 API 測試以 `TEST_DATABASE_URL` 指定一個可清空的 PostgreSQL（含 pgvector），測試會以 Alembic 重建資料表；未設定時這些測試會略過。
 

@@ -291,3 +291,40 @@ class AdoptedMealPlan(Base):
     version: Mapped[int] = mapped_column(Integer, nullable=False, default=1, server_default="1")
     dishes: Mapped[list] = mapped_column(JSONB, nullable=False, default=list, server_default=text("'[]'::jsonb"))
     adopted_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, nullable=False)
+
+
+class GenerationResult(Base):
+    """T14 生成結果（GenerationResult 契約）：每個成功的生成工作恰好一筆，不覆寫、不刪改。
+
+    - result_version：同一問卷內依序遞增（1, 2, …），重新生成或修改問卷後再生成都是新版本；
+      T15 顯示、T16 採用以 (meal_request_id, result_version) 指定版本。
+    - job_id 唯一：同一送出（同一冪等鍵）只會產生一個結果，重送不會多寫。
+    - request_version：產生此結果的問卷鎖定版本。
+    - payload：完整結果快照（菜色、查詢來源、計算、價格、昨日比對、知識說明與證據）。
+    """
+    __tablename__ = "generation_results"
+    __table_args__ = (
+        CheckConstraint("mode IN ('database_menu', 'ai_generated_menu')", name="ck_generation_result_mode"),
+        CheckConstraint("(mode = 'database_menu') = (fallback_reason IS NULL)",
+                        name="ck_generation_result_fallback_reason"),
+        CheckConstraint("result_version > 0 AND request_version > 0", name="ck_generation_result_versions"),
+        UniqueConstraint("job_id", name="uq_generation_result_job"),
+        UniqueConstraint("meal_request_id", "result_version", name="uq_generation_result_version"),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    household_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("households.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    meal_request_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("meal_requests.id", ondelete="CASCADE"), nullable=False
+    )
+    request_version: Mapped[int] = mapped_column(Integer, nullable=False)
+    job_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("background_jobs.id", ondelete="CASCADE"), nullable=False
+    )
+    result_version: Mapped[int] = mapped_column(Integer, nullable=False)
+    mode: Mapped[str] = mapped_column(String(30), nullable=False)
+    fallback_reason: Mapped[str | None] = mapped_column(String(60), nullable=True)
+    payload: Mapped[dict] = mapped_column(JSONB, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, nullable=False)

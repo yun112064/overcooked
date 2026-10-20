@@ -34,6 +34,12 @@ class FormatterFieldTests(unittest.TestCase):
         self.assertNotIn("error_code", data)
 
 
+def failing(ctx):
+    """不呼叫付費服務、直接失敗的處理函式（只測工作流程，不測生成內容）。"""
+    from app.services.jobs import JobFailure
+    raise JobFailure("GENERATION_FAILED", "測試用失敗")
+
+
 def draft(member_id):
     return {"meal_date": "2026-08-20", "meal_type": "dinner", "budget": "300", "staple": "白飯",
             "dish_count": 2, "participants": [{"member_id": member_id}]}
@@ -104,7 +110,7 @@ class T10Tests(unittest.TestCase):
     def test_reused_key_with_different_content_is_rejected(self):
         from app.jobs.worker import run_once
         self.assertEqual(self.submit().status_code, 202)
-        run_once(self.factory, "worker-a")  # 生成尚未開放 → failed，問卷可再修改
+        run_once(self.factory, "worker-a", {"meal_generation": failing})  # failed，問卷可再修改
         updated = self.client.put(f"/meal-requests/{self.request['id']}",
                                   json={"version": 1, "draft": {**draft(self.member_id), "budget": "350"}}).json()
         reused = self.submit(version=updated["version"])
@@ -159,7 +165,7 @@ class T10Tests(unittest.TestCase):
         from app.core.config import settings
         from app.jobs.worker import run_once
         self.assertEqual(self.submit().status_code, 202)
-        run_once(self.factory, "worker-a")
+        run_once(self.factory, "worker-a", {"meal_generation": failing})
         with patch.object(settings, "generation_daily_limit", 1):
             res = self.submit(key="key-00000002")
         self.assertEqual(res.status_code, 429)
@@ -167,13 +173,17 @@ class T10Tests(unittest.TestCase):
 
     # --- 工作程序 ---
 
-    def test_default_handler_reports_generation_not_available_and_keeps_draft(self):
+    def test_default_handler_without_model_service_fails_clearly_and_keeps_draft(self):
+        # T14 取代原「尚未開放」占位：沒有可行資料庫菜單且未設定模型金鑰時明確失敗，不假裝產生菜單
+        from app.core.config import settings
         from app.jobs.worker import run_once
         job_id = self.submit().json()["job"]["id"]
-        run_once(self.factory, "worker-a")
+        with patch.object(settings, "openai_api_key", None), patch.object(settings, "knowledge_service_url", None):
+            run_once(self.factory, "worker-a")
         job = self.client.get(f"/jobs/{job_id}").json()
         self.assertEqual(job["status"], "failed")
-        self.assertEqual(job["error"]["code"], "GENERATION_NOT_AVAILABLE")
+        self.assertEqual(job["error"]["code"], "GENERATION_FAILED")
+        self.assertIn("未設定", job["error"]["message"])
         self.assertEqual(job["attempts"], 1)
         self.assertEqual(self.request_status(), "failed")
         reread = self.client.get(f"/meal-requests/{self.request['id']}").json()
