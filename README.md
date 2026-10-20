@@ -15,6 +15,7 @@
 | `backend/app/services/meal_validation.py`、`meal_results.py`、`api/meal_results.py` | T15：結果讀取（全家配方、缺料雙價格、數值營養、知識說明、昨日比對）、R09 採用資格判定、缺價重試／接受例外與缺營養繼續查看的決定紀錄 | [T15 說明](docs/T15-meal-results.md) |
 | `backend/app/services/meal_plans.py`、`api/meal_plans.py`、`frontend/src/pages/MealHistoryPage.tsx` | T16：單一交易採用指定結果版本（重驗版本、資格、缺價接受與昨日歷史，冪等）、完整快照與依日期回看已採用餐食紀錄 | [T16 說明](docs/T16-adoption-history.md) |
 | `scripts/load/` | T18：五人負載腳本、每月總費用試算、預留防繞過驗證與記錄範本（工具已備；實機驗收尚未執行，G06 未驗證） | [T18 說明](docs/T18-load-and-cost.md) |
+| `docs/qa/` | T19：完整使用情境 QA 清單、測試者計時表與缺陷紀錄範本（**尚未由真人執行**，待 T17 實際環境） | [T19 情境](docs/qa/T19-scenarios.md)、[狀態](docs/qa/T19-status.md) |
 | `migrations/` | 資料庫遷移 | `alembic.ini` |
 | `tests/` | T06 日誌與隱私、T07／T08／T10 API 與資料庫測試；T03 測試已移入模組 | CI 見 `.github/workflows/t06-ci.yml` |
 | `docs/` | 跨模組決議及 T04 驗收／交接記錄 | [決議與整合待辦](docs/T04-T06-merge-pending.md) |
