@@ -10,7 +10,8 @@
     - 資料庫容器不存在 → 建立（資料存在具名 volume）；已存在 → 啟動
     - alembic upgrade head 套用新的 migration
     - 資料庫沒有食譜 → 從工作簿匯入
-  每個服務開在自己的視窗；用 scripts/stop-dev.ps1 全部關閉。
+  所有服務都在同一個視窗執行，輸出以 [backend]、[frontend] 等前綴區分；
+  在該視窗按 Ctrl+C 或執行 scripts/stop-dev.ps1 全部關閉。
   只有新增「獨立程序」（例如 T11 的知識 RAG 服務）時才需要修改這支腳本。
 
 .PARAMETER NoBrowser
@@ -174,23 +175,30 @@ if (Test-Path $PidFile) {
 }
 Set-Content $PidFile ($Running.GetEnumerator() | ForEach-Object { "$($_.Key)=$($_.Value)" })
 
-function Start-Service-Window($name, $port, $command) {
+$env:PYTHONUNBUFFERED = '1'  # 輸出即時出現在同一個視窗
+$Started = @()
+function Start-Service-Here($name, $port, $command) {
     if ($Running.ContainsKey($name)) { Info "$name 已在執行，略過"; return }
     if ($port -and (Get-NetTCPConnection -LocalPort $port -State Listen -ErrorAction SilentlyContinue)) {
         Info "port $port 已被其他程式使用，略過 $name（可能已經開著）"; return
     }
-    $p = Start-Process powershell -WorkingDirectory $Root -PassThru -ArgumentList @(
-        '-NoExit', '-NoProfile', '-Command', "`$Host.UI.RawUI.WindowTitle = 'overcooked: $name'; $command")
+    # 全部服務共用這個視窗，每行輸出前面加上服務名稱
+    # 用 -EncodedCommand 傳指令，避免 Start-Process 把引號拿掉
+    $full = "`$ProgressPreference = 'SilentlyContinue'; $command 2>&1 | ForEach-Object { '[$name] ' + `$_ }"
+    $encoded = [Convert]::ToBase64String([Text.Encoding]::Unicode.GetBytes($full))
+    $p = Start-Process powershell -WorkingDirectory $Root -PassThru -NoNewWindow -ArgumentList @(
+        '-NoProfile', '-EncodedCommand', $encoded)
     Add-Content $PidFile "$name=$($p.Id)"
+    $script:Started += $p
     Info "$name 已啟動"
 }
 
-Step '啟動服務（每個服務一個視窗）'
-Start-Service-Window 'backend' 8000 "& '$Py' -m uvicorn app.main:app --app-dir backend --host 127.0.0.1 --port 8000 --reload --reload-dir backend"
-Start-Service-Window 'worker' $null "& '$Py' -m app.jobs.worker"
-Start-Service-Window 'frontend' 5173 'npm --prefix frontend run dev -- --host 127.0.0.1 --port 5173 --strictPort'
+Step '啟動服務（全部在這個視窗，輸出以 [服務名稱] 區分）'
+Start-Service-Here 'backend' 8000 "& '$Py' -m uvicorn app.main:app --app-dir backend --host 127.0.0.1 --port 8000 --reload --reload-dir backend"
+Start-Service-Here 'worker' $null "& '$Py' -m app.jobs.worker"
+Start-Service-Here 'frontend' 5173 'npm --prefix frontend run dev -- --host 127.0.0.1 --port 5173 --strictPort'
 if ($UseYolo) {
-    Start-Service-Window 'yolo' $YoloPort "& '$YoloPy' inference/server.py"
+    Start-Service-Here 'yolo' $YoloPort "& '$YoloPy' inference/server.py"
 } else {
     Write-Host '    YOLO 未啟動（DEV_SKIP_YOLO=1、套件安裝失敗，或 YOLO_PYTHON／INFERENCE_WEIGHTS 路徑不存在）；辨識會顯示不可用，仍可手動輸入食材。' -ForegroundColor Yellow
 }
@@ -200,9 +208,18 @@ $up = $false
 for ($i = 0; $i -lt 30; $i++) {
     try { Invoke-WebRequest 'http://127.0.0.1:8000/health' -UseBasicParsing -TimeoutSec 2 | Out-Null; $up = $true; break } catch { Start-Sleep -Seconds 2 }
 }
-if (-not $up) { Write-Host '    後端 60 秒內沒有回應，請看「overcooked: backend」視窗的錯誤訊息。' -ForegroundColor Yellow }
+if (-not $up) { Write-Host '    後端 60 秒內沒有回應，請看上方 [backend] 開頭的錯誤訊息。' -ForegroundColor Yellow }
 
 Write-Host ''
 Write-Host '開發環境已啟動：http://localhost:5173' -ForegroundColor Green
-Write-Host '關閉全部服務：雙擊 stop-dev.cmd，或執行 scripts\stop-dev.ps1'
+Write-Host '關閉全部服務：在這個視窗按 Ctrl+C（或雙擊 stop-dev.cmd）'
 if (-not $NoBrowser) { Start-Process 'http://localhost:5173' }
+if (-not $Started) { exit 0 }  # 服務都已在別處執行，沒有要看守的輸出
+
+# 留在這裡顯示各服務輸出；按 Ctrl+C 時一併關閉服務與資料庫容器（資料保留）
+try {
+    while ($Started | Where-Object { -not $_.HasExited }) { Start-Sleep -Seconds 1 }
+    Write-Host '所有服務都已結束。' -ForegroundColor Yellow
+} finally {
+    & (Join-Path $PSScriptRoot 'stop-dev.ps1')
+}
