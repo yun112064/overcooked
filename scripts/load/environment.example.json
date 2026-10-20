@@ -1,0 +1,44 @@
+{
+  "cloud_host": {
+    "provider": null,
+    "machine": null,
+    "cpu": null,
+    "memory": null,
+    "region": null
+  },
+  "team_computer": {
+    "machine": null,
+    "cpu": null,
+    "gpu": null,
+    "memory": null,
+    "os": null,
+    "status": null
+  },
+  "network": {
+    "team_computer_link": null,
+    "cloud_to_team_rtt_ms": null,
+    "status": null
+  },
+  "models": {
+    "generation": null,
+    "embedding": null,
+    "yolo": null,
+    "yolo_warm": null
+  },
+  "inputs": {
+    "scenario_file": null,
+    "image_files": null,
+    "dataset_version": null
+  },
+  "source_status": {
+    "price_source": null,
+    "knowledge_rag": null,
+    "openai": null,
+    "recognition": null
+  },
+  "deployment": {
+    "base_url": null,
+    "git_commit": null,
+    "pricing_version": null
+  }
+}
