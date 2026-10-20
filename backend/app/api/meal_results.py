@@ -15,6 +15,7 @@ from app.api.errors import not_found
 from app.api.meal_requests import get_owned_request
 from app.db.models import GenerationResult, MealRequest
 from app.db.session import get_db
+from app.services import jobs
 from app.services import meal_results as service
 
 router = APIRouter(prefix="/meal-requests", tags=["meal-results"], dependencies=[Depends(verify_origin)])
@@ -66,18 +67,29 @@ def post_decision(request_id: uuid.UUID, result_version: int, body: DecisionBody
     return {"decision": service.public_decision(db, decision), "result": service.view(db, request, result)}
 
 
+def _retry(request_id, result_version, body, response, idempotency_key, household_id, db, submit):
+    request = get_owned_request(db, household_id, request_id, lock=True)
+    result = _result(db, request, result_version)
+    job, created = submit(db, household_id=household_id, request=request, result=result,
+                          request_version=body.request_version, idempotency_key=idempotency_key)
+    db.commit()
+    response.status_code = 202 if created else 200
+    return {"job": jobs.public_view(job), "created": created}
+
+
 @router.post("/{request_id}/results/{result_version}/price-retry")
 def post_price_retry(request_id: uuid.UUID, result_version: int, body: RetryBody, response: Response,
                      idempotency_key: str = Header(min_length=8, max_length=100),
-                     auth: AuthContext = Depends(current_auth), household_id=Depends(current_household_id),
-                     db: Session = Depends(get_db)):
-    """缺價重試：重讀最新價格快照，產生新結果版本（菜單與營養不變）。"""
-    request = get_owned_request(db, household_id, request_id, lock=True)
-    result = _result(db, request, result_version)
-    decision, created = service.retry_prices(db, household_id=household_id, request=request, result=result,
-                                             request_version=body.request_version,
-                                             idempotency_key=idempotency_key, user_id=auth.user_id)
-    db.commit()
-    produced = db.get(GenerationResult, decision.produced_result_id)
-    response.status_code = 201 if created else 200
-    return {"result_version": produced.result_version, "result": service.view(db, request, produced)}
+                     household_id=Depends(current_household_id), db: Session = Depends(get_db)):
+    """缺價重試（P3）：缺價食材排入 T02 定向查價背景工作，完成後產生新結果版本（菜單與營養不變）。"""
+    return _retry(request_id, result_version, body, response, idempotency_key, household_id, db,
+                  service.request_price_retry)
+
+
+@router.post("/{request_id}/results/{result_version}/knowledge-retry")
+def post_knowledge_retry(request_id: uuid.UUID, result_version: int, body: RetryBody, response: Response,
+                         idempotency_key: str = Header(min_length=8, max_length=100),
+                         household_id=Depends(current_household_id), db: Session = Depends(get_db)):
+    """只重試知識說明（pre-review #3）：同一結果的最終食材重新檢索知識並產生說明，產生新結果版本。"""
+    return _retry(request_id, result_version, body, response, idempotency_key, household_id, db,
+                  service.request_knowledge_retry)

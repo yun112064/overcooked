@@ -183,6 +183,8 @@ class BackgroundJob(Base):
     error_code: Mapped[str | None] = mapped_column(String(50), nullable=True)
     error_message: Mapped[str | None] = mapped_column(Text, nullable=True)
     result: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
+    # 工作參數（T15 重試工作：來源結果 ID、要查價的 FOOD 編號）；不含個人資料
+    params: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
     result_version: Mapped[int | None] = mapped_column(Integer, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, nullable=False)
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, nullable=False)
@@ -336,7 +338,7 @@ class GenerationResult(Base):
         CheckConstraint("result_version > 0 AND request_version > 0", name="ck_generation_result_versions"),
         UniqueConstraint("job_id", name="uq_generation_result_job"),
         UniqueConstraint("meal_request_id", "result_version", name="uq_generation_result_version"),
-        CheckConstraint("(job_id IS NULL) <> (derived_from_result_id IS NULL)", name="ck_generation_result_origin"),
+        CheckConstraint("job_id IS NOT NULL OR derived_from_result_id IS NOT NULL", name="ck_generation_result_origin"),
     )
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
@@ -347,7 +349,8 @@ class GenerationResult(Base):
         UUID(as_uuid=True), ForeignKey("meal_requests.id", ondelete="CASCADE"), nullable=False
     )
     request_version: Mapped[int] = mapped_column(Integer, nullable=False)
-    # T15：缺價重試產生的新版本沒有工作（job_id 為 NULL），改以 derived_from_result_id 指向來源版本
+    # T15：重試（只重試知識說明、缺價定向查價）產生的新版本以 derived_from_result_id 指向來源版本；
+    # 由重試工作產生時 job_id 也有值
     job_id: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True), ForeignKey("background_jobs.id", ondelete="CASCADE"), nullable=True
     )

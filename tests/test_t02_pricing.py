@@ -201,6 +201,23 @@ class CollectionLockTests(unittest.TestCase):
         self.assertEqual(names, ["高麗菜"])
         self.assertEqual(counts["exempt"], 1)
 
+    def test_targeted_run_only_queries_the_requested_food_ids(self):
+        # P3：T15 缺價重試只查指定 FOOD 編號（低頻率），不跑整份清單
+        from app.source_adapters.price_collection import PriceCollectionService
+        from app.source_adapters.pricing_repository import PricingRepository
+        folder = tempfile.TemporaryDirectory()
+        self.addCleanup(folder.cleanup)
+        book = build(Path(folder.name) / "two.xlsx", [recipe("R001", "高麗菜炒蛋", ingredients=[
+            ingredient("FOOD000005", "高麗菜", 300), ingredient("FOOD001566", "雞蛋", 100)])])
+        source, _ = adapter(page(product("高麗菜 1顆", "45")), retries=0)
+        service = PriceCollectionService(workbook_path=book, repository=PricingRepository(self.engine),
+                                         adapter_factory=lambda: source, delay_seconds=0, sleep=lambda s: None)
+        service.run(trigger_type="targeted", scheduled_for=datetime(2026, 10, 19, 3, tzinfo=TZ), run_key="t1",
+                    food_ids={"FOOD000005"})
+        with self.engine.connect() as conn:
+            names = conn.execute(text("SELECT canonical_name FROM price_quote_snapshots")).scalars().all()
+        self.assertEqual(names, ["高麗菜"])
+
     def test_default_exempt_list_contains_water(self):
         from app.source_adapters.price_collection import load_price_exempt
         self.assertIn("FOOD000119", load_price_exempt())

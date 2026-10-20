@@ -15,7 +15,7 @@ from sqlalchemy.orm import sessionmaker
 
 from app.core.config import settings
 from app.db.models import BackgroundJob, MealRequestRevision
-from app.services import generation, jobs, spend
+from app.services import generation, jobs, result_retry, spend
 
 
 class LeaseLost(Exception):
@@ -53,6 +53,9 @@ class JobContext:
 # 處理函式與其 persist 只來自 generation.make_generation_handler（單一來源）。
 HANDLERS: dict[str, Callable[[JobContext], dict]] = {
     jobs.GENERATION: generation.make_generation_handler(),
+    # T15 結果重試：只重試知識說明、缺價定向查價（產生新結果版本）
+    jobs.KNOWLEDGE_RETRY: result_retry.make_knowledge_retry_handler(),
+    jobs.PRICE_RETRY: result_retry.make_price_retry_handler(),
 }
 
 RETRY_MESSAGE = "暫時性錯誤，系統會自動重試一次。"
