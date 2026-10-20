@@ -3,7 +3,7 @@
 - Spec：`../spec.md`
 - Blocked by：06 — 可啟動系統骨架與正式日誌；16 — 採用交易與日期歷史查詢
 - 覆蓋：R11、G06 部署部分；AC24、AC27
-- 狀態：使用者已核准本次拆分及後續修正；尚未實作。
+- 狀態：2026-10-20 程式、設定與本機還原演練完成（feature/t11-t20）；改用 Cloudflare Tunnel 取代 Caddy（使用者決策）。正式主機部署、Tunnel／Access 設定、真實報價與正式還原演練待人工執行，見 docs/T17-deployment.md。
 
 ## 交付成果
 
