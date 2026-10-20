@@ -12,8 +12,9 @@ __pycache__/
 *.py[cod]
 .pytest_cache/
 
-# Local source workbooks and collected retail-price snapshots are not source.
-data/
+# 例外：T01 已審核、取得授權的食譜工作簿放進 Git，讓隊友啟動時自動匯入同一份資料
+data/*
+!data/recipe_dataset_1017.xlsx
 outputs/
 logs/
 
@@ -25,10 +26,6 @@ nutrition_model/data/raw/
 *.onnx
 !inference/models/*.pt
 .venv-yolo/
-
-# T01 raw recipe workbooks are local source material and require separate approval.
-data/*.xlsx
-data/*.xls
 
 # 本機開發腳本的執行狀態（PID、匯入報告）
 .dev/
