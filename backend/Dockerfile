@@ -20,5 +20,7 @@ COPY config/ingredient_synonyms.json /app/config/ingredient_synonyms.json
 ENV PYTHONPATH=/app
 COPY alembic.ini /app/alembic.ini
 COPY migrations /app/migrations
+# T12 整餐營養驗證使用 T04 TFDA 營養模組（平面匯入，由 meal_calculation 加入 sys.path）
+COPY nutrition_model /app/nutrition_model
 
 CMD ["sh", "-c", "alembic -c /app/alembic.ini upgrade head && exec uvicorn app.main:app --host 0.0.0.0 --port 8000 --no-access-log"]
