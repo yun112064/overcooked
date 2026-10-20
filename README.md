@@ -51,3 +51,5 @@ python -m nutrition_target --rules nutrition_target/rules/hpa-dri8-mvp-0.3.0.jso
 ```sh
 TEST_DATABASE_URL=postgresql+psycopg://postgres:<密碼>@localhost:5432/meal_planner_test PYTHONPATH=backend python -m unittest discover -s tests -p 'test_*.py' -v
 ```
+
+Windows 搭配 Docker Desktop 時主機請寫 `127.0.0.1`，不要寫 `localhost`：`localhost` 會先解析成 IPv6 `::1`，Docker Desktop 在 `::1` 上接受連線卻不完成 PostgreSQL 握手，測試會在連線時無限等待。
