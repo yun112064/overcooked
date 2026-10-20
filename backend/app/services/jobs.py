@@ -56,6 +56,12 @@ def _log(event: str, job: BackgroundJob, error_code: str | None = None, *, logge
     logger.info(event, extra=extra)
 
 
+def already_adopted() -> ApiError:
+    """T16：已採用（confirmed）的問卷保存特定結果版本與快照，不被新生成或修改覆寫。"""
+    return ApiError(409, "VERSION_CONFLICT", "此問卷已採用，不能再生成或修改；請另建新問卷。",
+                    {"reason": "ALREADY_ADOPTED"})
+
+
 def submit_generation(db: Session, *, household_id, meal_request: MealRequest, version: int,
                       idempotency_key: str, complete: bool) -> tuple[BackgroundJob, bool]:
     """建立生成工作；回傳 (工作, 是否新建立)。呼叫端負責 commit。"""
@@ -70,6 +76,8 @@ def submit_generation(db: Session, *, household_id, meal_request: MealRequest, v
         raise ApiError(409, "VERSION_CONFLICT", "問卷已更新，請確認最新內容後再送出。")
     if meal_request.status in ("queued", "running"):
         raise ApiError(409, "VERSION_CONFLICT", "此問卷正在生成中，請等待結果。", {"reason": "ALREADY_RUNNING"})
+    if meal_request.status == "confirmed":
+        raise already_adopted()
     if not complete:
         raise ApiError(422, "INVALID_INPUT", "問卷尚未填寫完整，無法送出。", {"reason": "INCOMPLETE"})
     since = _now() - timedelta(days=1)
