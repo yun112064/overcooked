@@ -1,0 +1,10 @@
+# T17：每日 03:30（主機時區設為 Asia/Taipei），錯過時開機後補跑
+[Unit]
+Description=Daily meal planner backup
+
+[Timer]
+OnCalendar=*-*-* 03:30:00
+Persistent=true
+
+[Install]
+WantedBy=timers.target

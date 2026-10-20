@@ -29,3 +29,7 @@ nutrition_model/data/raw/
 
 # 本機開發腳本的執行狀態（PID、匯入報告）
 .dev/
+
+# T17 正式環境設定範例（真實 .env.prod／.env.team 不進 Git）
+!.env.prod.example
+!deploy/team/.env.team.example
