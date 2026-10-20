@@ -3,21 +3,21 @@
 狀態對應問卷：queued→queued、running→running、succeeded→result_ready、failed→failed。
 每個生成工作最多自動嘗試 max_attempts（預設 2）次；回退或知識說明不重置次數。
 """
-import hashlib
 from datetime import datetime, timedelta, timezone
 
 from sqlalchemy import func, select, text
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, sessionmaker
 
-from app.api.errors import ApiError
+from app.api.errors import ApiError, already_adopted, idempotency_conflict
 from app.core.config import settings
 from app.core.logging_config import process_logger, scheduler_logger
 from app.db.models import BackgroundJob, MealRequest, UsageReservation
-from app.services import spend
+from app.services import idempotency, spend
 
 GENERATION = "meal_generation"
 MAX_ATTEMPTS = 2
+CONFLICT_MESSAGE = "這個送出識別碼已用於不同的問卷內容，請重新送出。"
 REQUEST_STATUS = {"queued": "queued", "running": "running", "succeeded": "result_ready", "failed": "failed"}
 
 
@@ -45,7 +45,7 @@ def _now() -> datetime:
 
 
 def request_hash(kind: str, meal_request_id, version: int) -> str:
-    return hashlib.sha256(f"{kind}:{meal_request_id}:{version}".encode()).hexdigest()
+    return idempotency.request_hash(kind, meal_request_id, version)
 
 
 def _log(event: str, job: BackgroundJob, error_code: str | None = None, *, logger=process_logger) -> None:
@@ -56,21 +56,13 @@ def _log(event: str, job: BackgroundJob, error_code: str | None = None, *, logge
     logger.info(event, extra=extra)
 
 
-def already_adopted() -> ApiError:
-    """T16：已採用（confirmed）的問卷保存特定結果版本與快照，不被新生成或修改覆寫。"""
-    return ApiError(409, "VERSION_CONFLICT", "此問卷已採用，不能再生成或修改；請另建新問卷。",
-                    {"reason": "ALREADY_ADOPTED"})
-
-
 def submit_generation(db: Session, *, household_id, meal_request: MealRequest, version: int,
                       idempotency_key: str, complete: bool) -> tuple[BackgroundJob, bool]:
     """建立生成工作；回傳 (工作, 是否新建立)。呼叫端負責 commit。"""
     digest = request_hash(GENERATION, meal_request.id, version)
-    existing = db.scalar(select(BackgroundJob).where(
-        BackgroundJob.household_id == household_id, BackgroundJob.idempotency_key == idempotency_key))
+    existing = idempotency.find_by_key(db, BackgroundJob, household_id, idempotency_key, digest,
+                                       message=CONFLICT_MESSAGE)
     if existing is not None:
-        if existing.request_hash != digest:
-            raise ApiError(409, "IDEMPOTENCY_CONFLICT", "這個送出識別碼已用於不同的問卷內容，請重新送出。")
         return existing, False
     if meal_request.version != version:
         raise ApiError(409, "VERSION_CONFLICT", "問卷已更新，請確認最新內容後再送出。")
@@ -103,7 +95,7 @@ def submit_generation(db: Session, *, household_id, meal_request: MealRequest, v
         raced = db.scalar(select(BackgroundJob).where(
             BackgroundJob.household_id == household_id, BackgroundJob.idempotency_key == idempotency_key))
         if raced is None or raced.request_hash != digest:
-            raise ApiError(409, "IDEMPOTENCY_CONFLICT", "這個送出識別碼已用於不同的問卷內容，請重新送出。") from None
+            raise idempotency_conflict(CONFLICT_MESSAGE) from None
         return raced, False
     meal_request.status = "queued"
     return job, True

@@ -14,7 +14,6 @@ adopt 在呼叫端開的單一資料庫交易內完成全部步驟，任一步�
 快照是深拷貝：來源食譜、價格或知識之後更新都不會改寫歷史。
 """
 import copy
-import hashlib
 from datetime import date, datetime, timezone
 
 from sqlalchemy import func, select, text
@@ -23,7 +22,7 @@ from sqlalchemy.orm import Session
 from app.api.errors import ApiError, not_found, version_conflict
 from app.db.models import AdoptedMealPlan, GenerationResult, MealRequest, MealResultDecision
 from app.models import Recipe, SourceArchive
-from app.services import meal_history, meal_results, meal_validation
+from app.services import idempotency, meal_history, meal_results, meal_validation
 from app.services.generation import MODE_LABELS
 
 SNAPSHOT_VERSION = "meal_plan_snapshot/v1"
@@ -33,8 +32,7 @@ MEAL_TYPE_ORDER = {"breakfast": 0, "lunch": 1, "dinner": 2}
 
 
 def request_hash(meal_request_id, result_version: int, request_version: int, decision_id) -> str:
-    raw = f"adopt:{meal_request_id}:{result_version}:{request_version}:{decision_id or '-'}"
-    return hashlib.sha256(raw.encode()).hexdigest()
+    return idempotency.request_hash("adopt", meal_request_id, result_version, request_version, decision_id)
 
 
 def _lock_household(db: Session, household_id) -> None:
@@ -42,11 +40,8 @@ def _lock_household(db: Session, household_id) -> None:
 
 
 def _by_key(db: Session, household_id, key: str, digest: str) -> AdoptedMealPlan | None:
-    row = db.scalar(select(AdoptedMealPlan).where(AdoptedMealPlan.household_id == household_id,
-                                                  AdoptedMealPlan.idempotency_key == key))
-    if row is not None and row.request_hash != digest:
-        raise ApiError(409, "IDEMPOTENCY_CONFLICT", "這個送出識別碼已用於不同的採用內容，請重新操作。")
-    return row
+    return idempotency.find_by_key(db, AdoptedMealPlan, household_id, key, digest,
+                                   message="這個送出識別碼已用於不同的採用內容，請重新操作。")
 
 
 def _reject_blocks(blocks: list[dict]) -> ApiError:

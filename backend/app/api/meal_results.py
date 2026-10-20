@@ -12,6 +12,7 @@ from sqlalchemy.orm import Session
 
 from app.api.deps import AuthContext, current_auth, current_household_id, verify_origin
 from app.api.errors import not_found
+from app.api.meal_requests import get_owned_request
 from app.db.models import GenerationResult, MealRequest
 from app.db.session import get_db
 from app.services import meal_results as service
@@ -28,14 +29,6 @@ class RetryBody(BaseModel):
     request_version: int = Field(ge=1)
 
 
-def _request(db: Session, household_id, request_id: uuid.UUID, *, lock: bool = False) -> MealRequest:
-    query = select(MealRequest).where(MealRequest.id == request_id)
-    row = db.scalar(query.with_for_update() if lock else query)
-    if row is None or row.household_id != household_id:
-        raise not_found("找不到此問卷。")
-    return row
-
-
 def _result(db: Session, request: MealRequest, version: int) -> GenerationResult:
     row = db.scalar(select(GenerationResult).where(GenerationResult.meal_request_id == request.id,
                                                    GenerationResult.result_version == version))
@@ -46,14 +39,14 @@ def _result(db: Session, request: MealRequest, version: int) -> GenerationResult
 
 @router.get("/{request_id}/results")
 def list_results(request_id: uuid.UUID, household_id=Depends(current_household_id), db: Session = Depends(get_db)):
-    request = _request(db, household_id, request_id)
+    request = get_owned_request(db, household_id, request_id)
     return {"results": service.summaries(db, request)}
 
 
 @router.get("/{request_id}/results/{result_version}")
 def get_result(request_id: uuid.UUID, result_version: int, household_id=Depends(current_household_id),
                db: Session = Depends(get_db)):
-    request = _request(db, household_id, request_id)
+    request = get_owned_request(db, household_id, request_id)
     return service.view(db, request, _result(db, request, result_version))
 
 
@@ -63,7 +56,7 @@ def post_decision(request_id: uuid.UUID, result_version: int, body: DecisionBody
                   auth: AuthContext = Depends(current_auth), household_id=Depends(current_household_id),
                   db: Session = Depends(get_db)):
     """接受缺價例外／缺必要營養繼續查看。不放寬禁忌、指定菜、±10% 或昨日去重；採用資格仍由後端判定。"""
-    request = _request(db, household_id, request_id, lock=True)
+    request = get_owned_request(db, household_id, request_id, lock=True)
     result = _result(db, request, result_version)
     decision, created = service.decide(db, household_id=household_id, request=request, result=result,
                                        kind=body.kind, request_version=body.request_version,
@@ -79,7 +72,7 @@ def post_price_retry(request_id: uuid.UUID, result_version: int, body: RetryBody
                      auth: AuthContext = Depends(current_auth), household_id=Depends(current_household_id),
                      db: Session = Depends(get_db)):
     """缺價重試：重讀最新價格快照，產生新結果版本（菜單與營養不變）。"""
-    request = _request(db, household_id, request_id, lock=True)
+    request = get_owned_request(db, household_id, request_id, lock=True)
     result = _result(db, request, result_version)
     decision, created = service.retry_prices(db, household_id=household_id, request=request, result=result,
                                              request_version=body.request_version,

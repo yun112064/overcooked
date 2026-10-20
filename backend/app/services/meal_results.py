@@ -8,7 +8,6 @@
 採用交易與歷史在 T16，T16 必須以 meal_validation.evaluate 重新判定，不能信任前端或本模組的快取。
 """
 import copy
-import hashlib
 from datetime import datetime, timezone
 from decimal import Decimal
 
@@ -16,10 +15,10 @@ from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from app.api.errors import ApiError, version_conflict
+from app.api.errors import ApiError, idempotency_conflict, version_conflict
 from app.db.models import GenerationResult, MealRequest, MealResultDecision
 from app.meal_calc.types import IngredientRequirement
-from app.services import meal_history, meal_validation
+from app.services import idempotency, meal_history, meal_validation
 from app.services import meal_request as meal_request_service
 from app.services.generation import _jsonable, cost_snapshot
 from app.services.meal_cost import meal_cost_from_db
@@ -34,8 +33,11 @@ FALLBACK_MESSAGES = {
 }
 
 
+CONFLICT_MESSAGE = "這個送出識別碼已用於不同的決定，請重新操作。"
+
+
 def _hash(kind: str, result: GenerationResult, request_version: int) -> str:
-    return hashlib.sha256(f"{kind}:{result.id}:{request_version}".encode()).hexdigest()
+    return idempotency.request_hash(kind, result.id, request_version)
 
 
 def decisions_for(db: Session, result: GenerationResult) -> list[MealResultDecision]:
@@ -167,11 +169,7 @@ def _refresh_status(db: Session, request: MealRequest, result: GenerationResult)
 
 
 def _existing(db: Session, household_id, key: str, digest: str) -> MealResultDecision | None:
-    row = db.scalar(select(MealResultDecision).where(MealResultDecision.household_id == household_id,
-                                                     MealResultDecision.idempotency_key == key))
-    if row is not None and row.request_hash != digest:
-        raise ApiError(409, "IDEMPOTENCY_CONFLICT", "這個送出識別碼已用於不同的決定，請重新操作。")
-    return row
+    return idempotency.find_by_key(db, MealResultDecision, household_id, key, digest, message=CONFLICT_MESSAGE)
 
 
 def _check_versions(request: MealRequest, result: GenerationResult, request_version: int) -> None:
@@ -199,7 +197,7 @@ def _insert(db: Session, row: MealResultDecision, household_id, key: str) -> tup
                 MealResultDecision.generation_result_id == row.generation_result_id,
                 MealResultDecision.kind == row.kind))
         if raced is None or (raced.idempotency_key == key and raced.request_hash != row.request_hash):
-            raise ApiError(409, "IDEMPOTENCY_CONFLICT", "這個送出識別碼已用於不同的決定，請重新操作。") from None
+            raise idempotency_conflict(CONFLICT_MESSAGE) from None
         return raced, False
     return row, True
 

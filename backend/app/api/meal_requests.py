@@ -7,7 +7,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.api.deps import AuthContext, current_auth, current_household_id, verify_origin
-from app.api.errors import ApiError, not_found, version_conflict
+from app.api.errors import ApiError, already_adopted, not_found, version_conflict
 from app.db.models import MealRequest, MealRequestRevision, Member
 from app.db.session import get_db
 from app.services import ingredients
@@ -45,7 +45,8 @@ def _out(db: Session, row: MealRequest) -> dict:
     }
 
 
-def _get_owned(db: Session, household_id, request_id: uuid.UUID, *, lock: bool = False) -> MealRequest:
+def get_owned_request(db: Session, household_id, request_id: uuid.UUID, *, lock: bool = False) -> MealRequest:
+    """本家庭的問卷（他家庭一律 404）；lock 時 SELECT ... FOR UPDATE。結果與決定 API 共用。"""
     query = select(MealRequest).where(MealRequest.id == request_id)
     if lock:
         query = query.with_for_update()
@@ -94,18 +95,18 @@ def create_request(draft: service.MealRequestDraft, auth: AuthContext = Depends(
 @router.get("/{request_id}")
 def get_request(request_id: uuid.UUID, household_id=Depends(current_household_id),
                 db: Session = Depends(get_db)):
-    return _out(db, _get_owned(db, household_id, request_id))
+    return _out(db, get_owned_request(db, household_id, request_id))
 
 
 @router.put("/{request_id}")
 def update_request(request_id: uuid.UUID, body: DraftUpdate, auth: AuthContext = Depends(current_auth),
                    household_id=Depends(current_household_id), db: Session = Depends(get_db)):
-    row = _get_owned(db, household_id, request_id, lock=True)
+    row = get_owned_request(db, household_id, request_id, lock=True)
     if row.status in ("queued", "running"):
         raise ApiError(409, "VERSION_CONFLICT", "此問卷正在生成中，請等待結果後再修改。",
                        {"reason": "GENERATION_IN_PROGRESS"})
     if row.status == "confirmed":
-        raise job_service.already_adopted()
+        raise already_adopted()
     if row.version != body.version:
         raise version_conflict()
     _reject_bad_references(db, household_id, body.draft)
@@ -125,7 +126,7 @@ def update_request(request_id: uuid.UUID, body: DraftUpdate, auth: AuthContext =
 @router.get("/{request_id}/versions/{version}")
 def get_revision(request_id: uuid.UUID, version: int, household_id=Depends(current_household_id),
                  db: Session = Depends(get_db)):
-    _get_owned(db, household_id, request_id)
+    get_owned_request(db, household_id, request_id)
     revision = db.get(MealRequestRevision, (request_id, version))
     if revision is None:
         raise not_found("找不到此版本。")
@@ -136,7 +137,7 @@ def get_revision(request_id: uuid.UUID, version: int, household_id=Depends(curre
 @router.delete("/{request_id}", status_code=204)
 def delete_request(request_id: uuid.UUID, household_id=Depends(current_household_id),
                    db: Session = Depends(get_db)):
-    row = _get_owned(db, household_id, request_id)
+    row = get_owned_request(db, household_id, request_id)
     if row.status in ("queued", "running"):
         raise ApiError(409, "VERSION_CONFLICT", "此問卷正在生成中，不能刪除。",
                        {"reason": "GENERATION_IN_PROGRESS"})
@@ -154,7 +155,7 @@ def submit_request(request_id: uuid.UUID, body: SubmitBody,
                    idempotency_key: str = Header(min_length=8, max_length=100),
                    household_id=Depends(current_household_id), db: Session = Depends(get_db)):
     """送出生成：相同 Idempotency-Key 與相同問卷版本回傳同一工作，不重複建立或扣額度。"""
-    row = _get_owned(db, household_id, request_id, lock=True)
+    row = get_owned_request(db, household_id, request_id, lock=True)
     complete = not service.completeness(service.load(row.payload), _members(db, household_id))
     job, created = job_service.submit_generation(
         db, household_id=household_id, meal_request=row, version=body.version,
