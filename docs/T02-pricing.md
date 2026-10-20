@@ -160,6 +160,28 @@ docker compose logs -f scheduler
 
 目前未執行完整 434 種的每日 production run，也沒有接入萬家福。下方三筆真實小量驗證只證明公開全聯頁面在驗證時間可取得候選，不代表每日雲端更新已成功上線。
 
+## 本機開發環境（start-dev，決策 #23）
+
+`scripts/start-dev.ps1` 會一併啟動：
+
+- `[scheduler]`：唯一的排程程序 `python -m app.jobs.scheduler`（每日 03:00 查價、工作回收、日誌清理）。
+- `[prices]`：啟動時以今天的排程 run key `pxmart-daily-<yyyy-MM-dd>` 執行 `--run-once`。今天已完成就立即略過；
+  中斷過（`running`／`partial`／`failed`）會從已完成的食材續跑；與 03:00 排程共用同一個 key，不會重複查價。
+
+不需要查價時在 `.env.dev` 設 `DEV_SKIP_PRICES=1`（排程仍啟動，但 `PRICE_SCHEDULER_ENABLED=false`）。
+
+一次性指令用 `scripts/dev-run.ps1`（與 start-dev 相同的 `DATABASE_URL` 等環境變數，用 `.venv` 的 python）：
+
+```powershell
+# 立即為全部食譜食材查價一次（寫入 price_collection_runs／price_quote_snapshots）
+.\scripts\dev-run.ps1 -m app.pricing_scheduler --run-once
+# 看進度／結果
+.\scripts\dev-run.ps1 -m app.pricing_scheduler --show-runs 3
+```
+
+**需要多久**：工作簿 423 種標準名稱（扣除 2 種不計價）＝ 421 次查詢，每種之間限速 1.5 秒（`PRICE_COLLECTION_DELAY_SECONDS`），
+實測每種約 1.7 秒（10 種 17 秒），完整一輪約 **12 分鐘**；來源變慢時每次請求最多 15 秒逾時＋重試 1 次，最壞會更久。
+不要為了加快而調低限速。中途關掉沒關係，下次同一個 run key 會續跑。
 ## 測試與 G02 狀態
 
 固定 fixtures 覆蓋 Excel 欄位/去重、Decimal 價格、缺價、缺貨、包裝缺值、加工狀態不匹配、有限逾時重試、來源欄位變動、過期/未知有效期，以及缺值不得為 0。
