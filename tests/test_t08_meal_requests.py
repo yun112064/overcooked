@@ -60,6 +60,35 @@ class T08ApiTests(unittest.TestCase):
         self.assertTrue({"meal_date", "budget", "staple", "dish_count", "participants"} <= missing)
         self.assertEqual(created["draft"]["meal_type"], "lunch")
 
+    def test_staple_options_come_from_backend_config_including_no_staple(self):
+        """決策 #52：主食只能從清單選，清單由後端設定檔提供；沒有營養資料的選項不列入。"""
+        from unittest.mock import patch
+        from app.services import staples
+        config = {**staples.table(), "none_values": ["不需要主食", "無"], "options": {
+            "白飯": staples.table()["options"]["白飯"],
+            "小米飯": {"aliases": [], "food_id": "FOOD999998", "tfda_name": None}}}
+        with patch("app.services.staples.table", lambda: config):
+            res = self.client.get("/meal-requests/staple-options")
+        self.assertEqual(res.status_code, 200, res.text)
+        body = res.json()
+        self.assertEqual([o["label"] for o in body["options"]], ["白飯"])
+        self.assertEqual(body["options"][0]["aliases"], staples.table()["options"]["白飯"]["aliases"])
+        self.assertEqual(body["none_value"], "不需要主食")
+
+    def test_unsupported_staple_is_reported_and_blocks_submit_but_draft_is_kept(self):
+        created = self.create(full_draft([{"member_id": self.a["id"]}], staple="披薩"))
+        issues = {i["field"]: i for i in created["issues"]}
+        self.assertEqual(issues["staple"]["reason"], "STAPLE_NOT_SUPPORTED")
+        self.assertIn("披薩", issues["staple"]["message"])
+        self.assertFalse(created["complete"])
+        self.assertEqual(created["draft"]["staple"], "披薩")
+        res = self.client.post(f"/meal-requests/{created['id']}/submit", json={"version": 1},
+                               headers={"Idempotency-Key": "key-00000001"})
+        self.assertNotEqual(res.status_code, 202, res.text)
+        for ok in ("白飯", "米飯", "不需要主食"):
+            draft = self.create(full_draft([{"member_id": self.a["id"]}], staple=ok))
+            self.assertNotIn("staple", {i["field"] for i in draft["issues"]}, ok)
+
     def test_update_keeps_versions_and_rejects_stale_edit(self):
         created = self.create({"meal_type": "lunch"})
         draft = full_draft([{"member_id": self.a["id"]}])

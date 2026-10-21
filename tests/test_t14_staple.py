@@ -65,11 +65,18 @@ class StapleTests(GenerationTestCase):
 
     def test_staple_without_nutrition_data_is_reported_before_generation(self):
         """決策 #47：主食本身無法計算營養時，生成前就明確告知（不出營養未知的菜單、不轉 AI），問卷保留。"""
+        # 送出時主食在清單內（問卷驗證通過）；生成時設定檔已無營養資料（例如被撤下）→ 生成前回報
+        rice = {**staples.table()["options"]["白飯"], "aliases": []}
+        supported = {**staples.table(), "options": {"糙米飯": rice}}
         no_data = {**staples.table(), "options": {"糙米飯": {
             "aliases": [], "food_id": "FOOD001487", "tfda_name": None, "unresolved_reason": "no_tfda_cooked_sample"}}}
         responder = FakeResponder()
+        with patch("app.services.staples.table", lambda: supported):
+            self.create_request(staple="糙米飯", dish_count=2)
+            job_id = self.submit()
         with patch("app.services.staples.table", lambda: no_data):
-            job = self.generate(staple="糙米飯", responder=responder)
+            self.run_job(responder)
+        job = self.job(job_id)
         self.assertEqual((job["status"], job["error"]["code"]), ("failed", "STAPLE_NUTRITION_UNAVAILABLE"), job)
         self.assertIn("糙米飯", job["error"]["message"])
         self.assertIn("問卷已保留", job["error"]["message"])
