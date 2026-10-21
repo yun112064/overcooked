@@ -51,7 +51,7 @@ from app.services.recipe_import import normalize_name, standard_dish_id
 RESULT_SCHEMA_VERSION = "generation_result/v1"
 MENU_PROMPT_VERSION = "t14-menu-prompt-v1"
 MENU_SCHEMA_VERSION = "t14-menu-schema-v1"
-EXPLAIN_PROMPT_VERSION = "t14-explain-prompt-v2"  # v2：只寫營養效益、只用 nutrition_fact／evidence_quote（決策 #29）
+EXPLAIN_PROMPT_VERSION = "t14-explain-prompt-v3"  # v3：理解語意後用自己的話闡述，不照抄原文（決策 #29、#31）
 EXPLAIN_SCHEMA_VERSION = "t14-explain-schema-v1"
 DATABASE_MENU, AI_MENU = "database_menu", "ai_generated_menu"
 MODE_LABELS = {DATABASE_MENU: "資料庫菜單", AI_MENU: "AI 生成菜單"}
@@ -305,8 +305,10 @@ EXPLAIN_INSTRUCTIONS = (
     "色彩、擺盤或來源（畫面會另外加上食材名稱與出處）。\n"
     "2. 只能使用 nutrition_fact／evidence_quote 中出現的營養素與效益用詞，不得加入其他功效、數值或建議，"
     "不得建議更換菜色、食材或份量。\n"
-    "3. 每段說明必須引用至少一筆知識（knowledge_id、source_version、ingredient_id 照抄），且只能引用該食材的知識。\n"
-    "4. 沒有營養知識的食材不要寫。只回傳符合 schema 的 JSON。"
+    "3. 先理解知識的語意，再用自己的話以一般家庭讀者看得懂的方式闡述（例如「富含膳食纖維，能促進腸道蠕動、"
+    "幫助消化」）；不要照抄 evidence_quote 或原文句子。\n"
+    "4. 每段說明必須引用至少一筆知識（knowledge_id、source_version、ingredient_id 照抄），且只能引用該食材的知識。\n"
+    "5. 沒有營養知識的食材不要寫。只回傳符合 schema 的 JSON。"
 )
 
 
