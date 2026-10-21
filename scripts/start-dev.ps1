@@ -159,6 +159,14 @@ if ("$count".Trim() -eq '0') {
     }
 }
 
+# 資料種子（data/seed）：推估表為空時只提示，不自動匯入、不呼叫任何付費 API
+$estimates = docker exec $Db psql -U postgres -d $DbName -tAc 'SELECT count(*) FROM conversion_factor_estimates'
+if ("$estimates".Trim() -eq '0' -and (Test-Path (Join-Path $Root 'data\seed\manifest.json'))) {
+    Write-Host '    推估表是空的：可匯入 repo 內的資料種子（推估、營養知識、價格快照，免費、冪等）：' -ForegroundColor Yellow
+    Write-Host '      .\scripts\dev-run.ps1 -m app.jobs.import_seed_data' -ForegroundColor Yellow
+    Write-Host '    詳見 README「首次啟動匯入資料種子」。' -ForegroundColor Yellow
+}
+
 # ---------- 6b. 知識資料庫（決策 #23：同一個 dev 容器內的 <DEV_DB_NAME>_knowledge） ----------
 if (-not $DevEnv.SkipKnowledge) {
     $KnDb = $DevEnv.KnowledgeDbName

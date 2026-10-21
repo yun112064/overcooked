@@ -45,6 +45,32 @@ python -m nutrition_target --rules nutrition_target/rules/hpa-dri8-mvp-0.3.0.jso
 
 `.env.dev` 裡的其他設定（例如之後的 API key）會原樣傳給後端與 worker。只有新增獨立程序（例如 T11 的知識 RAG 服務）時，才需要在腳本加一個 `Start-Service-Window`。
 
+## 首次啟動匯入資料種子
+
+`data/seed/` 是從開發資料庫匯出、已整理好的資料（不含任何家庭、成員、需求、生成結果、採用紀錄、工作佇列、額度或帳號資料）：
+
+| 檔案 | 內容 |
+|---|---|
+| `conversion_factor_estimates.json` | 烹調產率／保留率、單位克數、TFDA 樣本對照（含人工對照）、TFDA 空白營養推估；保留 status／source／reviewer 等審核欄位 |
+| `knowledge_records.json`、`knowledge_source_articles.json` | 健康醫療網營養知識（現行版本、已核准、分類為營養知識）與對應文章中繼資料；不含向量 |
+| `price_collection_runs.json`、`price_quote_snapshots.json` | 全聯、萬家福價格快照 |
+| `manifest.json` | 匯出時間、筆數、sha256、alembic 版本、來源與授權註記 |
+
+授權：健康醫療網內容為電話口頭授權、顯示時必須帶出處（決策 #25）；萬家福條款風險由使用者承擔（決策 #26）。repo 僅供團隊使用，不對外散布。
+
+clone 後第一次執行 `start-dev.cmd`（建立資料庫、套用 migration、建立知識庫）之後，在 repo 根目錄的 PowerShell：
+
+```powershell
+.\scripts\dev-run.ps1 -m app.jobs.import_seed_data --dry-run   # 先試算會新增幾筆（不寫入）
+.\scripts\dev-run.ps1 -m app.jobs.import_seed_data             # 匯入業務庫與知識庫（免費、冪等，重跑不會重複）
+.\scripts\dev-run.ps1 -m knowledge_rag.admin index build --version seed-<日期>   # 需後端執行中；經雲端額度付費向量化（約 200 筆）
+```
+
+- 冪等：推估以 id、價格批次以 run_key、快照以 run_key＋食材名、知識以 (knowledge_id, 版本) 去重；本機已有的列不覆寫。`--only app|knowledge` 可只匯入其中一個資料庫。
+- 匯入前檢查 sha256 與 alembic 版本：資料庫比種子舊時會要求先 `alembic upgrade head`（`start-dev` 會自動執行）。
+- 維護者更新種子（唯讀讀取開發資料庫）：`.\scripts\dev-run.ps1 scripts\export_seed_data.py`，確認筆數後 commit `data/seed/`。
+- `start-dev` 偵測到推估表為空時會提示上述指令，但不會自動匯入或呼叫付費 API。
+
 ## 系統啟動（T06–T10）
 
 `docker compose up -d --build` 會啟動資料庫、後端 API（啟動時自動執行 Alembic 遷移）、生成工作程序 `worker`、單一排程程序 `scheduler` 與前端。先依 `.env.example` 建立 `.env`，至少設定 `POSTGRES_PASSWORD`。
