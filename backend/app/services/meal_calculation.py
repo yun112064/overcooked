@@ -222,7 +222,20 @@ def calculate_meal(lines: list[IngredientLine], targets: MealTargets, *, mode: s
             mapped.append(row["food_id"])
     # decisions #28：哪些食材的 TFDA 樣本來自 LLM 對照推薦（畫面標示「LLM 對照」）
     result["llm_mappings"] = {"used": bool(mapped), "food_ids": mapped}
+    result["approximations"] = _approximation_summary(result["ingredients"])
     return result
+
+
+def _approximation_summary(rows: list[dict]) -> dict:
+    """decisions #40：哪些食材、哪些非必要營養素以「TFDA 生組成、保留率視為 1」近似。"""
+    food_ids, nutrients = [], []
+    for row in rows:
+        keys = row.get("approximate_nutrients") or []
+        if keys and row["food_id"] not in food_ids:
+            food_ids.append(row["food_id"])
+        nutrients += [k for k in keys if k not in nutrients]
+    return {"used": bool(food_ids), "food_ids": food_ids, "nutrients": nutrients,
+            "basis": YIELD_ONLY_RETENTION_1 if food_ids else None}
 
 
 def _llm_summary(rows: list[dict]) -> dict:
@@ -448,6 +461,9 @@ def _row(ln: IngredientLine, grams, whole, nutrition: IngredientNutrition | None
         "llm_mapped": bool(mapping.get("llm_mapped")),
         "estimates": markers, "llm_estimated": any(m["llm_estimated"] for m in markers),
         "estimated_nutrients": affected if any(m["llm_estimated"] for m in markers) else [],
+        # decisions #40：保留率視為 1 的近似值（畫面標示「近似」）
+        "approximate_nutrients": [k for k in ((nutrition.trace or {}).get("approximate_nutrients") or [])
+                                  if nutrition.nutrients.get(k) is not None] if nutrition else [],
         "food_id": ln.food_id, "name": ln.name, "dish_id": ln.dish_id, "role": ln.role,
         # calculator 實際採用的生熟依據（decisions #35 可能把工作簿慣例的生重改為熟重）
         "weight_basis": ((nutrition.trace or {}).get("weight_basis") if nutrition else None) or ln.weight_basis,
@@ -643,6 +659,9 @@ def _method_key(ln: IngredientLine) -> str | None:
 
 CookingFactorLookup = Callable[[str, str], "EstimatedFactor | None"]
 
+# decisions #40：非必要營養素烹調後的近似依據（TFDA 生組成 × 生重，保留率視為 1；產率只換算熟重）
+YIELD_ONLY_RETENTION_1 = "yield_only_retention_1"
+
 
 def _raw_composition(service, name: str):
     """套保留率用的生樣品：TFDA 狀態不是 cooked 者（raw 或 unspecified，如大蒜 E2100101「乾貨」）。
@@ -659,7 +678,8 @@ def _apply_cooking_factor(service, ln: IngredientLine, grams: Decimal, factor, n
     """T04 main 設計：係數（產率／保留率）來自快取，營養由此處以 Decimal 計算。
 
     - TFDA 有熟樣品但缺產率 → 熟樣品每 100 g × 生重 × 推估產率；
-    - 只有生樣品 → 生樣品每 100 g × 生重 × 該營養的推估保留率（不含另列的油、鹽、醬）。
+    - 只有生樣品 → 生樣品每 100 g × 生重 × 該營養的推估保留率（不含另列的油、鹽、醬）；
+    - 非必要營養素沒有保留率但有產率 → 生樣品每 100 g × 生重（保留率視為 1，decisions #40），標示近似。
     已由 TFDA／USDA 實測算出的營養不覆蓋（實測優先）；沒有推估值的營養維持 None。
     """
     name = tfda_name or ln.name
@@ -667,7 +687,7 @@ def _apply_cooking_factor(service, ln: IngredientLine, grams: Decimal, factor, n
     # 熟樣品只對應單一烹調方式；多種方式組合只能套保留率
     cooked = service.find_cooked_ingredient(name, ln.cooking_method) if ln.cooking_method else None
     retention = factor.retention or {}
-    used = []
+    used, approximate = [], []
     for key in service.NUTRIENTS:
         if nutrients.get(key) is not None:
             continue
@@ -679,8 +699,18 @@ def _apply_cooking_factor(service, ln: IngredientLine, grams: Decimal, factor, n
         elif service.finite_number(raw_value) and retention.get(key) is not None:
             nutrients[key] = Decimal(str(raw_value)) * grams / REFERENCE_GRAMS * retention[key]
             used.append(key)
+        elif (key not in REQUIRED_NUTRIENTS and service.finite_number(raw_value)
+              and factor.yield_factor is not None):
+            approximate.append((key, raw_value))
     if not used:
         return
+    # decisions #40：非必要營養素沒有保留率時，以 TFDA 生組成、保留率視為 1 近似（產率只換算熟重）；
+    # 不算 LLM 推估的營養，另列 approximate_nutrients 供畫面標示「近似」。TFDA 生組成空白者仍為 None。
+    for key, raw_value in approximate:
+        nutrients[key] = Decimal(str(raw_value)) * grams / REFERENCE_GRAMS
+    if approximate:
+        trace["approximate_nutrients"] = [k for k, _ in approximate]
+        trace["nutrient_basis"] = {k: YIELD_ONLY_RETENTION_1 for k, _ in approximate}
     basis = "human" if factor.source == "human" else "llm_estimated"
     trace["estimated_factors"].append(factor.marker())
     trace["estimated_nutrients"] = used
@@ -784,7 +814,7 @@ def _tfda_calculate(rows, cooking_factors, tfda_resolver=None, nutrient_fills=No
             "yield_basis": row.get("yield_basis"), "raw_weight_g": _scaled(row.get("raw_weight_g"), grams),
             "cooked_weight_g": _scaled(row.get("cooked_weight_g"), grams),
             "is_estimated": bool(row.get("is_estimated")), "missing_reason": row.get("missing_reason"),
-            "estimated_factors": [], "estimated_nutrients": [],
+            "estimated_factors": [], "estimated_nutrients": [], "approximate_nutrients": [],
             "tfda_mapping": res.trace() if res else None,
         }
         method_key = _method_key(ln)  # 熟食熟重（#35）時 basis 為 cooked，不套烹調係數

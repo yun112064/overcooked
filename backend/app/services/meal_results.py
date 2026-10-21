@@ -77,11 +77,21 @@ def _ingredient(r: dict) -> dict:
             # decisions #28：TFDA 樣本對照來源；LLM 推薦的對照標示「LLM 對照」
             "tfda_mapping_source": r.get("tfda_mapping_source"), "tfda_sample_id": r.get("tfda_sample_id"),
             "llm_mapped": bool(r.get("llm_mapped")),
-            "mapping_label": LLM_MAPPING_LABEL if r.get("llm_mapped") else None}
+            "mapping_label": LLM_MAPPING_LABEL if r.get("llm_mapped") else None,
+            # decisions #40：保留率視為 1 的非必要營養素（畫面標示「近似」）
+            "approximate_nutrients": r.get("approximate_nutrients") or []}
 
 
 LLM_ESTIMATE_LABEL = "LLM 推估"
 LLM_MAPPING_LABEL = "LLM 對照"
+APPROXIMATION_LABEL = "近似"
+
+
+def _approximations(calc: dict) -> dict:
+    summary = calc.get("approximations") or {}
+    used = bool(summary.get("used"))
+    return {"used": used, "food_ids": summary.get("food_ids") or [], "nutrients": summary.get("nutrients") or [],
+            "basis": summary.get("basis"), "label": APPROXIMATION_LABEL if used else None}
 
 
 def _llm_mappings(calc: dict) -> dict:
@@ -137,7 +147,8 @@ def _nutrition(payload: dict) -> dict:
             "quantities_verified": calc.get("quantities_verified", calc.get("adoptable", False)),
             "suggestions": calc.get("suggestions") or [],
             "unresolved_ingredients": calc.get("unresolved_ingredients") or [],
-            "llm_estimates": _llm_estimates(calc), "llm_mappings": _llm_mappings(calc)}
+            "llm_estimates": _llm_estimates(calc), "llm_mappings": _llm_mappings(calc),
+            "approximations": _approximations(calc)}
 
 
 QUOTE_FIELDS = ("retailer", "source", "source_url", "product_name", "product_url", "price", "package_quantity",

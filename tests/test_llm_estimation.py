@@ -54,7 +54,9 @@ class CachedCookingFactorTests(unittest.TestCase):
         self.assertIsNone(chicken.error)
         self.assertEqual(chicken.nutrients["energy_kcal"], D("166.725"))   # 117 × 1.5 × 0.95
         self.assertEqual(chicken.nutrients["protein_g"], D("31.455"))      # 23.3 × 1.5 × 0.9
-        self.assertIsNone(chicken.nutrients["fat_g"])                      # 沒有推估保留率：仍未知、不填 0
+        # 非必要營養素沒有推估保留率：decisions #40 以生組成、保留率 1 近似；TFDA 空白者仍未知、不填 0
+        self.assertEqual(chicken.nutrients["fat_g"], D("2.85"))
+        self.assertIsNone(chicken.nutrients["dietary_fiber_g"])
         self.assertTrue(chicken.trace["is_estimated"])
         self.assertEqual(chicken.trace["sample_id"], "I0402402")
         [marker] = chicken.trace["estimated_factors"]

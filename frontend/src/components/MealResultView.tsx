@@ -27,6 +27,11 @@ const estimateTag = (i: ResultIngredient) =>
   + (i.llm_mapped ? `（${i.mapping_label ?? 'LLM 對照'}）` : '')
 const NUTRIENT_LABELS: Record<string, string> = { energy_kcal: '熱量', protein_g: '蛋白質' }
 const NUTRIENT_UNITS: Record<string, string> = { energy_kcal: 'kcal', protein_g: 'g' }
+/** 非必要營養素：僅顯示、不擋採用；未知顯示「未知」（不以 0 代替） */
+const OTHER_NUTRIENTS: [string, string, string][] = [
+  ['carbohydrate_g', '碳水化合物', 'g'], ['fat_g', '脂肪', 'g'], ['sugars_g', '糖', 'g'],
+  ['sodium_mg', '鈉', 'mg'], ['dietary_fiber_g', '膳食纖維', 'g'],
+]
 const ACTIVE = new Set(['queued', 'running'])
 
 const DECISION_LABELS: Record<DecisionKind, string> = {
@@ -124,6 +129,9 @@ export default function MealResultView({ requestId, mealDate, onChanged }: Props
   const knowledgeRetrying = !!knowledgeRetry && ACTIVE.has(knowledgeRetry.status)
   const dayConflict = r.previous_day_check?.status === 'conflict'
   const suggestions: NutritionSuggestion[] = r.nutrition.suggestions ?? []
+  // decisions #40：烹調後以生組成、保留率 1 近似的非必要營養素
+  const approximate = new Set(r.nutrition.approximations?.used ? r.nutrition.approximations.nutrients : [])
+  const approxLabel = r.nutrition.approximations?.label ?? '近似'
 
   return (
     <Stack spacing={2}>
@@ -284,8 +292,28 @@ export default function MealResultView({ requestId, mealDate, onChanged }: Props
             <TableCell>蛋白質</TableCell><TableCell>{amount(r.nutrition.target?.protein_g, 'g')}</TableCell>
             <TableCell>{amount(r.nutrition.protein_g, 'g')}</TableCell><TableCell>{amount(r.nutrition.gap.protein_g, 'g')}</TableCell>
           </TableRow>
+          {OTHER_NUTRIENTS.map(([key, label, unit]) => {
+            const value = r.nutrition.other_nutrients?.[key]
+            const approx = value != null && approximate.has(key)
+            return (
+              <TableRow key={key}>
+                <TableCell>{label}</TableCell><TableCell>—</TableCell>
+                <TableCell>
+                  {amount(value, unit)}
+                  {approx && <Chip size="small" variant="outlined" label={approxLabel} sx={{ ml: 1 }} />}
+                </TableCell>
+                <TableCell>—</TableCell>
+              </TableRow>
+            )
+          })}
         </TableBody>
       </Table>
+      {approximate.size > 0 && (
+        <Typography variant="caption" color="text.secondary">
+          標示「{approxLabel}」的營養素：烹調後沒有保留率資料，以 TFDA 生食材組成計算（保留率視為 1，產率只用於換算熟重），
+          實際含量可能較低。熱量與蛋白質仍依烹調保留率計算。
+        </Typography>
+      )}
 
       <Divider />
       <Typography variant="subtitle1">需補買食材</Typography>
