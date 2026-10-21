@@ -367,6 +367,36 @@ class CompletenessTests(unittest.TestCase):
         self.assertTrue(again["adoptable"], again["block_reasons"])
         self.assertEqual(again["baseline"]["energy_kcal"], D("604"))
 
+    def test_unresolved_weight_still_reports_the_known_part_and_who_is_missing(self):
+        # decisions #53：糙米飯類主食克數未解析時，不再整個清空——已知食材照加總，缺值食材列名，合計仍為 None
+        lines = BASE_LINES + [line("糙米飯", None, unresolved_reason="staple_not_supported", role="staple")]
+        result = mc.calculate_meal(lines, single("1.3"), mode="database", calculator=FakeCalculator())
+        self.assertFalse(result["adoptable"])
+        final = result["final"]
+        self.assertIsNone(final["energy_kcal"])
+        self.assertEqual(final["known_partial"]["energy_kcal"], D("780"))   # (150+450)×1.3
+        self.assertEqual(final["known_partial"]["protein_g"], D("39"))
+        self.assertEqual(final["missing_by_nutrient"]["energy_kcal"], ["糙米飯"])
+        self.assertEqual(final["missing_by_nutrient"]["fat_g"], ["白飯", "糙米飯"])
+        self.assertIsNone(final["other_nutrients"]["fat_g"])
+        self.assertEqual(final["known_partial"]["fat_g"], D("3.9"))         # 雞胸肉 150 g × 2/100 × 1.3
+        self.assertEqual(result["baseline"]["known_partial"]["energy_kcal"], D("600"))
+        self.assertEqual(result["baseline"]["missing_by_nutrient"]["protein_g"], ["糙米飯"])
+        self.assertEqual(result["ingredients"][0]["nutrients"]["energy_kcal"], D("195"))
+
+    def test_missing_nutrient_lists_each_food_once_and_never_fills_zero(self):
+        lines = BASE_LINES + [line("沙拉油", "0.5", dish_id="d1"), line("沙拉油", "1", dish_id="d2")]
+        result = mc.calculate_meal(lines, single("1"), mode="ai", calculator=FakeCalculator())
+        final = result["final"]
+        self.assertIsNone(final["energy_kcal"])
+        self.assertEqual(final["known_partial"]["energy_kcal"], D("600"))
+        self.assertEqual(final["missing_by_nutrient"]["energy_kcal"], ["沙拉油"])
+
+    def test_complete_meal_known_partial_equals_the_total(self):
+        result = mc.calculate_meal(BASE_LINES, single("1"), mode="ai", calculator=FakeCalculator())
+        self.assertEqual(result["final"]["known_partial"]["energy_kcal"], result["final"]["energy_kcal"])
+        self.assertEqual(result["final"]["missing_by_nutrient"], {"fat_g": ["白飯"]})
+
     def test_missing_display_only_nutrient_is_shown_as_none_and_does_not_block(self):
         result = mc.calculate_meal(BASE_LINES, single("1"), mode="ai", calculator=FakeCalculator())
         self.assertTrue(result["adoptable"])

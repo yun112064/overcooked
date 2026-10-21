@@ -143,20 +143,40 @@ def _dec(value: Fraction) -> Decimal:
 
 
 def _evaluate(lines, grams, calculator):
-    """以指定克數重新計算；回傳 (每項結果, 各營養合計 Fraction 或 None, 缺值食材清單)。"""
-    rows = calculator([(ln, g) for ln, g in zip(lines, grams)])
+    """以指定克數重新計算；回傳 (每項結果, 各營養合計 Fraction 或 None, 缺值食材清單, 已知部分合計)。
+
+    克數未知（None）的食材不送 calculator，結果列為 None，並列入每一項營養的缺值清單（decisions #53）。
+    已知部分合計只加總有值的食材（沒有任何已知值時為 None）；任一食材缺值時合計為 None，不以 0 代替。
+    """
+    known = [i for i, g in enumerate(grams) if g is not None]
+    computed = calculator([(lines[i], grams[i]) for i in known]) if known else []
+    rows = [None] * len(lines)
+    for i, row in zip(known, computed):
+        rows[i] = row
     keys = list(REQUIRED_NUTRIENTS)
-    for row in rows:
+    for row in computed:
         keys += [k for k in row.nutrients if k not in keys]
-    totals, missing = {}, {}
+    totals, missing, partial = {}, {}, {}
     for key in keys:
-        values = [row.nutrients.get(key) for row in rows]
+        values = [row.nutrients.get(key) if row is not None else None for row in rows]
+        present = [Fraction(v) for v in values if v is not None]
+        partial[key] = sum(present, Fraction()) if present else None
         absent = [ln.name for ln, v in zip(lines, values) if v is None]
         if absent:
             totals[key], missing[key] = None, absent
         else:
-            totals[key] = sum((Fraction(v) for v in values), Fraction())
-    return rows, totals, missing
+            totals[key] = partial[key]
+    return rows, totals, missing, partial
+
+
+def _dedupe(names: list[str]) -> list[str]:
+    return list(dict.fromkeys(names))
+
+
+def _partial_view(target: dict, partial: dict, missing: dict) -> None:
+    """decisions #53：已知部分合計（Decimal，缺任何已知值為 None）與缺值食材名稱（去重）。"""
+    target["known_partial"] = {k: (_dec(v) if v is not None else None) for k, v in partial.items()}
+    target["missing_by_nutrient"] = {k: _dedupe(names) for k, names in missing.items()}
 
 
 def _range_reasons(stage, totals, references):
@@ -272,10 +292,11 @@ def _calculate_meal(lines: list[IngredientLine], targets: MealTargets, *, mode: 
         "mode": mode, "adoptable": False, "block_reasons": [], "quantities_verified": False, "suggestions": [],
         "total_n": n,
         "baseline": {"reference": {k: _dec(v) for k, v in references.items()},
-                     "energy_kcal": None, "protein_g": None, "within_range": False, "adjusted": False},
+                     "energy_kcal": None, "protein_g": None, "within_range": False, "adjusted": False,
+                     "known_partial": {}, "missing_by_nutrient": {}},
         "final": {"target": {k: _dec(v) for k, v in final_targets.items()},
                   "energy_kcal": None, "protein_g": None, "gap": {}, "within_range": False,
-                  "other_nutrients": {}, "missing_nutrients": {}},
+                  "other_nutrients": {}, "missing_nutrients": {}, "known_partial": {}, "missing_by_nutrient": {}},
         "ingredients": [], "requirements": [], "unresolved_ingredients": [],
     }
     unresolved = [ln for ln in lines if ln.grams_per_n is None]
@@ -292,35 +313,37 @@ def _calculate_meal(lines: list[IngredientLine], targets: MealTargets, *, mode: 
             "code": "INGREDIENT_UNRESOLVED", "action": "補上克數換算後重新計算",  # 畫面文字（#42 不提 LLM）
             "ingredients": [{"food_id": ln.food_id, "name": ln.name, "unit": ln.unit,
                              "reason": ln.unresolved_reason or "weight_unresolved"} for ln in unresolved]})
-        grams = [ln.grams_per_n for ln in lines]
-        whole = [g * n if g is not None else None for g in grams]
-        result["ingredients"] = [_row(ln, grams[i], whole[i], None, n) for i, ln in enumerate(lines)]
-        result["requirements"] = _requirements(lines, whole)
-        return result
 
     grams = [ln.grams_per_n for ln in lines]
-    rows, totals, missing = _evaluate(lines, grams, calculator)
+    rows, totals, missing, partial = _evaluate(lines, grams, calculator)
+    _partial_view(result["baseline"], partial, missing)
     incomplete = [k for k in REQUIRED_NUTRIENTS if totals[k] is None]
-    if incomplete:
-        result["block_reasons"].append({"code": "NUTRITION_INCOMPLETE", "nutrients": incomplete,
-                                        "ingredients": {k: missing[k] for k in incomplete},
-                                        "errors": {ln.name: r.error for ln, r in zip(lines, rows) if r.error}})
-        names = {name for k in incomplete for name in missing[k]}
+    # 克數已解析、但營養缺值的食材（克數未解析者已由 INGREDIENT_UNRESOLVED 說明）
+    lacking = [(ln, r) for ln, r in zip(lines, rows)
+               if r is not None and any(r.nutrients.get(k) is None for k in REQUIRED_NUTRIENTS)]
+    if lacking:
+        nutrients = [k for k in incomplete if any(r.nutrients.get(k) is None for _, r in lacking)]
+        result["block_reasons"].append({"code": "NUTRITION_INCOMPLETE", "nutrients": nutrients,
+                                        "ingredients": {k: [ln.name for ln, r in lacking if r.nutrients.get(k) is None]
+                                                        for k in nutrients},
+                                        "errors": {ln.name: r.error for ln, r in lacking if r.error}})
         result["suggestions"].append({
-            "code": "NUTRITION_INCOMPLETE", "nutrients": incomplete,
+            "code": "NUTRITION_INCOMPLETE", "nutrients": nutrients,
             "action": "補齊這些食材的 TFDA 營養資料（或改用有樣品的食材）後重新計算",
-            "ingredients": [{"food_id": ln.food_id, "name": ln.name, "error": r.error}
-                            for ln, r in zip(lines, rows) if ln.name in names]})
+            "ingredients": [{"food_id": ln.food_id, "name": ln.name, "error": r.error} for ln, r in lacking]})
+    if unresolved or incomplete:
+        # decisions #53：不再整個清空——已知食材照算整餐用量與已知部分合計，缺值食材列名；合計仍為 None
         _unverified_final(result, lines, grams, n, calculator, final_targets)
         return result
 
     if mode == "database" and not all(_within(totals[k], references[k]) for k in REQUIRED_NUTRIENTS):
         aligned = _align(lines, grams, rows, references)
         if aligned is not None:
-            check_rows, check_totals, _ = _evaluate(lines, aligned, calculator)
+            check_rows, check_totals, check_missing, check_partial = _evaluate(lines, aligned, calculator)
             if all(check_totals[k] is not None and _within(check_totals[k], references[k])
                    for k in REQUIRED_NUTRIENTS):
                 grams, rows, totals = aligned, check_rows, check_totals
+                _partial_view(result["baseline"], check_partial, check_missing)
                 result["baseline"]["adjusted"] = True
     result["baseline"].update(energy_kcal=_dec(totals["energy_kcal"]), protein_g=_dec(totals["protein_g"]))
     baseline_reasons = _range_reasons("baseline", totals, references)
@@ -336,11 +359,12 @@ def _calculate_meal(lines: list[IngredientLine], targets: MealTargets, *, mode: 
     result["baseline"]["within_range"] = True
 
     whole = [g * n for g in grams]
-    final_rows, final_totals, final_missing = _evaluate(lines, whole, calculator)
+    final_rows, final_totals, final_missing, final_partial = _evaluate(lines, whole, calculator)
     result["ingredients"] = [_row(ln, grams[i], whole[i], final_rows[i], n) for i, ln in enumerate(lines)]
     result["requirements"] = _requirements(lines, whole)
     final = result["final"]
     final["missing_nutrients"] = final_missing
+    _partial_view(final, final_partial, final_missing)
     final["other_nutrients"] = {k: (_dec(v) if v is not None else None)
                                 for k, v in final_totals.items() if k not in REQUIRED_NUTRIENTS}
     final_incomplete = [k for k in REQUIRED_NUTRIENTS if final_totals[k] is None]
@@ -359,13 +383,15 @@ def _calculate_meal(lines: list[IngredientLine], targets: MealTargets, *, mode: 
 
 
 def _unverified_final(result, lines, grams, n, calculator, final_targets) -> None:
-    """不可採用但克數都已知：仍以整餐用量重新計算並列出（未驗證），供查看與成本計算。"""
-    whole = [g * n for g in grams]
-    rows, totals, missing = _evaluate(lines, whole, calculator)
+    """不可採用：仍以整餐用量重新計算並列出（未驗證），供查看與成本計算。克數未知的食材整餐量為 None，
+    列入缺值清單；已知部分合計只加總已知食材（decisions #53）。"""
+    whole = [g * n if g is not None else None for g in grams]
+    rows, totals, missing, partial = _evaluate(lines, whole, calculator)
     result["ingredients"] = [_row(ln, grams[i], whole[i], rows[i], n) for i, ln in enumerate(lines)]
     result["requirements"] = _requirements(lines, whole)
     final = result["final"]
     final["missing_nutrients"] = missing
+    _partial_view(final, partial, missing)
     final["other_nutrients"] = {k: (_dec(v) if v is not None else None)
                                 for k, v in totals.items() if k not in REQUIRED_NUTRIENTS}
     for k in REQUIRED_NUTRIENTS:
