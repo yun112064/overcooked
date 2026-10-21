@@ -296,3 +296,54 @@ python -m app.estimation override --kind tfda_mapping --food FOOD000691 --key tf
   T12 營養照配方計算。詳見 docs/T02-pricing.md「調味料不查價」。
 - 測試：`tests/test_recipe_step_groups.py`、`tests/test_t12_meal_calculation.py`（display_count）、`tests/test_t13_meal_cost.py`::SeasoningTests、
   `tests/test_t15_meal_results.py`（步驟展開、舊結果取整、調味料不列價格）。
+
+
+## 全面診斷後的計算核心修正（decisions #48–#56，2026-10-21）
+
+### #48 整道縮放
+- 計算列依 `dish_id` 分組（主食與沒有 dish_id 的列除外），每道菜一個整道倍率，預設 0.4–1.0、格點 0.05
+  （`config/portion_scaling.json`，待審核），食譜內配方比例不變；與主食克數（`config/staples.json` 可調範圍）一起對齊
+  熱量與蛋白質 ±10%。資料庫與 AI 模式都適用；舊的逐列 `adjustable_min／max` 只用於主食與沒有 dish_id 的列（資料庫模式）。
+- 搜尋：浮點格點篩選，格點總數超過 `max_grid_points` 先放粗逐列格點、再放粗倍率（端點與 1.0 保留），仍超過則所有菜共用
+  同一倍率；前 5 名以 calculator 精確（Fraction）複核。排序：最大相對偏差 → 總移動克數 → 菜色移動克數（同分先調主食）。
+- payload：`calculation.dish_scales`（dish_id → 倍率），每列 `dish_scale`、`recipe_grams_per_n`；`baseline_grams`、
+  `whole_meal_grams`、顯示數量都依倍率（#43 取整）。`NO_FEASIBLE_BASELINE` 附 `adjustable_dish_ids`，調整建議附 `dishes`。
+
+### #49 係數後備
+- (a) TFDA `state = unspecified` 且類別碼符合 `config/nutrition_as_is_categories.json`（P 調味料香料、N 糖、M 油脂、O／R99
+  飲料與酒、乾貨、粉類與乾麵，每條附理由）：不論有無烹調方式，一律以原樣組成 × 克數計算、不查係數；trace
+  `nutrition_basis = unspecified_as_is`、`as_is_rule`。
+- (b) 其他非熟樣本查不到烹調係數（組合鍵、AI 單一方式或沒有方式）：TFDA 生組成 × 生重近似全部營養（熱量、蛋白質也適用）；
+  trace `raw_composition_fallback = true`、`nutrition_basis = raw_composition_fallback`、`approximate_nutrients`。快取係數仍優先。
+  推估批次掃描缺口時關閉此近似（`make_tfda_calculator(raw_fallback=False)`），係數缺口照列。
+- (c) `cooking_method_key(methods) -> str | None`：單一字串（可含「、」「+」等分隔）或清單，同義寫法（清炒→炒、油炸→炸、
+  汆燙→燙…，`METHOD_SYNONYMS`）先轉工作簿用語，再與 `combined_method_key` 同規則正規化、去重、排序、以「+」連接。
+  `IngredientLine.cooking_methods` 只有一種方式時同樣以此查係數。
+- 熟重配生樣本（AI 宣告 cooked）不再靜默：error `cooked_weight_requires_cooked_sample`。
+
+### #51 市售熟品
+- `config/market_cooked_ingredients.json`（桂竹筍、鹹蛋黃、杏仁果，以 FOOD 編號或名稱比對，附理由）：對照到 TFDA 熟樣本時，
+  工作簿慣例與 AI 宣告（MODEL_DECLARED）的克數都視為熟重、不套烹調（`weight_basis_source = market_cooked_cooked_sample`）。
+  #35 熟食名稱規則也擴充到 MODEL_DECLARED。
+- 白米 FOOD000280 的錯誤對照（→ 白飯熟樣本）以人工 override 修正為 A05002 稉米平均值後，食譜「煮」或多種方式都以 #49(b)
+  生組成近似算出（80 g → 283.2 kcal、5.6 g 蛋白質）；未覆寫前仍報 `cooked_food_requires_cooked_weight_basis`。
+
+### #50／#52 主食
+- 糙米飯：A05013 糙稉米平均值（生）、consumed_as_is、預設 75 g、範圍 50–125 g，`display_name`「糙米（生）」、
+  `cooked_grams_per_n` 150（快照 `display_note`「約煮成 150 g」）。新增五穀飯、胚芽米飯（生 75 g）、麵線（乾 80 g）、
+  烏龍麵（冷凍烏龍麵 210 g）、玉米（甜玉米 250 g），預設份量與白飯 150 g 熱量相當，待審核。「白米」為白飯別名。
+- 不需要主食：`none_values` 擴充，另含「主食」且帶否定字（不、無、免、沒）者也算（`staples.is_none_value`）。
+- `staples.staple_options()`：可選主食清單（只列有 TFDA 樣本者）：label、aliases、display_name、display_note、
+  default_grams_per_n、weight_basis、review_status。
+
+### #53 已知部分合計
+- `calculation.final` 與 `calculation.baseline` 一律提供 `known_partial`（只加總有值的食材；沒有任何已知值為 null）與
+  `missing_by_nutrient`（缺值食材名稱，去重；只列合計為 null 的營養）。有營養缺值或克數未解析時不再提早清空：已知食材照算整餐
+  用量；克數未解析者列入每一項營養的缺值清單。合計仍為 null（不以 0 代替），adoptable 判定不變。
+
+### #55／#56
+- `load_recipe_lines`：g 單位範圍列（weight_g 空白）採用工作簿 `source_weight_g`（中點），來源 `workbook`。
+- `store.check_fill`：糖 ≤ 碳水只在補 sugars_g／carbohydrate_g 時檢查（`store.fill_violations` 回傳超界欄位）；批次失敗報告
+  的 OUT_OF_RANGE 附 `values`（模型原始值）與 `out_of_range_fields`。
+- 測試：`tests/test_t12_calc_fallbacks.py`、`tests/test_staple_options.py`、`tests/test_t12_meal_calculation.py`
+  （WholeDishScalingTests、CompletenessTests、RecipeLoaderTests）、`tests/test_category_zero_fill.py`、`tests/test_llm_estimation.py`。

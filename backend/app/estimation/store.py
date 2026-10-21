@@ -45,7 +45,7 @@ def check_fill(sample_id: str, nutrient: str, value: Decimal) -> str | None:
     - 樣本必須存在、營養素必須是 7 種之一、TFDA 該欄位必須空白（TFDA 有值一律優先），
       且不適用「類別必然為 0」規則（decisions #45，那些營養素已是已知 0，不需推估）；
     - 數值在合理範圍內（每 100 g：熱量 0–900 kcal、各克數 0–100 g、鈉 0–40000 mg），並與樣本已知值一致：
-      糖 ≤ 碳水（容許 1 g）、碳水＋蛋白質＋脂肪＋纖維 ≤ 105 g、蛋白質 4 kcal／g＋脂肪 9 kcal／g 不超過總熱量。
+      糖 ≤ 碳水（容許 1 g；只在補糖或碳水時檢查，decisions #56）、碳水＋蛋白質＋脂肪＋纖維 ≤ 105 g、蛋白質 4 kcal／g＋脂肪 9 kcal／g 不超過總熱量。
     """
     from app.services import nutrient_category_zero, tfda_mapping
 
@@ -60,25 +60,41 @@ def check_fill(sample_id: str, nutrient: str, value: Decimal) -> str | None:
     rule = nutrient_category_zero.applies(record, nutrient)
     if rule is not None:
         return f"{nutrient} of {sample_id} is a category zero ({rule['id']}); no estimate needed"
+    return "OUT_OF_RANGE" if fill_violations(sample_id, nutrient, value) else None
+
+
+def fill_violations(sample_id: str, nutrient: str, value: Decimal) -> list[str]:
+    """nutrient_fill 值超界的欄位（供失敗報告記錄，decisions #56）；空清單代表範圍與一致性都通過。
+
+    一致性檢查只在新值會參與比較時才做：「糖 ≤ 碳水」只在補 sugars_g／carbohydrate_g 時檢查（TFDA 樣本
+    本身碳水 0、糖 1.4 這類不一致不應讓補膳食纖維失敗）；巨量營養素總和只在補其成員時檢查；熱量一致性只在補
+    熱量、蛋白質、脂肪時檢查。
+    """
+    from app.services import tfda_mapping
+
+    record = tfda_mapping.sample(sample_id) or {}
+    known = record.get("nutrition_per_100g") or {}
     low, high = FILL_RANGE[nutrient]
     if not low <= value <= high:
-        return "OUT_OF_RANGE"
+        return [nutrient]
     values = {k: _num(known.get(k)) for k in FILL_NUTRIENTS}
     values[nutrient] = value
+    out = []
     sugars, carbs = values["sugars_g"], values["carbohydrate_g"]
-    if sugars is not None and carbs is not None and sugars > carbs + SUGAR_OVER_CARB_TOLERANCE:
-        return "OUT_OF_RANGE"
+    if (nutrient in ("sugars_g", "carbohydrate_g") and sugars is not None and carbs is not None
+            and sugars > carbs + SUGAR_OVER_CARB_TOLERANCE):
+        out.append("sugars_g>carbohydrate_g")
     if nutrient in ("carbohydrate_g", "protein_g", "fat_g", "dietary_fiber_g"):
         mass = sum((values[k] or Decimal(0)) for k in ("carbohydrate_g", "protein_g", "fat_g", "dietary_fiber_g"))
         if mass > MACRO_SUM_MAX:
-            return "OUT_OF_RANGE"
+            out.append("macro_sum")
     energy = values["energy_kcal"]
     if energy is not None and nutrient in ("energy_kcal", "protein_g", "fat_g"):
         macro_kcal = ((values["protein_g"] or Decimal(0)) * KCAL_PER_PROTEIN_G
                       + (values["fat_g"] or Decimal(0)) * KCAL_PER_FAT_G)
         if macro_kcal > energy * Decimal("1.1") + 1:
-            return "OUT_OF_RANGE"
-    return None
+            out.append("macro_energy")
+    return out
 
 
 def _key(kind: str, key: str) -> str:

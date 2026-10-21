@@ -291,7 +291,8 @@ class AiFallbackTests(GenerationTestCase):
     def test_specified_dish_missing_from_database_triggers_ai_and_must_appear(self):
         self.create_request(dish_count=2, specified_dishes=["麻婆豆腐"])
         job_id = self.submit()
-        mapo = ai_dish("麻婆豆腐", [(GARLIC, 100), (SOY, 50), (EGG, 50)], method="煮")
+        # 兩道合計 900 g／n，參考值對應 200 g：整道縮到 0.4（決策 #48）仍超出
+        mapo = ai_dish("麻婆豆腐", [(GARLIC, 300), (SOY, 150), (EGG, 150)], method="煮")
         responder = FakeResponder(menu(ai_dish("番茄炒蛋", [(TOMATO, 100), (EGG, 100)]),
                                        ai_dish("蒜香高麗菜", [(CABBAGE, 100), (GARLIC, 100)])),
                                   menu(mapo, ai_dish("蒜香高麗菜", [(CABBAGE, 150), (GARLIC, 150)])))
@@ -777,7 +778,8 @@ class DatabaseCandidateTests(GenerationTestCase):
         self.create_request(dish_count=2)
         job_id = self.submit()
         responder = FakeResponder()
-        self.run_job(responder, calculator=self.calculator({CABBAGE: 5}))  # 含高麗菜的組合熱量過高
+        # 含高麗菜的組合熱量過高（整道縮到最小倍率 0.4 仍超出，決策 #48）
+        self.run_job(responder, calculator=self.calculator({CABBAGE: 50}))
         self.assertEqual(self.job(job_id)["status"], "succeeded")
         [row] = self.results()
         self.assertEqual(row.mode, "database_menu")

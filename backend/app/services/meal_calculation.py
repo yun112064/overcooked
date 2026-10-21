@@ -143,20 +143,40 @@ def _dec(value: Fraction) -> Decimal:
 
 
 def _evaluate(lines, grams, calculator):
-    """以指定克數重新計算；回傳 (每項結果, 各營養合計 Fraction 或 None, 缺值食材清單)。"""
-    rows = calculator([(ln, g) for ln, g in zip(lines, grams)])
+    """以指定克數重新計算；回傳 (每項結果, 各營養合計 Fraction 或 None, 缺值食材清單, 已知部分合計)。
+
+    克數未知（None）的食材不送 calculator，結果列為 None，並列入每一項營養的缺值清單（decisions #53）。
+    已知部分合計只加總有值的食材（沒有任何已知值時為 None）；任一食材缺值時合計為 None，不以 0 代替。
+    """
+    known = [i for i, g in enumerate(grams) if g is not None]
+    computed = calculator([(lines[i], grams[i]) for i in known]) if known else []
+    rows = [None] * len(lines)
+    for i, row in zip(known, computed):
+        rows[i] = row
     keys = list(REQUIRED_NUTRIENTS)
-    for row in rows:
+    for row in computed:
         keys += [k for k in row.nutrients if k not in keys]
-    totals, missing = {}, {}
+    totals, missing, partial = {}, {}, {}
     for key in keys:
-        values = [row.nutrients.get(key) for row in rows]
+        values = [row.nutrients.get(key) if row is not None else None for row in rows]
+        present = [Fraction(v) for v in values if v is not None]
+        partial[key] = sum(present, Fraction()) if present else None
         absent = [ln.name for ln, v in zip(lines, values) if v is None]
         if absent:
             totals[key], missing[key] = None, absent
         else:
-            totals[key] = sum((Fraction(v) for v in values), Fraction())
-    return rows, totals, missing
+            totals[key] = partial[key]
+    return rows, totals, missing, partial
+
+
+def _dedupe(names: list[str]) -> list[str]:
+    return list(dict.fromkeys(names))
+
+
+def _partial_view(target: dict, partial: dict, missing: dict) -> None:
+    """decisions #53：已知部分合計（Decimal，缺任何已知值為 None）與缺值食材名稱（去重）。"""
+    target["known_partial"] = {k: (_dec(v) if v is not None else None) for k, v in partial.items()}
+    target["missing_by_nutrient"] = {k: _dedupe(names) for k, names in missing.items()}
 
 
 def _range_reasons(stage, totals, references):
@@ -173,51 +193,150 @@ def _adjustable(ln: IngredientLine) -> bool:
     return ln.adjustment_approved and ln.adjustable_min is not None and ln.adjustable_max is not None
 
 
-def _align(lines, grams, rows, references):
-    """資料庫模式：只在已審核可調範圍內格點搜尋同時符合熱量與蛋白質的用量。
+PORTION_PATH = PROJECT_ROOT / "config" / "portion_scaling.json"
+ALIGN_CANDIDATES = 5  # 浮點搜尋前幾名逐一以 calculator 精確複核
 
-    單一食材的熱量／蛋白質對克數為線性（固定的每克含量），係數取自基準計算結果；
-    選中的用量之後仍以 calculator 重新計算確認。格點搜尋找不到即明確回報無解。
+
+@lru_cache(maxsize=1)
+def portion_settings() -> dict:
+    """decisions #48：整道縮放範圍與格點上限（config/portion_scaling.json）。"""
+    import json
+
+    data = json.loads(PORTION_PATH.read_text(encoding="utf-8"))
+    return {"dish_scale_min": Decimal(data["dish_scale_min"]), "dish_scale_max": Decimal(data["dish_scale_max"]),
+            "dish_scale_step": Decimal(data["dish_scale_step"]), "max_grid_points": int(data["max_grid_points"]),
+            "version": data.get("version")}
+
+
+def _dish_groups(lines) -> dict[str, list[int]]:
+    """可整道縮放的菜：依 dish_id 分組（主食與沒有 dish_id 的列除外），保持首次出現順序。"""
+    groups: dict[str, list[int]] = {}
+    for i, ln in enumerate(lines):
+        if ln.role != "staple" and ln.dish_id is not None:
+            groups.setdefault(ln.dish_id, []).append(i)
+    return groups
+
+
+def _scale_values(settings: dict) -> list[Decimal]:
+    lo, hi, step = settings["dish_scale_min"], settings["dish_scale_max"], settings["dish_scale_step"]
+    values, v = [], lo
+    while v <= hi:
+        values.append(v)
+        v += step
+    values.append(hi)
+    if lo <= 1 <= hi:
+        values.append(Decimal(1))
+    return sorted(set(values))
+
+
+def _coarsen(values: list) -> list:
+    """格點放粗：隔一個取一個，端點與 1.0（原份量）一律保留。"""
+    keep = {values[0], values[-1], Decimal(1)}
+    return sorted({v for j, v in enumerate(values) if j % 2 == 0 or v in keep})
+
+
+def _align(lines, grams, rows, references, mode):
+    """對齊搜尋（decisions #48）：每道菜整道倍率（dish_scale_min～max）＋主食在可調範圍內的克數，
+    資料庫模式另含沒有 dish_id、已審核可調範圍的列（舊的逐列調整，相容保留）。
+
+    熱量／蛋白質對克數為線性（係數取自基準計算結果），以浮點格點快速搜尋；格點總數受 max_grid_points 限制
+    （先放粗逐列格點、再放粗倍率，仍超過則所有菜共用同一倍率）。回傳前幾名候選 [(克數, 各道倍率)]，
+    由呼叫端以 calculator 精確（Fraction）複核 ±10%；找不到回傳空清單。
+    排序：與目標的最大相對偏差 → 總移動克數 → 菜色移動克數（同分時先調主食，保持整道菜原份量）。
     """
-    adjustable = [i for i, ln in enumerate(lines) if _adjustable(ln) and grams[i] > 0]
-    if not adjustable:
-        return None
-    per_gram = {i: {k: Fraction(rows[i].nutrients[k]) / Fraction(grams[i]) for k in REQUIRED_NUTRIENTS}
-                for i in adjustable}
-    fixed = {k: sum((Fraction(rows[i].nutrients[k]) for i in range(len(lines)) if i not in per_gram), Fraction())
-             for k in REQUIRED_NUTRIENTS}
+    import heapq
+    from math import prod
+
+    settings = portion_settings()
+    groups = _dish_groups(lines)
+    grouped = {i for idx in groups.values() for i in idx}
+    line_vars = [i for i, ln in enumerate(lines) if i not in grouped and _adjustable(ln) and grams[i] > 0
+                 and (mode == "database" or ln.role == "staple")]
+    if not groups and not line_vars:
+        return []
+    keys = REQUIRED_NUTRIENTS
+    value = {i: {k: Fraction(rows[i].nutrients[k]) for k in keys} for i in range(len(lines))}
+    fixed = [float(sum((value[i][k] for i in range(len(lines)) if i not in grouped and i not in line_vars),
+                       Fraction())) for k in keys]
+    ref = [float(references[k]) for k in keys]
+    lower, upper = [float(LOWER) * r for r in ref], [float(UPPER) * r for r in ref]
+
+    dish_axis = _scale_values(settings)
+    dish_axes = {d: list(dish_axis) for d in groups}
     steps = 40
-    while (steps + 1) ** len(adjustable) > MAX_GRID_POINTS and steps > 2:
-        steps //= 2
-    axes = []
-    for i in adjustable:
+    budget = settings["max_grid_points"]
+
+    def size():
+        return prod(len(a) for a in dish_axes.values()) * (steps + 1) ** len(line_vars)
+
+    while size() > budget:
+        if line_vars and steps > 8:
+            steps //= 2
+        elif any(len(a) > 3 for a in dish_axes.values()):
+            dish_axes = {d: _coarsen(a) for d, a in dish_axes.items()}
+        elif line_vars and steps > 2:
+            steps //= 2
+        else:
+            break
+    uniform = size() > budget  # 菜太多：所有菜共用同一倍率
+
+    axes = []  # 每個變數的選項：(標記, 值, 熱量, 蛋白質, 移動克數, 菜色移動克數)
+    def dish_options(ids, values):
+        totals = [float(sum((value[i][k] for i in ids), Fraction())) for k in keys]
+        mass = float(sum((Fraction(grams[i]) for i in ids), Fraction()))
+        return [(v, totals[0] * float(v), totals[1] * float(v), (1 - float(v)) * mass) for v in values]
+
+    if uniform:
+        axes.append([("all", v, e, p, m, m) for v, e, p, m in dish_options(sorted(grouped), dish_axis)])
+    else:
+        for d, idx in groups.items():
+            axes.append([(d, v, e, p, m, m) for v, e, p, m in dish_options(idx, dish_axes[d])])
+    for i in line_vars:
         lo, hi = Fraction(lines[i].adjustable_min), Fraction(lines[i].adjustable_max)
-        points = {lo + (hi - lo) * s / steps for s in range(steps + 1)}
+        points = {lo + (hi - lo) * t / steps for t in range(steps + 1)}
         if lo <= Fraction(grams[i]) <= hi:
             points.add(Fraction(grams[i]))
-        axes.append(sorted(points))
-    best = None
-    for combo in itertools.product(*axes):
-        totals = {k: fixed[k] + sum((per_gram[i][k] * g for i, g in zip(adjustable, combo)), Fraction())
-                  for k in REQUIRED_NUTRIENTS}
-        if not all(_within(totals[k], references[k]) for k in REQUIRED_NUTRIENTS):
-            continue
-        deviation = max(abs(totals[k] / references[k] - 1) for k in REQUIRED_NUTRIENTS)
-        moved = sum((abs(g - Fraction(grams[i])) for i, g in zip(adjustable, combo)), Fraction())
-        if best is None or (deviation, moved) < best[0]:
-            best = ((deviation, moved), combo)
-    if best is None:
-        return None
-    new = list(grams)
-    for i, g in zip(adjustable, best[1]):
-        new[i] = _dec(g)
-    return new
+        per_gram = [value[i][k] / Fraction(grams[i]) for k in keys]
+        axes.append([(i, g, float(per_gram[0] * g), float(per_gram[1] * g), abs(float(g - Fraction(grams[i]))), 0.0)
+                     for g in sorted(points)])
+
+    def feasible():
+        for combo in itertools.product(*axes):
+            e = fixed[0] + sum(o[2] for o in combo)
+            pr = fixed[1] + sum(o[3] for o in combo)
+            # 浮點只作篩選（含極小容差），最後一律以 calculator 精確複核
+            if not (lower[0] - 1e-9 <= e <= upper[0] + 1e-9 and lower[1] - 1e-9 <= pr <= upper[1] + 1e-9):
+                continue
+            deviation = max(abs(e / ref[0] - 1), abs(pr / ref[1] - 1))
+            key = (round(deviation, 9), round(sum(o[4] for o in combo), 6), round(sum(o[5] for o in combo), 6))
+            yield key, combo
+
+    out = []
+    for _, combo in heapq.nsmallest(ALIGN_CANDIDATES, feasible(), key=lambda item: item[0]):
+        new, scales = list(grams), {d: Decimal(1) for d in groups}
+        for option in combo:
+            tag, v = option[0], option[1]
+            if tag == "all":
+                scales = {d: v for d in groups}
+            elif tag in groups:
+                scales[tag] = v
+            else:
+                new[tag] = _dec(v)
+        for d, idx in groups.items():
+            for i in idx:
+                new[i] = grams[i] * scales[d]
+        out.append((new, scales))
+    return out
 
 
 def calculate_meal(lines: list[IngredientLine], targets: MealTargets, *, mode: str,
                    calculator: Calculator) -> dict:
     """驗證整餐並彙整「LLM 推估」標示（decisions #19）；計算本體見 _calculate_meal。"""
     result = _calculate_meal(lines, targets, mode=mode, calculator=calculator)
+    for ln, row in zip(lines, result["ingredients"]):
+        # decisions #48：食譜原每人份克數與該道採用的整道倍率（主食與未分組的列為 None）
+        row["recipe_grams_per_n"] = ln.grams_per_n
+        row["dish_scale"] = result["dish_scales"].get(ln.dish_id) if ln.role != "staple" else None
     result["llm_estimates"] = _llm_summary(result["ingredients"])
     mapped = []
     for row in result["ingredients"]:
@@ -272,11 +391,14 @@ def _calculate_meal(lines: list[IngredientLine], targets: MealTargets, *, mode: 
         "mode": mode, "adoptable": False, "block_reasons": [], "quantities_verified": False, "suggestions": [],
         "total_n": n,
         "baseline": {"reference": {k: _dec(v) for k, v in references.items()},
-                     "energy_kcal": None, "protein_g": None, "within_range": False, "adjusted": False},
+                     "energy_kcal": None, "protein_g": None, "within_range": False, "adjusted": False,
+                     "known_partial": {}, "missing_by_nutrient": {}},
         "final": {"target": {k: _dec(v) for k, v in final_targets.items()},
                   "energy_kcal": None, "protein_g": None, "gap": {}, "within_range": False,
-                  "other_nutrients": {}, "missing_nutrients": {}},
+                  "other_nutrients": {}, "missing_nutrients": {}, "known_partial": {}, "missing_by_nutrient": {}},
         "ingredients": [], "requirements": [], "unresolved_ingredients": [],
+        # decisions #48：每道菜（dish_id）採用的整道倍率；未對齊時為 1
+        "dish_scales": {d: Decimal(1) for d in _dish_groups(lines)},
     }
     unresolved = [ln for ln in lines if ln.grams_per_n is None]
     if unresolved:
@@ -292,36 +414,40 @@ def _calculate_meal(lines: list[IngredientLine], targets: MealTargets, *, mode: 
             "code": "INGREDIENT_UNRESOLVED", "action": "補上克數換算後重新計算",  # 畫面文字（#42 不提 LLM）
             "ingredients": [{"food_id": ln.food_id, "name": ln.name, "unit": ln.unit,
                              "reason": ln.unresolved_reason or "weight_unresolved"} for ln in unresolved]})
-        grams = [ln.grams_per_n for ln in lines]
-        whole = [g * n if g is not None else None for g in grams]
-        result["ingredients"] = [_row(ln, grams[i], whole[i], None, n) for i, ln in enumerate(lines)]
-        result["requirements"] = _requirements(lines, whole)
-        return result
 
     grams = [ln.grams_per_n for ln in lines]
-    rows, totals, missing = _evaluate(lines, grams, calculator)
+    rows, totals, missing, partial = _evaluate(lines, grams, calculator)
+    _partial_view(result["baseline"], partial, missing)
     incomplete = [k for k in REQUIRED_NUTRIENTS if totals[k] is None]
-    if incomplete:
-        result["block_reasons"].append({"code": "NUTRITION_INCOMPLETE", "nutrients": incomplete,
-                                        "ingredients": {k: missing[k] for k in incomplete},
-                                        "errors": {ln.name: r.error for ln, r in zip(lines, rows) if r.error}})
-        names = {name for k in incomplete for name in missing[k]}
+    # 克數已解析、但營養缺值的食材（克數未解析者已由 INGREDIENT_UNRESOLVED 說明）
+    lacking = [(ln, r) for ln, r in zip(lines, rows)
+               if r is not None and any(r.nutrients.get(k) is None for k in REQUIRED_NUTRIENTS)]
+    if lacking:
+        nutrients = [k for k in incomplete if any(r.nutrients.get(k) is None for _, r in lacking)]
+        result["block_reasons"].append({"code": "NUTRITION_INCOMPLETE", "nutrients": nutrients,
+                                        "ingredients": {k: [ln.name for ln, r in lacking if r.nutrients.get(k) is None]
+                                                        for k in nutrients},
+                                        "errors": {ln.name: r.error for ln, r in lacking if r.error}})
         result["suggestions"].append({
-            "code": "NUTRITION_INCOMPLETE", "nutrients": incomplete,
+            "code": "NUTRITION_INCOMPLETE", "nutrients": nutrients,
             "action": "補齊這些食材的 TFDA 營養資料（或改用有樣品的食材）後重新計算",
-            "ingredients": [{"food_id": ln.food_id, "name": ln.name, "error": r.error}
-                            for ln, r in zip(lines, rows) if ln.name in names]})
+            "ingredients": [{"food_id": ln.food_id, "name": ln.name, "error": r.error} for ln, r in lacking]})
+    if unresolved or incomplete:
+        # decisions #53：不再整個清空——已知食材照算整餐用量與已知部分合計，缺值食材列名；合計仍為 None
         _unverified_final(result, lines, grams, n, calculator, final_targets)
         return result
 
-    if mode == "database" and not all(_within(totals[k], references[k]) for k in REQUIRED_NUTRIENTS):
-        aligned = _align(lines, grams, rows, references)
-        if aligned is not None:
-            check_rows, check_totals, _ = _evaluate(lines, aligned, calculator)
+    if not all(_within(totals[k], references[k]) for k in REQUIRED_NUTRIENTS):
+        # decisions #48：整道縮放＋主食（資料庫與 AI 模式皆可）；資料庫模式另含舊的逐列可調範圍
+        for aligned, scales in _align(lines, grams, rows, references, mode):
+            check_rows, check_totals, check_missing, check_partial = _evaluate(lines, aligned, calculator)
             if all(check_totals[k] is not None and _within(check_totals[k], references[k])
                    for k in REQUIRED_NUTRIENTS):
                 grams, rows, totals = aligned, check_rows, check_totals
+                _partial_view(result["baseline"], check_partial, check_missing)
                 result["baseline"]["adjusted"] = True
+                result["dish_scales"] = scales
+                break
     result["baseline"].update(energy_kcal=_dec(totals["energy_kcal"]), protein_g=_dec(totals["protein_g"]))
     baseline_reasons = _range_reasons("baseline", totals, references)
     if baseline_reasons:
@@ -329,18 +455,21 @@ def _calculate_meal(lines: list[IngredientLine], targets: MealTargets, *, mode: 
         result["block_reasons"] += baseline_reasons
         result["block_reasons"].append({
             "code": "NO_FEASIBLE_BASELINE", "mode": mode,
-            "adjustable_food_ids": [ln.food_id for ln in lines if mode == "database" and _adjustable(ln)]})
+            "adjustable_food_ids": [ln.food_id for ln in lines
+                                    if _adjustable(ln) and (mode == "database" or ln.role == "staple")],
+            "adjustable_dish_ids": list(result["dish_scales"])})
         result["suggestions"] = _range_suggestions(lines, grams, rows, totals, references, mode)
         _unverified_final(result, lines, grams, n, calculator, final_targets)
         return result
     result["baseline"]["within_range"] = True
 
     whole = [g * n for g in grams]
-    final_rows, final_totals, final_missing = _evaluate(lines, whole, calculator)
+    final_rows, final_totals, final_missing, final_partial = _evaluate(lines, whole, calculator)
     result["ingredients"] = [_row(ln, grams[i], whole[i], final_rows[i], n) for i, ln in enumerate(lines)]
     result["requirements"] = _requirements(lines, whole)
     final = result["final"]
     final["missing_nutrients"] = final_missing
+    _partial_view(final, final_partial, final_missing)
     final["other_nutrients"] = {k: (_dec(v) if v is not None else None)
                                 for k, v in final_totals.items() if k not in REQUIRED_NUTRIENTS}
     final_incomplete = [k for k in REQUIRED_NUTRIENTS if final_totals[k] is None]
@@ -359,13 +488,15 @@ def _calculate_meal(lines: list[IngredientLine], targets: MealTargets, *, mode: 
 
 
 def _unverified_final(result, lines, grams, n, calculator, final_targets) -> None:
-    """不可採用但克數都已知：仍以整餐用量重新計算並列出（未驗證），供查看與成本計算。"""
-    whole = [g * n for g in grams]
-    rows, totals, missing = _evaluate(lines, whole, calculator)
+    """不可採用：仍以整餐用量重新計算並列出（未驗證），供查看與成本計算。克數未知的食材整餐量為 None，
+    列入缺值清單；已知部分合計只加總已知食材（decisions #53）。"""
+    whole = [g * n if g is not None else None for g in grams]
+    rows, totals, missing, partial = _evaluate(lines, whole, calculator)
     result["ingredients"] = [_row(ln, grams[i], whole[i], rows[i], n) for i, ln in enumerate(lines)]
     result["requirements"] = _requirements(lines, whole)
     final = result["final"]
     final["missing_nutrients"] = missing
+    _partial_view(final, partial, missing)
     final["other_nutrients"] = {k: (_dec(v) if v is not None else None)
                                 for k, v in totals.items() if k not in REQUIRED_NUTRIENTS}
     for k in REQUIRED_NUTRIENTS:
@@ -396,7 +527,8 @@ def _range_suggestions(lines, grams, rows, totals, references, mode) -> list[dic
             per_gram = Fraction(value) / Fraction(g)
             if per_gram <= 0:
                 continue
-            approved = mode == "database" and _adjustable(ln)
+            approved = _adjustable(ln) and (mode == "database" or ln.role == "staple") and not (
+                ln.role != "staple" and ln.dish_id is not None)
             change = None
             if approved:
                 bound = Fraction(ln.adjustable_max if increase else ln.adjustable_min)
@@ -408,11 +540,21 @@ def _range_suggestions(lines, grams, rows, totals, references, mode) -> list[dic
                 "baseline_grams": g, "adjustable_min": ln.adjustable_min, "adjustable_max": ln.adjustable_max,
                 "adjustment_approved": approved, "max_change": _dec(change) if change is not None else None}))
         items.sort(key=lambda item: -item[0])
+        # decisions #48：整道縮放（倍率 dish_scale_min～max；目前為 1）在該營養上最多能補多少
+        settings, dishes = portion_settings(), []
+        for dish_id, idx in _dish_groups(lines).items():
+            amount = sum((Fraction(rows[i].nutrients.get(key) or 0) for i in idx), Fraction())
+            bound = settings["dish_scale_max"] if increase else settings["dish_scale_min"]
+            change = max(Fraction(), amount * (Fraction(bound) - 1) if increase else amount * (1 - Fraction(bound)))
+            reachable += change
+            dishes.append({"dish_id": dish_id, "direction": "increase" if increase else "decrease",
+                           "scale_min": settings["dish_scale_min"], "scale_max": settings["dish_scale_max"],
+                           "max_change": _dec(change)})
         out.append({"code": "NUTRITION_OUT_OF_RANGE", "nutrient": key,
                     "direction": "increase" if increase else "decrease",
                     "value": _dec(total), "lower": _dec(lower), "upper": _dec(upper), "needed_change": _dec(needed),
                     "within_adjustable_ranges": reachable >= needed,
-                    "ingredients": [item for _, item in items[:5]]})
+                    "ingredients": [item for _, item in items[:5]], "dishes": dishes})
     return out
 
 
@@ -492,6 +634,42 @@ WATER_KNOWN_ZERO = "water_known_zero"
 WATER_NAMES = frozenset({"水", "清水", "開水", "冷水", "熱水", "溫水", "滾水", "冰水", "飲用水", "自來水"})
 # decisions #35：食材名稱本身就是熟食（工作簿克數即熟重）；只在對照到的 TFDA 樣本為 cooked 時才生效
 COOKED_FOOD_SUFFIXES = ("飯", "粥")
+# decisions #51：市售即為熟品的食材（config/market_cooked_ingredients.json）＋TFDA 熟樣本 → 熟重
+MARKET_COOKED_SAMPLE = "market_cooked_cooked_sample"
+MARKET_COOKED_PATH = PROJECT_ROOT / "config" / "market_cooked_ingredients.json"
+# decisions #49(a)：unspecified 的調味料、糖、油脂、香料、乾貨等以原樣組成計算（config/nutrition_as_is_categories.json）
+UNSPECIFIED_AS_IS = "unspecified_as_is"
+AS_IS_PATH = PROJECT_ROOT / "config" / "nutrition_as_is_categories.json"
+# decisions #49(b)：生樣本查不到烹調係數 → TFDA 生組成 × 生重近似（熱量、蛋白質也適用）
+RAW_COMPOSITION_FALLBACK = "raw_composition_fallback"
+
+
+@lru_cache(maxsize=1)
+def as_is_rules() -> tuple[dict, ...]:
+    import json
+
+    return tuple(json.loads(AS_IS_PATH.read_text(encoding="utf-8"))["rules"])
+
+
+def as_is_rule(record: dict | None) -> dict | None:
+    """TFDA 樣本為 unspecified 且類別碼符合設定時回傳規則（id、reason…），否則 None。"""
+    if not record or record.get("state") != "unspecified":
+        return None
+    sample_id = record.get("ingredient_id") or ""
+    return next((r for r in as_is_rules() if any(sample_id.startswith(p) for p in r["prefixes"])), None)
+
+
+@lru_cache(maxsize=1)
+def market_cooked_entries() -> tuple[dict, ...]:
+    import json
+
+    return tuple(json.loads(MARKET_COOKED_PATH.read_text(encoding="utf-8"))["ingredients"])
+
+
+def is_market_cooked(food_id: str | None, name: str | None) -> bool:
+    name = (name or "").strip()
+    return any((food_id and e.get("food_id") == food_id) or (name and e.get("name") == name)
+               for e in market_cooked_entries())
 
 
 @lru_cache(maxsize=1)
@@ -540,7 +718,7 @@ def load_recipe_lines(db, recipe_id: str, factors=None) -> list[IngredientLine]:
     """資料庫模式：把 T01 食譜的全部食材（含油與調味料）轉成每 1n 基準用量。
 
     - 每 1n 克數 = weight_g ÷ original_servings；原份數未知或無克數換算時為 None 並附原因。
-    - 克數來源順序（decisions #20）：單位為 g → 原文克數；否則工作簿該列 weight_g（source_weight_g，
+    - 克數來源順序（decisions #20／#55）：原文 g 克數 → 工作簿該列 weight_g（source_weight_g，g 單位範圍列即工作簿中點，
       視為生重，來源 workbook，不標示 LLM 推估）；工作簿缺值時才用快取的每單位克數推估
       （factors：FactorSnapshot，未提供則自行載入；人工值優先，rejected 不用），換算後的列帶
       weight_estimate 供結果標示與追溯。都沒有即維持未知。
@@ -574,7 +752,7 @@ def load_recipe_lines(db, recipe_id: str, factors=None) -> list[IngredientLine]:
     for row in rows:
         reason, weight, estimate = None, row.weight_g, None
         source = "recipe_grams" if weight is not None else None
-        if weight is None and row.unit != "g" and row.source_weight_g is not None:
+        if weight is None and row.source_weight_g is not None:  # 含 g 單位範圍列（decisions #55）
             weight, source = row.source_weight_g, "workbook"
         if not servings:
             reason = "servings_unresolved"
@@ -635,14 +813,33 @@ def _no_request_time_llm(payload):
     return {"success": False, "error": "llm_not_configured"}
 
 
+# decisions #49(c)：常見同義寫法 → 食譜工作簿用語（炒、拌、煮、煎、燙、蒸、炸、烤、燉、滷、氣炸、微波），
+# 再交給 T04 正規化；工作簿用語本身不在此表，既有快取鍵不變
+METHOD_SYNONYMS = {
+    "清炒": "炒", "快炒": "炒", "爆炒": "炒", "熱炒": "炒", "翻炒": "炒", "乾炒": "炒", "拌炒": "炒",
+    "水煮": "煮", "燉湯": "煮", "熬煮": "煮", "熬": "煮", "煨": "燉", "燜": "燉", "紅燒": "燉", "燉煮": "燉",
+    "清蒸": "蒸", "蒸煮": "蒸", "隔水蒸": "蒸",
+    "香煎": "煎", "乾煎": "煎", "煎炒": "煎", "半煎炸": "煎",
+    "油炸": "炸", "酥炸": "炸", "乾炸": "炸", "油煎炸": "炸", "炸物": "炸",
+    "汆燙": "燙", "氽燙": "燙", "川燙": "燙", "燙煮": "燙", "涮": "燙", "汆": "燙",
+    "涼拌": "拌", "拌勻": "拌", "生拌": "拌",
+    "烘烤": "烤", "焗": "烤", "烘": "烤", "焗烤": "烤", "炙烤": "烤", "烤箱": "烤",
+    "滷製": "滷", "滷煮": "滷", "紅滷": "滷",
+    "氣炸鍋": "氣炸", "微波爐": "微波",
+}
+METHOD_SEPARATORS = ("+", "、", "，", ",", "/", "／", "及", "和", "與", "後", "再", " ")
+
+
 def normalize_cooking_method(method: str | None) -> str | None:
-    """烹調方式正規化（沿用 T04 cooking_yield_service），作為快取係數的查表鍵。"""
-    if not method:
+    """單一烹調方式正規化：同義寫法先轉成工作簿用語，再沿用 T04 cooking_yield_service 的對照。"""
+    if not method or not str(method).strip():
         return None
+    text = str(method).strip()
+    text = METHOD_SYNONYMS.get(text, text)
     _nutrition_model()
     import cooking_yield_service
 
-    return cooking_yield_service.normalize_method(method) or None
+    return cooking_yield_service.normalize_method(text) or None
 
 
 def combined_method_key(methods) -> str | None:
@@ -651,10 +848,24 @@ def combined_method_key(methods) -> str | None:
     return "+".join(keys) or None
 
 
+def cooking_method_key(methods) -> str | None:
+    """decisions #49(c)：AI 路徑用的烹調方式鍵，與快取組合鍵（combined_method_key）同一規則。
+
+    methods 可為單一字串（「炒」「清炒」「煮+炒」「炒、拌」皆可，依 METHOD_SEPARATORS 拆開）或字串清單；
+    回傳正規化、去重、排序後以「+」連接的鍵（單一方式即該方式，如 "stir"），沒有方式回傳 None。
+    """
+    if methods is None:
+        return None
+    parts = [methods] if isinstance(methods, str) else [str(m) for m in methods if m is not None]
+    for sep in METHOD_SEPARATORS:
+        parts = [piece for part in parts for piece in part.split(sep)]
+    return combined_method_key([p for p in parts if p.strip()])
+
+
 def _method_key(ln: IngredientLine) -> str | None:
     if ln.cooking_method:
-        return normalize_cooking_method(ln.cooking_method)
-    return combined_method_key(ln.cooking_methods) if len(ln.cooking_methods) > 1 else None
+        return cooking_method_key(ln.cooking_method)
+    return cooking_method_key(ln.cooking_methods) if ln.cooking_methods else None
 
 
 CookingFactorLookup = Callable[[str, str], "EstimatedFactor | None"]
@@ -731,7 +942,8 @@ NutrientFillLookup = Callable[[str, str], "EstimatedFactor | None"]
 
 
 def make_tfda_calculator(*, cooking_factors: CookingFactorLookup | None = None,
-                         tfda_resolver=None, nutrient_fills: NutrientFillLookup | None = None) -> Calculator:
+                         tfda_resolver=None, nutrient_fills: NutrientFillLookup | None = None,
+                         raw_fallback: bool = True) -> Calculator:
     """建立 TFDA calculator；cooking_factors(food_id, 正規化烹調方式) 回傳快取係數或 None。
 
     tfda_resolver（decisions #28，app.services.tfda_mapping.TfdaResolver）：食譜名稱 → TFDA 樣本；
@@ -741,9 +953,11 @@ def make_tfda_calculator(*, cooking_factors: CookingFactorLookup | None = None,
 
     優先順序（decisions #19／#32）：TFDA／USDA 實測 > 人工核可／覆寫 > LLM 推估；rejected 永不使用。
     人工與 LLM 的先後由查表端（app.estimation.store）決定，此處只在 T04 實測算不出必要營養時才套用。
+    raw_fallback（decisions #49(b)）：查不到烹調係數時以 TFDA 生組成 × 生重近似；推估批次掃描缺口時關閉
+    （才看得出哪些組合仍值得推估係數）。
     """
     def calculate(rows: list[tuple[IngredientLine, Decimal]]) -> list[IngredientNutrition]:
-        return _tfda_calculate(rows, cooking_factors, tfda_resolver, nutrient_fills)
+        return _tfda_calculate(rows, cooking_factors, tfda_resolver, nutrient_fills, raw_fallback)
     return calculate
 
 
@@ -758,19 +972,27 @@ def _water_nutrition(ln: IngredientLine, grams: Decimal, service) -> IngredientN
     return IngredientNutrition({k: Decimal(0) for k in service.NUTRIENTS}, trace, None)
 
 
-def _effective_basis(ln: IngredientLine, res) -> tuple[str, str | None, str | None]:
-    """(weight_basis, 依據, 烹調方式)。decisions #35：工作簿慣例（#17 生重）下，對照到 TFDA 熟樣本且食材名稱
-    本身就是熟食（白米飯、白飯…）時改視為熟重；熟樣本已是熟的狀態，不再套烹調方式（另列的油鹽照算）。"""
-    from app.services import tfda_mapping
+def _effective_basis(ln: IngredientLine, record: dict | None) -> tuple[str, str | None, str | None]:
+    """(weight_basis, 依據, 烹調方式)。對照到 TFDA 熟樣本時：
 
-    record = tfda_mapping.sample(res.sample_id) if res else None
-    if (ln.weight_basis == "raw" and ln.weight_basis_source == WORKBOOK_RAW_CONVENTION and record
-            and record.get("state") == "cooked" and is_cooked_food_name(ln.name)):
-        return "cooked", COOKED_FOOD_SAMPLE, None
+    - decisions #35／#51：工作簿慣例（#17 生重）或 AI 宣告（MODEL_DECLARED）的生重，食材名稱本身是熟食（白飯、
+      白米飯…）或列在市售熟品清單（桂竹筍、鹹蛋黃、杏仁果…）時改視為熟重；
+    - 熟重配熟樣本一律不再套烹調方式（熟樣本已是熟的狀態；另列的油鹽照算）。
+    """
+    cooked_sample = bool(record and record.get("state") == "cooked")
+    if (cooked_sample and ln.weight_basis == "raw"
+            and ln.weight_basis_source in (WORKBOOK_RAW_CONVENTION, MODEL_DECLARED)):
+        if is_market_cooked(ln.food_id, ln.name):
+            return "cooked", MARKET_COOKED_SAMPLE, None
+        if is_cooked_food_name(ln.name):
+            return "cooked", COOKED_FOOD_SAMPLE, None
+    if cooked_sample and ln.weight_basis == "cooked":
+        return "cooked", ln.weight_basis_source, None
     return ln.weight_basis, ln.weight_basis_source, ln.cooking_method
 
 
-def _tfda_calculate(rows, cooking_factors, tfda_resolver=None, nutrient_fills=None) -> list[IngredientNutrition]:
+def _tfda_calculate(rows, cooking_factors, tfda_resolver=None, nutrient_fills=None,
+                    raw_fallback=True) -> list[IngredientNutrition]:
     """以 T04 TFDA 管線計算每項食材（計算期間不呼叫 LLM，見 _no_request_time_llm）。
 
     為了讓 ±10% 邊界精確（AC12），克數不轉 float 送進 T04：每項食材一律以 100 g 呼叫 T04 取得
@@ -785,20 +1007,24 @@ def _tfda_calculate(rows, cooking_factors, tfda_resolver=None, nutrient_fills=No
     resolver = tfda_resolver or tfda_mapping.EXACT_ONLY
     water = [is_water(ln.food_id, ln.name) for ln, _ in rows]
     resolutions = [None if w else resolver.resolve(ln.food_id, ln.name) for (ln, _), w in zip(rows, water)]
-    bases = [_effective_basis(ln, res) for (ln, _), res in zip(rows, resolutions)]
+    records = [tfda_mapping.sample(res.sample_id) if res else None for res in resolutions]
+    bases = [_effective_basis(ln, record) for (ln, _), record in zip(rows, records)]
+    # decisions #49(a)：unspecified 的調味料、糖、油脂、香料、乾貨等一律以原樣組成計算（生重、不套烹調）
+    as_is = [as_is_rule(record) if basis == "raw" else None for record, (basis, _, _) in zip(records, bases)]
     items = []
-    for (ln, _), res, (basis, _, method), w in zip(rows, resolutions, bases, water):
+    for (ln, _), res, (basis, _, method), w, rule in zip(rows, resolutions, bases, water, as_is):
         if w:
             continue
         item = {"name": res.tfda_name if res else ln.name, "weight_g": float(REFERENCE_GRAMS),
-                "weight_basis": basis, "consumed_as_is": ln.consumed_as_is}
-        if method:
+                "weight_basis": basis, "consumed_as_is": ln.consumed_as_is or rule is not None}
+        if method and rule is None:
             item["cooking_method"] = method
         items.append(item)
     recipe = service.calculate_recipe_nutrition("meal", items, estimator=_no_request_time_llm) if items else {}
     t04_rows = iter(recipe.get("ingredients") or [{}] * len(items))
     out = []
-    for (ln, grams), res, (basis, basis_source, method), w in zip(rows, resolutions, bases, water):
+    for (ln, grams), res, record, (basis, basis_source, method), w, rule in zip(
+            rows, resolutions, records, bases, water, as_is):
         grams = Decimal(grams)
         if w:
             out.append(_water_nutrition(ln, grams, service))
@@ -819,23 +1045,57 @@ def _tfda_calculate(rows, cooking_factors, tfda_resolver=None, nutrient_fills=No
             "estimated_factors": [], "estimated_nutrients": [], "approximate_nutrients": [],
             "tfda_mapping": res.trace() if res else None, "category_zero": {},
         }
-        method_key = _method_key(ln)  # 熟食熟重（#35）時 basis 為 cooked，不套烹調係數
+        method_key = _method_key(ln)  # 熟食熟重（#35／#51）時 basis 為 cooked，不套烹調係數
+        if rule is not None and row.get("success"):
+            trace.update(nutrition_basis=UNSPECIFIED_AS_IS, as_is_rule=rule["id"])
         # T04 烹調管線不接受 unspecified 狀態的樣本（回報 ingredient_not_found）；有生組成時仍可套快取係數
         usable_row = row.get("success") or (row.get("error") == "ingredient_not_found"
                                             and _raw_composition(service, tfda_name) is not None)
-        applied, factor = False, None
-        if (cooking_factors and method_key and basis == "raw" and usable_row
+        applied, factor, fallback = False, None, False
+        if (cooking_factors and method_key and basis == "raw" and usable_row and rule is None
                 and any(nutrients.get(k) is None for k in REQUIRED_NUTRIENTS)):
             factor = cooking_factors(ln.food_id, method_key)
             if factor is not None and factor.usable:
                 _apply_cooking_factor(service, ln, grams, factor, nutrients, trace, tfda_name)
                 applied = bool(trace["estimated_factors"])
-        if row.get("success") or applied:
+        if (raw_fallback and basis == "raw" and usable_row and rule is None and record is not None
+                and record.get("state") != "cooked" and any(nutrients.get(k) is None for k in REQUIRED_NUTRIENTS)):
+            fallback = _raw_fallback(service, record, grams, nutrients, trace)
+        if row.get("success") or applied or fallback:
             _fill_blanks(nutrient_fills, grams, nutrients, trace, factor if applied else None, basis)
-        error = (None if applied else row.get("error")) or (
-            None if row.get("success") or applied else "nutrition_unavailable")
+        error = (None if applied or fallback else row.get("error")) or (
+            None if row.get("success") or applied or fallback else "nutrition_unavailable")
+        if (error is None and basis == "cooked" and record is not None and record.get("state") != "cooked"
+                and all(nutrients.get(k) is None for k in REQUIRED_NUTRIENTS)):
+            # 不靜默變成未知：熟重（例如 AI 宣告 cooked）配生樣本沒有依據換回生重
+            error = "cooked_weight_requires_cooked_sample"
         out.append(IngredientNutrition(nutrients, trace, error))
     return out
+
+
+def _raw_fallback(service, record: dict, grams: Decimal, nutrients: dict, trace: dict) -> bool:
+    """decisions #49(b)：查不到烹調係數（多方式組合鍵、AI 單一方式或沒有方式）時，以 TFDA 生組成 × 生重近似
+    尚缺的營養（熱量、蛋白質也適用，延伸 #40），trace 標 raw_composition_fallback；畫面不顯示（#42）。
+    TFDA 生組成空白者仍為 None（之後交給類別 0 規則或 nutrient_fill）。"""
+    filled = []
+    for key in service.NUTRIENTS:
+        value = record["nutrition_per_100g"].get(key)
+        if nutrients.get(key) is None and service.finite_number(value):
+            nutrients[key] = Decimal(str(value)) * grams / REFERENCE_GRAMS
+            filled.append(key)
+    if not filled:
+        return False
+    trace["raw_composition_fallback"] = True
+    trace["nutrition_basis"] = RAW_COMPOSITION_FALLBACK
+    trace["approximate_nutrients"] = [*trace.get("approximate_nutrients", []), *filled]
+    trace.setdefault("nutrient_basis", {}).update({k: RAW_COMPOSITION_FALLBACK for k in filled})
+    if trace.get("sample_id") is None:
+        source = record["source"]
+        trace.update(sample_id=source.get("source_id"), provider=source.get("provider"),
+                     source_version=source.get("source_version"), source_url=source.get("source_url"))
+    if all(nutrients.get(k) is not None for k in REQUIRED_NUTRIENTS):
+        trace["missing_reason"] = None
+    return True
 
 
 def _fill_weight(grams: Decimal, record: dict, trace: dict, cooking_factor, weight_basis: str) -> Decimal:

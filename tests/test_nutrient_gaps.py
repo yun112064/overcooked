@@ -143,16 +143,17 @@ class NutrientFillCalculatorTests(unittest.TestCase):
         [sugar] = mc.tfda_calculator([(line("麥芽糖", "10", consumed_as_is=True), D("10"))])
         self.assertIsNone(sugar.nutrients["protein_g"])
 
-    def test_fill_follows_the_cached_cooking_retention(self):
-        # 香油 P0900201 883 kcal；炒：保留率 0.9／0.5 → 熱量 883×10/100×0.9，蛋白質 0.2×10/100×0.5
+    def test_seasoning_fill_ignores_cooking_factors(self):
+        # decisions #49(a)：香油 P0900201（unspecified、P 調味料）以原樣組成計算，不套烹調保留率：
+        # 熱量 883×10/100；蛋白質空白由推估 0.2×10/100 補上
         calc = mc.make_tfda_calculator(
             cooking_factors=lookup(cooking("F-香油", "stir", energy="0.9", protein="0.5")),
             nutrient_fills=fills(fill("P0900201", "protein_g", "0.2")))
         [oil] = calc([(line("香油", "10", cooking_method="炒"), D("10"))])
         self.assertIsNone(oil.error)
-        self.assertEqual(oil.nutrients["energy_kcal"], D("79.47"))
-        self.assertEqual(oil.nutrients["protein_g"], D("0.01"))
-        self.assertEqual({m["kind"] for m in oil.trace["estimated_factors"]}, {"cooking", "nutrient_fill"})
+        self.assertEqual(oil.nutrients["energy_kcal"], D("88.3"))
+        self.assertEqual(oil.nutrients["protein_g"], D("0.02"))
+        self.assertEqual({m["kind"] for m in oil.trace["estimated_factors"]}, {"nutrient_fill"})
 
     def test_tfda_value_always_wins_over_a_fill(self):
         calc = mc.make_tfda_calculator(nutrient_fills=fills(fill("M1100101", "energy_kcal", "1")))
@@ -294,6 +295,9 @@ class NutrientFillBatchTests(unittest.TestCase):
                                                ("P0900201", "protein_g"): -3}))
         self.assertEqual({(f["food_id"], f["reason"]) for f in report["failed"]},
                          {("A0550601", "MODEL_REFUSED"), ("P0900201", "OUT_OF_RANGE")})
+        # decisions #56：失敗報告記錄超界欄位與模型原始值
+        [bad] = [f for f in report["failed"] if f["reason"] == "OUT_OF_RANGE"]
+        self.assertEqual((bad["out_of_range_fields"], bad["values"]), (["protein_g"], {"protein_g": D("-3")}))
         self.assertEqual(self.rows(), [])
 
 

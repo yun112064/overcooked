@@ -1,11 +1,34 @@
 {
-  "version": "staples-2026-10-21",
+  "version": "staples-2026-10-21b",
   "review_status": "pending_review",
-  "note": "主食選項（decisions #16）：每個選項對應一個 TFDA 食材，給每人（1n）預設份量與可調範圍（克）。計入營養與 ±10% 驗證、資料庫模式與菜色一起對齊調整；不計價格與缺料。份量與範圍為開發者先填的合理值，待營養審核者確認（review_status=pending_review）。food_id 是食譜工作簿的 FOOD 編號，用於過敏／禁吃檢查。",
-  "none_values": ["不需要主食", "不需要", "無", "沒有", "不用", "免"],
+  "note": "主食選項（decisions #16）：每個選項對應一個 TFDA 食材，給每人（1n）預設份量與可調範圍（克）。計入營養與 ±10% 驗證、資料庫模式與菜色一起對齊調整；不計價格與缺料。份量與範圍為開發者先填的合理值，待營養審核者確認（review_status=pending_review）。food_id 是食譜工作簿的 FOOD 編號，用於過敏／禁吃檢查。 生重主食（糙米飯、五穀飯、胚芽米飯）以生米克數計算，display_name 與 cooked_grams_per_n 只供畫面說明「約煮成 X g」。新增選項的預設份量依熱量與白飯 150 g（274.5 kcal）相當先填（decisions #50、#52）。none_values 之外，含「主食」且帶否定字（不、無、免、沒）的寫法也視為不需要主食。",
+  "none_values": [
+    "不需要主食",
+    "不需要",
+    "無",
+    "沒有",
+    "不用",
+    "免",
+    "不吃主食",
+    "不要主食",
+    "無主食",
+    "沒有主食",
+    "不用主食",
+    "免主食",
+    "不要",
+    "免了",
+    "不需",
+    "不吃",
+    "不必"
+  ],
   "options": {
     "白飯": {
-      "aliases": ["米飯", "白米飯", "飯"],
+      "aliases": [
+        "米飯",
+        "白米飯",
+        "飯",
+        "白米"
+      ],
       "food_id": "FOOD000296",
       "tfda_name": "白飯",
       "tfda_sample_id": "A0550601",
@@ -14,10 +37,63 @@
       "default_grams_per_n": "150",
       "adjustable_min": "100",
       "adjustable_max": "250",
-      "basis_note": "熟重；TFDA 熟食樣品（粳米飯），不再套烹調係數"
+      "basis_note": "熟重；TFDA 熟食樣品（粳米飯），不再套烹調係數",
+      "display_name": "白飯"
+    },
+    "糙米飯": {
+      "aliases": [
+        "糙米"
+      ],
+      "food_id": "FOOD001487",
+      "tfda_name": "糙稉米平均值",
+      "tfda_sample_id": "A05013",
+      "weight_basis": "raw",
+      "consumed_as_is": true,
+      "default_grams_per_n": "75",
+      "adjustable_min": "50",
+      "adjustable_max": "125",
+      "display_name": "糙米（生）",
+      "cooked_grams_per_n": "150",
+      "basis_note": "生重（決策 #50）：TFDA 沒有糙米飯熟食樣品，改用糙稉米平均值 A05013（生）；煮飯只吸水，營養以生米組成 × 生米克數計（consumed_as_is）。預設 75 g 生米與白飯 150 g 熱量相當（364×0.75＝273 kcal 對 274.5 kcal），約煮成 150 g 熟飯（生熟比約 1:2）；範圍 50–125 g 對應熟飯約 100–250 g。待營養審核者確認。"
+    },
+    "五穀飯": {
+      "aliases": [
+        "五穀米",
+        "五穀米飯"
+      ],
+      "food_id": "FOOD000087",
+      "tfda_name": "五穀米",
+      "tfda_sample_id": "A0510301",
+      "weight_basis": "raw",
+      "consumed_as_is": true,
+      "default_grams_per_n": "75",
+      "adjustable_min": "50",
+      "adjustable_max": "125",
+      "display_name": "五穀米（生）",
+      "cooked_grams_per_n": "150",
+      "basis_note": "生重：TFDA 五穀米 A0510301（生）；煮飯只吸水，以生米組成計。75 g（268.5 kcal）與白飯 150 g 熱量相當，約煮成 150 g。待營養審核者確認。"
+    },
+    "胚芽米飯": {
+      "aliases": [
+        "胚芽米"
+      ],
+      "food_id": "FOOD000673",
+      "tfda_name": "胚芽稉米平均值",
+      "tfda_sample_id": "A05010",
+      "weight_basis": "raw",
+      "consumed_as_is": true,
+      "default_grams_per_n": "75",
+      "adjustable_min": "50",
+      "adjustable_max": "125",
+      "display_name": "胚芽米（生）",
+      "cooked_grams_per_n": "150",
+      "basis_note": "生重：TFDA 胚芽稉米平均值 A05010（生）；煮飯只吸水，以生米組成計。75 g（271.5 kcal）與白飯 150 g 熱量相當，約煮成 150 g。待營養審核者確認。"
     },
     "麵": {
-      "aliases": ["麵條", "乾麵條"],
+      "aliases": [
+        "麵條",
+        "乾麵條"
+      ],
       "food_id": "FOOD001650",
       "tfda_name": "乾麵條",
       "tfda_sample_id": "R2000101",
@@ -26,10 +102,45 @@
       "default_grams_per_n": "80",
       "adjustable_min": "50",
       "adjustable_max": "120",
-      "basis_note": "乾重；水煮只吸水，營養以乾麵條成分計"
+      "basis_note": "乾重；水煮只吸水，營養以乾麵條成分計",
+      "display_name": "麵（乾）"
+    },
+    "麵線": {
+      "aliases": [
+        "白麵線"
+      ],
+      "food_id": "FOOD001653",
+      "tfda_name": "麵線",
+      "tfda_sample_id": "R1900301",
+      "weight_basis": "raw",
+      "consumed_as_is": true,
+      "default_grams_per_n": "80",
+      "adjustable_min": "50",
+      "adjustable_max": "120",
+      "display_name": "麵線（乾）",
+      "basis_note": "乾重：TFDA 麵線 R1900301；水煮只吸水，以乾麵線組成計。80 g（280 kcal）與白飯 150 g 熱量相當。麵線含鈉較高（752 mg／100 g）。待營養審核者確認。"
+    },
+    "烏龍麵": {
+      "aliases": [
+        "烏龍"
+      ],
+      "food_id": "FOOD000753",
+      "tfda_name": "冷凍烏龍麵",
+      "tfda_sample_id": "R2001301",
+      "weight_basis": "raw",
+      "consumed_as_is": true,
+      "default_grams_per_n": "210",
+      "adjustable_min": "150",
+      "adjustable_max": "350",
+      "display_name": "烏龍麵",
+      "basis_note": "TFDA 冷凍烏龍麵 R2001301（市售已煮熟的麵體，狀態未標生熟）；加熱即食，重量即食用量。210 g（270.9 kcal）與白飯 150 g 熱量相當。待營養審核者確認。"
     },
     "麵包": {
-      "aliases": ["吐司", "土司", "白吐司"],
+      "aliases": [
+        "吐司",
+        "土司",
+        "白吐司"
+      ],
       "food_id": "FOOD000014",
       "tfda_name": "土司",
       "tfda_sample_id": "Q1000101",
@@ -38,10 +149,15 @@
       "default_grams_per_n": "60",
       "adjustable_min": "30",
       "adjustable_max": "120",
-      "basis_note": "即食，重量即食用量"
+      "basis_note": "即食，重量即食用量",
+      "display_name": "麵包"
     },
     "地瓜": {
-      "aliases": ["甘藷", "番薯", "甘薯"],
+      "aliases": [
+        "甘藷",
+        "番薯",
+        "甘薯"
+      ],
       "food_id": "FOOD000325",
       "tfda_name": "黃肉甘藷",
       "tfda_sample_id": "B0400601",
@@ -50,14 +166,24 @@
       "default_grams_per_n": "150",
       "adjustable_min": "100",
       "adjustable_max": "250",
-      "basis_note": "生重；蒸烤不另加油，營養以生地瓜成分計"
+      "basis_note": "生重；蒸烤不另加油，營養以生地瓜成分計",
+      "display_name": "地瓜"
     },
-    "糙米飯": {
-      "aliases": ["糙米"],
-      "food_id": "FOOD001487",
-      "tfda_name": null,
-      "unresolved_reason": "no_tfda_cooked_sample",
-      "basis_note": "TFDA 沒有糙米飯熟食樣品，也沒有一般糙米生樣品；營養無法計算（不可採用），待補資料"
+    "玉米": {
+      "aliases": [
+        "甜玉米",
+        "黃玉米"
+      ],
+      "food_id": "FOOD000257",
+      "tfda_name": "甜玉米",
+      "tfda_sample_id": "A0400301",
+      "weight_basis": "raw",
+      "consumed_as_is": true,
+      "default_grams_per_n": "250",
+      "adjustable_min": "150",
+      "adjustable_max": "400",
+      "display_name": "玉米（可食部分）",
+      "basis_note": "可食部分生重：TFDA 甜玉米 A0400301；蒸煮不另加油，營養以生玉米組成計。250 g（267.5 kcal）與白飯 150 g 熱量相當。待營養審核者確認。"
     }
   }
 }
