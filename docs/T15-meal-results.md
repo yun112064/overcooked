@@ -11,7 +11,7 @@ Migration：`c8e3f6a1d2b4`（接在 `b5d2e8f41c07` 後）；`a3d6e9b1c4f7`（重
 | 方法 | 路徑 | 說明 |
 |---|---|---|
 | GET | `/meal-requests/{id}/results` | 結果版本清單（新到舊），含 `adoptable` |
-| GET | `/meal-requests/{id}/results/{v}` | 結果頁資料：`dishes`（整餐用量、步驟；`display_amount`／`display_unit`／`display_text`）、`staple`、`prices`（只列需補買食材、採購價／成本價、來源與時間；未知為 `null`）、`nutrition`（含 `quantities_verified`、`suggestions`）、`knowledge`（含 `retry_available`）、`retries`（價格／知識重試工作狀態）、`previous_day`（`excluded_dishes`、`specified_repeats`）、`previous_day_check`、`mode_label`／`fallback_message`、`eligibility` |
+| GET | `/meal-requests/{id}/results/{v}` | 結果頁資料：`dishes`（整餐用量、食材分組 `group`、步驟原文 `steps` 與顯示用 `steps_display`；`display_amount`／`display_unit`／`display_text`）、`staple`、`prices`（只列需補買食材、採購價／成本價、來源與時間；未知為 `null`）、`nutrition`（含 `quantities_verified`、`suggestions`）、`knowledge`（含 `retry_available`）、`retries`（價格／知識重試工作狀態）、`previous_day`（`excluded_dishes`、`specified_repeats`）、`previous_day_check`、`mode_label`／`fallback_message`、`eligibility` |
 | POST | `/meal-requests/{id}/results/{v}/decisions` | `{kind, request_version}`＋`Idempotency-Key`；`kind` 為 `accept_missing_price` 或 `continue_missing_nutrition` |
 | POST | `/meal-requests/{id}/results/{v}/price-retry` | `{request_version}`＋`Idempotency-Key` → `202 {job}`；缺價食材排入 T02 定向查價背景工作，完成後產生新結果版本（P3） |
 | POST | `/meal-requests/{id}/results/{v}/knowledge-retry` | `{request_version}`＋`Idempotency-Key` → `202 {job}`；只重試知識說明，產生新結果版本（pre-review #3） |
@@ -26,7 +26,7 @@ Migration：`c8e3f6a1d2b4`（接在 `b5d2e8f41c07` 後）；`a3d6e9b1c4f7`（重
   無法換算克數的食材列在 `cost.unquantified_food_ids`。
 - `nutrition.suggestions`：超出範圍的營養要往哪個方向調、差多少，各食材在已審核可調範圍內最多能補多少，
   以及範圍內是否補得足；缺資料時列出要補的食材。
-- 顯示用量：克取到 1 g；湯匙、茶匙、杯等容量單位取到 0.5；沒有克數換算的照原單位（或原文，例如「少許」）。計算一律用未取整值。
+- 顯示用量：克取到 1 g；其他單位（顆、片、匙、大匙、杯…）四捨五入成整數、大於 0 最少 1（decisions #43，取代 0.5；舊結果讀取時也照此取整）；沒有數量的照原文（例如「少許」）。計算一律用未取整值。
 
 ## 重試（背景工作，產生新版本）
 
@@ -80,3 +80,15 @@ Migration：`c8e3f6a1d2b4`（接在 `b5d2e8f41c07` 後）；`a3d6e9b1c4f7`（重
 
 - 定向查價只走 PX Mart 公開頁、低頻率；真實覆蓋率仍屬 G02 未驗證項目。
 - 主食份量設定（`config/staples.json`）待營養審核者確認。
+
+## 顯示調整（decisions #41–#44，2026-10-21）
+
+- **步驟分組展開（#41）**：資料庫菜色的步驟原文（`steps`）不改；`steps_display` 把「[調味]」「[醃料]」等作者分組代稱展開成
+  「調味（沙茶醬、醬油、糖or味琳）」。結果頁與已採用紀錄頁（`frontend/src/components/DishDetail.tsx` 共用）顯示 `steps_display`，
+  舊結果沒有時用原文。食材清單先列沒有分組的食材，再依分組加小標（如「調味：沙茶醬 1 匙、醬油 1 匙…」）。規則見 docs/T12。
+- **不顯示推估字樣（#42）**：結果頁、已採用紀錄頁、營養表不再出現「LLM 推估」「LLM 對照」「近似」等標籤與說明文字；
+  `llm_estimated`、`estimate_label`、`llm_mappings`、`approximations` 等欄位仍在 API 與 payload／trace 中供稽核。
+  缺克數換算的建議文字改為「補上克數換算後重新計算」。
+- **份量整數（#43）**：見上方「顯示用量」。
+- **調味料不列缺料（#44）**：`config/seasoning_ingredients.json` 內的調味料在成本行為 `price_status = "seasoning"`，
+  不出現在「需補買食材」與價格合計，也不觸發缺價例外；營養照算。已存在的舊結果版本維持當時的價格行（重新生成或重新查價後才套用）。
