@@ -236,6 +236,8 @@ export type ResultIngredient = {
   llm_mapped?: boolean
   mapping_label?: string | null
   estimated_nutrients?: string[]
+  /** decisions #40：保留率視為 1 的近似營養素 */
+  approximate_nutrients?: string[]
   estimates?: {
     /** nutrient_fill（decisions #32）：TFDA 樣本熱量／蛋白質空白，以 LLM 推估每 100 g 補值 */
     kind: 'cooking' | 'unit' | 'tfda_mapping' | 'nutrient_fill'
@@ -259,6 +261,15 @@ export type LlmEstimates = {
 export type LlmMappings = {
   used: boolean
   food_ids: string[]
+  label: string | null
+}
+
+/** decisions #40：烹調後以 TFDA 生組成、保留率視為 1 近似的非必要營養素（畫面標示「近似」） */
+export type Approximations = {
+  used: boolean
+  food_ids: string[]
+  nutrients: string[]
+  basis: string | null
   label: string | null
 }
 
@@ -342,6 +353,7 @@ export type MealResult = {
     /** 哪些食材、哪些營養用到 LLM 推估的換算係數（decisions #19） */
     llm_estimates?: LlmEstimates
     llm_mappings?: LlmMappings
+    approximations?: Approximations
   }
   prices: {
     status: string

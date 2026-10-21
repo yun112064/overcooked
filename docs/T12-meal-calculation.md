@@ -73,7 +73,7 @@ LLM 係數，推估後可採用。本節取代上方「已知限制」中「不�
 - 取用優先順序：**TFDA／USDA 實測 > 人工核可／覆寫 > LLM 推估**；同層取最新；`rejected` 永不使用。
   TFDA 實測不入表：只有 T04 以實測算不出熱量或蛋白質時才套快取係數（`make_tfda_calculator(cooking_factors=...)`）。
   - TFDA 有熟樣品但缺產率 → 熟樣品每 100 g × 生重 × 產率；只有生樣品 → 生樣品每 100 g × 生重 × 保留率。
-  - 只推估熱量與蛋白質的保留率；其他營養若無實測維持未知（不擋採用、不填 0）。
+  - 只推估熱量與蛋白質的保留率；其他營養若無實測，依 decisions #40 以生組成、保留率 1 近似（見下方 #40），生組成空白者維持未知（不擋採用、不填 0）。
 - 計算時**絕不呼叫 LLM**：`tfda_calculator` 傳給 T04 的估算器一律回報未設定（T04 的 `estimator=None` 會改用環境變數設定的
   Gemini，已排除）。生成工作每次以 `cached_factor_calculator(db)` 載入一次快取；`load_recipe_lines` 以快取的每單位克數
   解出「1 匙」等列的克數（`weight_estimate`）。
@@ -233,3 +233,16 @@ python -m app.estimation override --kind tfda_mapping --food FOOD000691 --key tf
 - 其他情況維持 #17 生重：明確的生熟欄位（`recipe_weight_basis_field`）、AI 模型標示（`model_declared`）不改；名稱不是熟食
   （如「米」）對到熟樣本仍報錯。結果列與 trace 的 `weight_basis`／`weight_basis_source` 為實際採用的依據。
 - 測試：`tests/test_nutrient_gaps.py`（假 responder，不呼叫真實 OpenAI）。
+
+## 非必要營養素烹調後近似（decisions #40，2026-10-21）
+
+- 問題：快取烹調係數（#19）只推估熱量與蛋白質的保留率，其他營養素烹調後沒有係數可套，連雞蛋、豆腐、番茄等 TFDA 有完整數值的食材也變成未知。
+- 規則（`_apply_cooking_factor`）：套用快取烹調係數且該係數有產率（`yield_factor`）時，沒有保留率的非必要營養素（碳水、脂肪、糖、鈉、膳食纖維）
+  以 **TFDA 生組成每 100 g × 生重**計算（保留率視為 1；產率只換算熟重 `cooked_weight_g`）。熟樣品有值者仍用熟樣品 × 產率。
+- 熱量與蛋白質不變：維持 #19 保留率推估與 #32 空白推估。TFDA 生組成本身空白的營養素仍為 None（不填 0）。
+- 只在必要營養也由該係數算出時才套用；沒有產率的係數不近似。熟重（#35）、直接食用（`consumed_as_is`）與水（#33）走原邏輯、不標近似。
+- 標示：食材 trace `approximate_nutrients`、`nutrient_basis = {營養素: "yield_only_retention_1"}`；結果列 `approximate_nutrients`；
+  `calculate_meal` 結果 `approximations = {used, food_ids, nutrients, basis}`；結果檢視 `nutrition.approximations.label = "近似"`，
+  前端營養表列出非必要營養素，近似者旁標示「近似」。近似不算 LLM 推估的營養（不列入 `estimated_nutrients`）。
+- 已知範圍：無烹調方式且非直接食用的生樣品，T04 仍回報 `no_cooking_method`，全部營養（含熱量）維持未知，此行為未改。
+- 測試：`tests/test_other_nutrients.py`（含蕃茄炒蛋類：雞蛋平均值＋牛番茄，炒）。
