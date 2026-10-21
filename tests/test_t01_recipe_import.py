@@ -198,13 +198,17 @@ class CategoryOverrideTests(unittest.TestCase):
         from app.services.recipe_import import CATEGORY_OVERRIDES_PATH, load_category_overrides
         self.assertEqual(CATEGORY_OVERRIDES_PATH, REPO / "config" / "recipe_category_overrides.json")
         overrides = load_category_overrides()
-        self.assertEqual(sorted(overrides), sorted([*TO_MAIN, "R0173"]))
+        # 決策 #54 追加的修正（→主食／點心／主菜／湯）
+        decision_54 = {**{r: "主食" for r in ("R0073", "R0074", "R0075", "R0076", "R0077", "R0078", "R0079", "R0081",
+                                               "R0084", "R0121", "R0142", "R0196", "R0212", "R0272", "R0279",
+                                               "R0280", "R0282", "R0004")},
+                       "R0012": "點心", "R0143": "主菜", "R0152": "主菜", "R0200": "湯", "R0257": "湯", "R0276": "湯"}
+        expected = {**{r: "主菜" for r in TO_MAIN}, "R0173": "點心", **decision_54}
+        self.assertEqual({k: o["category"] for k, o in overrides.items()}, expected)
         self.assertEqual(overrides["R0140"]["category"], "主菜")
-        self.assertEqual(overrides["R0173"]["category"], "點心")
-        self.assertTrue(all(o["category"] == "主菜" for k, o in overrides.items() if k != "R0173"))
         self.assertTrue(all(o["decided_at"] == "2026-10-21" and o["reason"] for o in overrides.values()))
 
-    def test_every_override_targets_a_staple_recipe_in_the_real_workbook(self):
+    def test_every_override_changes_the_category_of_a_real_workbook_recipe(self):
         from openpyxl import load_workbook
         from app.services.recipe_import import load_category_overrides
         wb = load_workbook(REPO / "data" / "recipe_dataset_1017.xlsx", read_only=True, data_only=True)
@@ -216,8 +220,10 @@ class CategoryOverrideTests(unittest.TestCase):
         finally:
             wb.close()
         self.assertEqual(book["R0140"], ("蕃茄炒蛋", "主食"))
-        for recipe_id in load_category_overrides():
-            self.assertEqual(book[recipe_id][1], "主食", recipe_id)
+        for recipe_id, override in load_category_overrides().items():
+            name, category = book[recipe_id]
+            self.assertEqual(override["recipe_name"], name, recipe_id)
+            self.assertNotEqual(override["category"], category, recipe_id)  # 每筆都確實改變分類
 
 
 @requires_db
