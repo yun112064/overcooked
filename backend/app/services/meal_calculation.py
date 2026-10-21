@@ -193,51 +193,150 @@ def _adjustable(ln: IngredientLine) -> bool:
     return ln.adjustment_approved and ln.adjustable_min is not None and ln.adjustable_max is not None
 
 
-def _align(lines, grams, rows, references):
-    """資料庫模式：只在已審核可調範圍內格點搜尋同時符合熱量與蛋白質的用量。
+PORTION_PATH = PROJECT_ROOT / "config" / "portion_scaling.json"
+ALIGN_CANDIDATES = 5  # 浮點搜尋前幾名逐一以 calculator 精確複核
 
-    單一食材的熱量／蛋白質對克數為線性（固定的每克含量），係數取自基準計算結果；
-    選中的用量之後仍以 calculator 重新計算確認。格點搜尋找不到即明確回報無解。
+
+@lru_cache(maxsize=1)
+def portion_settings() -> dict:
+    """decisions #48：整道縮放範圍與格點上限（config/portion_scaling.json）。"""
+    import json
+
+    data = json.loads(PORTION_PATH.read_text(encoding="utf-8"))
+    return {"dish_scale_min": Decimal(data["dish_scale_min"]), "dish_scale_max": Decimal(data["dish_scale_max"]),
+            "dish_scale_step": Decimal(data["dish_scale_step"]), "max_grid_points": int(data["max_grid_points"]),
+            "version": data.get("version")}
+
+
+def _dish_groups(lines) -> dict[str, list[int]]:
+    """可整道縮放的菜：依 dish_id 分組（主食與沒有 dish_id 的列除外），保持首次出現順序。"""
+    groups: dict[str, list[int]] = {}
+    for i, ln in enumerate(lines):
+        if ln.role != "staple" and ln.dish_id is not None:
+            groups.setdefault(ln.dish_id, []).append(i)
+    return groups
+
+
+def _scale_values(settings: dict) -> list[Decimal]:
+    lo, hi, step = settings["dish_scale_min"], settings["dish_scale_max"], settings["dish_scale_step"]
+    values, v = [], lo
+    while v <= hi:
+        values.append(v)
+        v += step
+    values.append(hi)
+    if lo <= 1 <= hi:
+        values.append(Decimal(1))
+    return sorted(set(values))
+
+
+def _coarsen(values: list) -> list:
+    """格點放粗：隔一個取一個，端點與 1.0（原份量）一律保留。"""
+    keep = {values[0], values[-1], Decimal(1)}
+    return sorted({v for j, v in enumerate(values) if j % 2 == 0 or v in keep})
+
+
+def _align(lines, grams, rows, references, mode):
+    """對齊搜尋（decisions #48）：每道菜整道倍率（dish_scale_min～max）＋主食在可調範圍內的克數，
+    資料庫模式另含沒有 dish_id、已審核可調範圍的列（舊的逐列調整，相容保留）。
+
+    熱量／蛋白質對克數為線性（係數取自基準計算結果），以浮點格點快速搜尋；格點總數受 max_grid_points 限制
+    （先放粗逐列格點、再放粗倍率，仍超過則所有菜共用同一倍率）。回傳前幾名候選 [(克數, 各道倍率)]，
+    由呼叫端以 calculator 精確（Fraction）複核 ±10%；找不到回傳空清單。
+    排序：與目標的最大相對偏差 → 總移動克數 → 菜色移動克數（同分時先調主食，保持整道菜原份量）。
     """
-    adjustable = [i for i, ln in enumerate(lines) if _adjustable(ln) and grams[i] > 0]
-    if not adjustable:
-        return None
-    per_gram = {i: {k: Fraction(rows[i].nutrients[k]) / Fraction(grams[i]) for k in REQUIRED_NUTRIENTS}
-                for i in adjustable}
-    fixed = {k: sum((Fraction(rows[i].nutrients[k]) for i in range(len(lines)) if i not in per_gram), Fraction())
-             for k in REQUIRED_NUTRIENTS}
+    import heapq
+    from math import prod
+
+    settings = portion_settings()
+    groups = _dish_groups(lines)
+    grouped = {i for idx in groups.values() for i in idx}
+    line_vars = [i for i, ln in enumerate(lines) if i not in grouped and _adjustable(ln) and grams[i] > 0
+                 and (mode == "database" or ln.role == "staple")]
+    if not groups and not line_vars:
+        return []
+    keys = REQUIRED_NUTRIENTS
+    value = {i: {k: Fraction(rows[i].nutrients[k]) for k in keys} for i in range(len(lines))}
+    fixed = [float(sum((value[i][k] for i in range(len(lines)) if i not in grouped and i not in line_vars),
+                       Fraction())) for k in keys]
+    ref = [float(references[k]) for k in keys]
+    lower, upper = [float(LOWER) * r for r in ref], [float(UPPER) * r for r in ref]
+
+    dish_axis = _scale_values(settings)
+    dish_axes = {d: list(dish_axis) for d in groups}
     steps = 40
-    while (steps + 1) ** len(adjustable) > MAX_GRID_POINTS and steps > 2:
-        steps //= 2
-    axes = []
-    for i in adjustable:
+    budget = settings["max_grid_points"]
+
+    def size():
+        return prod(len(a) for a in dish_axes.values()) * (steps + 1) ** len(line_vars)
+
+    while size() > budget:
+        if line_vars and steps > 8:
+            steps //= 2
+        elif any(len(a) > 3 for a in dish_axes.values()):
+            dish_axes = {d: _coarsen(a) for d, a in dish_axes.items()}
+        elif line_vars and steps > 2:
+            steps //= 2
+        else:
+            break
+    uniform = size() > budget  # 菜太多：所有菜共用同一倍率
+
+    axes = []  # 每個變數的選項：(標記, 值, 熱量, 蛋白質, 移動克數, 菜色移動克數)
+    def dish_options(ids, values):
+        totals = [float(sum((value[i][k] for i in ids), Fraction())) for k in keys]
+        mass = float(sum((Fraction(grams[i]) for i in ids), Fraction()))
+        return [(v, totals[0] * float(v), totals[1] * float(v), (1 - float(v)) * mass) for v in values]
+
+    if uniform:
+        axes.append([("all", v, e, p, m, m) for v, e, p, m in dish_options(sorted(grouped), dish_axis)])
+    else:
+        for d, idx in groups.items():
+            axes.append([(d, v, e, p, m, m) for v, e, p, m in dish_options(idx, dish_axes[d])])
+    for i in line_vars:
         lo, hi = Fraction(lines[i].adjustable_min), Fraction(lines[i].adjustable_max)
-        points = {lo + (hi - lo) * s / steps for s in range(steps + 1)}
+        points = {lo + (hi - lo) * t / steps for t in range(steps + 1)}
         if lo <= Fraction(grams[i]) <= hi:
             points.add(Fraction(grams[i]))
-        axes.append(sorted(points))
-    best = None
-    for combo in itertools.product(*axes):
-        totals = {k: fixed[k] + sum((per_gram[i][k] * g for i, g in zip(adjustable, combo)), Fraction())
-                  for k in REQUIRED_NUTRIENTS}
-        if not all(_within(totals[k], references[k]) for k in REQUIRED_NUTRIENTS):
-            continue
-        deviation = max(abs(totals[k] / references[k] - 1) for k in REQUIRED_NUTRIENTS)
-        moved = sum((abs(g - Fraction(grams[i])) for i, g in zip(adjustable, combo)), Fraction())
-        if best is None or (deviation, moved) < best[0]:
-            best = ((deviation, moved), combo)
-    if best is None:
-        return None
-    new = list(grams)
-    for i, g in zip(adjustable, best[1]):
-        new[i] = _dec(g)
-    return new
+        per_gram = [value[i][k] / Fraction(grams[i]) for k in keys]
+        axes.append([(i, g, float(per_gram[0] * g), float(per_gram[1] * g), abs(float(g - Fraction(grams[i]))), 0.0)
+                     for g in sorted(points)])
+
+    def feasible():
+        for combo in itertools.product(*axes):
+            e = fixed[0] + sum(o[2] for o in combo)
+            pr = fixed[1] + sum(o[3] for o in combo)
+            # 浮點只作篩選（含極小容差），最後一律以 calculator 精確複核
+            if not (lower[0] - 1e-9 <= e <= upper[0] + 1e-9 and lower[1] - 1e-9 <= pr <= upper[1] + 1e-9):
+                continue
+            deviation = max(abs(e / ref[0] - 1), abs(pr / ref[1] - 1))
+            key = (round(deviation, 9), round(sum(o[4] for o in combo), 6), round(sum(o[5] for o in combo), 6))
+            yield key, combo
+
+    out = []
+    for _, combo in heapq.nsmallest(ALIGN_CANDIDATES, feasible(), key=lambda item: item[0]):
+        new, scales = list(grams), {d: Decimal(1) for d in groups}
+        for option in combo:
+            tag, v = option[0], option[1]
+            if tag == "all":
+                scales = {d: v for d in groups}
+            elif tag in groups:
+                scales[tag] = v
+            else:
+                new[tag] = _dec(v)
+        for d, idx in groups.items():
+            for i in idx:
+                new[i] = grams[i] * scales[d]
+        out.append((new, scales))
+    return out
 
 
 def calculate_meal(lines: list[IngredientLine], targets: MealTargets, *, mode: str,
                    calculator: Calculator) -> dict:
     """驗證整餐並彙整「LLM 推估」標示（decisions #19）；計算本體見 _calculate_meal。"""
     result = _calculate_meal(lines, targets, mode=mode, calculator=calculator)
+    for ln, row in zip(lines, result["ingredients"]):
+        # decisions #48：食譜原每人份克數與該道採用的整道倍率（主食與未分組的列為 None）
+        row["recipe_grams_per_n"] = ln.grams_per_n
+        row["dish_scale"] = result["dish_scales"].get(ln.dish_id) if ln.role != "staple" else None
     result["llm_estimates"] = _llm_summary(result["ingredients"])
     mapped = []
     for row in result["ingredients"]:
@@ -298,6 +397,8 @@ def _calculate_meal(lines: list[IngredientLine], targets: MealTargets, *, mode: 
                   "energy_kcal": None, "protein_g": None, "gap": {}, "within_range": False,
                   "other_nutrients": {}, "missing_nutrients": {}, "known_partial": {}, "missing_by_nutrient": {}},
         "ingredients": [], "requirements": [], "unresolved_ingredients": [],
+        # decisions #48：每道菜（dish_id）採用的整道倍率；未對齊時為 1
+        "dish_scales": {d: Decimal(1) for d in _dish_groups(lines)},
     }
     unresolved = [ln for ln in lines if ln.grams_per_n is None]
     if unresolved:
@@ -336,15 +437,17 @@ def _calculate_meal(lines: list[IngredientLine], targets: MealTargets, *, mode: 
         _unverified_final(result, lines, grams, n, calculator, final_targets)
         return result
 
-    if mode == "database" and not all(_within(totals[k], references[k]) for k in REQUIRED_NUTRIENTS):
-        aligned = _align(lines, grams, rows, references)
-        if aligned is not None:
+    if not all(_within(totals[k], references[k]) for k in REQUIRED_NUTRIENTS):
+        # decisions #48：整道縮放＋主食（資料庫與 AI 模式皆可）；資料庫模式另含舊的逐列可調範圍
+        for aligned, scales in _align(lines, grams, rows, references, mode):
             check_rows, check_totals, check_missing, check_partial = _evaluate(lines, aligned, calculator)
             if all(check_totals[k] is not None and _within(check_totals[k], references[k])
                    for k in REQUIRED_NUTRIENTS):
                 grams, rows, totals = aligned, check_rows, check_totals
                 _partial_view(result["baseline"], check_partial, check_missing)
                 result["baseline"]["adjusted"] = True
+                result["dish_scales"] = scales
+                break
     result["baseline"].update(energy_kcal=_dec(totals["energy_kcal"]), protein_g=_dec(totals["protein_g"]))
     baseline_reasons = _range_reasons("baseline", totals, references)
     if baseline_reasons:
@@ -352,7 +455,9 @@ def _calculate_meal(lines: list[IngredientLine], targets: MealTargets, *, mode: 
         result["block_reasons"] += baseline_reasons
         result["block_reasons"].append({
             "code": "NO_FEASIBLE_BASELINE", "mode": mode,
-            "adjustable_food_ids": [ln.food_id for ln in lines if mode == "database" and _adjustable(ln)]})
+            "adjustable_food_ids": [ln.food_id for ln in lines
+                                    if _adjustable(ln) and (mode == "database" or ln.role == "staple")],
+            "adjustable_dish_ids": list(result["dish_scales"])})
         result["suggestions"] = _range_suggestions(lines, grams, rows, totals, references, mode)
         _unverified_final(result, lines, grams, n, calculator, final_targets)
         return result
@@ -422,7 +527,8 @@ def _range_suggestions(lines, grams, rows, totals, references, mode) -> list[dic
             per_gram = Fraction(value) / Fraction(g)
             if per_gram <= 0:
                 continue
-            approved = mode == "database" and _adjustable(ln)
+            approved = _adjustable(ln) and (mode == "database" or ln.role == "staple") and not (
+                ln.role != "staple" and ln.dish_id is not None)
             change = None
             if approved:
                 bound = Fraction(ln.adjustable_max if increase else ln.adjustable_min)
@@ -434,11 +540,21 @@ def _range_suggestions(lines, grams, rows, totals, references, mode) -> list[dic
                 "baseline_grams": g, "adjustable_min": ln.adjustable_min, "adjustable_max": ln.adjustable_max,
                 "adjustment_approved": approved, "max_change": _dec(change) if change is not None else None}))
         items.sort(key=lambda item: -item[0])
+        # decisions #48：整道縮放（倍率 dish_scale_min～max；目前為 1）在該營養上最多能補多少
+        settings, dishes = portion_settings(), []
+        for dish_id, idx in _dish_groups(lines).items():
+            amount = sum((Fraction(rows[i].nutrients.get(key) or 0) for i in idx), Fraction())
+            bound = settings["dish_scale_max"] if increase else settings["dish_scale_min"]
+            change = max(Fraction(), amount * (Fraction(bound) - 1) if increase else amount * (1 - Fraction(bound)))
+            reachable += change
+            dishes.append({"dish_id": dish_id, "direction": "increase" if increase else "decrease",
+                           "scale_min": settings["dish_scale_min"], "scale_max": settings["dish_scale_max"],
+                           "max_change": _dec(change)})
         out.append({"code": "NUTRITION_OUT_OF_RANGE", "nutrient": key,
                     "direction": "increase" if increase else "decrease",
                     "value": _dec(total), "lower": _dec(lower), "upper": _dec(upper), "needed_change": _dec(needed),
                     "within_adjustable_ranges": reachable >= needed,
-                    "ingredients": [item for _, item in items[:5]]})
+                    "ingredients": [item for _, item in items[:5]], "dishes": dishes})
     return out
 
 

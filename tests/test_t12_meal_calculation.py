@@ -333,6 +333,96 @@ class DatabaseModeAlignmentTests(unittest.TestCase):
                       [(r["code"], r.get("nutrient")) for r in result["block_reasons"]])
 
 
+def dish(dish_id, chicken, sugar, **kw):
+    # 一道菜：雞胸肉（100 kcal、20 g 蛋白質／100 g）＋糖（400 kcal／100 g），配方比例固定
+    return [line("雞胸肉", chicken, food_id=f"C-{dish_id}", dish_id=dish_id, **kw),
+            line("糖", sugar, food_id=f"S-{dish_id}", dish_id=dish_id)]
+
+
+RICE_STAPLE = dict(role="staple", dish_id="staple", adjustable_min=D("100"), adjustable_max=D("250"),
+                   adjustment_approved=True)
+
+
+class WholeDishScalingTests(unittest.TestCase):
+    """decisions #48：每道菜整道等比例縮放（預設 0.4–1.0，設定化），與主食一起對齊熱量與蛋白質 ±10%。"""
+
+    def test_two_full_dishes_that_overshoot_are_scaled_down_with_the_staple(self):
+        # 兩道各 1n：雞胸肉 150 g＋糖 75 g = 450 kcal／30 g 蛋白質；合計 900 kcal／60 g，加白飯 150 g（300 kcal）
+        # 目標 600／30：必須把兩道菜縮小（主食最少 100 g 仍超出）
+        lines = dish("R1", "150", "75") + dish("R2", "150", "75") + [line("白飯", "150", **RICE_STAPLE)]
+        result = mc.calculate_meal(lines, single("1"), mode="database", calculator=FakeCalculator())
+        self.assertTrue(result["adoptable"], result["block_reasons"])
+        self.assertTrue(result["baseline"]["adjusted"])
+        scales = result["dish_scales"]
+        self.assertEqual(set(scales), {"R1", "R2"})
+        for scale in scales.values():
+            self.assertTrue(D("0.4") <= scale <= D("1"))
+        self.assertTrue(any(scale < 1 for scale in scales.values()))
+        rows = {(r["dish_id"], r["name"]): r for r in result["ingredients"]}
+        for dish_id in ("R1", "R2"):
+            chicken, sugar = rows[(dish_id, "雞胸肉")], rows[(dish_id, "糖")]
+            # 配方比例不變：雞胸肉：糖 = 2：1，並等於原量 × 該道倍率
+            self.assertEqual(chicken["baseline_grams"], D("150") * scales[dish_id])
+            self.assertEqual(chicken["baseline_grams"], sugar["baseline_grams"] * 2)
+            self.assertEqual(chicken["dish_scale"], scales[dish_id])
+            self.assertEqual(chicken["recipe_grams_per_n"], D("150"))
+        energy, protein = result["baseline"]["energy_kcal"], result["baseline"]["protein_g"]
+        self.assertTrue(D("540") <= energy <= D("660") and D("27") <= protein <= D("33"))
+
+    def test_staple_moves_before_the_dishes_when_either_would_do(self):
+        # 菜 450 kcal＋白飯 225 g（450 kcal）= 900 > 660：只調白飯（100 g 即 650）就夠時不縮菜
+        lines = dish("R1", "150", "75") + [line("白飯", "225", **RICE_STAPLE)]
+        targets = mc.MealTargets(Fraction(1), Fraction(650), Fraction(30))
+        result = mc.calculate_meal(lines, targets, mode="database", calculator=FakeCalculator())
+        self.assertTrue(result["adoptable"], result["block_reasons"])
+        self.assertEqual(result["dish_scales"], {"R1": D("1")})
+
+    def test_display_amount_follows_the_dish_scale(self):
+        # 1240 kcal／62 g 的菜（含蛋白 2 g，記為 2 顆）約需縮到一半；顯示數量與整餐克數都照倍率（#43 取整）
+        lines = dish("R1", "300", "235") + [
+            mc.IngredientLine(food_id="EGG", name="蛋白", grams_per_n=D("2"), dish_id="R1", unit="顆",
+                              amount_per_n=D("2"))]
+        result = mc.calculate_meal(lines, single("1.3"), mode="database", calculator=FakeCalculator())
+        scale = result["dish_scales"]["R1"]
+        self.assertLess(scale, 1)
+        egg = next(r for r in result["ingredients"] if r["food_id"] == "EGG")
+        self.assertEqual(egg["whole_meal_grams"], D("2") * scale * D("1.3"))
+        self.assertEqual(egg["display_amount"], mc.display_count(D("2") * scale * D("1.3")))
+
+    def test_ai_dishes_can_be_scaled_too(self):
+        # 兩道各 600 kcal／30 g：合計是目標的兩倍，整道縮放後可採用
+        lines = dish("ai-1", "150", "112.5") + dish("ai-2", "150", "112.5")
+        result = mc.calculate_meal(lines, single("1"), mode="ai", calculator=FakeCalculator())
+        self.assertTrue(result["adoptable"], result["block_reasons"])
+        self.assertTrue(result["baseline"]["adjusted"])
+
+    def test_even_the_smallest_scale_can_be_infeasible(self):
+        # 單道 1500 kcal：0.4 倍仍 600 kcal 但蛋白質 120 g 遠超 33 → 不可行，不移動目標
+        lines = dish("R1", "600", "225")
+        result = mc.calculate_meal(lines, single("1"), mode="database", calculator=FakeCalculator())
+        self.assertFalse(result["adoptable"])
+        codes = [r["code"] for r in result["block_reasons"]]
+        self.assertIn("NO_FEASIBLE_BASELINE", codes)
+        self.assertEqual(result["dish_scales"], {"R1": D("1")})
+        block = next(r for r in result["block_reasons"] if r["code"] == "NO_FEASIBLE_BASELINE")
+        self.assertEqual(block["adjustable_dish_ids"], ["R1"])
+
+    def test_scale_range_comes_from_config(self):
+        settings = mc.portion_settings()
+        self.assertEqual((settings["dish_scale_min"], settings["dish_scale_max"]), (D("0.4"), D("1.0")))
+        self.assertGreater(settings["max_grid_points"], 0)
+
+    def test_many_dishes_stay_within_the_search_budget(self):
+        lines = []
+        for i in range(6):
+            lines += dish(f"R{i}", "60", "30")
+        lines.append(line("白飯", "150", **RICE_STAPLE))
+        calc = FakeCalculator()
+        result = mc.calculate_meal(lines, single("1"), mode="database", calculator=calc)
+        self.assertTrue(result["adoptable"], result["block_reasons"])
+        self.assertLessEqual(len(calc.calls), 5)
+
+
 class CompletenessTests(unittest.TestCase):
     def test_unresolved_weight_blocks_adoption_and_is_not_zero(self):
         lines = BASE_LINES + [line("醬油", None, unresolved_reason="unverified_conversion")]

@@ -457,7 +457,8 @@ class MissingNutritionDecisionTests(ResultTestCase):
     def test_out_of_range_offers_no_decision(self):
         def doubled():
             energy, protein = self.reference()
-            return per_gram_calculator(energy / 100, protein / 100)  # 兩倍 → 超出 ±10%
+            # 五倍 → 整道縮到最小倍率 0.4（決策 #48）仍超出 ±10%
+            return per_gram_calculator(energy / 40, protein / 40)
         doubled.factory = True
         # 資料庫候選組合全部不可行 → 自動 AI 回退；AI 菜同樣超出 ±10%
         self.generate(calculator=doubled, responder=FakeResponder(AI_MENU))
