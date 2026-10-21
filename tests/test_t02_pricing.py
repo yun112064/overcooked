@@ -202,6 +202,25 @@ class CollectionLockTests(unittest.TestCase):
         self.assertEqual(names, ["高麗菜"])
         self.assertEqual(counts["exempt"], 1)
 
+    def test_seasonings_are_not_priced_by_the_scheduled_run(self):
+        # 決策 #44：調味料（設定檔 config/seasoning_ingredients.json）不在查價範圍
+        from app.source_adapters.price_collection import PriceCollectionService
+        from app.source_adapters.pricing_repository import PricingRepository
+        folder = tempfile.TemporaryDirectory()
+        self.addCleanup(folder.cleanup)
+        book = build(Path(folder.name) / "salt.xlsx", [recipe("R001", "清炒高麗菜", ingredients=[
+            ingredient("FOOD000005", "高麗菜", 300), ingredient("FOOD000691", "食鹽", 3)])])
+        source, _ = adapter(page(product("高麗菜 1顆", "45")), retries=0)
+        service = PriceCollectionService(workbook_path=book, repository=PricingRepository(self.engine),
+                                         adapter_factory=lambda: source, delay_seconds=0, sleep=lambda s: None)
+        result = service.run(trigger_type="manual", scheduled_for=datetime(2026, 10, 19, 3, tzinfo=TZ), run_key="s1")
+        self.assertEqual(result.ingredient_total, 1)
+        with self.engine.connect() as conn:
+            names = conn.execute(text("SELECT canonical_name FROM price_quote_snapshots")).scalars().all()
+            counts = conn.execute(text("SELECT status_counts FROM price_collection_runs WHERE run_key = 's1'")).scalar_one()
+        self.assertEqual(names, ["高麗菜"])
+        self.assertEqual(counts["seasoning"], 1)
+
     def test_targeted_run_only_queries_the_requested_food_ids(self):
         # P3：T15 缺價重試只查指定 FOOD 編號（低頻率），不跑整份清單
         from app.source_adapters.price_collection import PriceCollectionService

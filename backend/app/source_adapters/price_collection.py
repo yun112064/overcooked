@@ -99,8 +99,13 @@ class PriceCollectionService:
         exempt_food_ids: set[str] | None = None,
         synonym_groups: list[set[str]] | None = None,
         fallback_adapter_factory: Callable[[], object] | None = None,
+        seasoning_food_ids: set[str] | None = None,
     ) -> None:
         self.fallback_adapter_factory = fallback_adapter_factory
+        if seasoning_food_ids is None:
+            from app.services.seasonings import load_seasonings
+            seasoning_food_ids = load_seasonings()
+        self.seasoning_food_ids = set(seasoning_food_ids)
         if synonym_groups is None:
             from app.services.synonyms import confirmed_groups
             synonym_groups = confirmed_groups()
@@ -209,6 +214,11 @@ class PriceCollectionService:
             if exempt:
                 ingredients = [i for i in ingredients if i not in exempt]
                 status_counts["exempt"] = len(exempt)
+            # 調味料（決策 #44）家中足量、成本 0，不在查價範圍；在執行摘要中另計
+            seasonings = [i for i in ingredients if i.food_ids and set(i.food_ids) <= self.seasoning_food_ids]
+            if seasonings:
+                ingredients = [i for i in ingredients if i not in seasonings]
+                status_counts["seasoning"] = len(seasonings)
             primary_finished = True
             if target_filter is not None:
                 # 第二來源只查主要來源查無／不可用的食材；總數即目標數

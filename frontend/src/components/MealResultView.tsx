@@ -6,8 +6,9 @@ import { useEffect, useRef } from 'react'
 import { Link as RouterLink } from 'react-router'
 import { api, errorMessage } from '../api/client'
 import type {
-  DecisionKind, MealPlanSummary, MealResult, MealResultSummary, NutritionSuggestion, ResultIngredient,
+  DecisionKind, MealPlanSummary, MealResult, MealResultSummary, NutritionSuggestion,
 } from '../api/types'
+import { DishIngredients, DishSteps } from './DishDetail'
 
 type Props = { requestId: string; mealDate?: string | null; onChanged: () => void }
 
@@ -16,15 +17,6 @@ const money = (v: string | null) => (v === null ? '未知' : `${Math.round(Numbe
 const grams = (v: string | null) => (v === null ? '無法換算' : `${Math.round(Number(v))} g`)
 const amount = (v: string | null | undefined, unit: string) =>
   v === null || v === undefined ? '未知' : `${Number(v).toFixed(1)} ${unit}`
-/** 後端已取整的畫面用量（克到 1 g、容量單位到 0.5）；沒有數量時顯示原文 */
-const shown = (i: ResultIngredient) =>
-  i.display_amount != null && i.display_unit
-    ? `${Number(i.display_amount)} ${i.display_unit}`
-    : i.display_text ?? grams(i.display_grams)
-/** decisions #19：LLM 推估的克數或烹調係數要標示出來 */
-const estimateTag = (i: ResultIngredient) =>
-  (i.llm_estimated ? `（${i.estimate_label ?? 'LLM 推估'}）` : '')
-  + (i.llm_mapped ? `（${i.mapping_label ?? 'LLM 對照'}）` : '')
 const NUTRIENT_LABELS: Record<string, string> = { energy_kcal: '熱量', protein_g: '蛋白質' }
 const NUTRIENT_UNITS: Record<string, string> = { energy_kcal: 'kcal', protein_g: 'g' }
 /** 非必要營養素：僅顯示、不擋採用；未知顯示「未知」（不以 0 代替） */
@@ -129,9 +121,7 @@ export default function MealResultView({ requestId, mealDate, onChanged }: Props
   const knowledgeRetrying = !!knowledgeRetry && ACTIVE.has(knowledgeRetry.status)
   const dayConflict = r.previous_day_check?.status === 'conflict'
   const suggestions: NutritionSuggestion[] = r.nutrition.suggestions ?? []
-  // decisions #40：烹調後以生組成、保留率 1 近似的非必要營養素
-  const approximate = new Set(r.nutrition.approximations?.used ? r.nutrition.approximations.nutrients : [])
-  const approxLabel = r.nutrition.approximations?.label ?? '近似'
+  // decisions #42：推估／對照／近似等來源只留在追溯資料（payload、trace），畫面不標示
 
   return (
     <Stack spacing={2}>
@@ -211,12 +201,8 @@ export default function MealResultView({ requestId, mealDate, onChanged }: Props
           <Typography sx={{ fontWeight: 'bold' }}>
             {d.dish_name}{d.specified && '（指定菜）'}{d.cooking_method && ` · ${d.cooking_method}`}
           </Typography>
-          <Typography variant="body2">
-            {d.ingredients.map((i) => `${i.name} ${shown(i)}${estimateTag(i)}`).join('、')}
-          </Typography>
-          <Box component="ol" sx={{ my: 0.5, pl: 3 }}>
-            {d.steps.map((s, idx) => <li key={idx}><Typography variant="body2">{s}</Typography></li>)}
-          </Box>
+          <DishIngredients ingredients={d.ingredients} />
+          <DishSteps steps={d.steps} display={d.steps_display} />
         </Box>
       ))}
 
@@ -226,8 +212,7 @@ export default function MealResultView({ requestId, mealDate, onChanged }: Props
           <Typography variant="body2">
             {r.staple.display_amount != null
               ? `${r.staple.tfda_name ?? r.staple.label} ${Number(r.staple.display_amount)} ${r.staple.display_unit ?? ''}`
-                + (r.staple.llm_estimated ? '（LLM 推估）' : '')
-              : '無法換算營養（缺 TFDA 樣品），不可採用'}
+              :'無法換算營養（缺 TFDA 樣品），不可採用'}
             （計入營養與 ±10% 驗證，不計入價格{r.staple.review_status === 'pending_review' ? '；份量設定待營養審核' : ''}）
           </Typography>
         </Box>
@@ -261,26 +246,6 @@ export default function MealResultView({ requestId, mealDate, onChanged }: Props
           </Box>
         </Alert>
       )}
-      {r.nutrition.llm_estimates?.used && (
-        <Alert severity="info" icon={false}>
-          <Chip size="small" color="info" label={r.nutrition.llm_estimates.label ?? 'LLM 推估'} sx={{ mr: 1 }} />
-          <Typography variant="body2" component="span">
-            {(r.nutrition.llm_estimates.nutrients.filter((k) => k in NUTRIENT_LABELS)
-              .map((k) => NUTRIENT_LABELS[k]).join('、') || '部分數值')}
-            含 LLM 推估的換算係數（缺 TFDA 實測的產率／保留率或「匙」等單位克數；已標示的食材）。
-            TFDA 實測與人工審核值優先，推估值可由管理者覆核。
-          </Typography>
-        </Alert>
-      )}
-      {r.nutrition.llm_mappings?.used && (
-        <Alert severity="info" icon={false}>
-          <Chip size="small" color="info" label={r.nutrition.llm_mappings.label ?? 'LLM 對照'} sx={{ mr: 1 }} />
-          <Typography variant="body2" component="span">
-            部分食材名稱對不到 TFDA，營養值改用 LLM 推薦的 TFDA 樣本計算（已標示的食材）；
-            人工審核的對照優先，推薦結果可由管理者覆核。
-          </Typography>
-        </Alert>
-      )}
       <Table size="small">
         <TableHead><TableRow><TableCell>項目</TableCell><TableCell>目標</TableCell><TableCell>估算</TableCell><TableCell>差距</TableCell></TableRow></TableHead>
         <TableBody>
@@ -294,26 +259,16 @@ export default function MealResultView({ requestId, mealDate, onChanged }: Props
           </TableRow>
           {OTHER_NUTRIENTS.map(([key, label, unit]) => {
             const value = r.nutrition.other_nutrients?.[key]
-            const approx = value != null && approximate.has(key)
             return (
               <TableRow key={key}>
                 <TableCell>{label}</TableCell><TableCell>—</TableCell>
-                <TableCell>
-                  {amount(value, unit)}
-                  {approx && <Chip size="small" variant="outlined" label={approxLabel} sx={{ ml: 1 }} />}
-                </TableCell>
+                <TableCell>{amount(value, unit)}</TableCell>
                 <TableCell>—</TableCell>
               </TableRow>
             )
           })}
         </TableBody>
       </Table>
-      {approximate.size > 0 && (
-        <Typography variant="caption" color="text.secondary">
-          標示「{approxLabel}」的營養素：烹調後沒有保留率資料，以 TFDA 生食材組成計算（保留率視為 1，產率只用於換算熟重），
-          實際含量可能較低。熱量與蛋白質仍依烹調保留率計算。
-        </Typography>
-      )}
 
       <Divider />
       <Typography variant="subtitle1">需補買食材</Typography>

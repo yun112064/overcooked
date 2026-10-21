@@ -9,6 +9,7 @@
 採用交易與歷史在 T16，T16 必須以 meal_validation.evaluate 重新判定，不能信任前端或本模組的快取。
 """
 from datetime import datetime, timezone
+from decimal import Decimal
 
 from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
@@ -17,6 +18,7 @@ from sqlalchemy.orm import Session
 from app.api.errors import ApiError, idempotency_conflict, version_conflict
 from app.db.models import GenerationResult, MealRequest, MealResultDecision
 from app.services import idempotency, jobs, meal_history, meal_validation
+from app.services.meal_calculation import display_count
 
 
 FALLBACK_MESSAGES = {
@@ -61,13 +63,22 @@ def public_decision(db: Session, row: MealResultDecision) -> dict:
             "created_at": row.created_at.isoformat()}
 
 
+def _display_amount(amount, unit):
+    """decisions #43：非克重單位一律整數（最少 1）；舊結果存的 0.5 等值讀取時也照此顯示。"""
+    if amount is None or unit in (None, "g"):
+        return amount
+    return display_count(Decimal(str(amount)))
+
+
 def _ingredient(r: dict) -> dict:
-    """整餐用量；display_* 為畫面取整（克到 1 g、容量單位到 0.5，無換算照原單位／原文）。"""
-    return {"food_id": r["food_id"], "name": r["name"], "weight_basis": r.get("weight_basis"),
+    """整餐用量；display_* 為畫面取整（克到 1 g、其他單位到整數，無換算照原文）。group 為食材分組（#41）。"""
+    unit = r.get("display_unit", "g" if r.get("display_grams") is not None else None)
+    return {"food_id": r["food_id"], "name": r["name"], "group": r.get("group"),
+            "weight_basis": r.get("weight_basis"),
             "weight_basis_source": r.get("weight_basis_source"),
             "whole_meal_grams": r.get("whole_meal_grams"), "display_grams": r.get("display_grams"),
-            "display_amount": r.get("display_amount", r.get("display_grams")),
-            "display_unit": r.get("display_unit", "g" if r.get("display_grams") is not None else None),
+            "display_amount": _display_amount(r.get("display_amount", r.get("display_grams")), unit),
+            "display_unit": unit,
             "display_text": r.get("display_text"),
             # decisions #19：克數或烹調係數來自 LLM 推估時標示；estimates 保留模型、版本與覆核狀態供追溯
             "llm_estimated": bool(r.get("llm_estimated")),
@@ -116,6 +127,8 @@ def _dishes(payload: dict) -> list[dict]:
             "standard_dish_id": d["standard_dish_id"], "dish_name": d["dish_name"], "aliases": d.get("aliases", []),
             "source": d["source"], "recipe_id": d.get("recipe_id"), "specified": d.get("specified", False),
             "cooking_method": d.get("cooking_method"), "steps": d.get("steps", []),
+            # 決策 #41：顯示用步驟（分組代稱已展開）；舊結果沒有時沿用原文
+            "steps_display": d.get("steps_display") or d.get("steps", []),
             "ingredients": [_ingredient(r) for r in rows if r.get("dish_id") == key],
         })
     return out
