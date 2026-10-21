@@ -437,7 +437,7 @@ class ConversionFactorEstimate(Base):
     """
     __tablename__ = "conversion_factor_estimates"
     __table_args__ = (
-        CheckConstraint("kind IN ('cooking', 'unit', 'tfda_mapping')", name="ck_conversion_factor_kind"),
+        CheckConstraint("kind IN ('cooking', 'unit', 'tfda_mapping', 'nutrient_fill')", name="ck_conversion_factor_kind"),
         CheckConstraint("source IN ('tfda', 'human', 'llm_estimated')", name="ck_conversion_factor_source"),
         CheckConstraint("status IN ('llm_estimated', 'approved', 'rejected', 'overridden')",
                         name="ck_conversion_factor_status"),
@@ -447,9 +447,13 @@ class ConversionFactorEstimate(Base):
             "(kind = 'unit' AND grams_per_unit IS NOT NULL AND yield_factor IS NULL "
             "AND energy_retention IS NULL AND protein_retention IS NULL) OR "
             "(kind = 'tfda_mapping' AND grams_per_unit IS NULL AND yield_factor IS NULL "
-            "AND energy_retention IS NULL AND protein_retention IS NULL)",
+            "AND energy_retention IS NULL AND protein_retention IS NULL) OR "
+            "(kind = 'nutrient_fill' AND nutrient_per_100g IS NOT NULL AND grams_per_unit IS NULL "
+            "AND yield_factor IS NULL AND energy_retention IS NULL AND protein_retention IS NULL)",
             name="ck_conversion_factor_values"),
         CheckConstraint("tfda_sample_id IS NULL OR kind = 'tfda_mapping'", name="ck_conversion_factor_tfda_sample"),
+        CheckConstraint("nutrient_per_100g IS NULL OR (kind = 'nutrient_fill' AND nutrient_per_100g >= 0 "
+                        "AND nutrient_per_100g <= 900)", name="ck_conversion_factor_nutrient_fill"),
         CheckConstraint("yield_factor IS NULL OR (yield_factor > 0 AND yield_factor <= 10)",
                         name="ck_conversion_factor_yield_range"),
         CheckConstraint("energy_retention IS NULL OR (energy_retention >= 0 AND energy_retention <= 1)",
@@ -486,3 +490,5 @@ class ConversionFactorEstimate(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, nullable=False)
     # decisions #28（kind=tfda_mapping）：對照到的 TFDA 樣本 ID；NULL 代表模型回答「無合適樣本」
     tfda_sample_id: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    # decisions #32（kind=nutrient_fill）：food_id 為 TFDA 樣本 ID、factor_key 為營養素，此欄為每 100 g 推估值
+    nutrient_per_100g: Mapped[Decimal | None] = mapped_column(Numeric(10, 4), nullable=True)

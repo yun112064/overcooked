@@ -237,7 +237,8 @@ export type ResultIngredient = {
   mapping_label?: string | null
   estimated_nutrients?: string[]
   estimates?: {
-    kind: 'cooking' | 'unit'
+    /** nutrient_fill（decisions #32）：TFDA 樣本熱量／蛋白質空白，以 LLM 推估每 100 g 補值 */
+    kind: 'cooking' | 'unit' | 'tfda_mapping' | 'nutrient_fill'
     source: string
     status: string
     model: string | null

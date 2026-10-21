@@ -9,6 +9,11 @@ override  人工覆寫值（新增一列，優先於 LLM）：
           override --kind cooking --food FOOD000100 --key 炒 --yield 0.8 --energy 1 --protein 0.95 --reviewer A
           override --kind unit --food FOOD001541 --key 匙 --grams 15 --reviewer A
           override --kind tfda_mapping --food FOOD000509 --key tfda --sample E5600101 --reviewer A
+          override --kind nutrient_fill --food N0100101 --key protein_g --value 0 --reviewer A
+            （decisions #32：--food 為 TFDA 樣本 ID、--key 為 energy_kcal／protein_g、--value 為每 100 g；
+             只能補 TFDA 空白的必要營養）
+
+run --kind nutrient_fill：掃描合格食譜實際用到、且 TFDA 樣本熱量／蛋白質空白的組合（decisions #32）。
 """
 import argparse
 import json
@@ -47,6 +52,7 @@ def _parser() -> argparse.ArgumentParser:
     o.add_argument("--protein", type=Decimal, help="蛋白質保留率 0–1")
     o.add_argument("--grams", type=Decimal, help="每單位克數")
     o.add_argument("--sample", help="TFDA 樣本 ID（tfda_mapping）")
+    o.add_argument("--value", type=Decimal, help="每 100 g 營養值（nutrient_fill）")
     o.add_argument("--reviewer", required=True)
     o.add_argument("--note")
     return parser
@@ -85,13 +91,17 @@ def main(argv=None, *, factory=None, responder=_DEFAULT) -> int:
             elif args.kind == "tfda_mapping":
                 if not args.sample:
                     raise ValueError("tfda_mapping override requires --sample")
+            elif args.kind == "nutrient_fill":
+                if args.value is None:
+                    raise ValueError("nutrient_fill override requires --value")
             elif args.grams is None:
                 raise ValueError("unit override requires --grams")
             with factory() as db, db.begin():
                 new_id = store.override(db, kind=args.kind, food_id=args.food, key=args.key,
                                         reviewer=args.reviewer, note=args.note, yield_factor=args.yield_factor,
                                         retention=retention, grams_per_unit=args.grams,
-                                        tfda_sample_id=args.sample if args.kind == "tfda_mapping" else None)
+                                        tfda_sample_id=args.sample if args.kind == "tfda_mapping" else None,
+                                        nutrient_per_100g=args.value if args.kind == "nutrient_fill" else None)
             print(f"overridden {new_id}")
     except batch.EstimationUnavailable as exc:
         print(str(exc), file=sys.stderr)

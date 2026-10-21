@@ -165,3 +165,71 @@ python -m app.estimation approve|reject <id> --reviewer 營養師A
 - 2026-10-21 以真實工作簿（合格 281 道）在測試資料庫 dry-run：對照缺口 299 組（送模型 277、無候選 22），
   烹調缺口 592 組（對照前；對照後會再增加），單位 0 組。
 - 測試：`tests/test_tfda_mapping.py`（假 responder，不呼叫真實 OpenAI）。
+
+## 必要營養缺值、水、食鹽、熟食克數（decisions #32–#35，2026-10-21）
+
+協調者以生成用的 `cached_factor_calculator` 對 281 道合格食譜計算，只有 34 道能完整算出熱量＋蛋白質。追溯後的四類原因
+與處理如下。新增 migration `c6a9d2e4f817`（接在 `b7f2c9e4a8d1` 之後，維持單一 head）。
+
+### #32 TFDA 必要營養空白 → LLM 推估（`kind = nutrient_fill`）
+
+- 例：砂糖→方糖 N0100101、冰糖 N0100201、白醋→米醋 P0600101、香油 P0900201 的 TFDA 蛋白質欄位空白，熱量有值，
+  整道菜因此缺必要營養。
+- 快取沿用 `conversion_factor_estimates`：`kind = nutrient_fill`、`food_id` 為 **TFDA 樣本 ID**、`factor_key` 為營養素
+  （`energy_kcal`／`protein_g`），新欄位 `nutrient_per_100g`（Numeric(10,4)，資料庫 CHECK 0–900）。人工覆寫優先、同層取最新、
+  `rejected` 永不使用（同 #19）。查表：`FactorSnapshot.nutrient_fill(sample_id, nutrient)`。
+- 只補必要營養（熱量、蛋白質）中 **TFDA 空白者**；TFDA 有值一律以 TFDA 為準（批次不掃描、人工覆寫拒絕、計算時不套用）。
+- 計算（`make_tfda_calculator(nutrient_fills=...)`，`cached_factor_calculator` 自動帶入）：T04 算完、快取烹調係數套完後，
+  該食材所用 TFDA 樣本的必要營養仍為 None 且樣本該欄空白時，套用推估值：
+  - 有套快取烹調係數 → 生樣本 × 該營養保留率（熟樣本 × 產率），與同列其他營養一致；
+  - 否則（T04 直接以樣本組成計算）→ 每 100 g × 克數。
+  - 至少要有一項營養已由該樣本算出才補，避免只補出孤立的單一營養。
+- 標示：trace `estimated_factors` 加入 `kind = nutrient_fill` 的標記（模型、prompt／schema 版本、估計 ID、`nutrient_per_100g`）、
+  `estimated_nutrients` 加入該營養、`nutrient_fills = {營養: {sample_id, per_100g, source, status}}`；結果列 `llm_estimated`、
+  `estimated_nutrients`，結果層級 `llm_estimates`。前端沿用既有「LLM 推估」標示（食材旁與營養表上方），不需改畫面；
+  人工覆寫值不標「LLM 推估」。
+- 批次：`python -m app.estimation run --kind nutrient_fill`。缺口＝合格食譜實際用到（經 #28 對照後）的 TFDA 樣本中，必要營養
+  欄位空白的 (樣本 ID, 營養素)。輸入快照：樣本名稱、別名、生熟狀態、描述、已知每 100 g 營養、使用它的食譜食材名稱與食譜編號。
+  Structured Outputs strict（`value_per_100g`、`assumptions`），經 T10 `spend.paid_call`（用途 `nutrient_fill_estimation`）。
+  驗證（`store.check_fill`，人工覆寫共用）：熱量 0–900 kcal、蛋白質 0–100 g，且 `蛋白質 × 4 ≤ 熱量 × 1.1 + 1`；拒答、截斷、
+  格式錯誤、超出範圍一律不寫入。冪等、`--dry-run`、`--refresh`、`--limit` 同 #19。
+  不指定 `--kind` 時 nutrient_fill 與 cooking／unit 同在第二階段（對照寫入後重新掃描）。
+- 2026-10-21 以真實工作簿在測試資料庫 dry-run（只有精確名稱／別名／同義詞，尚無 LLM 對照）：5 組（冰糖、香油、啤酒、可樂、
+  麥芽糖的蛋白質）；開發資料庫已有 LLM 對照（砂糖、白醋等），實際組數會較多（預估 10–30 組）。每次約 1k 輸入／0.1k 輸出
+  token，30 組合計不到新台幣 2 元。
+
+```bash
+python -m app.estimation run --kind nutrient_fill --dry-run
+python -m app.estimation run --kind nutrient_fill
+python -m app.estimation list --kind nutrient_fill
+python -m app.estimation override --kind nutrient_fill --food N0100101 --key protein_g --value 0 --reviewer 營養師A
+python -m app.estimation approve|reject <id> --reviewer 營養師A
+```
+
+### #33 水：營養為已知 0
+
+- 判定（`meal_calculation.is_water`）：FOOD 編號屬於價格端「水免計價」設定（`config/price_exempt_ingredients.json` 中名稱為水者，
+  目前 FOOD000119 水、FOOD001208 滾水），或標準名稱為水（水、清水、開水、冷水、熱水、溫水、滾水、冰水、飲用水、自來水）。
+- 全部營養為 `Decimal(0)`（已知 0，不是缺值）；不送 T04、不查 TFDA 對照，trace `nutrition_basis = nutrition_source = water_known_zero`、
+  `sample_id = None`、`tfda_mapping = None`。批次掃描略過水（不產生對照、烹調、單位、缺值推估缺口）。
+
+### #34 食鹽：人工覆寫對照
+
+TFDA 沒有精鹽／食鹽樣本，最接近的是岩鹽 **P0300101**（2 kcal、蛋白質 0.0 g、鈉 34,468 mg／100 g）；低鈉鹽 P0300201 不適合。
+開發環境由協調者以既有覆寫指令設定（人工值優先於 LLM 的 NONE）：
+
+```bash
+python -m app.estimation override --kind tfda_mapping --food FOOD000691 --key tfda --sample P0300101 \
+  --reviewer <名稱> --note "decisions #34：TFDA 無精鹽樣本，以岩鹽近似"
+# 同義的「鹽」FOOD001680、「鹽巴」FOOD001681、「海鹽」FOOD000742 可比照設定
+```
+
+### #35 熟食名稱＋熟樣本 → 熟重
+
+- 例：白米飯（工作簿克數依 #17 視為生重）對照到熟樣本白飯 A0550601，T04 回報 `cooked_food_requires_cooked_weight_basis`。
+- 規則（`_effective_basis`）：只在工作簿生重慣例（`weight_basis_source = recipe_workbook_raw_convention`）下，若對照到的 TFDA
+  樣本 `state = cooked` 且食材名稱本身是熟食（`is_cooked_food_name`：以「飯」「粥」結尾或含「熟」），改視為熟重
+  （`weight_basis = cooked`，依據 `cooked_food_cooked_sample`），且不再傳烹調方式給 T04（熟樣本已是熟的狀態；另列的油鹽照算）。
+- 其他情況維持 #17 生重：明確的生熟欄位（`recipe_weight_basis_field`）、AI 模型標示（`model_declared`）不改；名稱不是熟食
+  （如「米」）對到熟樣本仍報錯。結果列與 trace 的 `weight_basis`／`weight_basis_source` 為實際採用的依據。
+- 測試：`tests/test_nutrient_gaps.py`（假 responder，不呼叫真實 OpenAI）。
