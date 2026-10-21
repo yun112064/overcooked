@@ -540,7 +540,7 @@ def load_recipe_lines(db, recipe_id: str, factors=None) -> list[IngredientLine]:
     """資料庫模式：把 T01 食譜的全部食材（含油與調味料）轉成每 1n 基準用量。
 
     - 每 1n 克數 = weight_g ÷ original_servings；原份數未知或無克數換算時為 None 並附原因。
-    - 克數來源順序（decisions #20）：單位為 g → 原文克數；否則工作簿該列 weight_g（source_weight_g，
+    - 克數來源順序（decisions #20／#55）：原文 g 克數 → 工作簿該列 weight_g（source_weight_g，g 單位範圍列即工作簿中點，
       視為生重，來源 workbook，不標示 LLM 推估）；工作簿缺值時才用快取的每單位克數推估
       （factors：FactorSnapshot，未提供則自行載入；人工值優先，rejected 不用），換算後的列帶
       weight_estimate 供結果標示與追溯。都沒有即維持未知。
@@ -574,7 +574,7 @@ def load_recipe_lines(db, recipe_id: str, factors=None) -> list[IngredientLine]:
     for row in rows:
         reason, weight, estimate = None, row.weight_g, None
         source = "recipe_grams" if weight is not None else None
-        if weight is None and row.unit != "g" and row.source_weight_g is not None:
+        if weight is None and row.source_weight_g is not None:  # 含 g 單位範圍列（decisions #55）
             weight, source = row.source_weight_g, "workbook"
         if not servings:
             reason = "servings_unresolved"

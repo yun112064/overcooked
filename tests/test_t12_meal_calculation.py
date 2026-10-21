@@ -484,6 +484,16 @@ class RecipeLoaderTests(unittest.TestCase):
         result = mc.calculate_meal([rice, oil, soy], single("1"), mode="database", calculator=FakeCalculator())
         self.assertIn("INGREDIENT_UNRESOLVED", [r["code"] for r in result["block_reasons"]])
 
+    def test_gram_range_uses_the_workbook_weight(self):
+        # decisions #55：R0253「冬瓜 800～1000公克」這類 g 單位範圍列，weight_g 空白但工作簿已填中點 900 g
+        self.run_import([recipe("R003", "紅燒冬瓜排骨", servings="3人份", ingredients=[
+            ingredient("FOOD000200", "冬瓜", None, raw_text="冬瓜 800～1000公克", amount=None, weight_g=900,
+                       adjustable_min=None, adjustable_max=None),
+        ])])
+        [melon] = self.load("R003")
+        self.assertEqual((melon.grams_per_n, melon.weight_source), (D("300"), "workbook"))
+        self.assertIsNone(melon.unresolved_reason)
+
     def test_unknown_original_servings_makes_baseline_not_computable(self):
         self.run_import([recipe("R002", "清炒高麗菜", servings="適量")])
         [cabbage] = self.load("R002")
