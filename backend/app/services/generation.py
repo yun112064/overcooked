@@ -47,6 +47,7 @@ from app.services.meal_calculation import (MODEL_DECLARED, IngredientLine, calcu
                                           targets_from_t03)
 from app.services.meal_cost import meal_cost_from_db
 from app.services.recipe_import import normalize_name, standard_dish_id
+from app.services.recipe_steps import expand_steps
 
 RESULT_SCHEMA_VERSION = "generation_result/v1"
 MENU_PROMPT_VERSION = "t14-menu-prompt-v2"  # v2：食材名稱只能照抄 allowed_ingredients（決策 #37）
@@ -276,6 +277,8 @@ def _database_dishes(db, selected: list[dict]) -> tuple[list[dict], list[Ingredi
             "standard_dish_id": s["standard_dish_id"], "dish_name": s["recipe_name"], "aliases": s["aliases"],
             "source": "database", "recipe_id": s["recipe_id"], "specified": s["specified"],
             "cooking_method": recipe_lines[0].cooking_method if recipe_lines else None, "steps": list(steps),
+            # 決策 #41：steps 為原文（不動），steps_display 把 [調味] 等分組代稱展開成實際食材
+            "steps_display": expand_steps(steps, [ln.raw_text for ln in recipe_lines]),
             "food_ids": sorted({ln.food_id for ln in recipe_lines}),
             "ingredients": [{"food_id": ln.food_id, "name": ln.name, "grams_per_n": ln.grams_per_n,
                              "weight_basis": ln.weight_basis} for ln in recipe_lines],
@@ -326,7 +329,8 @@ def _ai_dishes(candidate: MenuCandidate, foods: FoodDictionary, specified: list[
             "standard_dish_id": dish_id, "dish_name": name, "aliases": aliases, "source": "ai", "recipe_id": None,
             "specified": any(meal_history.same_dish({"standard_dish_id": dish_id, "dish_name": name,
                                                      "aliases": aliases}, {"dish_name": s}) for s in specified),
-            "cooking_method": method, "steps": steps, "food_ids": sorted({i["food_id"] for i in ingredients}),
+            "cooking_method": method, "steps": steps, "steps_display": list(steps),
+            "food_ids": sorted({i["food_id"] for i in ingredients}),
             "ingredients": ingredients,
         })
     return dishes, lines, problems, resolutions

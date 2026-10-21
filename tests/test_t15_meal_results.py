@@ -117,6 +117,53 @@ class ResultViewTests(ResultTestCase):
         self.assertEqual(Decimal(view["nutrition"]["energy_kcal"]), energy)
         self.assertTrue(view["eligibility"]["adoptable"])
 
+    def test_seasonings_are_not_priced_or_listed_but_still_count_for_nutrition(self):
+        # 決策 #44：調味料視為家中足量（缺量 0、不查價、成本 0），營養照算
+        from unittest.mock import patch
+        with patch("app.services.meal_cost.load_seasonings", return_value={GARLIC}):
+            self.generate(prices=(TOMATO, EGG, CABBAGE))
+        view = self.result()
+        self.assertEqual(sorted(i["food_id"] for i in view["prices"]["items"]), sorted((TOMATO, EGG, CABBAGE)))
+        self.assertTrue(view["prices"]["price_complete"])
+        self.assertEqual(money(view["prices"]["purchase_total"]), Decimal(90))
+        garlic = next(i for d in view["dishes"] for i in d["ingredients"] if i["food_id"] == GARLIC)
+        self.assertEqual(Decimal(garlic["whole_meal_grams"]), Decimal(50))  # 仍按配方計入營養
+        energy, _ = self.reference()
+        self.assertEqual(Decimal(view["nutrition"]["energy_kcal"]), energy)
+        self.assertTrue(view["eligibility"]["adoptable"], view["eligibility"])
+
+    def test_step_group_references_are_expanded_for_display_and_original_kept(self):
+        # 決策 #41：raw_text 開頭的 [X] 分組；步驟原文另存，顯示文字展開代稱
+        from sqlalchemy import update
+
+        from app.models import RecipeIngredient, RecipeStep
+        with self.factory() as db, db.begin():
+            db.execute(update(RecipeIngredient).where(RecipeIngredient.recipe_ingredient_id == "R01-I1")
+                       .values(raw_text="[配料]牛番茄 2顆"))
+            db.execute(update(RecipeIngredient).where(RecipeIngredient.recipe_ingredient_id == "R01-I2")
+                       .values(raw_text="[配料]蛋 3顆"))
+            db.add(RecipeStep(step_id="R01-S1", recipe_id="R01", step_no=1, instruction_clean="下所有[配料]快炒即可",
+                              method_status="approved", review_status="approved"))
+        self.generate()
+        first = self.result()["dishes"][0]
+        self.assertEqual(first["steps"], ["下所有[配料]快炒即可"])
+        self.assertEqual(first["steps_display"], ["下所有配料（牛番茄、蛋）快炒即可"])
+        self.assertEqual([i["group"] for i in first["ingredients"]], ["配料", "配料"])
+
+    def test_old_payload_non_gram_amounts_are_shown_as_whole_numbers(self):
+        # 決策 #43：舊結果（容量單位存 0.5）讀取時也以整數顯示；步驟沒有顯示文字時沿用原文
+        from app.services import meal_results
+        payload = {"dishes": [{"standard_dish_id": "s1", "dish_name": "炒蛋", "source": "database",
+                               "recipe_id": "R1", "steps": ["打蛋"]}],
+                   "calculation": {"ingredients": [
+                       {"food_id": "F1", "name": "醬油", "dish_id": "R1", "display_amount": "0.5", "display_unit": "大匙"},
+                       {"food_id": "F2", "name": "雞蛋", "dish_id": "R1", "display_amount": "4.72", "display_unit": "顆"},
+                       {"food_id": "F3", "name": "高麗菜", "dish_id": "R1", "display_amount": "191", "display_unit": "g"}]}}
+        [dish] = meal_results._dishes(payload)
+        self.assertEqual([(Decimal(i["display_amount"]), i["display_unit"]) for i in dish["ingredients"]],
+                         [(Decimal(1), "大匙"), (Decimal(5), "顆"), (Decimal(191), "g")])
+        self.assertEqual(dish["steps_display"], ["打蛋"])
+
     def test_results_are_household_scoped(self):
         self.generate()
         other = db_support.make_client()
