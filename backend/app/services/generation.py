@@ -41,11 +41,11 @@ from app.core.config import settings
 from app.db.models import GenerationResult, MealRequest, Member
 from app.models import IngredientAlias, Recipe, RecipeIngredient, RecipeStep
 from app.services import jobs, knowledge, meal_history, recipe_retrieval, spend
-from app.services import knowledge_queue, staples
+from app.services import knowledge_queue, staples, tfda_mapping
 from app.services import meal_request as meal_request_service
 from app.services.llm_client import default_embedder, default_responder
 from app.services.meal_calculation import (MODEL_DECLARED, REQUIRED_NUTRIENTS, IngredientLine, calculate_meal,
-                                          combined_method_key, load_recipe_lines, targets_from_t03)
+                                          combined_method_key, is_water, load_recipe_lines, targets_from_t03)
 from app.services.meal_cost import meal_cost_from_db
 from app.services.recipe_import import METHOD_KEYWORDS, normalize_name, standard_dish_id
 from app.services.recipe_steps import expand_steps
@@ -211,6 +211,10 @@ class FoodDictionary:
         for food_id in sorted(set(ids), key=lambda f: (-self.usage.get(f, 0), f)):
             chosen.setdefault(normalize_name(self.names[food_id]), self.names[food_id])
         return sorted(chosen.values())
+
+    def candidate_ids(self, extra_food_ids=()) -> set[str]:
+        """可能列入 AI 合法食材清單的 FOOD 編號（合格食譜用到的＋額外食材）。"""
+        return {f for f in (*(f for f, n in self.usage.items() if n > 0), *extra_food_ids) if f in self.names}
 
     def resolve_with_reason(self, name: str, food_id: str | None) -> tuple[str | None, str | None, dict | None]:
         """回傳 (FOOD 編號, 問題代碼, 選擇紀錄)。名稱優先；模型給的編號與名稱矛盾即不採用。
@@ -386,8 +390,15 @@ def _staple_input(staple: dict | None, text: str | None):
     return data
 
 
+def uncomputable_food_ids(foods: FoodDictionary, resolver, extra_food_ids=()) -> set[str]:
+    """2026-10-21（使用者 #39 維持未知的食材）：對不到任何 TFDA 樣本、也不是水的食材算不出營養，
+    不列入 AI 合法食材清單，避免 AI 選用後整餐營養未知。resolver 為 tfda_mapping.TfdaResolver。"""
+    return {f for f in foods.candidate_ids(extra_food_ids)
+            if not is_water(f, foods.names[f]) and resolver.resolve(f, foods.names[f]) is None}
+
+
 def _menu_input(draft, restrictions: dict, foods: FoodDictionary, context: dict, targets: dict,
-                staple: dict | None = None) -> str:
+                staple: dict | None = None, unavailable=()) -> str:
     """staple：{"label", "grams_per_n", "nutrients"}；主食已提供的營養從每份參考值扣除（decisions #16）。"""
     n = Decimal(targets["total_n"])
     reference = {k: Decimal(v) / n for k, v in targets["target"].items()}
@@ -404,7 +415,8 @@ def _menu_input(draft, restrictions: dict, foods: FoodDictionary, context: dict,
         "known_ingredients": [{"food_id": i, "name": foods.names.get(i)} for i in known],
         # 決策 #37：食材名稱只能從這份清單照抄（合格食譜用到的標準名稱＋現有食材），後端才對得到 FOOD 編號。
         # 禁忌食材（已含同義展開）不列入；後端仍會再檢查。
-        "allowed_ingredients": foods.allowed_names(known, exclude=restrictions["excluded_food_ids"]),
+        # 算不出營養的食材（unavailable）同樣不列入。
+        "allowed_ingredients": foods.allowed_names(known, exclude={*restrictions["excluded_food_ids"], *unavailable}),
         "avoid_dishes": [{"dish_name": d["dish_name"], "aliases": d.get("aliases", [])}
                          for d in context["excluded_dishes"]],
         "per_n_reference": {k: str(v) for k, v in reference.items()},
@@ -689,12 +701,15 @@ def _generate(ctx, *, responder, knowledge_client, embedder, calculator, now) ->
                                                 *(standard_dish_id(n) for n in draft.specified_dishes)]))
             context = meal_history.previous_day_context(db, job.household_id, draft.meal_date,
                                                         specified_dish_ids=specified_ids)
+            unavailable = uncomputable_food_ids(foods, tfda_mapping.load_resolver(db),
+                                                draft.available_ingredient_ids)
         ctx.stage("ai_generating")
         if responder is None:
             raise jobs.JobFailure("GENERATION_FAILED",
                                   "資料庫沒有可行菜單，且 AI 生成服務未設定，無法自動生成；問卷已保留。")
         menu_model = settings.generation_model
-        data = _menu_input(draft, restrictions, foods, context, targets_info, _staple_prompt(staple, calculator))
+        data = _menu_input(draft, restrictions, foods, context, targets_info, _staple_prompt(staple, calculator),
+                           unavailable=unavailable)
         schema = strict_schema(MenuCandidate)
         response = paid_call(
             name="menu", purpose="menu_generation", provider="openai", model=menu_model,

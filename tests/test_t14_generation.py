@@ -425,7 +425,10 @@ class AllowedIngredientTests(GenerationTestCase):
         responder = FakeResponder(menu(ai_dish("蒜香高麗菜", [(CABBAGE, 30), (GARLIC, 30)]),
                                        ai_dish("九層塔煎蛋", [(BASIL, 30), (EGG, 50)]),
                                        ai_dish("清炒胡蘿蔔", [(CARROT, 60)])))
-        self.run_job(responder)
+        # 這裡只驗清單組成；測試種子資料的部分食材沒有 TFDA 對照，「算不出營養即排除」另有
+        # FoodDictionaryTests.test_uncomputable_foods_are_kept_out_of_the_ai_list 驗證。
+        with patch("app.services.generation.uncomputable_food_ids", return_value=set()):
+            self.run_job(responder)
         [call] = responder.calls
         sent = json.loads(call["input_text"])
         # 合格食譜實際用到的標準名稱＋現有食材，去重排序；未合格食譜（R01 番茄）不列入
@@ -491,6 +494,21 @@ class FoodDictionaryTests(unittest.TestCase):
     def test_allowed_names_dedupe_variants_and_add_known(self):
         foods = self.foods({"FOOD001016": 2, "FOOD001444": 1})
         self.assertEqual(foods.allowed_names(["FOOD000005"]), ["番茄", "高麗菜"])
+
+    def test_uncomputable_foods_are_kept_out_of_the_ai_list(self):
+        """2026-10-21：AI 只能用算得出營養的食材；對不到任何 TFDA 樣本的（如吉利丁片）不給模型，水例外。"""
+        from app.services.generation import FoodDictionary, uncomputable_food_ids
+        rows = [*self.ROWS, ("FOOD000322", "吉利丁片", [], []), ("FOOD000119", "水", [], [])]
+        foods = FoodDictionary(rows, usage={"FOOD001016": 2, "FOOD000005": 1, "FOOD000322": 1, "FOOD000119": 5})
+
+        class Resolver:
+            def resolve(self, food_id, name):
+                return None if food_id in ("FOOD000322", "FOOD000119") else object()
+
+        unavailable = uncomputable_food_ids(foods, Resolver())
+        self.assertEqual(unavailable, {"FOOD000322"})
+        self.assertNotIn("吉利丁片", foods.allowed_names(exclude=unavailable))
+        self.assertIn("水", foods.allowed_names(exclude=unavailable))
 
 
 class AllergyTests(GenerationTestCase):
