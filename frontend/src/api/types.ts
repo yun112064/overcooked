@@ -230,6 +230,11 @@ export type ResultIngredient = {
   /** decisions #19：克數或烹調係數來自批次 LLM 推估（gpt-5.4-mini）；人工覆寫值不算 */
   llm_estimated?: boolean
   estimate_label?: string | null
+  /** decisions #28：TFDA 樣本對照來源；llm_mapped 為 LLM 推薦的對照（標示「LLM 對照」） */
+  tfda_mapping_source?: 'exact' | 'alias' | 'synonym' | 'human' | 'llm_mapped' | null
+  tfda_sample_id?: string | null
+  llm_mapped?: boolean
+  mapping_label?: string | null
   estimated_nutrients?: string[]
   estimates?: {
     kind: 'cooking' | 'unit'
@@ -246,6 +251,13 @@ export type LlmEstimates = {
   used: boolean
   food_ids: string[]
   nutrients: string[]
+  label: string | null
+}
+
+/** decisions #28：哪些食材的 TFDA 樣本來自 LLM 對照推薦 */
+export type LlmMappings = {
+  used: boolean
+  food_ids: string[]
   label: string | null
 }
 
@@ -328,6 +340,7 @@ export type MealResult = {
     suggestions?: NutritionSuggestion[]
     /** 哪些食材、哪些營養用到 LLM 推估的換算係數（decisions #19） */
     llm_estimates?: LlmEstimates
+    llm_mappings?: LlmMappings
   }
   prices: {
     status: string

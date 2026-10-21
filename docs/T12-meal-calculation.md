@@ -113,3 +113,55 @@ python -m app.estimation override --kind unit --food FOOD001541 --key 匙 --gram
 - 無 `OPENAI_API_KEY`：`run` 以代碼 2 結束並說明，不寫入任何資料（`--dry-run` 不需要金鑰）。
 - 推估後建議由營養審核者抽查 `list` 結果，以 `approve`／`reject`／`override` 覆核；重新匯入食譜後再跑一次 `run` 補新缺口。
 - 推估係數不是實測：可採用代表「依推估值落在 ±10%」，並非營養驗收（G04）通過。
+
+## 食譜食材 → TFDA 樣本對照（decisions #28，2026-10-21）
+
+使用者實測發現多數食譜營養顯示「未知」：T04 `nutrition_model` 只以名稱查 TFDA，食譜用語常對不到（空心菜→蕹菜有 10 筆品系
+無平均值、青蔥／蔥對到多筆、食鹽／鹽沒有同名樣本）。新增 migration `b7f2c9e4a8d1`（接在 `e8b2d5f7a1c3` 之後，維持單一 head）。
+
+- 解析順序（`app/services/tfda_mapping.TfdaResolver.resolve(food_id, name)`）：
+  1. `exact`：食譜名稱本身由 T04 `find_ingredient` 解得到；
+  2. `alias`：工作簿 `ingredient_aliases` 的別名（排除歧義別名）由 T04 解得到；
+  3. `synonym`：`config/ingredient_synonyms.json` 已確認（confirmed）群組中其他成員的名稱；
+  4. `human`：對照快取中人工核可（approved）或覆寫（overridden）的樣本；
+  5. `llm_mapped`：對照快取中未覆核的 gpt-5.4-mini 推薦；
+  6. 都沒有 → 維持 `ingredient_not_found`（不填 0）。`rejected` 永不使用；模型回答「無合適樣本」的列只用於批次冪等。
+- 對照只決定「用哪一筆 TFDA 樣本」：T12 把該樣本可被 T04 解回的名稱（正式名稱優先，其次別名）交給 T04，營養仍由
+  Python 以 Decimal 計算（T04 main 設計）。
+- 快取沿用 `conversion_factor_estimates`：`kind = tfda_mapping`、`factor_key = "tfda"`、新欄位 `tfda_sample_id`
+  （NULL＝模型回答 NONE），其餘追溯欄位（model、prompt／schema 版本、input_snapshot、call_key、覆核欄位）與 #19 相同。
+- 追溯與標示：每項食材 trace `tfda_mapping = {source, sample_id, tfda_name, input_name, via_name, llm_mapped, estimate}`；
+  結果列 `tfda_mapping_source`、`tfda_sample_id`、`llm_mapped`；結果層級 `llm_mappings = {used, food_ids}`。T15 結果 API 加
+  `mapping_label = "LLM 對照"`、`nutrition.llm_mappings.label`，前端在食材旁與營養表上方顯示「LLM 對照」。
+- `cached_factor_calculator(db)` 每個生成工作載入一次別名、同義詞與對照快取；`tfda_calculator`（無資料庫）只用精確名稱。
+
+### #19 烹調換算的修正（同日）
+
+- 多種烹調方式：查表與批次都用組合鍵（`combined_method_key`，如 `boil+stir`），路徑本身正確（測試以假快取值確認大蒜、
+  高麗菜、對照後的空心菜都算得出）。
+- **修正**：TFDA 狀態為 `unspecified` 的樣本（2213 筆中 1186 筆，如大蒜 E2100101「乾貨」、多數調味料）先前套不上快取係數
+  （T12 只接受 state=raw），批次也不會為它們產生烹調缺口；單一烹調方式時 T04 烹調管線更直接回報 `ingredient_not_found`。
+  現在 T12 與批次把「非 cooked」的樣本都當作生組成套保留率（`_raw_composition`），與 T04 無烹調方式時採用的樣本一致。
+  因此烹調缺口數比 2026-10-20 的 191 組多。
+
+### 對照批次 runbook
+
+```bash
+python -m app.estimation run --dry-run                       # 列出全部缺口（對照前），不呼叫模型
+python -m app.estimation run --kind tfda_mapping             # 1. 先跑對照
+python -m app.estimation run --kind cooking                  # 2. 對照寫入後重新掃描烹調缺口再推估
+python -m app.estimation run --kind unit                     # 3. 單位（目前應為 0）
+python -m app.estimation run                                 # 或一次全部：自動先對照、再重新掃描 cooking／unit
+python -m app.estimation list --kind tfda_mapping
+python -m app.estimation override --kind tfda_mapping --food FOOD000509 --key tfda --sample E5600101 --reviewer 營養師A
+python -m app.estimation approve|reject <id> --reviewer 營養師A
+```
+
+- 缺口：合格食譜中以精確名稱、別名、同義詞都解不到 TFDA 的食材（每個 food_id 一組）。候選以字串相似度
+  （完全相同 1.0 > 包含 0.9 > SequenceMatcher 比例，別名權重 0.9，門檻 0.5）從 TFDA 2213 筆縮小到最多 15 筆；
+  沒有候選的食材不呼叫模型，列在報告 `no_candidates`。
+- 模型：Structured Outputs strict，`tfda_sample_id` 為 enum（候選 ID ＋ `NONE`）；回傳清單外 ID（`CHOICE_NOT_IN_CANDIDATES`）、
+  拒答、截斷、格式錯誤一律不寫入。經 T10 `spend.paid_call`（用途 `tfda_mapping_estimation`）。冪等與 `--refresh` 同 #19。
+- 2026-10-21 以真實工作簿（合格 281 道）在測試資料庫 dry-run：對照缺口 299 組（送模型 277、無候選 22），
+  烹調缺口 592 組（對照前；對照後會再增加），單位 0 組。
+- 測試：`tests/test_tfda_mapping.py`（假 responder，不呼叫真實 OpenAI）。

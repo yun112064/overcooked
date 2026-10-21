@@ -1,12 +1,14 @@
-"""換算係數批次推估與覆核（decisions #19）：python -m app.estimation <command>
+"""換算係數批次推估（decisions #19）與 TFDA 對照（decisions #28）及覆核：python -m app.estimation <command>
 
-run       掃描缺口並以 gpt-5.4-mini 推估（--dry-run 只列出；--refresh 重新推估；--limit N；--kind cooking|unit）
+run       掃描缺口並以 gpt-5.4-mini 推估（--dry-run 只列出；--refresh 重新推估；--limit N；
+          --kind tfda_mapping|cooking|unit；不指定時先跑 tfda_mapping 再重新掃描 cooking／unit）
 list      列出快取（--kind、--status、--food）
 approve   人工核可一列：approve <id> --reviewer 名稱 [--note]
 reject    人工駁回一列（之後永不使用）：reject <id> --reviewer 名稱 [--note]
 override  人工覆寫值（新增一列，優先於 LLM）：
           override --kind cooking --food FOOD000100 --key 炒 --yield 0.8 --energy 1 --protein 0.95 --reviewer A
           override --kind unit --food FOOD001541 --key 匙 --grams 15 --reviewer A
+          override --kind tfda_mapping --food FOOD000509 --key tfda --sample E5600101 --reviewer A
 """
 import argparse
 import json
@@ -44,6 +46,7 @@ def _parser() -> argparse.ArgumentParser:
     o.add_argument("--energy", type=Decimal, help="熱量保留率 0–1")
     o.add_argument("--protein", type=Decimal, help="蛋白質保留率 0–1")
     o.add_argument("--grams", type=Decimal, help="每單位克數")
+    o.add_argument("--sample", help="TFDA 樣本 ID（tfda_mapping）")
     o.add_argument("--reviewer", required=True)
     o.add_argument("--note")
     return parser
@@ -79,12 +82,16 @@ def main(argv=None, *, factory=None, responder=_DEFAULT) -> int:
                 if args.energy is None or args.protein is None:
                     raise ValueError("cooking override requires --energy and --protein")
                 retention = {"energy_kcal": args.energy, "protein_g": args.protein}
+            elif args.kind == "tfda_mapping":
+                if not args.sample:
+                    raise ValueError("tfda_mapping override requires --sample")
             elif args.grams is None:
                 raise ValueError("unit override requires --grams")
             with factory() as db, db.begin():
                 new_id = store.override(db, kind=args.kind, food_id=args.food, key=args.key,
                                         reviewer=args.reviewer, note=args.note, yield_factor=args.yield_factor,
-                                        retention=retention, grams_per_unit=args.grams)
+                                        retention=retention, grams_per_unit=args.grams,
+                                        tfda_sample_id=args.sample if args.kind == "tfda_mapping" else None)
             print(f"overridden {new_id}")
     except batch.EstimationUnavailable as exc:
         print(str(exc), file=sys.stderr)
