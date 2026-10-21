@@ -148,10 +148,44 @@ def staple_view(payload: dict) -> dict | None:
             "counts_for_price": False, "llm_estimated": bool(row.get("llm_estimated"))}
 
 
+NUTRIENT_KEYS = ("energy_kcal", "protein_g", "carbohydrate_g", "fat_g", "sugars_g", "sodium_mg", "dietary_fiber_g")
+
+
+def _unknown_parts(calc: dict, final: dict) -> tuple[dict, dict]:
+    """決策 #53：值為 None 的營養 → (已知部分合計, 缺值食材名稱)；仍不以 0 代替。
+
+    優先用 T12 在 final 提供的 known_partial／missing_by_nutrient；舊結果沒有時由 calculation.ingredients
+    每項的整餐營養推得（缺值食材另以 missing_nutrients 為準）。
+    """
+    totals = {"energy_kcal": final.get("energy_kcal"), "protein_g": final.get("protein_g"),
+              **(final.get("other_nutrients") or {})}
+    unknown = [k for k in NUTRIENT_KEYS if totals.get(k) is None]
+    rows = calc.get("ingredients") or []
+    known, missing = {}, {}
+    for key in unknown:
+        names, parts = [], []
+        for r in rows:
+            value = (r.get("nutrients") or {}).get(key)
+            if value is None:
+                names.append(r.get("name"))
+            else:
+                parts.append(Decimal(str(value)))
+        known[key] = str(sum(parts, Decimal(0))) if parts else None
+        missing[key] = list(dict.fromkeys(n for n in names if n))
+    given_known = final.get("known_partial") or {}
+    given_missing = final.get("missing_by_nutrient") or final.get("missing_nutrients") or {}
+    known = {k: given_known.get(k, v) for k, v in known.items()}
+    missing = {k: list(dict.fromkeys(given_missing.get(k) or v)) for k, v in missing.items()}
+    return known, missing
+
+
 def _nutrition(payload: dict) -> dict:
     calc = payload.get("calculation") or {}
     final = calc.get("final") or {}
+    known_partial, missing_by_nutrient = _unknown_parts(calc, final)
     return {"total_n": calc.get("total_n"), "target": final.get("target"), "energy_kcal": final.get("energy_kcal"),
+            # 決策 #53：未知營養的已知部分合計（整餐）與缺值食材；只列值為 None 的營養
+            "known_partial": known_partial, "missing_by_nutrient": missing_by_nutrient,
             "protein_g": final.get("protein_g"), "gap": final.get("gap") or {},
             "within_range": final.get("within_range", False), "other_nutrients": final.get("other_nutrients") or {},
             "missing_nutrients": final.get("missing_nutrients") or {},

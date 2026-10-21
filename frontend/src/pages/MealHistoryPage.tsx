@@ -6,6 +6,7 @@ import { useSearchParams } from 'react-router'
 import { api, errorMessage } from '../api/client'
 import { MEAL_LABELS, type MealPlanDetail } from '../api/types'
 import { DishIngredients, DishSteps } from '../components/DishDetail'
+import NutritionTable from '../components/NutritionTable'
 
 const money = (v: string | null | undefined) => (v === null || v === undefined ? '未知' : `${Math.round(Number(v))} 元`)
 
@@ -45,12 +46,8 @@ function PlanCard({ plan }: { plan: MealPlanDetail }) {
               )}
             </Box>
           ))}
-          {plan.nutrition && (
-            <Typography variant="body2">
-              營養：熱量 {plan.nutrition.energy_kcal ? `${Number(plan.nutrition.energy_kcal).toFixed(1)} kcal` : '未知'}、
-              蛋白質 {plan.nutrition.protein_g ? `${Number(plan.nutrition.protein_g).toFixed(1)} g` : '未知'}
-            </Typography>
-          )}
+          {/* 決策 #53：與結果頁相同的 7 種營養素與未知顯示（以 null 判斷，0 照常顯示） */}
+          {plan.nutrition && <NutritionTable nutrition={plan.nutrition} title="營養" />}
           {plan.prices?.status === 'computed' && (
             <Typography variant="body2">
               採購價 {plan.prices.purchase_total !== null ? money(plan.prices.purchase_total) : `未知（已知 ${money(plan.prices.known_purchase_total)}）`}

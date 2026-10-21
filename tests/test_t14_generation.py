@@ -43,9 +43,11 @@ class FakeResponder:
 
 
 def ai_dish(name, ingredients, aliases=(), method="炒", steps=("熱鍋下油", "加入食材拌炒至熟")):
-    return {"dish_name": name, "aliases": list(aliases), "cooking_method": method, "steps": list(steps),
+    """AI 菜（決策 #49）：烹調方式為列舉值清單（可多選），食材一律填生重、不再由模型標生熟。"""
+    methods = [method] if isinstance(method, str) else list(method)
+    return {"dish_name": name, "aliases": list(aliases), "cooking_methods": methods, "steps": list(steps),
             "ingredients": [{"name": FOOD_NAMES.get(food, food), "food_id": food if food in FOOD_NAMES else None,
-                             "grams_per_n": grams, "weight_basis": "raw"} for food, grams in ingredients]}
+                             "grams_per_n": grams} for food, grams in ingredients]}
 
 
 def menu(*dishes):
@@ -239,7 +241,7 @@ class AiFallbackTests(GenerationTestCase):
         self.assertEqual(payload["calculation"]["mode"], "ai")
         self.assertTrue(payload["calculation"]["adoptable"])
         self.assertEqual(payload["evidence"]["menu_model"], MODEL)
-        self.assertEqual(payload["evidence"]["menu_prompt_version"], "t14-menu-prompt-v2")
+        self.assertEqual(payload["evidence"]["menu_prompt_version"], "t14-menu-prompt-v3")
         # Structured Outputs：送出 strict schema；問卷文字只在 input
         [call] = responder.calls
         self.assertEqual(call["model"], MODEL)
@@ -251,11 +253,46 @@ class AiFallbackTests(GenerationTestCase):
         self.assertEqual((usage.status, usage.purpose, usage.model), ("settled", "menu_generation", MODEL))
         self.assertEqual(payload["evidence"]["paid_call_keys"], [usage.call_key])
 
+    def test_ai_schema_requires_raw_weights_and_enumerated_cooking_methods(self):
+        """決策 #49：schema 不讓模型標生熟（後端一律視為生重）；烹調方式只能從列舉值多選，並用快取組合鍵規則。"""
+        from app.services.meal_calculation import combined_method_key, normalize_cooking_method
+        self.clear_recipes()
+        self.create_request(dish_count=2)
+        job_id = self.submit()
+        responder = FakeResponder(menu(ai_dish("番茄蛋花湯", [(TOMATO, 50), (EGG, 50)], method="煮"),
+                                       ai_dish("紅燒高麗菜", [(CABBAGE, 50), (GARLIC, 50)], method=("煎", "炒", "煎"))))
+        self.run_job(responder)
+        self.assertEqual(self.job(job_id)["status"], "succeeded", self.job(job_id))
+        [call] = responder.calls
+        dish_schema = call["schema"]["$defs"]["AiDish"]["properties"]
+        self.assertNotIn("cooking_method", dish_schema)
+        self.assertEqual(dish_schema["cooking_methods"]["type"], "array")
+        self.assertIn("炒", dish_schema["cooking_methods"]["items"]["enum"])
+        self.assertNotIn("weight_basis", call["schema"]["$defs"]["AiIngredient"]["properties"])
+        self.assertIn("生重", call["instructions"])
+        self.assertNotIn("None", call["input_text"])
+        [row] = self.results()
+        soup, cabbage = row.payload["dishes"]
+        self.assertEqual((soup["cooking_method"], soup["cooking_methods"], soup["cooking_method_key"]),
+                         ("煮", ["煮"], normalize_cooking_method("煮")))
+        self.assertEqual((cabbage["cooking_method"], cabbage["cooking_methods"]), ("煎、炒", ["煎", "炒"]))
+        self.assertEqual(cabbage["cooking_method_key"], combined_method_key(["炒", "煎"]))
+        self.assertEqual({i["weight_basis"] for d in row.payload["dishes"] for i in d["ingredients"]}, {"raw"})
+        self.assertEqual(row.payload["evidence"]["menu_schema_version"], "t14-menu-schema-v2")
+
+    def test_cooking_method_outside_the_enumeration_is_rejected(self):
+        self.clear_recipes()
+        self.create_request(dish_count=2)
+        job_id = self.submit()
+        self.run_job(FakeResponder(menu(ai_dish("番茄蛋花湯", [(TOMATO, 50), (EGG, 50)], method="隨意"),
+                                        ai_dish("蒜香高麗菜", [(CABBAGE, 50), (GARLIC, 50)]))))
+        self.assertIn("INVALID_FORMAT", self.job(job_id)["error"]["message"])
+
     def test_specified_dish_missing_from_database_triggers_ai_and_must_appear(self):
         self.create_request(dish_count=2, specified_dishes=["麻婆豆腐"])
         job_id = self.submit()
         # 兩道合計 900 g／n，參考值對應 200 g：整道縮到 0.4（決策 #48）仍超出
-        mapo = ai_dish("麻婆豆腐", [(GARLIC, 300), (SOY, 150), (EGG, 150)], method="燒")
+        mapo = ai_dish("麻婆豆腐", [(GARLIC, 300), (SOY, 150), (EGG, 150)], method="煮")
         responder = FakeResponder(menu(ai_dish("番茄炒蛋", [(TOMATO, 100), (EGG, 100)]),
                                        ai_dish("蒜香高麗菜", [(CABBAGE, 100), (GARLIC, 100)])),
                                   menu(mapo, ai_dish("蒜香高麗菜", [(CABBAGE, 150), (GARLIC, 150)])))
@@ -395,7 +432,7 @@ class AllowedIngredientTests(GenerationTestCase):
         self.assertEqual(sent["allowed_ingredients"], sorted(["高麗菜", "大蒜", "九層塔", "雞蛋", "胡蘿蔔"]))
         self.assertIn("allowed_ingredients", call["instructions"])
         [row] = self.results()
-        self.assertEqual(row.payload["evidence"]["menu_prompt_version"], "t14-menu-prompt-v2")
+        self.assertEqual(row.payload["evidence"]["menu_prompt_version"], "t14-menu-prompt-v3")
 
     def test_name_matching_several_foods_picks_the_most_used_and_records_why(self):
         # 番茄（R01、R08 使用）與蕃茄（無食譜使用）依異體字規則同名；模型沒給編號 → 選番茄 FOOD001016
@@ -769,19 +806,49 @@ class DatabaseCandidateTests(GenerationTestCase):
         self.assertGreater(len(row.payload["fallback_details"]["tried"]), 1)
         self.assertFalse(row.payload["calculation"]["adoptable"])  # AI 結果仍可查看
 
-    def test_first_viewable_combination_is_kept_when_none_is_adoptable_but_some_only_miss_data(self):
-        from app.services.meal_calculation import IngredientNutrition
+    def test_combinations_that_only_miss_data_are_never_the_result_and_fall_back_to_ai(self):
+        """決策 #47：營養未知（缺資料）的資料庫組合永不作為結果；沒有可採用組合一律轉 AI，並記錄每組原因。"""
+        from app.services.meal_calculation import MODEL_DECLARED, IngredientNutrition
         self.create_request(dish_count=2)
-        energy, _ = self.reference()
+        energy, protein = self.reference()
 
-        def missing_protein(rows):
-            return [IngredientNutrition({"energy_kcal": energy / 200 * g, "protein_g": None}, {}) for _, g in rows]
+        def database_lines_miss_protein(rows):
+            # 資料庫食譜的食材缺蛋白質；AI 菜（模型宣告生熟）可算 → AI 結果可採用
+            return [IngredientNutrition(
+                {"energy_kcal": energy / 200 * g,
+                 "protein_g": protein / 200 * g if ln.weight_basis_source == MODEL_DECLARED else None}, {})
+                for ln, g in rows]
         job_id = self.submit()
-        responder = FakeResponder()
-        self.run_job(responder, calculator=missing_protein)
+        responder = FakeResponder(menu(ai_dish("番茄蛋花湯", [(TOMATO, 50), (EGG, 50)], method="煮"),
+                                       ai_dish("蒜香高麗菜", [(CABBAGE, 50), (GARLIC, 50)])))
+        self.run_job(responder, calculator=database_lines_miss_protein)
         self.assertEqual(self.job(job_id)["status"], "succeeded")
         [row] = self.results()
-        self.assertEqual(row.mode, "database_menu")  # 缺資料不是「不可行」：保留資料庫菜單讓使用者決定
+        self.assertEqual((row.mode, row.fallback_reason), ("ai_generated_menu", "DATABASE_MENU_NOT_ADOPTABLE"))
+        self.assertEqual(len(responder.calls), 1)
+        tried = row.payload["fallback_details"]["tried"]
+        self.assertGreater(len(tried), 1)
+        evaluated = [t for t in tried if "block_codes" in t]  # 其餘為撞菜等共同驗證未過（problems）
+        self.assertTrue(evaluated and all("NUTRITION_INCOMPLETE" in t["block_codes"] for t in evaluated), tried)
+        self.assertTrue(row.payload["calculation"]["adoptable"], row.payload["calculation"]["block_reasons"])
+
+    def test_first_adoptable_combination_wins_even_after_combinations_missing_data(self):
+        from app.services.meal_calculation import IngredientNutrition
+        self.create_request(dish_count=2)
+        energy, protein = self.reference()
+
+        def cabbage_misses_protein(rows):
+            return [IngredientNutrition({"energy_kcal": energy / 200 * g,
+                                         "protein_g": None if ln.food_id == CABBAGE else protein / 200 * g}, {})
+                    for ln, g in rows]
+        job_id = self.submit()
+        responder = FakeResponder()
+        self.run_job(responder, calculator=cabbage_misses_protein)
+        self.assertEqual(self.job(job_id)["status"], "succeeded")
+        [row] = self.results()
+        self.assertEqual(row.mode, "database_menu")
+        self.assertEqual([d["recipe_id"] for d in row.payload["dishes"]], ["R01", "R03"])
+        self.assertTrue(row.payload["calculation"]["adoptable"])
         self.assertEqual(responder.calls, [])
 
 

@@ -17,13 +17,16 @@ Migration：`b5d2e8f41c07`（`generation_results`，接在 `a1c4e7f20b39` 後）
 
 - 資料庫模式不呼叫模型組菜，只用 T11 實際查得的食譜（不可能新增庫外菜）。
 - 資料庫模式依 T11 排名逐組驗證候選組合（`alternatives`，最多 20 組；pre-review #2）：先 `check_menu`，再以 T12 計算。
-  第一個可採用者勝出；都不可採用時，若有只缺資料（`NUTRITION_INCOMPLETE`／`INGREDIENT_UNRESOLVED`）的組合，保留第一個讓使用者查看與決定；
-  全部都是 `NUTRITION_OUT_OF_RANGE`／`NO_FEASIBLE_BASELINE`（在可調範圍內不可行）才視為「查無可行資料庫菜單」，
-  以 `DATABASE_MENU_NUTRITION_INFEASIBLE` 自動 AI 回退（`fallback_details.tried` 記錄每組的阻擋原因）。仍遵守兩次嘗試上限與額度預留。
+  第一個可採用者勝出。缺資料（`NUTRITION_INCOMPLETE`／`INGREDIENT_UNRESOLVED`）的組合**永不作為結果**（決策 #47）：
+  沒有可採用組合時一律自動 AI 回退——全部都是 `NUTRITION_OUT_OF_RANGE`／`NO_FEASIBLE_BASELINE`（不可行）時原因為
+  `DATABASE_MENU_NUTRITION_INFEASIBLE`，有任一組因缺資料等其他原因不可採用時為 `DATABASE_MENU_NOT_ADOPTABLE`；
+  `fallback_details.tried` 記錄每組的阻擋原因。仍遵守兩次嘗試上限與額度預留。
   每組評估紀錄存在 `payload.database_candidates`。
-- 查無（`NO_MATCHING_RECIPES`、`SPECIFIED_DISH_NOT_IN_DATABASE`、`ALL_EXCLUDED_BY_PREVIOUS_DAY`、`DATABASE_MENU_NUTRITION_INFEASIBLE`）直接進 AI，不詢問使用者，原因存 `fallback_reason`。
+- 查無（`NO_MATCHING_RECIPES`、`SPECIFIED_DISH_NOT_IN_DATABASE`、`ALL_EXCLUDED_BY_PREVIOUS_DAY`、`DATABASE_MENU_NUTRITION_INFEASIBLE`、`DATABASE_MENU_NOT_ADOPTABLE`）直接進 AI，不詢問使用者，原因存 `fallback_reason`。
 - 指定菜與禁忌衝突（T11 `specified_dish_conflict`）：以 `SPECIFIED_DISH_DIETARY_CONFLICT` 失敗回報衝突的菜與食材，**不轉 AI、不生成同名換料的菜**，問卷保留供修改（spec「不偷偷換菜」、AC09；pre-review #1）。
 - 主食含過敏／禁吃食材：`STAPLE_DIETARY_CONFLICT` 回報，不替換主食。
+- 主食本身算不出熱量／蛋白質（設定檔沒有 TFDA 食材、不在清單，或 calculator 回傳缺值）：生成前以
+  `STAPLE_NUTRITION_UNAVAILABLE` 失敗回報「主食「X」目前沒有營養資料…請改選其他主食」，不組菜、不轉 AI，問卷保留（決策 #47）。
 - 指定菜多義（`DISH_IDENTITY_UNRESOLVED`）直接失敗回報，不猜、不回退。
 - 食譜資料庫故障：錯誤碼 `RECIPE_DATABASE_UNAVAILABLE`，可重試，不回退 AI。
 - 未設定 `OPENAI_API_KEY`：資料庫菜單照常；需要 AI 時以 `GENERATION_FAILED` 明確失敗，不假裝產生菜單。
@@ -35,7 +38,13 @@ Migration：`b5d2e8f41c07`（`generation_results`，接在 `a1c4e7f20b39` 後）
 - AI 候選另外檢查：拒答 `MODEL_REFUSED`、截斷 `OUTPUT_TRUNCATED`、JSON／schema 錯誤 `INVALID_FORMAT`（含 schema 外欄位，例如模型自報價格）、
   食材名稱對不到標準字典 `INGREDIENT_UNRESOLVED`、模型給的 FOOD 編號與名稱矛盾（或不在同名候選內）`INGREDIENT_ID_MISMATCH`、
   用量非正或過大 `INVALID_QUANTITY`、缺步驟或烹調方式。
-- 合法食材清單（決策 #37，提示詞 `t14-menu-prompt-v2`）：模型輸入的 `allowed_ingredients` 是合格食譜實際用到的標準食材名稱
+- AI 菜單 schema（決策 #49，提示詞 `t14-menu-prompt-v3`、schema `t14-menu-schema-v2`）：食材不再有 `weight_basis`，
+  `grams_per_n` 一律是烹調前生重（後端設 `weight_basis = raw`，來源仍標 `MODEL_DECLARED`，市售即為熟品者由 T12 依設定檔改視熟重）；
+  `cooking_methods` 是列舉值清單（與食譜庫匯入的 `METHOD_KEYWORDS` 相同：氣炸、微波、煎、炒、炸、烤、蒸、煮、燉、滷、燙、拌），可多選，
+  列舉外的值為 `INVALID_FORMAT`。單一方式以該方式查快取係數；多種方式與食譜庫相同放進 `IngredientLine.cooking_methods`，
+  以 `combined_method_key` 組鍵（結果的 `dishes[].cooking_method_key` 記錄所用的鍵，`cooking_method` 為顯示用「煎、炒」）。
+  主食克數未知時模型輸入不送 `grams_per_n`（不會出現 "None" 字串）。
+- 合法食材清單（決策 #37，提示詞自 `t14-menu-prompt-v2` 起）：模型輸入的 `allowed_ingredients` 是合格食譜實際用到的標準食材名稱
   ＋現有食材，依正規化名稱去重（異體字同名只列最常用的寫法）、排除禁忌食材；instructions 規定食材 `name` 必須一字不差照抄清單。
   真實工作簿約 430 個名稱、JSON 約 5.4 KB（`_max_input_tokens` 以 UTF-8 位元組保守估計，約增加 5,400 個預留 token；
   實際計費約 3,000 token 以內，gpt-5.4-mini 每次不到 NT$0.1）。
@@ -54,6 +63,10 @@ Migration：`b5d2e8f41c07`（`generation_results`，接在 `a1c4e7f20b39` 後）
 - 主食列（`role = staple`）計入營養與 ±10% 驗證；資料庫模式與菜色一起在可調範圍內對齊；AI 模式以預設份量計入，
   模型拿到的每份參考值已扣除主食營養。**不計入價格與缺料**（不在 T12 `requirements`、不查價、不查知識）。
 - 結果 `payload.staple` 保存對應、份量與設定版本；`evidence.staple_config_version`。
+- 問卷主食欄只能從清單選（決策 #52）：`GET /meal-requests/staple-options` 讀 `config/staples.json`，回傳有 TFDA 食材的選項
+  （`label`、`aliases`）與 `none_value`（「不需要主食」）；前端 `MealRequestEditor` 以下拉選單呈現，不可自由輸入。
+  問卷完整性檢查（`meal_request.staple_issue`）對清單外文字或沒有營養資料的選項回報 `STAPLE_NOT_SUPPORTED`，
+  草稿照存、送出前擋下；別名（如「米飯」）與 `none_values` 視為有效。
 
 ## 知識說明
 

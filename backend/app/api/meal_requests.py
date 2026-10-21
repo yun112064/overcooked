@@ -78,6 +78,12 @@ def list_requests(household_id=Depends(current_household_id), db: Session = Depe
     ]}
 
 
+@router.get("/staple-options")
+def staple_options(household_id=Depends(current_household_id)):
+    """決策 #52：問卷主食欄只能從此清單選（含「不需要主食」）；需在 /{request_id} 之前註冊。"""
+    return service.staple_options()
+
+
 @router.post("", status_code=201)
 def create_request(draft: service.MealRequestDraft, auth: AuthContext = Depends(current_auth),
                    household_id=Depends(current_household_id), db: Session = Depends(get_db)):

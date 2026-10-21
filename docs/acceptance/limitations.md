@@ -31,7 +31,7 @@
 | # | 問題 | 修正 | 測試 |
 |---|---|---|---|
 | 1 | 指定菜含禁忌時自動 AI 回退、生出同名換料的菜 | T11 回 `specified_dish_conflict`；T14 以 `SPECIFIED_DISH_DIETARY_CONFLICT` 回報衝突菜與食材，不轉 AI、不換菜，問卷保留（主食含禁忌同樣回報 `STAPLE_DIETARY_CONFLICT`） | `test_t14_generation.py`::SpecifiedDishConflictTests；`test_t11_recipe_retrieval.py` 情境 13 |
-| 2 | 資料庫模式只取第一組合 | 依排名逐組（上限 20 組）以 T12 驗證，第一個可採用者勝出；只缺資料的組合保留供決定；全部不可行才以 `DATABASE_MENU_NUTRITION_INFEASIBLE` 自動 AI 回退 | `test_t14_generation.py`::DatabaseCandidateTests |
+| 2 | 資料庫模式只取第一組合 | 依排名逐組（上限 20 組）以 T12 驗證，第一個可採用者勝出；缺資料的組合永不作為結果（決策 #47）；沒有可採用組合一律自動 AI 回退（全部不可行為 `DATABASE_MENU_NUTRITION_INFEASIBLE`，有缺資料者為 `DATABASE_MENU_NOT_ADOPTABLE`） | `test_t14_generation.py`::DatabaseCandidateTests |
 | 3 | 知識故障只能整份重新生成 | `POST .../knowledge-retry`：同一結果的最終食材只重試知識說明（背景工作、經 T10 額度），菜單／份量／TFDA 不變，存成新版本；額度不足時菜單保留、知識標 `KNOWLEDGE_UNAVAILABLE`（P7） | `test_t15_meal_results.py`::KnowledgeRetryTests；`test_t14_generation.py`::KnowledgeBudgetTests |
 | 4 | 按採用才知道昨日衝突 | 結果讀取 API 回 `previous_day_check`，前端衝突時停用採用並說明；交易內重驗不變 | `test_t16_meal_plans.py`::PreviousDayRecheckTests |
 | 5 | 沒有團隊電腦在線狀態 | `GET /health/team`（需登入、快取 30 秒）與生成面板狀態；每戶每日 20 次生成上限維持，QA 仍需分戶或調整 `GENERATION_DAILY_LIMIT`（見 handoff） | `test_t17_team_status.py` |
@@ -160,6 +160,15 @@ Code review（2026-10-20）的 S1–S9、P1–P8 也已在同一分支修正，�
 | 7 種營養素推估 | 其餘空白（如醬油、蠔油、沙茶醬、雞粉、蔬菜、白飯的糖；醬油的脂肪與纖維）由 gpt-5.4-mini 推估每 100 g（`kind = nutrient_fill`，可人工覆核，經 T10 額度），通過範圍與一致性檢查才採用；TFDA 有值一律優先 | 推估值不是實測，調味料糖量依市售產品差異大；畫面不標示（#42），只在追溯資料可查。批次未跑或推估被拒時仍顯示「未知」 |
 | 範圍檢查有限 | 只檢查單一數值範圍、糖 ≤ 碳水、主要成分合計 ≤ 105 g、蛋白質與脂肪熱量不超過總熱量 | 合理但錯誤的推估（例如糖量高估一倍）仍可能通過，需人工覆核抽查 |
 
+## 附錄：選菜、AI 生重、主食清單與營養未知顯示（decisions #47、#49、#52–#54，2026-10-21）
+
+| 項目 | 行為 | 限制 |
+|---|---|---|
+| 缺資料組合不作為結果（#47） | 資料庫組合只要不可採用就換下一組；全部不可採用即轉 AI（`DATABASE_MENU_NOT_ADOPTABLE`／`DATABASE_MENU_NUTRITION_INFEASIBLE`）；主食本身沒有營養資料時生成前回報 `STAPLE_NUTRITION_UNAVAILABLE` | AI 結果若同樣缺營養仍會存成可查看、不可採用的結果（需使用者決定）；未設定 AI 時資料庫無可採用組合即失敗 |
+| AI 一律生重、烹調方式列舉（#49） | schema 不讓模型標生熟；`cooking_methods` 只能從食譜庫的 12 種烹調關鍵字多選 | 列舉外的做法（如「燒」「燴」）模型只能就近選擇；模型若誤填熟重，後端無法偵測 |
+| 主食只能從清單選（#52） | 清單由 `config/staples.json` 提供；清單外文字送出前回報 `STAPLE_NOT_SUPPORTED` | 舊草稿的自由文字主食需使用者改選才能送出 |
+| 營養未知顯示（#53） | 「未知（已知 X，缺：A、B）」；調整建議換算成整餐值 | 已知部分只是已知食材的合計，不是估計值；舊結果版本的快照不重算，需重新生成才會套用新資料 |
+| 食譜分類修正（#54） | 24 筆加入 `config/recipe_category_overrides.json`（工作簿不改） | 既有資料庫需執行 `python -m app.jobs.apply_category_overrides` 才生效 |
 
 ## 附錄：全面診斷後的計算核心修正（decisions #48–#56，2026-10-21）
 

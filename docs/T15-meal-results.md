@@ -25,7 +25,16 @@ Migration：`c8e3f6a1d2b4`（接在 `b5d2e8f41c07` 後）；`a3d6e9b1c4f7`（重
 - 缺營養、基準無解或食材無法換算時，仍列出每項整餐用量（`nutrition.quantities_verified = false`）與可計算的成本；
   無法換算克數的食材列在 `cost.unquantified_food_ids`。
 - `nutrition.suggestions`：超出範圍的營養要往哪個方向調、差多少，各食材在已審核可調範圍內最多能補多少，
-  以及範圍內是否補得足；缺資料時列出要補的食材。
+  以及範圍內是否補得足；缺資料時列出要補的食材。後端的差額與可調範圍是每 1 份（1n）基準值，
+  畫面乘上 `nutrition.total_n` 換成整餐值並標明「整餐，共 N 份」，與整餐營養表一致（決策 #53）。
+- 營養未知（決策 #53）：`nutrition.known_partial`（值為 null 的營養之已知部分整餐合計，沒有任何已知值時為 null）與
+  `nutrition.missing_by_nutrient`（缺值食材名稱，去重）只列值為 null 的營養。優先採用 T12 在 `calculation.final` 提供的同名欄位，
+  舊結果沒有時由 `calculation.ingredients[].nutrients` 推得（缺值食材再以 `missing_nutrients` 為準）。畫面顯示
+  「未知（已知 X，缺：A、B）」，比照價格「未知（已知 X 元）」，仍不以 0 代替。營養表標題為「營養估算（整餐，共 N 份）」；
+  已採用紀錄頁用同一個 `NutritionTable` 顯示 7 種營養素，以 null 判斷未知（0 照常顯示）。
+- 主食缺資料的說明依 `staple.unresolved_reason` 區分：`no_tfda_cooked_sample`／`staple_without_tfda_sample` 顯示
+  「主食「X」目前沒有營養資料，整餐營養無法計算；請改選其他主食」，`staple_not_supported` 顯示不在清單；
+  只有真正缺克數換算的食材才沿用「補上克數換算後重新計算」。
 - 顯示用量：克取到 1 g；其他單位（顆、片、匙、大匙、杯…）四捨五入成整數、大於 0 最少 1（decisions #43，取代 0.5；舊結果讀取時也照此取整）；沒有數量的照原文（例如「少許」）。計算一律用未取整值。
 
 ## 重試（背景工作，產生新版本）
