@@ -5,9 +5,9 @@ import { useQuery } from '@tanstack/react-query'
 import { useSearchParams } from 'react-router'
 import { api, errorMessage } from '../api/client'
 import { MEAL_LABELS, type MealPlanDetail } from '../api/types'
+import { DishIngredients, DishSteps } from '../components/DishDetail'
 
 const money = (v: string | null | undefined) => (v === null || v === undefined ? '未知' : `${Math.round(Number(v))} 元`)
-const grams = (v: string | null | undefined) => (v === null || v === undefined ? '無法換算' : `${Math.round(Number(v))} g`)
 
 function today() {
   const d = new Date()
@@ -36,16 +36,8 @@ function PlanCard({ plan }: { plan: MealPlanDetail }) {
                 {d.dish_name}{d.cooking_method && ` · ${d.cooking_method}`}
                 {d.aliases.length > 0 && <Typography component="span" variant="caption" color="text.secondary">（又名 {d.aliases.join('、')}）</Typography>}
               </Typography>
-              {d.ingredients && (
-                <Typography variant="body2">{d.ingredients.map((i) => `${i.name} ${
-                  i.display_amount != null && i.display_unit ? `${Number(i.display_amount)} ${i.display_unit}`
-                    : i.display_text ?? grams(i.display_grams)}`).join('、')}</Typography>
-              )}
-              {d.steps && d.steps.length > 0 && (
-                <Box component="ol" sx={{ my: 0.5, pl: 3 }}>
-                  {d.steps.map((s, idx) => <li key={idx}><Typography variant="body2">{s}</Typography></li>)}
-                </Box>
-              )}
+              {d.ingredients && <DishIngredients ingredients={d.ingredients} />}
+              {d.steps && <DishSteps steps={d.steps} display={d.steps_display} />}
               {d.recipe_source && (
                 <Typography variant="caption" color="text.secondary">
                   食譜來源：<Link href={d.recipe_source.source_url} target="_blank" rel="noreferrer">{d.recipe_source.source_name}</Link>

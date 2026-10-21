@@ -12,7 +12,7 @@
 | `load_recipe_lines(db, recipe_id)` | 資料庫模式：T01 食譜全部食材 → 每 1n 基準克數（weight_g ÷ original_servings）、已審核可調範圍、原單位與每 1n 原數量（顯示用）、生熟依據。 |
 | `calculate_meal(lines, targets, mode=, calculator=)` | 基準對齊 → 乘 N → 整餐重新計算 → ±10% 判定；回傳驗證結果、`requirements`、`quantities_verified`、`suggestions`。 |
 | `tfda_calculator` | 以 T04 `nutrition_model`（TFDA，`estimator=None`）取每 100 g 營養，在 T12 內以 Decimal 乘實際克數；附追溯資料。 |
-| `display_half(value)` | 顯示用：容量單位取到 0.5。 |
+| `display_count(value)` | 顯示用：非克重單位四捨五入成整數，大於 0 最少 1（decisions #43，取代 #3 的 0.5）。 |
 
 `requirements` 為 `list[IngredientRequirement(food_id, grams)]`（`backend/app/meal_calc/types.py`，與 T13 共用）：
 整餐、已乘 N、未取整的克數，同一 food_id 跨菜合併。主食（`role = staple`，decisions #16）不計價格與缺料，不列入；
@@ -27,8 +27,8 @@
 
 - 比較一律用 Fraction／Decimal 精確值，90%、110% 含邊界；`display_grams` 只供畫面（四捨五入到 1 g），驗證與 T13 都用未取整值（decisions #3）。
 - 顯示用量（P4，decisions #21）：`display_amount`／`display_unit`／`display_text`。有原數量＋原單位（非 g）時**一律顯示原單位**
-  （即使已有克數；倍率＝整餐克數 ÷ 每 1n 克數，含熱量對齊，沒有克數時用 n）：大匙、小匙、匙、杯、米杯、ml 取到 0.5，
-  其他單位照原單位（到 0.01）；原單位是 g 或只有克數 → 克到 1 g；都沒有就顯示原文（例如「胡椒 少許」）。
+  （即使已有克數；倍率＝整餐克數 ÷ 每 1n 克數，含熱量對齊，沒有克數時用 n）：非克重單位（顆、片、條、匙、大匙、小匙、杯、碗…）
+  一律四捨五入成整數、大於 0 最少 1（decisions #43，例：蛋 4.72 顆 → 5 顆）；原單位是 g 或只有克數 → 克到 1 g；都沒有就顯示原文（例如「胡椒 少許」）。
   克數只用於營養計算，保留在 `whole_meal_grams`／`display_grams` 供追溯。
 - 克數來源（decisions #20）：單位 g → 原文克數（`weight_source = "recipe_grams"`）；其他單位 → 工作簿該列 `weight_g`
   （T01 存於 `source_weight_g`，視為生重，`weight_source = "workbook"`，不標示 LLM 推估）；工作簿缺值才用快取的每單位克數推估
@@ -79,8 +79,8 @@ LLM 係數，推估後可採用。本節取代上方「已知限制」中「不�
   解出「1 匙」等列的克數（`weight_estimate`）。
 - 結果標示：每項食材 `estimates`（kind、source、status、model、prompt／schema 版本、估計 ID、係數值）、`llm_estimated`、
   `estimated_nutrients`；結果層級 `llm_estimates = {used, food_ids, nutrients}`；trace 的 `estimated_factors`、
-  `is_estimated`、`nutrition_basis`（如 `raw_tfda_llm_estimated`）。T15 結果 API 加上 `estimate_label = "LLM 推估"`，
-  前端在食材旁與營養表上方顯示。人工覆寫值（source=human）不標「LLM 推估」，但仍保留追溯。
+  `is_estimated`、`nutrition_basis`（如 `raw_tfda_llm_estimated`）。T15 結果 API 加上 `estimate_label = "LLM 推估"`
+  （追溯用）；**前端不顯示**（decisions #42，2026-10-21 取代畫面標示）。人工覆寫值（source=human）不標「LLM 推估」，但仍保留追溯。
 - 沒有推估值（批次未跑、無金鑰、推估被拒或駁回）時維持原本行為：不可採用（`INGREDIENT_UNRESOLVED`／`NUTRITION_INCOMPLETE`），未知不填 0。
 - 測試：`tests/test_llm_estimation.py`（假 responder，不呼叫真實 OpenAI）。
 
@@ -132,7 +132,7 @@ python -m app.estimation override --kind unit --food FOOD001541 --key 匙 --gram
   （NULL＝模型回答 NONE），其餘追溯欄位（model、prompt／schema 版本、input_snapshot、call_key、覆核欄位）與 #19 相同。
 - 追溯與標示：每項食材 trace `tfda_mapping = {source, sample_id, tfda_name, input_name, via_name, llm_mapped, estimate}`；
   結果列 `tfda_mapping_source`、`tfda_sample_id`、`llm_mapped`；結果層級 `llm_mappings = {used, food_ids}`。T15 結果 API 加
-  `mapping_label = "LLM 對照"`、`nutrition.llm_mappings.label`，前端在食材旁與營養表上方顯示「LLM 對照」。
+  `mapping_label = "LLM 對照"`、`nutrition.llm_mappings.label`（追溯用；前端不顯示，decisions #42）。
 - `cached_factor_calculator(db)` 每個生成工作載入一次別名、同義詞與對照快取；`tfda_calculator`（無資料庫）只用精確名稱。
 
 ### #19 烹調換算的修正（同日）
@@ -186,7 +186,7 @@ python -m app.estimation approve|reject <id> --reviewer 營養師A
   - 至少要有一項營養已由該樣本算出才補，避免只補出孤立的單一營養。
 - 標示：trace `estimated_factors` 加入 `kind = nutrient_fill` 的標記（模型、prompt／schema 版本、估計 ID、`nutrient_per_100g`）、
   `estimated_nutrients` 加入該營養、`nutrient_fills = {營養: {sample_id, per_100g, source, status}}`；結果列 `llm_estimated`、
-  `estimated_nutrients`，結果層級 `llm_estimates`。前端沿用既有「LLM 推估」標示（食材旁與營養表上方），不需改畫面；
+  `estimated_nutrients`，結果層級 `llm_estimates`。追溯欄位同上；前端不顯示（decisions #42）。
   人工覆寫值不標「LLM 推估」。
 - 批次：`python -m app.estimation run --kind nutrient_fill`。缺口＝合格食譜實際用到（經 #28 對照後）的 TFDA 樣本中，必要營養
   欄位空白的 (樣本 ID, 營養素)。輸入快照：樣本名稱、別名、生熟狀態、描述、已知每 100 g 營養、使用它的食譜食材名稱與食譜編號。
@@ -242,8 +242,8 @@ python -m app.estimation override --kind tfda_mapping --food FOOD000691 --key tf
 - 熱量與蛋白質不變：維持 #19 保留率推估與 #32 空白推估。TFDA 生組成本身空白的營養素仍為 None（不填 0）。
 - 只在必要營養也由該係數算出時才套用；沒有產率的係數不近似。熟重（#35）、直接食用（`consumed_as_is`）與水（#33）走原邏輯、不標近似。
 - 標示：食材 trace `approximate_nutrients`、`nutrient_basis = {營養素: "yield_only_retention_1"}`；結果列 `approximate_nutrients`；
-  `calculate_meal` 結果 `approximations = {used, food_ids, nutrients, basis}`；結果檢視 `nutrition.approximations.label = "近似"`，
-  前端營養表列出非必要營養素，近似者旁標示「近似」。近似不算 LLM 推估的營養（不列入 `estimated_nutrients`）。
+  `calculate_meal` 結果 `approximations = {used, food_ids, nutrients, basis}`；結果檢視 `nutrition.approximations.label = "近似"`
+  （追溯用）；前端營養表列出非必要營養素，但不標示「近似」（decisions #42）。近似不算 LLM 推估的營養（不列入 `estimated_nutrients`）。
 - 已知範圍：無烹調方式且非直接食用的生樣品，T04 仍回報 `no_cooking_method`，全部營養（含熱量）維持未知，此行為未改。
 - 測試：`tests/test_other_nutrients.py`（含蕃茄炒蛋類：雞蛋平均值＋牛番茄，炒）。
 
@@ -276,3 +276,23 @@ python -m app.estimation override --kind tfda_mapping --food FOOD000691 --key tf
 - 畫面不顯示「LLM 推估」「類別 0」等說法（#42），追溯資料完整保留。
 - 測試：`tests/test_category_zero_fill.py`（規則、三種計算路徑、類似使用者菜單的整餐 7 種營養素皆有值、check_fill、掃描與 dry-run 費用），
   `tests/test_nutrient_gaps.py`（#32 測試改用不在類別 0 規則內的麥芽糖／主食白飯）。
+
+## 顯示用量、步驟分組與調味料（decisions #41–#44，2026-10-21）
+
+使用者實測回報後決定：
+
+- **#41 步驟分組代稱展開**（`backend/app/services/recipe_steps.py`）：`recipe_ingredients.raw_text` 開頭的 `[X]`（也接受 `【X】`、
+  `(X)`、`[醃 料 ]`、`[【調味】]`）為同一食譜內的食材分組。`load_recipe_lines` 在每列帶 `group`（顯示用，不參與計算），
+  結果列輸出 `group`。T14 資料庫菜色 payload 同時保存 `steps`（原文，不動）與 `steps_display`（展開後）：
+  步驟中的 `[X]`／`【X】` 若是該食譜的分組，展開為「X（食材1、食材2…）」，食材名用 raw_text 去掉分組與最後的數量（保留原文
+  寫法，如「糖or味琳」）；沒有括號的「調味料」「醃料」「配料」「醬汁」等，只有該食譜有對應分組（`[調味料]` 或 `[調味]`）才展開，
+  單獨的「調味」（動詞用法）不展開；同一步驟每個分組只展開第一次；不用 LLM、不改寫其他字句。AI 菜 `steps_display = steps`。
+  合格 281 道中 67 個步驟會被展開。例：R0118「接著下所有[調味]與[配料]快炒即可」→「接著下所有調味（沙茶醬、醬油、糖or味琳）與配料（蒜）快炒即可」。
+- **#42**：推估／對照／近似只保留在 payload 與 trace，前端不再顯示（見上方各節）。
+- **#43**：`display_count` 取代 `display_half`；非克重單位顯示整數、最少 1，克重維持整數克；計算一律用未取整值。
+  T15 讀取舊結果時也以同規則重新取整（舊 payload 存的 0.5 不再出現）。
+- **#44 調味料**：設定檔 `config/seasoning_ingredients.json`（`backend/app/services/seasonings.py`）。T13 `compute_meal_cost`
+  把清單內 FOOD 編號標為 `price_status = "seasoning"`：缺量 0、不查價、成本 0、不列入 `missing_items`；`required_grams` 保留，
+  T12 營養照配方計算。詳見 docs/T02-pricing.md「調味料不查價」。
+- 測試：`tests/test_recipe_step_groups.py`、`tests/test_t12_meal_calculation.py`（display_count）、`tests/test_t13_meal_cost.py`::SeasoningTests、
+  `tests/test_t15_meal_results.py`（步驟展開、舊結果取整、調味料不列價格）。

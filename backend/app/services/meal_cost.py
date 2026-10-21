@@ -23,6 +23,7 @@ from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from app.meal_calc.types import IngredientRequirement
+from app.services.seasonings import load_seasonings
 from app.services.synonyms import confirmed_equivalents
 from app.source_adapters.price_collection import load_price_exempt
 from app.source_adapters.price_models import PriceQuote, QuoteStatus
@@ -44,7 +45,7 @@ INVALID_PACKAGE = "INVALID_PACKAGE"
 
 @dataclass(frozen=True)
 class IngredientCost:
-    """一項配方食材的缺料與價格。price_status：owned／exempt／known／unknown。"""
+    """一項配方食材的缺料與價格。price_status：owned／seasoning／exempt／known／unknown。"""
 
     food_id: str
     required_grams: Decimal
@@ -82,7 +83,7 @@ class MealCost:
 
     @property
     def missing_items(self) -> list[IngredientCost]:
-        """前端價格區只列需補買的食材；已有種類與免計價（水）不列。"""
+        """前端價格區只列需補買的食材；已有種類、調味料與免計價（水）不列。"""
         return [line for line in self.lines if line.price_status in ("known", "unknown")]
 
 
@@ -94,14 +95,22 @@ def compute_meal_cost(
     *,
     now: datetime,
     exempt_food_ids: set[str] | None = None,
+    seasoning_food_ids: set[str] | None = None,
 ) -> MealCost:
-    """純計算：價格由 quote_for(food_id) 提供，便於不連資料庫測試。"""
+    """純計算：價格由 quote_for(food_id) 提供，便於不連資料庫測試。
+
+    調味料（決策 #44，config/seasoning_ingredients.json）比照已有種類：足量、缺量 0、不查價、成本 0，
+    狀態標為 seasoning（不列入缺料／價格區）；營養仍由呼叫端按配方需求量計算。
+    """
     owned_ids = confirmed_equivalents(available_food_ids)
     exempt_ids = load_price_exempt() if exempt_food_ids is None else exempt_food_ids
+    seasoning_ids = load_seasonings() if seasoning_food_ids is None else seasoning_food_ids
     lines = []
     for item in requirements:
         if item.food_id in owned_ids:
             lines.append(_zero_line(item, "owned"))
+        elif item.food_id in seasoning_ids:
+            lines.append(_zero_line(item, "seasoning"))
         elif item.food_id in exempt_ids:
             lines.append(_zero_line(item, "exempt"))
         else:
@@ -120,7 +129,7 @@ def compute_meal_cost(
 
 
 def _zero_line(item: IngredientRequirement, status: str) -> IngredientCost:
-    shortage = ZERO if status == "owned" else item.grams
+    shortage = ZERO if status in ("owned", "seasoning") else item.grams
     return IngredientCost(item.food_id, item.grams, shortage, status, packs=0, purchase_price=ZERO, cost=ZERO)
 
 

@@ -19,6 +19,7 @@ from typing import Callable
 
 from app.core.config import PROJECT_ROOT
 from app.meal_calc.types import EstimatedFactor, IngredientRequirement
+from app.services.recipe_steps import ingredient_group
 
 REQUIRED_NUTRIENTS = ("energy_kcal", "protein_g")
 LOWER, UPPER = Fraction(9, 10), Fraction(11, 10)
@@ -114,6 +115,8 @@ class IngredientLine:
     # 克數來源（decisions #20）：recipe_grams（原文 g）、workbook（工作簿該列 weight_g，非 LLM 推估）、
     # unit_estimate（快取的每單位克數推估）；未解出或非資料庫模式為 None
     weight_source: str | None = None
+    # 顯示用（decisions #41）：raw_text 開頭 [X] 標記的食材分組（如「調味」「醃料」）；不參與計算
+    group: str | None = None
 
 
 @dataclass
@@ -286,7 +289,7 @@ def _calculate_meal(lines: list[IngredientLine], targets: MealTargets, *, mode: 
              "reason": "ingredient_weight_unresolved"},
         ]
         result["suggestions"].append({
-            "code": "INGREDIENT_UNRESOLVED", "action": "補上克數換算（人工值或批次 LLM 推估）後重新計算",
+            "code": "INGREDIENT_UNRESOLVED", "action": "補上克數換算後重新計算",  # 畫面文字（#42 不提 LLM）
             "ingredients": [{"food_id": ln.food_id, "name": ln.name, "unit": ln.unit,
                              "reason": ln.unresolved_reason or "weight_unresolved"} for ln in unresolved]})
         grams = [ln.grams_per_n for ln in lines]
@@ -413,29 +416,26 @@ def _range_suggestions(lines, grams, rows, totals, references, mode) -> list[dic
     return out
 
 
-VOLUME_UNITS = frozenset({"大匙", "小匙", "匙", "杯", "米杯", "ml", "毫升"})
-HALF = Decimal("0.5")
-
-
 def _display_grams(value: Decimal) -> Decimal:
     """僅供畫面：克數取到 1 g（四捨五入）。驗證與 T13 一律使用未取整值。"""
     return value.quantize(Decimal("1"), rounding=ROUND_HALF_UP)
 
 
-def display_half(value: Decimal) -> Decimal:
-    """僅供畫面：湯匙等容量單位取到 0.5（四捨五入，decisions #3）。"""
-    return ((value / HALF).quantize(Decimal("1"), rounding=ROUND_HALF_UP) * HALF).quantize(Decimal("0.1"))
+def display_count(value: Decimal) -> Decimal:
+    """僅供畫面（decisions #43，取代 #3 的 0.5）：非克重單位（顆、片、匙、大匙、杯…）四捨五入成整數，
+    大於 0 者最少顯示 1（蛋 4.72 顆 → 5 顆；0.3 小匙 → 1 小匙）。計算一律使用未取整值。"""
+    shown = Decimal(value).quantize(Decimal("1"), rounding=ROUND_HALF_UP)
+    return Decimal(1) if value > 0 and shown < 1 else shown
 
 
 def _display(ln: IngredientLine, whole: Decimal | None, n: Decimal) -> dict:
-    """畫面用量（decisions #21）：有原數量＋原單位（非 g）→ 一律顯示原單位（容量單位到 0.5，其他照原單位），
+    """畫面用量（decisions #21／#43）：有原數量＋原單位（非 g）→ 一律顯示原單位、數量取整數（最少 1），
     克數只留在追溯欄位；原單位是 g 或沒有原單位但有克數 → 克到 1 g；都沒有 → 原文。
     縮放倍率：有克數時用整餐克數 ÷ 每 1n 克數（含熱量對齊調整），否則用 n。"""
     if ln.amount_per_n is not None and ln.unit and ln.unit != "g":
         factor = whole / ln.grams_per_n if whole is not None and ln.grams_per_n else n
-        amount = ln.amount_per_n * factor
-        shown = display_half(amount) if ln.unit in VOLUME_UNITS else amount.quantize(Decimal("0.01")).normalize()
-        return {"display_amount": shown, "display_unit": ln.unit, "display_text": None}
+        return {"display_amount": display_count(ln.amount_per_n * factor), "display_unit": ln.unit,
+                "display_text": None}
     if whole is not None:
         return {"display_amount": _display_grams(whole), "display_unit": "g", "display_text": None}
     return {"display_amount": None, "display_unit": None, "display_text": ln.raw_text or ln.name}
@@ -464,7 +464,7 @@ def _row(ln: IngredientLine, grams, whole, nutrition: IngredientNutrition | None
         # decisions #40：保留率視為 1 的近似值（畫面標示「近似」）
         "approximate_nutrients": [k for k in ((nutrition.trace or {}).get("approximate_nutrients") or [])
                                   if nutrition.nutrients.get(k) is not None] if nutrition else [],
-        "food_id": ln.food_id, "name": ln.name, "dish_id": ln.dish_id, "role": ln.role,
+        "food_id": ln.food_id, "name": ln.name, "dish_id": ln.dish_id, "role": ln.role, "group": ln.group,
         # calculator 實際採用的生熟依據（decisions #35 可能把工作簿慣例的生重改為熟重）
         "weight_basis": ((nutrition.trace or {}).get("weight_basis") if nutrition else None) or ln.weight_basis,
         "weight_basis_source": (((nutrition.trace or {}).get("weight_basis_source") if nutrition else None)
@@ -595,7 +595,7 @@ def load_recipe_lines(db, recipe_id: str, factors=None) -> list[IngredientLine]:
             dish_id=recipe_id, unresolved_reason=reason,
             cooking_methods=tuple(methods) if len(methods) > 1 else (),
             unit=row.unit, amount_per_n=per_n(row.amount), raw_text=row.raw_text,
-            weight_source=None if reason else source,
+            weight_source=None if reason else source, group=ingredient_group(row.raw_text)[0],
         ))
     return lines
 

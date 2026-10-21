@@ -223,14 +223,16 @@ export type ResultIngredient = {
   weight_basis: string | null
   whole_meal_grams: string | null
   display_grams: string | null
-  /** 畫面用量：克到 1 g；湯匙等容量單位到 0.5；無換算者照原單位，都沒有時顯示原文 */
+  /** decisions #41：食譜原文的食材分組（如「調味」「醃料」）；沒有分組為 null */
+  group?: string | null
+  /** 畫面用量：克到 1 g；其他單位（匙、顆…）取整數、最少 1（decisions #43），都沒有時顯示原文 */
   display_amount?: string | null
   display_unit?: string | null
   display_text?: string | null
   /** decisions #19：克數或烹調係數來自批次 LLM 推估（gpt-5.4-mini）；人工覆寫值不算 */
   llm_estimated?: boolean
   estimate_label?: string | null
-  /** decisions #28：TFDA 樣本對照來源；llm_mapped 為 LLM 推薦的對照（標示「LLM 對照」） */
+  /** decisions #28：TFDA 樣本對照來源；llm_mapped 為 LLM 推薦的對照（僅供追溯，畫面不標示，#42） */
   tfda_mapping_source?: 'exact' | 'alias' | 'synonym' | 'human' | 'llm_mapped' | null
   tfda_sample_id?: string | null
   llm_mapped?: boolean
@@ -264,7 +266,7 @@ export type LlmMappings = {
   label: string | null
 }
 
-/** decisions #40：烹調後以 TFDA 生組成、保留率視為 1 近似的非必要營養素（畫面標示「近似」） */
+/** decisions #40：烹調後以 TFDA 生組成、保留率視為 1 近似的非必要營養素（僅供追溯，畫面不標示，#42） */
 export type Approximations = {
   used: boolean
   food_ids: string[]
@@ -321,7 +323,10 @@ export type MealResult = {
     recipe_id: string | null
     specified: boolean
     cooking_method: string | null
+    /** 步驟原文（不改寫） */
     steps: string[]
+    /** decisions #41：顯示用步驟，[調味] 等分組代稱已展開成實際食材；舊結果與原文相同 */
+    steps_display?: string[]
     ingredients: ResultIngredient[]
   }[]
   /** 主食（decisions #16）：計入營養與 ±10%，不計價格；份量設定待營養審核者確認 */
@@ -441,7 +446,7 @@ type ResultDish = MealResult['dishes'][number]
 export type MealPlanDetail = Omit<MealPlanSummary, 'dishes'> & {
   snapshot_available: boolean
   fallback_message?: string | null
-  dishes: (MealPlanDish & Partial<Pick<ResultDish, 'cooking_method' | 'steps' | 'ingredients'>> & {
+  dishes: (MealPlanDish & Partial<Pick<ResultDish, 'cooking_method' | 'steps' | 'steps_display' | 'ingredients'>> & {
     recipe_source?: { recipe_id: string; source_name: string; source_url: string } | null
   })[]
   nutrition?: MealResult['nutrition']
