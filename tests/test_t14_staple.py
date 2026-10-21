@@ -62,7 +62,7 @@ class StapleTests(GenerationTestCase):
         self.assertEqual([r for r in payload["calculation"]["ingredients"] if r["role"] == "staple"], [])
 
     def test_unsupported_staple_is_unresolved_not_zero(self):
-        job = self.generate(staple="糙米飯")
+        job = self.generate(staple="披薩")
         self.assertEqual(job["status"], "succeeded", job)
         calc = self.payload()["calculation"]
         self.assertFalse(calc["adoptable"])
