@@ -1,6 +1,6 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import {
-  Alert, Autocomplete, Box, Button, Checkbox, Chip, CircularProgress, Divider, FormControlLabel, MenuItem,
+  Alert, Autocomplete, Box, Button, Checkbox, Chip, CircularProgress, Divider, FormControlLabel, ListSubheader, MenuItem,
   Paper, Stack, Step, StepLabel, Stepper, TextField, Typography,
 } from '@mui/material'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
@@ -11,6 +11,7 @@ import { z } from 'zod'
 import { api, apiError, errorMessage, errorStatus } from '../api/client'
 import {
   MEAL_LABELS, type IngredientRef, type MealRequest, type MealRequestDraft, type MealType, type Member,
+  type StapleOptions,
 } from '../api/types'
 import FormTextField from '../components/FormTextField'
 import GenerationPanel from '../components/GenerationPanel'
@@ -19,7 +20,15 @@ import RecognitionCapture from '../components/RecognitionCapture'
 
 const STEPS = ['用餐資訊', '成員與便當', '口味與指定菜', '已有食材', '確認']
 const MEALS: MealType[] = ['breakfast', 'lunch', 'dinner']
-const STAPLE_SUGGESTIONS = ['白飯', '糙米飯', '麵', '麵包', '地瓜', '不需要主食']
+
+/** 已存的主食文字（可能是別名或「無」等寫法）對應到清單上的標準選項；對不到回傳 null。 */
+function stapleChoice(value: string, staples: StapleOptions): string | null {
+  const v = value.trim()
+  if (!v) return ''
+  if (v === staples.none_value || staples.none_values.includes(v)) return staples.none_value
+  const hit = staples.options.find((o) => o.label === v || o.aliases.includes(v))
+  return hit ? hit.label : null
+}
 
 const participantSchema = z.object({ dining: z.boolean(), bento: z.boolean(), bento_meal: z.enum(['breakfast', 'lunch', 'dinner']) })
 
@@ -153,6 +162,12 @@ function Editor({ initial, members: memberList }: { initial: MealRequest; member
     }
   }
 
+  const staples = useQuery({
+    queryKey: ['staple-options'],
+    queryFn: async () => (await api.get<StapleOptions>('/meal-requests/staple-options')).data,
+    staleTime: Infinity,
+  })
+
   const dishCount = useWatch({ control, name: 'dish_count' })
   const specified = useWatch({ control, name: 'specified_dishes' })
 
@@ -194,11 +209,29 @@ function Editor({ initial, members: memberList }: { initial: MealRequest; member
             )} />
             <FormTextField name="budget" control={control} label="預算（新台幣）" inputMode="decimal"
               helperText="以需補買食材的比例成本判斷是否在預算內" />
-            <Controller name="staple" control={control} render={({ field }) => (
-              <Autocomplete freeSolo options={STAPLE_SUGGESTIONS} value={field.value}
-                onChange={(_, v) => field.onChange(v ?? '')} onInputChange={(_, v) => field.onChange(v)}
-                renderInput={(params) => <TextField {...params} label="主食" error={!!errors.staple} helperText={errors.staple?.message} />} />
-            )} />
+            <Controller name="staple" control={control} render={({ field }) => {
+              // 決策 #52：只能從後端清單選（不可自由輸入）；舊草稿的清單外文字顯示為待改選
+              if (!staples.data) {
+                return staples.isError
+                  ? <Alert severity="error">無法載入主食清單：{errorMessage(staples.error)}</Alert>
+                  : <CircularProgress size={24} />
+              }
+              const choice = stapleChoice(field.value, staples.data)
+              const stale = choice === null ? field.value : null
+              const staleIssue = server.issues.find((i) => i.field === 'staple' && i.reason === 'STAPLE_NOT_SUPPORTED')
+              return (
+                <TextField select label="主食" name={field.name} inputRef={field.ref} onBlur={field.onBlur}
+                  value={stale ?? choice ?? ''} onChange={(e) => field.onChange(e.target.value)}
+                  error={!!errors.staple || stale !== null}
+                  helperText={errors.staple?.message ?? (stale !== null ? (staleIssue?.message ?? `「${stale}」不在清單中，請改選`) : '從清單選擇；不吃主食請選「' + staples.data.none_value + '」')}>
+                  <MenuItem value="">未選擇</MenuItem>
+                  {stale !== null && <MenuItem value={stale} disabled>{stale}（不在清單，請改選）</MenuItem>}
+                  {staples.data.options.map((o) => <MenuItem key={o.label} value={o.label}>{o.label}</MenuItem>)}
+                  <ListSubheader>不需要主食</ListSubheader>
+                  <MenuItem value={staples.data.none_value}>{staples.data.none_value}</MenuItem>
+                </TextField>
+              )
+            }} />
             <Controller name="dish_count" control={control} render={({ field }) => (
               <TextField select label="菜數" {...field} helperText="指定菜色也會計入菜數">
                 <MenuItem value="">未選擇</MenuItem>

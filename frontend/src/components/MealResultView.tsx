@@ -1,6 +1,8 @@
 import {
   Alert, Box, Button, Chip, Divider, Link, Stack, Table, TableBody, TableCell, TableHead, TableRow, Typography,
 } from '@mui/material'
+import { amount } from '../api/nutrition'
+import NutritionTable from './NutritionTable'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useEffect, useRef } from 'react'
 import { Link as RouterLink } from 'react-router'
@@ -15,15 +17,20 @@ type Props = { requestId: string; mealDate?: string | null; onChanged: () => voi
 /** 顯示用取整：金額到 1 元、克到 1 g、營養到 0.1；計算與判定一律由後端以精確值完成。 */
 const money = (v: string | null) => (v === null ? '未知' : `${Math.round(Number(v))} 元`)
 const grams = (v: string | null) => (v === null ? '無法換算' : `${Math.round(Number(v))} g`)
-const amount = (v: string | null | undefined, unit: string) =>
-  v === null || v === undefined ? '未知' : `${Number(v).toFixed(1)} ${unit}`
 const NUTRIENT_LABELS: Record<string, string> = { energy_kcal: '熱量', protein_g: '蛋白質' }
 const NUTRIENT_UNITS: Record<string, string> = { energy_kcal: 'kcal', protein_g: 'g' }
-/** 非必要營養素：僅顯示、不擋採用；未知顯示「未知」（不以 0 代替） */
-const OTHER_NUTRIENTS: [string, string, string][] = [
-  ['carbohydrate_g', '碳水化合物', 'g'], ['fat_g', '脂肪', 'g'], ['sugars_g', '糖', 'g'],
-  ['sodium_mg', '鈉', 'mg'], ['dietary_fiber_g', '膳食纖維', 'g'],
-]
+/** 調整建議的差額與可調範圍由後端以每 1 份（1n）基準計算；乘上份數 N 換成整餐值，與整餐營養表一致（決策 #53）。 */
+const scale = (v: string | null | undefined, n: number) =>
+  v === null || v === undefined ? v : String(Number(v) * n)
+
+/** 主食克數未知的原因（unresolved_reason）→ 給使用者看的說明；不是份量問題，而是主食沒有營養資料或不在清單。 */
+const STAPLE_NO_DATA = new Set(['no_tfda_cooked_sample', 'staple_without_tfda_sample'])
+function stapleProblem(label: string, reason: string | null | undefined): string {
+  if (reason === 'staple_not_supported') return `主食「${label}」不在可選清單中，整餐營養無法計算；請改選清單中的主食後重新生成`
+  if (reason && STAPLE_NO_DATA.has(reason)) return `主食「${label}」目前沒有營養資料，整餐營養無法計算；請改選其他主食後重新生成`
+  return `主食「${label}」無法換算克數，整餐營養無法計算`
+}
+const STAPLE_REASONS = new Set([...STAPLE_NO_DATA, 'staple_not_supported'])
 const ACTIVE = new Set(['queued', 'running'])
 
 const DECISION_LABELS: Record<DecisionKind, string> = {
@@ -121,6 +128,7 @@ export default function MealResultView({ requestId, mealDate, onChanged }: Props
   const knowledgeRetrying = !!knowledgeRetry && ACTIVE.has(knowledgeRetry.status)
   const dayConflict = r.previous_day_check?.status === 'conflict'
   const suggestions: NutritionSuggestion[] = r.nutrition.suggestions ?? []
+  const totalN = Number(r.nutrition.total_n ?? 1) || 1
   // decisions #42：推估／對照／近似等來源只留在追溯資料（payload、trace），畫面不標示
 
   return (
@@ -212,64 +220,48 @@ export default function MealResultView({ requestId, mealDate, onChanged }: Props
           <Typography variant="body2">
             {r.staple.display_amount != null
               ? `${r.staple.tfda_name ?? r.staple.label} ${Number(r.staple.display_amount)} ${r.staple.display_unit ?? ''}`
-              :'無法換算營養（缺 TFDA 樣品），不可採用'}
+              : `${stapleProblem(r.staple.label, r.staple.unresolved_reason)}，不可採用`}
             （計入營養與 ±10% 驗證，不計入價格{r.staple.review_status === 'pending_review' ? '；份量設定待營養審核' : ''}）
           </Typography>
         </Box>
       )}
 
       <Divider />
-      <Typography variant="subtitle1">營養估算</Typography>
+      <NutritionTable nutrition={r.nutrition} />
       {r.nutrition.quantities_verified === false && (
         <Alert severity="warning">以上用量尚未通過營養驗證，僅供查看與估算成本，不可採用。</Alert>
       )}
       {suggestions.length > 0 && (
         <Alert severity="info">
-          <Typography variant="body2" sx={{ fontWeight: 'bold' }}>調整建議</Typography>
+          <Typography variant="body2" sx={{ fontWeight: 'bold' }}>
+            調整建議（整餐，共 {totalN} 份；數值已由每份換算為整餐）
+          </Typography>
           <Box component="ul" sx={{ m: 0, pl: 3 }}>
             {suggestions.map((s, idx) => (
               <li key={idx}>
                 <Typography variant="body2">
                   {s.code === 'NUTRITION_OUT_OF_RANGE' && s.nutrient
-                    ? `${NUTRIENT_LABELS[s.nutrient]}需${s.direction === 'increase' ? '增加' : '減少'}約 ${amount(s.needed_change, NUTRIENT_UNITS[s.nutrient])}；`
+                    ? `${NUTRIENT_LABELS[s.nutrient]}需${s.direction === 'increase' ? '增加' : '減少'}約 ${amount(scale(s.needed_change, totalN), NUTRIENT_UNITS[s.nutrient])}；`
                       + (s.ingredients.length
                         ? s.ingredients.map((i) => `${i.name}${i.direction === 'increase' ? '增加' : '減少'}`
                           + (i.adjustment_approved
-                            ? `（可調 ${grams(i.adjustable_min ?? null)}–${grams(i.adjustable_max ?? null)}，最多${amount(i.max_change, NUTRIENT_UNITS[s.nutrient!])}）`
+                            ? `（可調 ${grams(scale(i.adjustable_min, totalN) ?? null)}–${grams(scale(i.adjustable_max, totalN) ?? null)}，最多${amount(scale(i.max_change, totalN), NUTRIENT_UNITS[s.nutrient!])}）`
                             : '（未審核可調範圍）')).join('、')
                         : '沒有可調整的食材')
                       + (s.within_adjustable_ranges ? '。已審核範圍內補得足，但與另一項營養無法同時達成。' : '。已審核範圍內補不足。')
-                    : `${s.action ?? ''}：${s.ingredients.map((i) => i.name).join('、')}`}
+                    : [
+                        ...s.ingredients.filter((i) => i.reason && STAPLE_REASONS.has(i.reason))
+                          .map((i) => stapleProblem(i.name, i.reason)),
+                        ...(s.ingredients.some((i) => !(i.reason && STAPLE_REASONS.has(i.reason)))
+                          ? [`${s.action ?? ''}：${s.ingredients.filter((i) => !(i.reason && STAPLE_REASONS.has(i.reason))).map((i) => i.name).join('、')}`]
+                          : []),
+                      ].join('；')}
                 </Typography>
               </li>
             ))}
           </Box>
         </Alert>
       )}
-      <Table size="small">
-        <TableHead><TableRow><TableCell>項目</TableCell><TableCell>目標</TableCell><TableCell>估算</TableCell><TableCell>差距</TableCell></TableRow></TableHead>
-        <TableBody>
-          <TableRow>
-            <TableCell>熱量</TableCell><TableCell>{amount(r.nutrition.target?.energy_kcal, 'kcal')}</TableCell>
-            <TableCell>{amount(r.nutrition.energy_kcal, 'kcal')}</TableCell><TableCell>{amount(r.nutrition.gap.energy_kcal, 'kcal')}</TableCell>
-          </TableRow>
-          <TableRow>
-            <TableCell>蛋白質</TableCell><TableCell>{amount(r.nutrition.target?.protein_g, 'g')}</TableCell>
-            <TableCell>{amount(r.nutrition.protein_g, 'g')}</TableCell><TableCell>{amount(r.nutrition.gap.protein_g, 'g')}</TableCell>
-          </TableRow>
-          {OTHER_NUTRIENTS.map(([key, label, unit]) => {
-            const value = r.nutrition.other_nutrients?.[key]
-            return (
-              <TableRow key={key}>
-                <TableCell>{label}</TableCell><TableCell>—</TableCell>
-                <TableCell>{amount(value, unit)}</TableCell>
-                <TableCell>—</TableCell>
-              </TableRow>
-            )
-          })}
-        </TableBody>
-      </Table>
-
       <Divider />
       <Typography variant="subtitle1">需補買食材</Typography>
       {r.prices.status !== 'computed' ? (
