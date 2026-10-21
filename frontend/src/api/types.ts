@@ -90,6 +90,14 @@ export type MealRequestDraft = {
 
 export type Issue = { field: string; reason: string; message: string }
 
+// 決策 #52：可選主食清單由後端設定檔提供（GET /meal-requests/staple-options），前端不寫死
+export type StapleOptions = {
+  options: { label: string; aliases: string[] }[]
+  none_value: string
+  none_values: string[]
+  config_version: string | null
+}
+
 export type MealRequest = {
   id: string
   status: string
@@ -290,6 +298,8 @@ export type NutritionSuggestion = {
     adjustable_max?: string | null
     adjustment_approved?: boolean
     max_change?: string | null
+    /** INGREDIENT_UNRESOLVED：無法換算的原因（主食沒有營養資料時與一般克數換算不同） */
+    reason?: string | null
   }[]
 }
 
@@ -352,6 +362,9 @@ export type MealResult = {
     within_range: boolean
     other_nutrients: Record<string, string | null>
     missing_nutrients: Record<string, string[]>
+    /** 決策 #53：值為 null 的營養之已知部分合計（整餐）與缺值食材；舊結果可能沒有 */
+    known_partial?: Record<string, string | null>
+    missing_by_nutrient?: Record<string, string[]>
     /** false：用量未通過驗證（缺資料或無法在範圍內符合目標），僅供查看 */
     quantities_verified?: boolean
     suggestions?: NutritionSuggestion[]

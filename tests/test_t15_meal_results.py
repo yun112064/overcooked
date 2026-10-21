@@ -434,8 +434,10 @@ class MissingNutritionDecisionTests(ResultTestCase):
         return make
 
     def test_missing_required_nutrition_is_viewable_but_never_adoptable(self):
-        self.generate(calculator=self.protein_unknown())
+        # 決策 #47：缺資料的資料庫組合不作為結果 → 轉 AI；AI 菜同樣缺蛋白質時結果仍可查看、需使用者決定
+        self.generate(calculator=self.protein_unknown(), responder=FakeResponder(AI_MENU))
         self.assertEqual(self.status(), "awaiting_decision")
+        self.assertEqual(self.result()["mode"], "ai_generated_menu")
         view = self.result()
         self.assertIsNone(view["nutrition"]["protein_g"])
         self.assertEqual([d["kind"] for d in view["eligibility"]["pending_decisions"]], ["continue_missing_nutrition"])
@@ -453,6 +455,31 @@ class MissingNutritionDecisionTests(ResultTestCase):
         self.assertFalse(view["eligibility"]["adoptable"])
         self.assertEqual(view["eligibility"]["pending_decisions"], [])
         self.assertTrue(view["dishes"])
+
+    def test_unknown_nutrient_reports_known_part_and_missing_ingredients(self):
+        """決策 #53：值為 null 時提供已知部分合計與缺值食材，畫面顯示「未知（已知 X，缺：A）」，不以 0 代替。"""
+        def make():
+            from app.services.meal_calculation import IngredientNutrition
+            energy, protein = self.reference()
+
+            def calc(rows):
+                return [IngredientNutrition({"energy_kcal": energy / 200 * g,
+                                             "protein_g": None if ln.food_id == CABBAGE else protein / 200 * g,
+                                             "sodium_mg": Decimal(1) * g},
+                                            {"sample_id": "FAKE"}) for ln, g in rows]
+            return calc
+        make.factory = True
+        self.clear_recipes()
+        self.generate(calculator=make, responder=FakeResponder(AI_MENU))
+        nutrition = self.result()["nutrition"]
+        _, protein = self.reference()
+        self.assertIsNone(nutrition["protein_g"])
+        self.assertEqual(nutrition["missing_by_nutrient"]["protein_g"], ["高麗菜"])
+        # 番茄、雞蛋、大蒜各 50 g（N=1）→ 已知蛋白質 = 150/200 × 參考值
+        self.assertEqual(Decimal(nutrition["known_partial"]["protein_g"]).quantize(Decimal("0.01")),
+                         (protein * 150 / 200).quantize(Decimal("0.01")))
+        self.assertNotIn("energy_kcal", nutrition["missing_by_nutrient"])
+        self.assertEqual(Decimal(nutrition["total_n"]), Decimal(1))
 
     def test_out_of_range_offers_no_decision(self):
         def doubled():

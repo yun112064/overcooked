@@ -7,10 +7,12 @@
 import json
 import unittest
 from decimal import Decimal
+from unittest.mock import patch
 
 from sqlalchemy import text
 
 import db_support
+from app.services import staples
 from test_t14_generation import FakeResponder, GenerationTestCase, ai_dish, menu, CABBAGE, EGG, GARLIC, TOMATO
 
 RICE = "FOOD000296"
@@ -61,14 +63,39 @@ class StapleTests(GenerationTestCase):
         self.assertIsNone(payload["staple"])
         self.assertEqual([r for r in payload["calculation"]["ingredients"] if r["role"] == "staple"], [])
 
-    def test_unsupported_staple_is_unresolved_not_zero(self):
-        job = self.generate(staple="糙米飯")
-        self.assertEqual(job["status"], "succeeded", job)
-        calc = self.payload()["calculation"]
-        self.assertFalse(calc["adoptable"])
-        self.assertIn("INGREDIENT_UNRESOLVED", [b["code"] for b in calc["block_reasons"]])
-        [rice] = [r for r in calc["ingredients"] if r["role"] == "staple"]
-        self.assertIsNone(rice["whole_meal_grams"])
+    def test_staple_without_nutrition_data_is_reported_before_generation(self):
+        """決策 #47：主食本身無法計算營養時，生成前就明確告知（不出營養未知的菜單、不轉 AI），問卷保留。"""
+        # 送出時主食在清單內（問卷驗證通過）；生成時設定檔已無營養資料（例如被撤下）→ 生成前回報
+        rice = {**staples.table()["options"]["白飯"], "aliases": []}
+        supported = {**staples.table(), "options": {"糙米飯": rice}}
+        no_data = {**staples.table(), "options": {"糙米飯": {
+            "aliases": [], "food_id": "FOOD001487", "tfda_name": None, "unresolved_reason": "no_tfda_cooked_sample"}}}
+        responder = FakeResponder()
+        with patch("app.services.staples.table", lambda: supported):
+            self.create_request(staple="糙米飯", dish_count=2)
+            job_id = self.submit()
+        with patch("app.services.staples.table", lambda: no_data):
+            self.run_job(responder)
+        job = self.job(job_id)
+        self.assertEqual((job["status"], job["error"]["code"]), ("failed", "STAPLE_NUTRITION_UNAVAILABLE"), job)
+        self.assertIn("糙米飯", job["error"]["message"])
+        self.assertIn("問卷已保留", job["error"]["message"])
+        self.assertEqual(responder.calls, [])
+        self.assertEqual(self.results(), [])
+        self.assertEqual(self.client.get(f"/meal-requests/{self.request['id']}").json()["draft"]["staple"], "糙米飯")
+
+    def test_staple_whose_calculator_has_no_energy_is_reported_before_generation(self):
+        from app.services.meal_calculation import IngredientNutrition
+        def rice_unknown(rows):
+            return [IngredientNutrition({"energy_kcal": None if ln.role == "staple" else Decimal(1) * g,
+                                         "protein_g": Decimal(1) * g}, {}) for ln, g in rows]
+        self.create_request(staple="白飯", dish_count=2)
+        job_id = self.submit()
+        responder = FakeResponder()
+        self.run_job(responder, calculator=rice_unknown)
+        job = self.job(job_id)
+        self.assertEqual((job["status"], job["error"]["code"]), ("failed", "STAPLE_NUTRITION_UNAVAILABLE"), job)
+        self.assertEqual(responder.calls, [])
 
     def test_ai_prompt_gets_the_staple_and_the_remaining_reference(self):
         self.clear_recipes()

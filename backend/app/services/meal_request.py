@@ -127,6 +127,9 @@ def completeness(draft: MealRequestDraft, members: dict) -> list[dict]:
     for field, message in required:
         if getattr(draft, field) is None:
             issues.append(_issue(field, "REQUIRED", message))
+    staple_problem = staple_issue(draft.staple)
+    if staple_problem:
+        issues.append(staple_problem)
     if not items(draft):
         issues.append(_issue("participants", "REQUIRED", "請至少選擇一位用餐或帶便當的成員。"))
     if any(p.member_id not in members for p in draft.participants):
@@ -136,6 +139,40 @@ def completeness(draft: MealRequestDraft, members: dict) -> list[dict]:
                              f"指定菜色有 {len(draft.specified_dishes)} 道，超過菜數 {draft.dish_count}；"
                              "指定菜會計入菜數，請增加菜數或減少指定菜。"))
     return issues
+
+
+def staple_options() -> dict:
+    """決策 #52：可選主食清單（後端設定檔 config/staples.json，前端不寫死）。
+
+    只列有營養資料（有 TFDA 食材）的選項；none_value 是「不需要主食」的標準寫法。
+    """
+    from app.services import staples
+
+    config = staples.table()
+    none_values = list(config.get("none_values") or [])
+    return {
+        "options": [{"label": label, "aliases": list(o.get("aliases") or [])}
+                    for label, o in config["options"].items() if o.get("tfda_name")],
+        "none_value": none_values[0] if none_values else "不需要主食",
+        "none_values": none_values,
+        "config_version": config.get("version"),
+    }
+
+
+def staple_issue(text: str | None) -> dict | None:
+    """主食不在清單（或該選項沒有營養資料）→ STAPLE_NOT_SUPPORTED；草稿照存，送出前擋下。"""
+    from app.services import staples
+
+    if text is None:
+        return None
+    staple = staples.resolve(text)
+    if staple is None or staple.line.grams_per_n is not None:
+        return None
+    if staple.line.unresolved_reason == "staple_not_supported":
+        message = f"主食「{text}」不在可選清單中，請從清單選擇（不需要主食也請選「不需要主食」）。"
+    else:
+        message = f"主食「{staple.label}」目前沒有營養資料，整餐營養無法計算，請改選其他主食。"
+    return _issue("staple", "STAPLE_NOT_SUPPORTED", message)
 
 
 def restrictions(db: Session, draft: MealRequestDraft, members: dict) -> dict:
