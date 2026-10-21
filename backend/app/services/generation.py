@@ -38,7 +38,7 @@ from sqlalchemy import func, select
 
 from app.core.config import settings
 from app.db.models import GenerationResult, MealRequest, Member
-from app.models import IngredientAlias, RecipeStep
+from app.models import IngredientAlias, Recipe, RecipeIngredient, RecipeStep
 from app.services import jobs, knowledge, meal_history, recipe_retrieval, spend
 from app.services import knowledge_queue, staples
 from app.services import meal_request as meal_request_service
@@ -49,7 +49,7 @@ from app.services.meal_cost import meal_cost_from_db
 from app.services.recipe_import import normalize_name, standard_dish_id
 
 RESULT_SCHEMA_VERSION = "generation_result/v1"
-MENU_PROMPT_VERSION = "t14-menu-prompt-v1"
+MENU_PROMPT_VERSION = "t14-menu-prompt-v2"  # v2：食材名稱只能照抄 allowed_ingredients（決策 #37）
 MENU_SCHEMA_VERSION = "t14-menu-schema-v1"
 EXPLAIN_PROMPT_VERSION = "t14-explain-prompt-v3"  # v3：理解語意後用自己的話闡述，不照抄原文（決策 #29、#31）
 EXPLAIN_SCHEMA_VERSION = "t14-explain-schema-v1"
@@ -166,11 +166,16 @@ def _max_input_tokens(*parts) -> int:
 
 
 class FoodDictionary:
-    """標準食材字典：名稱／無歧義別名 → FOOD 編號（模型給的名稱必須能對應，否則不可計算）。"""
+    """標準食材字典：名稱／無歧義別名 → FOOD 編號（模型給的名稱必須能對應，否則不可計算）。
 
-    def __init__(self, rows):
+    usage：每個 FOOD 編號被幾道合格食譜使用（決策 #37）；用於產生 AI 的合法食材清單，
+    以及名稱對到多個 FOOD 時選最常用者。
+    """
+
+    def __init__(self, rows, usage: dict[str, int] | None = None):
         self.names: dict[str, str] = {}
         self.index: dict[str, set[str]] = {}
+        self.usage: dict[str, int] = dict(usage or {})
         for food_id, canonical, aliases, ambiguous in rows:
             self.names[food_id] = canonical
             blocked = {normalize_name(a) for a in ambiguous or [] if isinstance(a, str)}
@@ -181,22 +186,60 @@ class FoodDictionary:
 
     @classmethod
     def load(cls, db) -> "FoodDictionary":
+        usage = dict(db.execute(
+            select(RecipeIngredient.food_id, func.count(func.distinct(RecipeIngredient.recipe_id)))
+            .join(Recipe, Recipe.recipe_id == RecipeIngredient.recipe_id)
+            .where(Recipe.is_eligible.is_(True))
+            .group_by(RecipeIngredient.food_id)).all())
         return cls(db.execute(select(IngredientAlias.food_id, IngredientAlias.canonical_name,
-                                     IngredientAlias.aliases, IngredientAlias.ambiguous_aliases)).all())
+                                     IngredientAlias.aliases, IngredientAlias.ambiguous_aliases)).all(), usage)
 
-    def resolve(self, name: str, food_id: str | None) -> tuple[str | None, str | None]:
-        """回傳 (FOOD 編號, 問題代碼)。名稱優先；模型給的編號與名稱矛盾即不採用。"""
+    def allowed_names(self, extra_food_ids=(), exclude=()) -> list[str]:
+        """AI 合法食材清單：合格食譜實際用到的標準名稱＋額外食材（現有食材），依正規化名稱去重、排序。
+
+        同一正規化名稱（如 番茄／蕃茄）只列最常用那個 FOOD 的寫法；exclude（禁忌食材）不列入。
+        """
+        chosen: dict[str, str] = {}
+        blocked = set(exclude)
+        ids = [f for f, n in self.usage.items() if n > 0 and f in self.names]
+        ids = [f for f in (*ids, *extra_food_ids) if f in self.names and f not in blocked]
+        for food_id in sorted(set(ids), key=lambda f: (-self.usage.get(f, 0), f)):
+            chosen.setdefault(normalize_name(self.names[food_id]), self.names[food_id])
+        return sorted(chosen.values())
+
+    def resolve_with_reason(self, name: str, food_id: str | None) -> tuple[str | None, str | None, dict | None]:
+        """回傳 (FOOD 編號, 問題代碼, 選擇紀錄)。名稱優先；模型給的編號與名稱矛盾即不採用。
+
+        名稱對到多個 FOOD（決策 #37）：模型給的編號在候選內就用它；否則選合格食譜中最常用者
+        （同數以編號最小者，並標示），選擇紀錄另存，不當作問題。
+        """
         ids = self.index.get(normalize_name(name or ""), set())
         if len(ids) == 1:
             found = next(iter(ids))
             if food_id and food_id != found:
-                return None, "INGREDIENT_ID_MISMATCH"
-            return found, None
+                return None, "INGREDIENT_ID_MISMATCH", None
+            return found, None, None
         if len(ids) > 1:
-            return (food_id, None) if food_id in ids else (None, "INGREDIENT_AMBIGUOUS")
+            if food_id and food_id not in ids:
+                return None, "INGREDIENT_ID_MISMATCH", None
+            ranked = sorted(ids, key=lambda f: (-self.usage.get(f, 0), f))
+            if food_id:
+                found, reason = food_id, "MODEL_FOOD_ID_AMONG_CANDIDATES"
+            else:
+                found = ranked[0]
+                tied = len(ranked) > 1 and self.usage.get(ranked[0], 0) == self.usage.get(ranked[1], 0)
+                reason = "TIE_BROKEN_BY_FOOD_ID" if tied else "MOST_USED_IN_ELIGIBLE_RECIPES"
+            return found, None, {"ingredient": name, "food_id": found, "reason": reason,
+                                 "candidates": [{"food_id": f, "name": self.names.get(f),
+                                                 "recipe_count": self.usage.get(f, 0)} for f in ranked]}
         if food_id and food_id in self.names:
-            return food_id, None
-        return None, "INGREDIENT_UNRESOLVED"
+            return food_id, None, None
+        return None, "INGREDIENT_UNRESOLVED", None
+
+    def resolve(self, name: str, food_id: str | None) -> tuple[str | None, str | None]:
+        """回傳 (FOOD 編號, 問題代碼)。"""
+        found, issue, _ = self.resolve_with_reason(name, food_id)
+        return found, issue
 
 
 # --- 菜單共同驗證（兩種模式都執行） ---
@@ -241,8 +284,11 @@ def _database_dishes(db, selected: list[dict]) -> tuple[list[dict], list[Ingredi
 
 
 def _ai_dishes(candidate: MenuCandidate, foods: FoodDictionary, specified: list[str]):
-    """AI 菜：來源一律 ai、沒有 recipe_id（不可能引用資料庫）；食材、用量、步驟、烹調方式都要可計算。"""
-    dishes, lines, problems = [], [], []
+    """AI 菜：來源一律 ai、沒有 recipe_id（不可能引用資料庫）；食材、用量、步驟、烹調方式都要可計算。
+
+    回傳 (菜, 計算列, 問題, 食材選擇紀錄)；選擇紀錄是名稱對到多個 FOOD 時的自動選擇（決策 #37），不是問題。
+    """
+    dishes, lines, problems, resolutions = [], [], [], []
     for item in candidate.dishes:
         name = item.dish_name.strip()
         method = item.cooking_method.strip()
@@ -259,10 +305,12 @@ def _ai_dishes(candidate: MenuCandidate, foods: FoodDictionary, specified: list[
         dish_id = standard_dish_id(name)
         ingredients = []
         for ing in item.ingredients:
-            food_id, issue = foods.resolve(ing.name, ing.food_id)
+            food_id, issue, resolution = foods.resolve_with_reason(ing.name, ing.food_id)
             if issue:
                 problems.append({"code": issue, "dish_name": name, "ingredient": ing.name})
                 continue
+            if resolution:
+                resolutions.append({"dish_name": name, **resolution})
             grams = Decimal(str(ing.grams_per_n)) if math.isfinite(ing.grams_per_n) else None
             if grams is None or not (Decimal(0) < grams <= MAX_GRAMS_PER_N):
                 problems.append({"code": "INVALID_QUANTITY", "dish_name": name, "ingredient": ing.name})
@@ -281,7 +329,7 @@ def _ai_dishes(candidate: MenuCandidate, foods: FoodDictionary, specified: list[
             "cooking_method": method, "steps": steps, "food_ids": sorted({i["food_id"] for i in ingredients}),
             "ingredients": ingredients,
         })
-    return dishes, lines, problems
+    return dishes, lines, problems, resolutions
 
 
 MENU_INSTRUCTIONS = (
@@ -290,7 +338,9 @@ MENU_INSTRUCTIONS = (
     "1. 菜數必須恰好等於 dish_count；specified_dishes 的每道菜都必須出現，菜名照抄。\n"
     "2. 不得使用 forbidden_ingredients 的任何食材（含其別名與加工品）。\n"
     "3. 不得出現 avoid_dishes 中的菜（含別名或換名稱的同一道菜），specified_dishes 除外。\n"
-    "4. 每道菜列出全部食材（含油、調味料），name 用常見中文食材名；若食材在 known_ingredients 中請填其 food_id，否則填 null。\n"
+    "4. 每道菜列出全部食材（含油、調味料）；每個食材的 name 必須是 allowed_ingredients 清單中的名稱，"
+    "一字不差照抄，不可自創、改寫或加註（清單沒有的食材就不要用，改用清單中的食材）。"
+    "若食材在 known_ingredients 中請填其 food_id，否則填 null。\n"
     "5. grams_per_n 是每 1 份（n=1）的生重或熟重克數，weight_basis 標 raw 或 cooked；"
     "每份熱量與蛋白質請盡量接近 per_n_reference。\n"
     "6. 每道菜要有烹調方式與可執行的步驟。不要輸出價格、營養數值、來源或資料庫編號。\n"
@@ -321,14 +371,17 @@ def _menu_input(draft, restrictions: dict, foods: FoodDictionary, context: dict,
         for k, v in (staple.get("nutrients") or {}).items():
             if k in reference and v is not None:
                 reference[k] = max(Decimal(0), reference[k] - Decimal(v))
+    known = [i for i in draft.available_ingredient_ids if i not in restrictions["excluded_food_ids"]]
     data = {
         "meal_type": draft.meal_type, "staple": ({"label": staple["label"], "grams_per_n": str(staple["grams_per_n"])}
                                                  if staple else draft.staple),
         "dish_count": draft.dish_count,
         "specified_dishes": draft.specified_dishes, "taste_preferences": draft.taste_preferences,
         "forbidden_ingredients": [{"food_id": i, "name": foods.names.get(i)} for i in restrictions["excluded_food_ids"]],
-        "known_ingredients": [{"food_id": i, "name": foods.names.get(i)} for i in draft.available_ingredient_ids
-                              if i not in restrictions["excluded_food_ids"]],
+        "known_ingredients": [{"food_id": i, "name": foods.names.get(i)} for i in known],
+        # 決策 #37：食材名稱只能從這份清單照抄（合格食譜用到的標準名稱＋現有食材），後端才對得到 FOOD 編號。
+        # 禁忌食材（已含同義展開）不列入；後端仍會再檢查。
+        "allowed_ingredients": foods.allowed_names(known, exclude=restrictions["excluded_food_ids"]),
         "avoid_dishes": [{"dish_name": d["dish_name"], "aliases": d.get("aliases", [])}
                          for d in context["excluded_dishes"]],
         "per_n_reference": {k: str(v) for k, v in reference.items()},
@@ -576,7 +629,7 @@ def _generate(ctx, *, responder, knowledge_client, embedder, calculator, now) ->
         else:
             fallback_reason, fallback_details = DATABASE_INFEASIBLE, {"tried": tried}
 
-    menu_model = None
+    menu_model, resolutions = None, []
     if mode is None:
         mode = AI_MENU
         with ctx.factory() as db:
@@ -603,7 +656,7 @@ def _generate(ctx, *, responder, knowledge_client, embedder, calculator, now) ->
         candidate, failure = _parse(response, MenuCandidate)
         if failure:
             raise _rejected(failure)
-        dishes, lines, problems = _ai_dishes(candidate, foods, draft.specified_dishes)
+        dishes, lines, problems, resolutions = _ai_dishes(candidate, foods, draft.specified_dishes)
         problems += check_menu(dishes, dish_count=draft.dish_count, specified=draft.specified_dishes,
                                excluded=excluded, context=context)
         if problems:
@@ -634,6 +687,8 @@ def _generate(ctx, *, responder, knowledge_client, embedder, calculator, now) ->
         "query_source": {k: v for k, v in retrieval.to_dict().items() if k != "previous_day"},
         "database_candidates": tried,
         "dishes": dishes,
+        # 決策 #37：AI 食材名稱對到多個 FOOD 時的自動選擇與理由（不是問題，不影響採用）
+        "ingredient_resolutions": resolutions,
         "staple": staple.snapshot() if staple else None,
         "restrictions": {"excluded_food_ids": sorted(excluded)},
         "targets": targets_info,
