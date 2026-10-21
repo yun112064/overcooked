@@ -28,7 +28,8 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 SNAPSHOT_PATHS = {
     "cloud": ["config/model_pricing.json", "config/recognition_labels.json", "config/price_exempt_ingredients.json",
               "config/ingredient_synonyms.json", "config/recipe_sources.json", "config/recipe_reviews.json",
-              "nutrition_target", "data/recipe_dataset_1017.xlsx", "knowledge_rag/schema.sql"],
+              "nutrition_target", "data/recipe_dataset_1017.xlsx", "knowledge_rag/schema.sql",
+              "config/name_variants.json", "config/recipe_category_overrides.json"],
     "knowledge": ["knowledge_rag/schema.sql", "config/model_pricing.json"],
 }
 CLOUD_COUNT_TABLES = ("users", "households", "household_members", "meal_requests", "generation_results",

@@ -239,7 +239,7 @@ class AiFallbackTests(GenerationTestCase):
         self.assertEqual(payload["calculation"]["mode"], "ai")
         self.assertTrue(payload["calculation"]["adoptable"])
         self.assertEqual(payload["evidence"]["menu_model"], MODEL)
-        self.assertEqual(payload["evidence"]["menu_prompt_version"], "t14-menu-prompt-v1")
+        self.assertEqual(payload["evidence"]["menu_prompt_version"], "t14-menu-prompt-v2")
         # Structured Outputs：送出 strict schema；問卷文字只在 input
         [call] = responder.calls
         self.assertEqual(call["model"], MODEL)
@@ -371,6 +371,88 @@ class AiFallbackTests(GenerationTestCase):
         self.assertEqual((job["status"], job["error"]["code"]), ("failed", "GENERATION_FAILED"))
         self.assertIn("未設定", job["error"]["message"])
         self.assertEqual(self.reservations(), [])
+
+
+class AllowedIngredientTests(GenerationTestCase):
+    """決策 #37：AI 只能用合法食材清單中的名稱；同名多個 FOOD 時選合格食譜最常用者並留紀錄。"""
+
+    def test_menu_input_lists_allowed_ingredient_names_and_prompt_requires_them(self):
+        self.clear_recipes()
+        from sqlalchemy import text
+        with self.factory() as db, db.begin():  # 只有 R02（高麗菜、大蒜）與 R05（九層塔、蛋）合格
+            db.execute(text("UPDATE recipes SET is_eligible = true WHERE recipe_id IN ('R02', 'R05')"))
+        # 要 3 道但只有 2 道合格 → AI 回退
+        self.create_request(dish_count=3, available_ingredient_ids=[CARROT])
+        self.submit()
+        responder = FakeResponder(menu(ai_dish("蒜香高麗菜", [(CABBAGE, 30), (GARLIC, 30)]),
+                                       ai_dish("九層塔煎蛋", [(BASIL, 30), (EGG, 50)]),
+                                       ai_dish("清炒胡蘿蔔", [(CARROT, 60)])))
+        self.run_job(responder)
+        [call] = responder.calls
+        sent = json.loads(call["input_text"])
+        # 合格食譜實際用到的標準名稱＋現有食材，去重排序；未合格食譜（R01 番茄）不列入
+        self.assertEqual(sent["allowed_ingredients"], sorted(["高麗菜", "大蒜", "九層塔", "雞蛋", "胡蘿蔔"]))
+        self.assertIn("allowed_ingredients", call["instructions"])
+        [row] = self.results()
+        self.assertEqual(row.payload["evidence"]["menu_prompt_version"], "t14-menu-prompt-v2")
+
+    def test_name_matching_several_foods_picks_the_most_used_and_records_why(self):
+        # 番茄（R01、R08 使用）與蕃茄（無食譜使用）依異體字規則同名；模型沒給編號 → 選番茄 FOOD001016
+        from db_support import FOODS
+        self.create_request(dish_count=2)
+        self.clear_recipes()
+        from sqlalchemy import text
+        with self.factory() as db, db.begin():  # 只剩 R08（番茄炒蛋）合格：一道菜湊不出兩道 → AI 回退
+            db.execute(text("UPDATE recipes SET is_eligible = true WHERE recipe_id = 'R08'"))
+        job_id = self.submit()
+        tomato = ai_dish("番茄蛋花湯", [(TOMATO, 50), (EGG, 50)], method="煮")
+        tomato["ingredients"][0].update({"name": "蕃茄", "food_id": None})
+        self.run_job(FakeResponder(menu(tomato, ai_dish("蒜香高麗菜", [(CABBAGE, 50), (GARLIC, 50)]))))
+        self.assertEqual(self.job(job_id)["status"], "succeeded", self.job(job_id))
+        [row] = self.results()
+        self.assertEqual(row.payload["dishes"][0]["food_ids"], sorted([TOMATO, EGG]))
+        self.assertEqual(FOODS["FOOD001444"][0], "蕃茄")
+        [record] = row.payload["ingredient_resolutions"]
+        self.assertEqual((record["dish_name"], record["ingredient"], record["food_id"], record["reason"]),
+                         ("番茄蛋花湯", "蕃茄", TOMATO, "MOST_USED_IN_ELIGIBLE_RECIPES"))
+        self.assertEqual({c["food_id"]: c["recipe_count"] for c in record["candidates"]},
+                         {TOMATO: 1, "FOOD001444": 0})
+
+
+class FoodDictionaryTests(unittest.TestCase):
+    ROWS = [("FOOD001016", "番茄", [], []), ("FOOD001444", "蕃茄", [], []), ("FOOD000005", "高麗菜", [], [])]
+
+    def foods(self, usage):
+        from app.services.generation import FoodDictionary
+        return FoodDictionary(self.ROWS, usage=usage)
+
+    def test_ambiguous_name_resolves_to_most_used_food(self):
+        foods = self.foods({"FOOD001444": 3, "FOOD001016": 1})
+        food_id, issue, resolution = foods.resolve_with_reason("番茄", None)
+        self.assertEqual((food_id, issue), ("FOOD001444", None))
+        self.assertEqual(resolution["reason"], "MOST_USED_IN_ELIGIBLE_RECIPES")
+        self.assertEqual(foods.resolve("番茄", None), ("FOOD001444", None))
+
+    def test_model_food_id_among_candidates_wins(self):
+        foods = self.foods({"FOOD001444": 3, "FOOD001016": 1})
+        food_id, issue, resolution = foods.resolve_with_reason("蕃茄", "FOOD001016")
+        self.assertEqual((food_id, issue, resolution["reason"]), ("FOOD001016", None, "MODEL_FOOD_ID_AMONG_CANDIDATES"))
+
+    def test_model_food_id_outside_candidates_is_a_mismatch(self):
+        self.assertEqual(self.foods({}).resolve("番茄", "FOOD000005"), (None, "INGREDIENT_ID_MISMATCH"))
+
+    def test_tie_is_broken_by_food_id_and_flagged(self):
+        food_id, _, resolution = self.foods({}).resolve_with_reason("番茄", None)
+        self.assertEqual((food_id, resolution["reason"]), ("FOOD001016", "TIE_BROKEN_BY_FOOD_ID"))
+
+    def test_unique_and_unknown_names_are_unchanged(self):
+        foods = self.foods({})
+        self.assertEqual(foods.resolve_with_reason("高麗菜", None), ("FOOD000005", None, None))
+        self.assertEqual(foods.resolve("龍蝦", None), (None, "INGREDIENT_UNRESOLVED"))
+
+    def test_allowed_names_dedupe_variants_and_add_known(self):
+        foods = self.foods({"FOOD001016": 2, "FOOD001444": 1})
+        self.assertEqual(foods.allowed_names(["FOOD000005"]), ["番茄", "高麗菜"])
 
 
 class AllergyTests(GenerationTestCase):

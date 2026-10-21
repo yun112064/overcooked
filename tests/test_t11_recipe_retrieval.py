@@ -362,6 +362,66 @@ class MenuCompositionTests(unittest.TestCase):
         self.assertEqual(result.selected, [])
 
 
+class NameVariantTests(unittest.TestCase):
+    """決策 #36：常見異體字（番/蕃、臺/台、葱/蔥、麪/麵）在名稱比對中視為同字。"""
+
+    def test_variant_characters_normalize_to_the_same_name(self):
+        from app.services.recipe_import import normalize_name, standard_dish_id
+        for a, b in (("番茄炒蛋", "蕃茄炒蛋"), ("臺式滷肉", "台式滷肉"), ("葱爆牛肉", "蔥爆牛肉"), ("炸醬麪", "炸醬麵")):
+            with self.subTest(a=a):
+                self.assertEqual(normalize_name(a), normalize_name(b))
+                self.assertEqual(standard_dish_id(a), standard_dish_id(b))
+        self.assertNotEqual(normalize_name("番茄炒蛋"), normalize_name("番茄炒麵"))
+
+    def test_previous_day_dedup_treats_variants_as_same_dish(self):
+        from app.services import meal_history
+        self.assertTrue(meal_history.same_dish({"dish_name": "蕃茄炒蛋"}, {"dish_name": "番茄炒蛋"}))
+        self.assertTrue(meal_history.same_dish({"dish_name": "臺式炒麪"}, {"dish_name": "台式炒麵"}))
+
+
+@requires_db
+class VariantRetrievalTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        migrate_fresh()
+
+    def setUp(self):
+        from app.db.models import Household
+        truncate_all()
+        seed_foods()
+        self.factory = session_factory()
+        with self.factory() as db, db.begin():
+            self.home = Household(name="本家")
+            db.add(self.home)
+
+    def retrieve(self, fields):
+        from app.services.meal_request import MealRequestDraft
+        from app.services.recipe_retrieval import retrieve_database_menu
+        draft = MealRequestDraft(meal_date=date(2026, 8, 20), meal_type="dinner", **fields)
+        with self.factory() as db:
+            return retrieve_database_menu(db, self.home.id, draft, excluded_food_ids=[])
+
+    def test_reported_case_specified_fan_qie_matches_database_variant(self):
+        # 使用者實測：資料庫是 R0140「蕃茄炒蛋」（已依 #38 改為主菜），問卷寫「番茄炒蛋」、主食白飯、3 道菜
+        seed_recipes(self.factory, [("R0140", "蕃茄炒蛋", [], [TOMATO, EGG], ["炒"], True, "主菜"),
+                                    ("R02", "清炒高麗菜", [], [CABBAGE, GARLIC], ["炒"], True, "主菜"),
+                                    ("R03", "蒜炒青江菜", [], [BOKCHOY, GARLIC], ["炒"], True, "主菜")])
+        result = self.retrieve({"dish_count": 3, "staple": "白飯", "specified_dishes": ["番茄炒蛋"]})
+        self.assertEqual(result.status, "database_menu", (result.reason, result.details))
+        self.assertEqual((result.selected[0]["recipe_id"], result.selected[0]["specified"]), ("R0140", True))
+
+    def test_recipes_stored_with_pre_variant_dish_ids_are_one_dish(self):
+        # 異體字規則上線前匯入的資料：番茄炒蛋／蕃茄炒蛋存成兩個不同的標準菜色 ID，仍應視為同一道（不判無法判定）
+        from sqlalchemy import text
+        seed_recipes(self.factory, [("R01", "番茄炒蛋", [], [TOMATO, EGG], ["炒"], True),
+                                    ("R0140", "蕃茄炒蛋", [], [TOMATO, EGG], ["炒"], True)])
+        with self.factory() as db, db.begin():
+            db.execute(text("UPDATE recipes SET standard_dish_id = 'DISHLEGACY' || recipe_id"))
+        result = self.retrieve({"dish_count": 1, "specified_dishes": ["番茄炒蛋"]})
+        self.assertEqual(result.status, "database_menu", (result.reason, result.details))
+        self.assertIn(result.selected[0]["recipe_id"], {"R01", "R0140"})
+
+
 def truncate_history():
     from db_support import _engine
     from sqlalchemy import text

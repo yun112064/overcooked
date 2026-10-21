@@ -9,6 +9,7 @@ from dataclasses import dataclass
 from datetime import date, datetime, timezone
 from decimal import Decimal, InvalidOperation
 from difflib import SequenceMatcher
+from functools import lru_cache
 from pathlib import Path
 from typing import Any, Iterable
 
@@ -245,8 +246,26 @@ def _split_list(value: Any) -> list[str]:
     return [item.strip() for item in re.split(r"[；;]", text_value) if item.strip()]
 
 
+NAME_VARIANTS_PATH = Path(__file__).resolve().parents[3] / "config" / "name_variants.json"
+# 設定檔不存在時（例如只複製 backend 的環境）使用的預設異體字對照（決策 #36）
+DEFAULT_NAME_VARIANTS = {"蕃": "番", "臺": "台", "葱": "蔥", "麪": "麵", "麫": "麵"}
+
+
+@lru_cache(maxsize=1)
+def _variant_table() -> dict[int, str]:
+    try:
+        variants = json.loads(NAME_VARIANTS_PATH.read_text(encoding="utf-8"))["variants"]
+    except FileNotFoundError:
+        variants = DEFAULT_NAME_VARIANTS
+    return str.maketrans(variants)
+
+
 def normalize_name(value: str) -> str:
-    normalized = unicodedata.normalize("NFKC", value).lower()
+    """名稱比對鍵：NFKC、小寫、只留文字與數字，常見異體字視為同字（config/name_variants.json）。
+
+    指定菜比對、菜色識別（standard_dish_id）、食材名稱解析與昨日去重都用這個函式。
+    """
+    normalized = unicodedata.normalize("NFKC", value).lower().translate(_variant_table())
     return "".join(character for character in normalized if character.isalnum())
 
 
@@ -594,13 +613,50 @@ def _apply_review_record(raw_sheets: dict[str, list[dict[str, Any]]], record: di
     return {**summary, "applied": True, "approvals": record.get("approvals")}
 
 
+CATEGORY_OVERRIDES_PATH = Path(__file__).resolve().parents[3] / "config" / "recipe_category_overrides.json"
+
+
+def load_category_overrides(path: str | Path = CATEGORY_OVERRIDES_PATH) -> dict[str, dict]:
+    """決策 #38：食譜分類修正表 recipe_id → {category, reason, decided_at}（工作簿本身不改）。"""
+    data = json.loads(Path(path).read_text(encoding="utf-8"))
+    overrides = data["overrides"]
+    for recipe_id, entry in overrides.items():
+        if not all(_text(entry.get(key)) for key in ("category", "reason", "decided_at")):
+            raise WorkbookValidationError(f"Category override {recipe_id} needs category, reason and decided_at")
+    return overrides
+
+
+def _override_record(recipe_id: str, before: str | None, entry: dict) -> dict:
+    return {"recipe_id": recipe_id, "from": before, "to": entry["category"], "reason": entry["reason"],
+            "decided_at": entry["decided_at"]}
+
+
+def apply_category_overrides(session: Session, overrides: dict[str, dict], *, dry_run: bool = False) -> dict:
+    """把分類修正表直接套用到已匯入的資料庫（冪等；呼叫端負責交易）。回傳變更、未變更與找不到的食譜。"""
+    changed, unchanged, missing = [], [], []
+    for recipe_id in sorted(overrides):
+        entry = overrides[recipe_id]
+        recipe = session.get(Recipe, recipe_id)
+        if recipe is None:
+            missing.append(recipe_id)
+        elif recipe.category == entry["category"]:
+            unchanged.append(recipe_id)
+        else:
+            changed.append(_override_record(recipe_id, recipe.category, entry))
+            if not dry_run:
+                recipe.category = entry["category"]
+    session.flush()
+    return {"changed": changed, "unchanged": unchanged, "missing_recipe_ids": missing, "dry_run": dry_run}
+
+
 def load_source_rights(path: str | Path) -> dict[str, dict]:
     data = json.loads(Path(path).read_text(encoding="utf-8"))
     return {name: entry for name, entry in data["sources"].items()}
 
 
 def parse_recipe_workbook(path: str | Path, source_rights: dict[str, dict] | None = None,
-                          review_record: dict[str, Any] | None = None) -> ImportBundle:
+                          review_record: dict[str, Any] | None = None,
+                          category_overrides: dict[str, dict] | None = None) -> ImportBundle:
     workbook_path = Path(path).resolve()
     if not workbook_path.is_file():
         raise FileNotFoundError(workbook_path)
@@ -937,6 +993,15 @@ def parse_recipe_workbook(path: str | Path, source_rights: dict[str, dict] | Non
         recipe_rows.append(recipe_row)
         recipe_by_id[recipe_id] = recipe_row
 
+    # 決策 #38：分類修正表覆蓋工作簿分類（工作簿不改），每筆變更列入報告
+    overrides_applied: list[dict[str, Any]] = []
+    for recipe_id, entry in sorted((category_overrides or {}).items()):
+        row = recipe_by_id.get(recipe_id)
+        if row is not None and row["category"] != entry["category"]:
+            overrides_applied.append(_override_record(recipe_id, row["category"], entry))
+            row["category"] = entry["category"]
+    overrides_missing = sorted(set(category_overrides or {}) - set(recipe_by_id))
+
     exact_duplicate_groups: list[dict[str, Any]] = []
     for normalized_name, ids in sorted(normalized_groups.items()):
         if len(ids) <= 1:
@@ -1098,6 +1163,7 @@ def parse_recipe_workbook(path: str | Path, source_rights: dict[str, dict] | Non
             ],
         },
         "review_record": review_applied,
+        "category_overrides": {"applied": overrides_applied, "missing_recipe_ids": overrides_missing},
         "g01": {
             "status": "passed" if qualified >= 150 else "not_passed",
             "required_qualified_recipes": 150,
