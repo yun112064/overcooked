@@ -107,6 +107,12 @@ class RawCompositionFallbackTests(unittest.TestCase):
         self.assertEqual(chicken.nutrients["energy_kcal"], raw.nutrients["energy_kcal"] * D("0.95"))
         self.assertFalse(chicken.trace.get("raw_composition_fallback"))
 
+    def test_single_method_given_only_in_cooking_methods_uses_its_factor(self):
+        # AI 路徑可能只填 cooking_methods（一種方式）：同樣以 cooking_method_key 查係數
+        factors = lookup(cooking("F-雞胸肉", "stir"))
+        [chicken] = calc(line("雞胸肉", "150", cooking_methods=("清炒",)), factors=factors)
+        self.assertEqual(chicken.trace["estimated_factors"][0]["key"], "stir")
+
     def test_white_rice_mapped_to_raw_japonica_rice_is_computable(self):
         # 白米 FOOD000280 由協調者 override 對到 A05002 稉米平均值（生）：食譜「煮」或多方式都算得出
         maps = {"FOOD000280": mapping("FOOD000280", "A05002")}

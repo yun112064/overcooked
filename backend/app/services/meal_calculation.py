@@ -865,7 +865,7 @@ def cooking_method_key(methods) -> str | None:
 def _method_key(ln: IngredientLine) -> str | None:
     if ln.cooking_method:
         return cooking_method_key(ln.cooking_method)
-    return combined_method_key(ln.cooking_methods) if len(ln.cooking_methods) > 1 else None
+    return cooking_method_key(ln.cooking_methods) if ln.cooking_methods else None
 
 
 CookingFactorLookup = Callable[[str, str], "EstimatedFactor | None"]
