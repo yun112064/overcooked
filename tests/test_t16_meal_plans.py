@@ -368,4 +368,5 @@ class HistoryChainTests(PlanTestCase):
         after = self.plan(plan["id"])
         self.assertEqual(after, before)
         self.assertEqual(after["dishes"][0]["recipe_source"]["source_url"], "https://example.invalid/R00A")
-        self.assertEqual(money(after["prices"]["cost_total"]), Decimal(20))
+        # 四項食材各 5 元，醬油為調味料（決策 #44）不計價 → 15 元
+        self.assertEqual(money(after["prices"]["cost_total"]), Decimal(15))
