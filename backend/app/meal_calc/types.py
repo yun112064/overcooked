@@ -38,6 +38,9 @@ class EstimatedFactor:
     grams_per_unit: Decimal | None = None
     # kind="tfda_mapping"（decisions #28）：對照到的 TFDA 樣本 ID；None 代表模型回答「無合適樣本」
     tfda_sample_id: str | None = None
+    # kind="nutrient_fill"（decisions #32）：food_id 為 TFDA 樣本 ID、key 為營養素（energy_kcal／protein_g），
+    # 值為該樣本每 100 g 的推估含量（只補 TFDA 空白者）
+    nutrient_per_100g: Decimal | None = None
 
     @property
     def usable(self) -> bool:
@@ -57,6 +60,8 @@ class EstimatedFactor:
             out.update(yield_factor=self.yield_factor, retention=dict(self.retention or {}))
         elif self.kind == "tfda_mapping":
             out["tfda_sample_id"] = self.tfda_sample_id
+        elif self.kind == "nutrient_fill":
+            out["nutrient_per_100g"] = self.nutrient_per_100g
         else:
             out["grams_per_unit"] = self.grams_per_unit
         return out
