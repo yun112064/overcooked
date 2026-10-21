@@ -202,7 +202,7 @@ python -m app.estimation approve|reject <id> --reviewer 營養師A
 python -m app.estimation run --kind nutrient_fill --dry-run
 python -m app.estimation run --kind nutrient_fill
 python -m app.estimation list --kind nutrient_fill
-python -m app.estimation override --kind nutrient_fill --food N0100101 --key protein_g --value 0 --reviewer 營養師A
+python -m app.estimation override --kind nutrient_fill --food N0200101 --key protein_g --value 0 --reviewer 營養師A
 python -m app.estimation approve|reject <id> --reviewer 營養師A
 ```
 
@@ -246,6 +246,36 @@ python -m app.estimation override --kind tfda_mapping --food FOOD000691 --key tf
   （追溯用）；前端營養表列出非必要營養素，但不標示「近似」（decisions #42）。近似不算 LLM 推估的營養（不列入 `estimated_nutrients`）。
 - 已知範圍：無烹調方式且非直接食用的生樣品，T04 仍回報 `no_cooking_method`，全部營養（含熱量）維持未知，此行為未改。
 - 測試：`tests/test_other_nutrients.py`（含蕃茄炒蛋類：雞蛋平均值＋牛番茄，炒）。
+
+## TFDA 營養空白：類別必然為 0＋7 種營養素推估（decisions #45，2026-10-21）
+
+- 問題：TFDA 樣本常有糖、膳食纖維、脂肪、鈉（或碳水）欄位空白（如砂糖的脂肪、醬油的脂肪與糖、豬後腿肉的纖維、大豆油的鈉），
+  整餐這些營養素因此一直是未知。
+- 優先順序（每項食材、每個營養素）：TFDA／USDA 實測 → **類別必然為 0**（設定檔規則）→ 人工核可／覆寫 → LLM 推估（`kind = nutrient_fill`）→ 未知（None，不填 0）。
+- 類別 0 規則：`config/nutrient_category_zero.json`，以 TFDA 樣本 ID 類別碼前綴＋營養素表示，每條附理由（第一碼為食品大類：
+  I 肉類、J 魚貝類、K 蛋類、M 油脂、N 糖類、P 調味料…；其後兩碼為次分類）。規則刻意保守：
+  - `animal_flesh_no_fiber`：I、J（不含 J06 魚漿，TFDA 旗魚魚漿纖維 2.6 g）、K 的膳食纖維；
+  - `refined_pure_fat`：純油（M02 豬油、M03 雞油、M11–M27 植物油、M99 酥油／調合油、P0900201 香油）的碳水、糖、纖維、鈉（不含奶油、人造奶油、未精煉牛油、亞麻仁油）；
+  - `refined_sugar`：方糖 N0100101、冰糖 N0100201、果糖 N0300101 的蛋白質、脂肪、纖維（紅砂糖、黑砂糖含糖蜜，不納入）；
+  - `salt_mineral_only`：P03 食鹽的蛋白質、脂肪、纖維（低鈉鹽 TFDA 碳水 2.8 g，糖與碳水不納入）。
+  只在 TFDA 該欄位空白時套用；所有路徑都適用（直接食用、生樣本＋快取烹調係數、熟樣本／熟重、TFDA 實測烹調）。
+  trace `category_zero = {營養素: {rule, sample_id}}`，不算推估、不列入 `estimated_nutrients`。
+  查詢：`app.services.nutrient_category_zero.zero_rule(sample_id, nutrient)`／`applies(record, nutrient)`。
+- 7 種營養素推估（擴充 #32）：`kind = nutrient_fill` 的 `factor_key` 可為 `energy_kcal`、`protein_g`、`carbohydrate_g`、`fat_g`、
+  `sugars_g`、`dietary_fiber_g`、`sodium_mg`（每 100 g；鈉為 mg）。計算（`_fill_blanks`）：熟樣本 × 熟重（trace 熟重或生重 × 快取產率）；
+  生樣本已套快取烹調係數者 × 生重 × 保留率（非必要營養素無保留率，視為 1，同 #40）；其餘照克數。適用類別 0 者不查推估。
+- 檢查（`store.check_fill`，LLM 批次與人工覆寫共用）：樣本存在、TFDA 該欄位空白、不適用類別 0；每 100 g 範圍：熱量 0–900、
+  蛋白質／碳水／脂肪／糖／纖維 0–100 g、鈉 0–40000 mg；一致性：糖 ≤ 碳水＋1 g、碳水＋蛋白質＋脂肪＋纖維 ≤ 105 g、
+  蛋白質×4＋脂肪×9 ≤ 熱量×1.1＋1。Migration `d4e8a2c7f913` 把資料庫 `nutrient_per_100g` 上限由 900 放寬為 40000。
+- 批次：`python -m app.estimation run --kind nutrient_fill [--dry-run]`。掃描合格食譜實際用到的樣本（經 #28 對照：精確、別名、同義詞、
+  人工、LLM 對照；單一烹調方式時 T04 可能改用的熟樣本）以及 `config/staples.json` 的主食樣本（輸入快照 `staple_options`），
+  排除類別 0。prompt 版本 `nutrient-fill-prompt-v2`。報告新增 `estimated_max_cost_twd`（以 T10 預留的 token 上限計，實際結算通常更低）。
+  已有紀錄（含 rejected）的鍵照舊跳過，因此既有的熱量／蛋白質推估不會重複付費。
+- 真實工作簿在空的測試資料庫（只有精確名稱、別名、同義詞，沒有 LLM／人工對照）dry-run：66 組（糖 47、纖維 10、脂肪 5、蛋白質 4），
+  費用上限約 NT$10.7；開發資料庫有對照後會更多。
+- 畫面不顯示「LLM 推估」「類別 0」等說法（#42），追溯資料完整保留。
+- 測試：`tests/test_category_zero_fill.py`（規則、三種計算路徑、類似使用者菜單的整餐 7 種營養素皆有值、check_fill、掃描與 dry-run 費用），
+  `tests/test_nutrient_gaps.py`（#32 測試改用不在類別 0 規則內的麥芽糖／主食白飯）。
 
 ## 顯示用量、步驟分組與調味料（decisions #41–#44，2026-10-21）
 

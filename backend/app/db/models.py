@@ -453,7 +453,7 @@ class ConversionFactorEstimate(Base):
             name="ck_conversion_factor_values"),
         CheckConstraint("tfda_sample_id IS NULL OR kind = 'tfda_mapping'", name="ck_conversion_factor_tfda_sample"),
         CheckConstraint("nutrient_per_100g IS NULL OR (kind = 'nutrient_fill' AND nutrient_per_100g >= 0 "
-                        "AND nutrient_per_100g <= 900)", name="ck_conversion_factor_nutrient_fill"),
+                        "AND nutrient_per_100g <= 40000)", name="ck_conversion_factor_nutrient_fill"),
         CheckConstraint("yield_factor IS NULL OR (yield_factor > 0 AND yield_factor <= 10)",
                         name="ck_conversion_factor_yield_range"),
         CheckConstraint("energy_retention IS NULL OR (energy_retention >= 0 AND energy_retention <= 1)",

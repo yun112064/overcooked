@@ -10,10 +10,12 @@ override  人工覆寫值（新增一列，優先於 LLM）：
           override --kind unit --food FOOD001541 --key 匙 --grams 15 --reviewer A
           override --kind tfda_mapping --food FOOD000509 --key tfda --sample E5600101 --reviewer A
           override --kind nutrient_fill --food N0100101 --key protein_g --value 0 --reviewer A
-            （decisions #32：--food 為 TFDA 樣本 ID、--key 為 energy_kcal／protein_g、--value 為每 100 g；
-             只能補 TFDA 空白的必要營養）
+            （decisions #32／#45：--food 為 TFDA 樣本 ID、--key 為 energy_kcal／protein_g／carbohydrate_g／fat_g／
+             sugars_g／dietary_fiber_g／sodium_mg、--value 為每 100 g（鈉為 mg）；只能補 TFDA 空白、且不適用
+             config/nutrient_category_zero.json 類別 0 規則的營養素）
 
-run --kind nutrient_fill：掃描合格食譜實際用到、且 TFDA 樣本熱量／蛋白質空白的組合（decisions #32）。
+run --kind nutrient_fill：掃描合格食譜實際用到的 TFDA 樣本（含主食、人工／LLM 對照、熟樣本），7 種營養素空白、
+          且不適用類別 0 規則的組合（decisions #32／#45）。--dry-run 回報缺口數與費用上限 estimated_max_cost_twd。
 """
 import argparse
 import json

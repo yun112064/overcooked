@@ -49,7 +49,7 @@ class YieldOnlyApproximationTests(unittest.TestCase):
         self.assertEqual(chicken.nutrients["carbohydrate_g"], D("0.9"))
         self.assertEqual(chicken.nutrients["sodium_mg"], D("49.5"))
         self.assertEqual(chicken.nutrients["sugars_g"], D("0"))       # TFDA 實測 0 → 已知 0
-        self.assertIsNone(chicken.nutrients["dietary_fiber_g"])       # TFDA 空白 → 仍未知、不填 0
+        self.assertEqual(chicken.nutrients["dietary_fiber_g"], D(0))  # TFDA 空白、肉類 → #45 類別 0
         # 熱量、蛋白質維持保留率推估
         self.assertEqual(chicken.nutrients["energy_kcal"], D("166.725"))
         self.assertEqual(chicken.nutrients["protein_g"], D("31.455"))

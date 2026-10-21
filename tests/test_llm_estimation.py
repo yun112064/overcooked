@@ -54,9 +54,11 @@ class CachedCookingFactorTests(unittest.TestCase):
         self.assertIsNone(chicken.error)
         self.assertEqual(chicken.nutrients["energy_kcal"], D("166.725"))   # 117 × 1.5 × 0.95
         self.assertEqual(chicken.nutrients["protein_g"], D("31.455"))      # 23.3 × 1.5 × 0.9
-        # 非必要營養素沒有推估保留率：decisions #40 以生組成、保留率 1 近似；TFDA 空白者仍未知、不填 0
+        # 非必要營養素沒有推估保留率：decisions #40 以生組成、保留率 1 近似；
+        # TFDA 空白的膳食纖維屬肉類，依 decisions #45 類別規則為已知 0
         self.assertEqual(chicken.nutrients["fat_g"], D("2.85"))
-        self.assertIsNone(chicken.nutrients["dietary_fiber_g"])
+        self.assertEqual(chicken.nutrients["dietary_fiber_g"], D(0))
+        self.assertIn("dietary_fiber_g", chicken.trace["category_zero"])
         self.assertTrue(chicken.trace["is_estimated"])
         self.assertEqual(chicken.trace["sample_id"], "I0402402")
         [marker] = chicken.trace["estimated_factors"]
@@ -377,6 +379,8 @@ class BatchEstimationTests(unittest.TestCase):
             return store.list_estimates(db, **kw)
 
     def run_batch(self, responder, **kw):
+        # 這組測試只看烹調／單位推估；nutrient_fill（decisions #45 的醬油、主食白飯空白）另見 test_category_zero_fill
+        kw.setdefault("kinds", tuple(k for k in store.KINDS if k != "nutrient_fill"))
         return batch.run(session_factory(), responder=responder, **kw)
 
     def test_scan_finds_missing_cooking_and_unit_pairs_once_each(self):
