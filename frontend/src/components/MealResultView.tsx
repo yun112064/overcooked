@@ -22,7 +22,9 @@ const shown = (i: ResultIngredient) =>
     ? `${Number(i.display_amount)} ${i.display_unit}`
     : i.display_text ?? grams(i.display_grams)
 /** decisions #19：LLM 推估的克數或烹調係數要標示出來 */
-const estimateTag = (i: ResultIngredient) => (i.llm_estimated ? `（${i.estimate_label ?? 'LLM 推估'}）` : '')
+const estimateTag = (i: ResultIngredient) =>
+  (i.llm_estimated ? `（${i.estimate_label ?? 'LLM 推估'}）` : '')
+  + (i.llm_mapped ? `（${i.mapping_label ?? 'LLM 對照'}）` : '')
 const NUTRIENT_LABELS: Record<string, string> = { energy_kcal: '熱量', protein_g: '蛋白質' }
 const NUTRIENT_UNITS: Record<string, string> = { energy_kcal: 'kcal', protein_g: 'g' }
 const ACTIVE = new Set(['queued', 'running'])
@@ -259,6 +261,15 @@ export default function MealResultView({ requestId, mealDate, onChanged }: Props
               .map((k) => NUTRIENT_LABELS[k]).join('、') || '部分數值')}
             含 LLM 推估的換算係數（缺 TFDA 實測的產率／保留率或「匙」等單位克數；已標示的食材）。
             TFDA 實測與人工審核值優先，推估值可由管理者覆核。
+          </Typography>
+        </Alert>
+      )}
+      {r.nutrition.llm_mappings?.used && (
+        <Alert severity="info" icon={false}>
+          <Chip size="small" color="info" label={r.nutrition.llm_mappings.label ?? 'LLM 對照'} sx={{ mr: 1 }} />
+          <Typography variant="body2" component="span">
+            部分食材名稱對不到 TFDA，營養值改用 LLM 推薦的 TFDA 樣本計算（已標示的食材）；
+            人工審核的對照優先，推薦結果可由管理者覆核。
           </Typography>
         </Alert>
       )}

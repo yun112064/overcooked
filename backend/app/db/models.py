@@ -437,7 +437,7 @@ class ConversionFactorEstimate(Base):
     """
     __tablename__ = "conversion_factor_estimates"
     __table_args__ = (
-        CheckConstraint("kind IN ('cooking', 'unit')", name="ck_conversion_factor_kind"),
+        CheckConstraint("kind IN ('cooking', 'unit', 'tfda_mapping')", name="ck_conversion_factor_kind"),
         CheckConstraint("source IN ('tfda', 'human', 'llm_estimated')", name="ck_conversion_factor_source"),
         CheckConstraint("status IN ('llm_estimated', 'approved', 'rejected', 'overridden')",
                         name="ck_conversion_factor_status"),
@@ -445,8 +445,11 @@ class ConversionFactorEstimate(Base):
             "(kind = 'cooking' AND grams_per_unit IS NULL AND energy_retention IS NOT NULL "
             "AND protein_retention IS NOT NULL) OR "
             "(kind = 'unit' AND grams_per_unit IS NOT NULL AND yield_factor IS NULL "
+            "AND energy_retention IS NULL AND protein_retention IS NULL) OR "
+            "(kind = 'tfda_mapping' AND grams_per_unit IS NULL AND yield_factor IS NULL "
             "AND energy_retention IS NULL AND protein_retention IS NULL)",
             name="ck_conversion_factor_values"),
+        CheckConstraint("tfda_sample_id IS NULL OR kind = 'tfda_mapping'", name="ck_conversion_factor_tfda_sample"),
         CheckConstraint("yield_factor IS NULL OR (yield_factor > 0 AND yield_factor <= 10)",
                         name="ck_conversion_factor_yield_range"),
         CheckConstraint("energy_retention IS NULL OR (energy_retention >= 0 AND energy_retention <= 1)",
@@ -481,3 +484,5 @@ class ConversionFactorEstimate(Base):
     review_note: Mapped[str | None] = mapped_column(Text, nullable=True)
     reviewed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, nullable=False)
+    # decisions #28（kind=tfda_mapping）：對照到的 TFDA 樣本 ID；NULL 代表模型回答「無合適樣本」
+    tfda_sample_id: Mapped[str | None] = mapped_column(String(32), nullable=True)
