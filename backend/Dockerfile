@@ -21,6 +21,10 @@ COPY config/ingredient_synonyms.json /app/config/ingredient_synonyms.json
 COPY config/staples.json /app/config/staples.json
 # 決策 #29：知識說明的營養關鍵字依據檢查（與團隊電腦爬蟲前置過濾共用）
 COPY config/nutrition_keywords.json /app/config/nutrition_keywords.json
+# 決策 #36：名稱比對的異體字對照
+COPY config/name_variants.json /app/config/name_variants.json
+# 決策 #38：食譜分類修正表（python -m app.jobs.apply_category_overrides 在容器內套用）
+COPY config/recipe_category_overrides.json /app/config/recipe_category_overrides.json
 ENV PYTHONPATH=/app
 COPY alembic.ini /app/alembic.ini
 COPY migrations /app/migrations

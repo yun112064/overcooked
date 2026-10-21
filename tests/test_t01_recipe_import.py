@@ -167,6 +167,107 @@ class QualityRuleTests(unittest.TestCase):
         self.assertEqual(bundle.report["g01"]["gap"], 150)
 
 
+OVERRIDES = {"R001": {"category": "湯", "reason": "合成：其實是湯", "decided_at": "2026-10-21"},
+             "R404": {"category": "主菜", "reason": "合成：工作簿沒有這道", "decided_at": "2026-10-21"}}
+REPO = Path(__file__).resolve().parents[1]
+# 決策 #38：使用者 2026-10-21 確認的分類修正（主食→主菜 24 道、主食→點心 1 道）
+TO_MAIN = ["R0020", "R0043", "R0088", "R0091", "R0092", "R0094", "R0095", "R0096", "R0098", "R0105", "R0106",
+           "R0116", "R0117", "R0129", "R0130", "R0132", "R0137", "R0140", "R0144", "R0149", "R0180", "R0185",
+           "R0188", "R0192"]
+
+
+class CategoryOverrideTests(unittest.TestCase):
+    def test_import_applies_overrides_without_touching_the_workbook(self):
+        from app.services.recipe_import import parse_recipe_workbook
+        with tempfile.TemporaryDirectory() as folder:
+            path = build(Path(folder) / "book.xlsx", [recipe("R001", "番茄蛋花"), recipe("R002", "清炒高麗菜")])
+            before = path.read_bytes()
+            bundle = parse_recipe_workbook(path, category_overrides=OVERRIDES)
+            self.assertEqual(path.read_bytes(), before)
+        rows = by_id(bundle)
+        self.assertEqual((rows["R001"]["category"], rows["R002"]["category"]), ("湯", "主菜"))
+        report = bundle.report["category_overrides"]
+        self.assertEqual(report["applied"], [{"recipe_id": "R001", "from": "主菜", "to": "湯", "reason": "合成：其實是湯",
+                                              "decided_at": "2026-10-21"}])
+        self.assertEqual(report["missing_recipe_ids"], ["R404"])
+
+    def test_without_overrides_workbook_category_is_kept(self):
+        self.assertEqual(by_id(parse([recipe("R001", "番茄蛋花")]))["R001"]["category"], "主菜")
+
+    def test_config_holds_the_user_confirmed_corrections(self):
+        from app.services.recipe_import import CATEGORY_OVERRIDES_PATH, load_category_overrides
+        self.assertEqual(CATEGORY_OVERRIDES_PATH, REPO / "config" / "recipe_category_overrides.json")
+        overrides = load_category_overrides()
+        self.assertEqual(sorted(overrides), sorted([*TO_MAIN, "R0173"]))
+        self.assertEqual(overrides["R0140"]["category"], "主菜")
+        self.assertEqual(overrides["R0173"]["category"], "點心")
+        self.assertTrue(all(o["category"] == "主菜" for k, o in overrides.items() if k != "R0173"))
+        self.assertTrue(all(o["decided_at"] == "2026-10-21" and o["reason"] for o in overrides.values()))
+
+    def test_every_override_targets_a_staple_recipe_in_the_real_workbook(self):
+        from openpyxl import load_workbook
+        from app.services.recipe_import import load_category_overrides
+        wb = load_workbook(REPO / "data" / "recipe_dataset_1017.xlsx", read_only=True, data_only=True)
+        try:
+            rows = wb["recipes"].iter_rows(values_only=True)
+            header = list(next(rows))
+            rid, cat, name = header.index("recipe_id"), header.index("category"), header.index("recipe_name")
+            book = {r[rid]: (r[name], r[cat]) for r in rows if r[rid]}
+        finally:
+            wb.close()
+        self.assertEqual(book["R0140"], ("蕃茄炒蛋", "主食"))
+        for recipe_id in load_category_overrides():
+            self.assertEqual(book[recipe_id][1], "主食", recipe_id)
+
+
+@requires_db
+class CategoryOverrideDatabaseTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        migrate_fresh()
+
+    def setUp(self):
+        truncate_all()
+        self.folder = tempfile.TemporaryDirectory()
+        self.addCleanup(self.folder.cleanup)
+        from app.services.recipe_import import import_recipe_bundle, parse_recipe_workbook
+        bundle = parse_recipe_workbook(build(Path(self.folder.name) / "book.xlsx",
+                                             [recipe("R001", "番茄蛋花"), recipe("R002", "清炒高麗菜")]))
+        with session_factory()() as session, session.begin():
+            import_recipe_bundle(session, bundle)
+
+    def apply(self, **kwargs):
+        from app.services.recipe_import import apply_category_overrides
+        with session_factory()() as session, session.begin():
+            return apply_category_overrides(session, OVERRIDES, **kwargs)
+
+    def category(self, recipe_id):
+        from app.models import Recipe
+        with session_factory()() as session:
+            return session.get(Recipe, recipe_id).category
+
+    def test_applies_to_existing_database_idempotently(self):
+        dry = self.apply(dry_run=True)
+        self.assertEqual([c["recipe_id"] for c in dry["changed"]], ["R001"])
+        self.assertEqual(self.category("R001"), "主菜")  # 試跑不寫入
+        first = self.apply()
+        self.assertEqual(first["changed"], [{"recipe_id": "R001", "from": "主菜", "to": "湯", "reason": "合成：其實是湯",
+                                             "decided_at": "2026-10-21"}])
+        self.assertEqual(first["missing_recipe_ids"], ["R404"])
+        self.assertEqual((self.category("R001"), self.category("R002")), ("湯", "主菜"))
+        second = self.apply()
+        self.assertEqual((second["changed"], second["unchanged"]), ([], ["R001"]))
+
+    def test_command_reads_the_config_file(self):
+        import json
+        from app.jobs.apply_category_overrides import run
+        path = Path(self.folder.name) / "overrides.json"
+        path.write_text(json.dumps({"overrides": {"R002": OVERRIDES["R001"]}}, ensure_ascii=False), encoding="utf-8")
+        result = run(session_factory(), path)
+        self.assertEqual([c["recipe_id"] for c in result["changed"]], ["R002"])
+        self.assertEqual(self.category("R002"), "湯")
+
+
 @requires_db
 class ImportTests(unittest.TestCase):
     @classmethod
