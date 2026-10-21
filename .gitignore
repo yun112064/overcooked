@@ -15,6 +15,8 @@ __pycache__/
 # 例外：T01 已審核、取得授權的食譜工作簿放進 Git，讓隊友啟動時自動匯入同一份資料
 data/*
 !data/recipe_dataset_1017.xlsx
+# 資料種子：開發資料庫整理好的推估、營養知識、價格快照（scripts/export_seed_data.py 匯出；不含個人資料）
+!data/seed/
 outputs/
 logs/
 

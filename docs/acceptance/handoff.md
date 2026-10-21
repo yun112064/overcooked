@@ -27,8 +27,9 @@
 | 營養目標規則 | `nutrition_target/rules/hpa-dri8-mvp-0.3.0.json`（雜湊已註冊，`.gitattributes` 禁止換行轉換） | 是 | G03 未通過 |
 | YOLO 權重 | `inference/models/`（YOLO26s），選擇依據在 `inference/model_manifest.json` | 是 | AC22 未達標 |
 | 模型價格表 | `config/model_pricing.json`（`pricing_version = plan-2026-10-20`） | 是 | 正式上線前要依官方價格重新核對 |
-| 全聯價格快照 | 由排程程式每日抓取，存在雲端資料庫 | 否 | 執行輸出放 `outputs/`（已忽略） |
-| 健康醫療網知識 | 團隊電腦執行爬蟲後存在團隊電腦知識庫 | **否，也不應放入** | 文章內容受授權限制；備份檔 `knowledge_sources.jsonl` 含片段，只能存放在團隊控管的位置，不可公開或散布 |
+| 全聯／萬家福價格快照 | 由排程程式每日抓取，存在雲端資料庫；開發資料庫的快照另匯出為 `data/seed/price_*.json` | 種子：是 | 執行輸出放 `outputs/`（已忽略）；萬家福條款風險由使用者承擔（決策 #26） |
+| 健康醫療網知識 | 團隊電腦執行爬蟲後存在團隊電腦知識庫；已核准的營養知識（約 199 筆，不含向量）匯出為 `data/seed/knowledge_*.json` | 種子：是（使用者 2026-10-22 決定） | 電話口頭授權（決策 #25），顯示必須帶出處；repo 不可公開或對外散布。備份檔 `knowledge_sources.jsonl` 仍只能存放在團隊控管的位置 |
+| 推估與對照（烹調、單位、TFDA 對照、空白營養） | 開發資料庫 `conversion_factor_estimates` 匯出為 `data/seed/conversion_factor_estimates.json` | 是 | 含 LLM 推估與人工值及審核欄位；匯入見 3.5 |
 | 書面授權證據 | 由使用者存放在團隊保存位置 | **否** | 存放路徑填入 `KNOWLEDGE_AUTHORIZATION_REF`；repo 只記路徑，不放文件本身 |
 | 秘密 | 依範本自行建立：`.env.dev`（`start-dev` 自動產生隨機值）、`.env.prod`（`.env.prod.example`）、`deploy/team/.env.team`（`deploy/team/.env.team.example`） | **否** | OpenAI 金鑰、Cloudflare 權杖、資料庫密碼都只放這些檔；不要貼到文件、Issue、聊天或 commit |
 
@@ -91,6 +92,14 @@ python -m unittest discover -s nutrition_model
 > `crawl --queued`、`index build`、`status` 的佇列數經雲端內部 API（Access 服務權杖＋`INTERNAL_API_TOKEN`），不直連雲端資料庫（已知問題 #6 已修正）。
 >
 > QA 注意：每戶 24 小時最多 20 次生成（`GENERATION_DAILY_LIMIT`），多人測試請分戶或在測試環境調高；生成面板會顯示團隊電腦（辨識、知識）是否在線。
+
+### 3.5 資料種子（data/seed）
+
+隊友 clone 後免重跑付費推估與爬蟲：先 `start-dev.cmd` 一次，再 `.\scripts\dev-run.ps1 -m app.jobs.import_seed_data`（可加 `--dry-run`、`--only app|knowledge`），最後 `.\scripts\dev-run.ps1 -m knowledge_rag.admin index build --version seed-<日期>`（後端需執行中，付費向量化）。說明見 README「首次啟動匯入資料種子」。
+
+- 匯出：`.\scripts\dev-run.ps1 scripts\export_seed_data.py`。只以唯讀交易讀白名單資料表（推估、核准營養知識與文章中繼資料、價格批次與快照），不讀任何個人或使用紀錄資料表；`tests/test_seed_data.py` 檢查匯出程式不引用這些資料表。
+- 匯入冪等、不覆寫本機已有的列；匯入前驗證 sha256 與 alembic 版本（資料庫不可比種子舊）。
+- 正式環境不使用種子：正式的推估與知識仍依各自流程審核。
 
 ## 4. 正式部署（Cloudflare Tunnel）
 

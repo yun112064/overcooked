@@ -1,0 +1,1298 @@
+[
+ {
+  "article_id": "54173",
+  "content_hash": "8f5332257a18115967d02e6d7e939e8d41d8d778c91f925a8665b74baa21e13d",
+  "first_fetched_at": "2026-10-20T14:18:38.926139+00:00",
+  "last_changed_at": "2026-10-20T14:18:38.926139+00:00",
+  "last_fetched_at": "2026-10-20T14:18:38.926139+00:00",
+  "matched_food_ids": [
+   "FOOD000369",
+   "FOOD000495",
+   "FOOD001481",
+   "FOOD001773",
+   "FOOD001804"
+  ],
+  "modified_at": "2026-07-09T02:00:00+00:00",
+  "published_at": "2026-07-09T02:00:00+00:00",
+  "source_name": "健康醫療網",
+  "status": "matched",
+  "title": "中暑竟和「腸道健康」有關！營養師揭3大保健秘笈",
+  "url": "https://www.healthnews.com.tw/article/54173"
+ },
+ {
+  "article_id": "60160",
+  "content_hash": "d5a6fec5221b9e007c485aeecebacf8369dedd167e1b0929bb8587c3c00bd5b0",
+  "first_fetched_at": "2026-10-20T14:20:04.133739+00:00",
+  "last_changed_at": "2026-10-20T14:20:04.133739+00:00",
+  "last_fetched_at": "2026-10-20T14:20:04.133739+00:00",
+  "matched_food_ids": [
+   "FOOD000453",
+   "FOOD000521",
+   "FOOD000601",
+   "FOOD000678",
+   "FOOD000943",
+   "FOOD001016",
+   "FOOD001444",
+   "FOOD001795"
+  ],
+  "modified_at": "2026-05-04T02:00:00+00:00",
+  "published_at": "2026-05-04T02:00:00+00:00",
+  "source_name": "健康醫療網",
+  "status": "matched",
+  "title": "如何養出Q彈水嫩肌？5大營養素不可少！更要注意「紅燈食物」",
+  "url": "https://www.healthnews.com.tw/article/60160"
+ },
+ {
+  "article_id": "66125",
+  "content_hash": "159019fed2a10ce4dcae56eafa6d4734f2aace6141a662dc1c0fe842b77e3960",
+  "first_fetched_at": "2026-10-20T14:25:07.814165+00:00",
+  "last_changed_at": "2026-10-20T14:25:07.814165+00:00",
+  "last_fetched_at": "2026-10-20T14:25:07.814165+00:00",
+  "matched_food_ids": [
+   "FOOD000279",
+   "FOOD001016",
+   "FOOD001444",
+   "FOOD001803"
+  ],
+  "modified_at": "2025-09-15T02:00:00+00:00",
+  "published_at": "2025-09-15T02:00:00+00:00",
+  "source_name": "健康醫療網",
+  "status": "matched",
+  "title": "早餐吃錯一整天都瞌睡！營養師：要補對「這些」營養才有效",
+  "url": "https://www.healthnews.com.tw/article/66125"
+ },
+ {
+  "article_id": "66222",
+  "content_hash": "df9b37e271b58ec86cc45dc72123b75266939899582d23c9e60d755910323fdc",
+  "first_fetched_at": "2026-10-20T14:25:03.735044+00:00",
+  "last_changed_at": "2026-10-20T14:25:03.735044+00:00",
+  "last_fetched_at": "2026-10-20T14:25:03.735044+00:00",
+  "matched_food_ids": [
+   "FOOD000095",
+   "FOOD000710",
+   "FOOD001159",
+   "FOOD001631"
+  ],
+  "modified_at": "2025-09-19T11:00:00+00:00",
+  "published_at": "2025-09-19T11:00:00+00:00",
+  "source_name": "健康醫療網",
+  "status": "matched",
+  "title": "中秋必看！「10類藥物」與柚子不能同吃 藥師：交互作用長達72小時",
+  "url": "https://www.healthnews.com.tw/article/66222"
+ },
+ {
+  "article_id": "66297",
+  "content_hash": "0d552de08cff2ba8319f871776c873907927315a52e2773518acbffcaf6b8b6a",
+  "first_fetched_at": "2026-10-20T14:24:45.985171+00:00",
+  "last_changed_at": "2026-10-20T14:24:45.985171+00:00",
+  "last_fetched_at": "2026-10-20T14:24:45.985171+00:00",
+  "matched_food_ids": [
+   "FOOD000280",
+   "FOOD000281",
+   "FOOD000296"
+  ],
+  "modified_at": "2025-10-02T03:00:00+00:00",
+  "published_at": "2025-10-02T03:00:00+00:00",
+  "source_name": "健康醫療網",
+  "status": "matched",
+  "title": "控制血糖和抗氧化力強 醫師：黑米取代部分白飯更健康",
+  "url": "https://www.healthnews.com.tw/article/66297"
+ },
+ {
+  "article_id": "66314",
+  "content_hash": "a4e0c0f61921a26b0b692a610d758674f38f56b9319525d6da40029b8e090db1",
+  "first_fetched_at": "2026-10-20T14:24:39.761804+00:00",
+  "last_changed_at": "2026-10-20T14:24:39.761804+00:00",
+  "last_fetched_at": "2026-10-20T14:24:39.761804+00:00",
+  "matched_food_ids": [
+   "FOOD000281",
+   "FOOD000296",
+   "FOOD001541"
+  ],
+  "modified_at": "2025-10-08T11:00:00+00:00",
+  "published_at": "2025-10-08T11:00:00+00:00",
+  "source_name": "健康醫療網",
+  "status": "matched",
+  "title": "「少鹽」真健康？小心薄鹽醬油「鉀」含量恐過高",
+  "url": "https://www.healthnews.com.tw/article/66314"
+ },
+ {
+  "article_id": "66338",
+  "content_hash": "1fe00408af55743b0aff25f0989e18a03b4212aadc46ff005311b4c5311cd5e8",
+  "first_fetched_at": "2026-10-20T14:24:55.718333+00:00",
+  "last_changed_at": "2026-10-20T14:24:55.718333+00:00",
+  "last_fetched_at": "2026-10-20T14:24:55.718333+00:00",
+  "matched_food_ids": [
+   "FOOD000453",
+   "FOOD000706",
+   "FOOD000886"
+  ],
+  "modified_at": "2025-09-24T08:35:00+00:00",
+  "published_at": "2025-09-24T08:35:00+00:00",
+  "source_name": "健康醫療網",
+  "status": "matched",
+  "title": "營養師高敏敏：烤肉別忘蔬果 搭配綠奇異果更均衡",
+  "url": "https://www.healthnews.com.tw/article/66338"
+ },
+ {
+  "article_id": "66395",
+  "content_hash": "cce17a94624bc9b2336b688efab8641292031c75428fce16f042d86e0a402042",
+  "first_fetched_at": "2026-10-20T14:24:31.800868+00:00",
+  "last_changed_at": "2026-10-20T14:24:31.800868+00:00",
+  "last_fetched_at": "2026-10-20T14:24:31.800868+00:00",
+  "matched_food_ids": [
+   "FOOD000510",
+   "FOOD000512",
+   "FOOD000675",
+   "FOOD000693"
+  ],
+  "modified_at": "2025-10-12T03:00:00+00:00",
+  "published_at": "2025-10-12T03:00:00+00:00",
+  "source_name": "健康醫療網",
+  "status": "matched",
+  "title": "熬夜使免疫力下降？營養師：「芝麻素」與「Omega-3」對抗發炎利器",
+  "url": "https://www.healthnews.com.tw/article/66395"
+ },
+ {
+  "article_id": "66421",
+  "content_hash": "346a65d91f3ac193c528bdce6badfd9a1d926d246fc2ac9db8cf3e1664fdfb85",
+  "first_fetched_at": "2026-10-20T14:24:43.776244+00:00",
+  "last_changed_at": "2026-10-20T14:24:43.776244+00:00",
+  "last_fetched_at": "2026-10-20T14:24:43.776244+00:00",
+  "matched_food_ids": [
+   "FOOD000095",
+   "FOOD000287",
+   "FOOD001159"
+  ],
+  "modified_at": "2025-10-03T07:00:00+00:00",
+  "published_at": "2025-10-03T07:00:00+00:00",
+  "source_name": "健康醫療網",
+  "status": "matched",
+  "title": "中秋柚子暗藏藥物危機 專家教你避免「藥效超速」",
+  "url": "https://www.healthnews.com.tw/article/66421"
+ },
+ {
+  "article_id": "66431",
+  "content_hash": "d90ee182728fecdd4c5eeb54dd7baa66850dad3df956d408defde61b4924ebba",
+  "first_fetched_at": "2026-10-20T14:24:37.768710+00:00",
+  "last_changed_at": "2026-10-20T14:24:37.768710+00:00",
+  "last_fetched_at": "2026-10-20T14:24:37.768710+00:00",
+  "matched_food_ids": [
+   "FOOD000058",
+   "FOOD000521",
+   "FOOD001159",
+   "FOOD001654"
+  ],
+  "modified_at": "2025-10-10T03:00:00+00:00",
+  "published_at": "2025-10-10T03:00:00+00:00",
+  "source_name": "健康醫療網",
+  "status": "matched",
+  "title": "打破水果迷思！營養師：正確攝取「份量與時機」成減重小幫手",
+  "url": "https://www.healthnews.com.tw/article/66431"
+ },
+ {
+  "article_id": "66487",
+  "content_hash": "81ea82a1b7552541002894cf196ffbc64d21726fcb351a8ce8b2b574852aa9df",
+  "first_fetched_at": "2026-10-20T14:24:17.864921+00:00",
+  "last_changed_at": "2026-10-20T14:24:17.864921+00:00",
+  "last_fetched_at": "2026-10-20T14:24:17.864921+00:00",
+  "matched_food_ids": [
+   "FOOD000563",
+   "FOOD001162",
+   "FOOD001307",
+   "FOOD001947"
+  ],
+  "modified_at": "2025-10-26T03:00:00+00:00",
+  "published_at": "2025-10-26T03:00:00+00:00",
+  "source_name": "健康醫療網",
+  "status": "matched",
+  "title": "「海中牛奶」牡蠣如何助維持體力？營養師解密優質蛋白與鋅關鍵作用",
+  "url": "https://www.healthnews.com.tw/article/66487"
+ },
+ {
+  "article_id": "66494",
+  "content_hash": "7946a2cb6a148bd5e21ac35463d1c577af8249afbb5f02610448dfac3d9c5dd5",
+  "first_fetched_at": "2026-10-20T14:24:21.889039+00:00",
+  "last_changed_at": "2026-10-20T14:24:21.889039+00:00",
+  "last_fetched_at": "2026-10-20T14:24:21.889039+00:00",
+  "matched_food_ids": [
+   "FOOD000071",
+   "FOOD000428",
+   "FOOD000943",
+   "FOOD001571"
+  ],
+  "modified_at": "2025-10-24T09:00:00+00:00",
+  "published_at": "2025-10-24T09:00:00+00:00",
+  "source_name": "健康醫療網",
+  "status": "matched",
+  "title": "低調超級食物！營養師：山藥富含黏液蛋白 保護腸胃穩定免疫力",
+  "url": "https://www.healthnews.com.tw/article/66494"
+ },
+ {
+  "article_id": "66537",
+  "content_hash": "3737b68df0783aeda5fa5fb2792fc932dc4e4d4e11ec0452ecd4ceb71dd30e0c",
+  "first_fetched_at": "2026-10-20T14:24:19.823591+00:00",
+  "last_changed_at": "2026-10-20T14:24:19.823591+00:00",
+  "last_fetched_at": "2026-10-20T14:24:19.823591+00:00",
+  "matched_food_ids": [
+   "FOOD000183",
+   "FOOD000315",
+   "FOOD000943",
+   "FOOD001487",
+   "FOOD001566"
+  ],
+  "modified_at": "2025-10-25T08:00:00+00:00",
+  "published_at": "2025-10-25T08:00:00+00:00",
+  "source_name": "健康醫療網",
+  "status": "matched",
+  "title": "不只抗老！醫：適量補充「硒」助抗癌 降低腫瘤發生率",
+  "url": "https://www.healthnews.com.tw/article/66537"
+ },
+ {
+  "article_id": "66543",
+  "content_hash": "4e4d0d961b5c2c46c4fd1e8cb7fa88fc7ede49dfa982aed9e631e368ae644bd7",
+  "first_fetched_at": "2026-10-20T14:24:25.835972+00:00",
+  "last_changed_at": "2026-10-20T14:24:25.835972+00:00",
+  "last_fetched_at": "2026-10-20T14:24:25.835972+00:00",
+  "matched_food_ids": [
+   "FOOD000614",
+   "FOOD000918",
+   "FOOD000943",
+   "FOOD001481",
+   "FOOD001954"
+  ],
+  "modified_at": "2025-10-21T03:00:00+00:00",
+  "published_at": "2025-10-21T03:00:00+00:00",
+  "source_name": "健康醫療網",
+  "status": "matched",
+  "title": "秋季養生果物：柿子「從維生素到膳食纖維」 助攻視力與免疫力",
+  "url": "https://www.healthnews.com.tw/article/66543"
+ },
+ {
+  "article_id": "66570",
+  "content_hash": "8f5b53acc129b582cb1025aa5ebf468431d82f6f4b511c2ac98a7d7f8a255450",
+  "first_fetched_at": "2026-10-20T14:24:04.811344+00:00",
+  "last_changed_at": "2026-10-20T14:24:04.811344+00:00",
+  "last_fetched_at": "2026-10-20T14:24:04.811344+00:00",
+  "matched_food_ids": [
+   "FOOD000242",
+   "FOOD000347",
+   "FOOD000387"
+  ],
+  "modified_at": "2025-11-01T02:00:00+00:00",
+  "published_at": "2025-11-01T02:00:00+00:00",
+  "source_name": "健康醫療網",
+  "status": "matched",
+  "title": "飽和脂肪OUT！營養師自製低GI奶酥 降熱量避免血糖飆升",
+  "url": "https://www.healthnews.com.tw/article/66570"
+ },
+ {
+  "article_id": "66571",
+  "content_hash": "d7b33f617c34873c38896de541c46de52396d294bd90c28b0a5ef703c8d1bc9e",
+  "first_fetched_at": "2026-10-20T14:24:02.920943+00:00",
+  "last_changed_at": "2026-10-20T14:24:02.920943+00:00",
+  "last_fetched_at": "2026-10-20T14:24:02.920943+00:00",
+  "matched_food_ids": [
+   "FOOD000364",
+   "FOOD000428",
+   "FOOD001069",
+   "FOOD001407"
+  ],
+  "modified_at": "2025-11-02T03:00:00+00:00",
+  "published_at": "2025-11-02T03:00:00+00:00",
+  "source_name": "健康醫療網",
+  "status": "matched",
+  "title": "飲食都市傳說：營養師揭密橄欖油高溫禁忌 肉雞激素與黃豆致癌謠言",
+  "url": "https://www.healthnews.com.tw/article/66571"
+ },
+ {
+  "article_id": "66856",
+  "content_hash": "7a5af88a823a247c8794e17415bd9e02931f92a7a1aa89912cb53827d158b064",
+  "first_fetched_at": "2026-10-20T14:11:39.523899+00:00",
+  "last_changed_at": "2026-10-20T14:11:39.523899+00:00",
+  "last_fetched_at": "2026-10-20T14:11:39.523899+00:00",
+  "matched_food_ids": [
+   "FOOD000710"
+  ],
+  "modified_at": "2026-05-22T01:00:00+00:00",
+  "published_at": "2026-05-22T01:00:00+00:00",
+  "source_name": "健康醫療網",
+  "status": "matched",
+  "title": "【控鉀・穩住心與腎】8旬茶農腎友氣喘吁吁確診高血鉀 積極治療助她重返茶園生活！",
+  "url": "https://www.healthnews.com.tw/article/66856"
+ },
+ {
+  "article_id": "66961",
+  "content_hash": "b326904232443c078d4e1f08ed6e33e6c332a732a1d8cd7601a9f3ba9d4fa40c",
+  "first_fetched_at": "2026-10-20T14:19:34.412738+00:00",
+  "last_changed_at": "2026-10-20T14:19:34.412738+00:00",
+  "last_fetched_at": "2026-10-20T14:19:34.412738+00:00",
+  "matched_food_ids": [
+   "FOOD000281",
+   "FOOD000296",
+   "FOOD000425",
+   "FOOD000426",
+   "FOOD001069",
+   "FOOD001072",
+   "FOOD001217",
+   "FOOD001220"
+  ],
+  "modified_at": "2026-06-16T02:00:00+00:00",
+  "published_at": "2026-06-16T02:00:00+00:00",
+  "source_name": "健康醫療網",
+  "status": "matched",
+  "title": "綠豆芽、黃豆芽差在哪？營養師來解析！含「這些營養素」快放入減脂菜單",
+  "url": "https://www.healthnews.com.tw/article/66961"
+ },
+ {
+  "article_id": "67032",
+  "content_hash": "9533ab75bcee7616ee4bd6ade640bc9f1007ed450dcb3afdb1b510f8c33b45b8",
+  "first_fetched_at": "2026-10-20T14:23:27.690407+00:00",
+  "last_changed_at": "2026-10-20T14:23:27.690407+00:00",
+  "last_fetched_at": "2026-10-20T14:23:27.690407+00:00",
+  "matched_food_ids": [
+   "FOOD000710",
+   "FOOD001043"
+  ],
+  "modified_at": "2025-12-11T12:00:00+00:00",
+  "published_at": "2025-12-11T12:00:00+00:00",
+  "source_name": "健康醫療網",
+  "status": "matched",
+  "title": "天天暴怒怕「越氣越老」？吃對「3類營養素」也能穩住情緒！",
+  "url": "https://www.healthnews.com.tw/article/67032"
+ },
+ {
+  "article_id": "67042",
+  "content_hash": "9e470ea5efdacdda71dc768d1b5ddd62f783d1b01a754fa082a45423349b1534",
+  "first_fetched_at": "2026-10-20T14:23:33.985682+00:00",
+  "last_changed_at": "2026-10-20T14:23:33.985682+00:00",
+  "last_fetched_at": "2026-10-20T14:23:33.985682+00:00",
+  "matched_food_ids": [
+   "FOOD000245",
+   "FOOD001795",
+   "FOOD001809"
+  ],
+  "modified_at": "2025-12-05T09:56:00+00:00",
+  "published_at": "2025-12-05T09:56:00+00:00",
+  "source_name": "健康醫療網",
+  "status": "matched",
+  "title": "下午茶的「抗發炎攻略」：喝抹茶、吃●％巧克力...營養師教你吃對4種食物，滅火還抗氧化",
+  "url": "https://www.healthnews.com.tw/article/67042"
+ },
+ {
+  "article_id": "67119",
+  "content_hash": "76c1ae315e9e36daaa2679bed00f529b8d360cc7af581e03fad08b2003dc81da",
+  "first_fetched_at": "2026-10-20T14:23:25.818907+00:00",
+  "last_changed_at": "2026-10-20T14:23:25.818907+00:00",
+  "last_fetched_at": "2026-10-20T14:23:25.818907+00:00",
+  "matched_food_ids": [
+   "FOOD000340",
+   "FOOD000678"
+  ],
+  "modified_at": "2025-12-16T02:00:00+00:00",
+  "published_at": "2025-12-16T02:00:00+00:00",
+  "source_name": "健康醫療網",
+  "status": "matched",
+  "title": "百香果還能護心血管！表皮皺了可以吃嗎？營養師點名3族群謹慎食用",
+  "url": "https://www.healthnews.com.tw/article/67119"
+ },
+ {
+  "article_id": "67142",
+  "content_hash": "eb816cefe4cb6e830ac8032c51b8d9987d8a7286f95df59bea94c59d522d7300",
+  "first_fetched_at": "2026-10-20T14:23:23.900334+00:00",
+  "last_changed_at": "2026-10-20T14:23:23.900334+00:00",
+  "last_fetched_at": "2026-10-20T14:23:23.900334+00:00",
+  "matched_food_ids": [
+   "FOOD000281",
+   "FOOD000296",
+   "FOOD000812",
+   "FOOD001803"
+  ],
+  "modified_at": "2025-12-19T03:00:00+00:00",
+  "published_at": "2025-12-19T03:00:00+00:00",
+  "source_name": "健康醫療網",
+  "status": "matched",
+  "title": "她每天一杯手搖飲「體型L變2XL」營養師揭飲料陷阱",
+  "url": "https://www.healthnews.com.tw/article/67142"
+ },
+ {
+  "article_id": "67148",
+  "content_hash": "d53fcab9a6790cb7fbee21f406ab155c11445c81adb88ef8192991383a42d461",
+  "first_fetched_at": "2026-10-20T14:23:19.767254+00:00",
+  "last_changed_at": "2026-10-20T14:23:19.767254+00:00",
+  "last_fetched_at": "2026-10-20T14:23:19.767254+00:00",
+  "matched_food_ids": [
+   "FOOD000981",
+   "FOOD001016",
+   "FOOD001444",
+   "FOOD001665"
+  ],
+  "modified_at": "2025-12-21T08:00:00+00:00",
+  "published_at": "2025-12-21T08:00:00+00:00",
+  "source_name": "健康醫療網",
+  "status": "matched",
+  "title": "暖冬進補也能健康吃！營養師傳授「聰明吃鍋4秘訣」",
+  "url": "https://www.healthnews.com.tw/article/67148"
+ },
+ {
+  "article_id": "67204",
+  "content_hash": "28cf7c0b3e17bedfd6fbf5990388f31d8e6448f6779789b650581a1aabc0ea94",
+  "first_fetched_at": "2026-10-20T14:23:13.780521+00:00",
+  "last_changed_at": "2026-10-20T14:23:13.780521+00:00",
+  "last_fetched_at": "2026-10-20T14:23:13.780521+00:00",
+  "matched_food_ids": [
+   "FOOD000315",
+   "FOOD001566",
+   "FOOD001927"
+  ],
+  "modified_at": "2025-12-30T06:00:00+00:00",
+  "published_at": "2025-12-30T06:00:00+00:00",
+  "source_name": "健康醫療網",
+  "status": "matched",
+  "title": "頭暈3個月查不出原因 醫一看舌頭揪出「營養缺乏警訊」",
+  "url": "https://www.healthnews.com.tw/article/67204"
+ },
+ {
+  "article_id": "67298",
+  "content_hash": "3f1e64a26355011b511062039f2c1174a1b78e7b05754da7f267e69be9bb8271",
+  "first_fetched_at": "2026-10-20T14:22:58.867978+00:00",
+  "last_changed_at": "2026-10-20T14:22:58.867978+00:00",
+  "last_fetched_at": "2026-10-20T14:22:58.867978+00:00",
+  "matched_food_ids": [
+   "FOOD000678",
+   "FOOD001158",
+   "FOOD001481",
+   "FOOD001954"
+  ],
+  "modified_at": "2026-01-06T04:00:00+00:00",
+  "published_at": "2026-01-06T04:00:00+00:00",
+  "source_name": "健康醫療網",
+  "status": "matched",
+  "title": "跨年吃12顆綠葡萄能轉運？ 營養師讚「剛好1份水果」：3族群留意",
+  "url": "https://www.healthnews.com.tw/article/67298"
+ },
+ {
+  "article_id": "67306",
+  "content_hash": "428cea4ac56010a734486d3e80f9ec53a4143d4e46b193c56faa20e9a49ca4c4",
+  "first_fetched_at": "2026-10-20T14:21:33.636403+00:00",
+  "last_changed_at": "2026-10-20T14:21:33.636403+00:00",
+  "last_fetched_at": "2026-10-20T14:21:33.636403+00:00",
+  "matched_food_ids": [
+   "FOOD001011"
+  ],
+  "modified_at": "2026-03-03T03:00:00+00:00",
+  "published_at": "2026-03-03T03:00:00+00:00",
+  "source_name": "健康醫療網",
+  "status": "matched",
+  "title": "想防糖尿病 生活壞習慣卻改不了？營養師教「從加分開始」更易落實！",
+  "url": "https://www.healthnews.com.tw/article/67306"
+ },
+ {
+  "article_id": "67333",
+  "content_hash": "16d1ea23c73a36185b9e4bb1edc0b61f4ae43b36901143a846f2ea00ca7ace89",
+  "first_fetched_at": "2026-10-20T14:21:51.960752+00:00",
+  "last_changed_at": "2026-10-20T14:21:51.960752+00:00",
+  "last_fetched_at": "2026-10-20T14:21:51.960752+00:00",
+  "matched_food_ids": [
+   "FOOD000281",
+   "FOOD000296",
+   "FOOD000334",
+   "FOOD001619"
+  ],
+  "modified_at": "2026-02-18T12:00:00+00:00",
+  "published_at": "2026-02-18T12:00:00+00:00",
+  "source_name": "健康醫療網",
+  "status": "matched",
+  "title": "過年美食誘惑多 營養師揭「傳統糕點」健康吃法",
+  "url": "https://www.healthnews.com.tw/article/67333"
+ },
+ {
+  "article_id": "67370",
+  "content_hash": "76fd5629750ff2952a9f130565a6e9577d70131a757158a10aeb43fb28871415",
+  "first_fetched_at": "2026-10-20T14:22:52.883928+00:00",
+  "last_changed_at": "2026-10-20T14:22:52.883928+00:00",
+  "last_fetched_at": "2026-10-20T14:22:52.883928+00:00",
+  "matched_food_ids": [
+   "FOOD000111"
+  ],
+  "modified_at": "2026-01-09T05:34:00+00:00",
+  "published_at": "2026-01-09T05:34:00+00:00",
+  "source_name": "健康醫療網",
+  "status": "matched",
+  "title": "冬季飲食 掌握飽足感不破功",
+  "url": "https://www.healthnews.com.tw/article/67370"
+ },
+ {
+  "article_id": "67444",
+  "content_hash": "aa5f0c32f7353641df75247d0535c19b1e72682c32e68385962d68b58b0b624d",
+  "first_fetched_at": "2026-10-20T14:22:33.095730+00:00",
+  "last_changed_at": "2026-10-20T14:22:33.095730+00:00",
+  "last_fetched_at": "2026-10-20T14:22:33.095730+00:00",
+  "matched_food_ids": [
+   "FOOD000325",
+   "FOOD000453",
+   "FOOD001434",
+   "FOOD001487",
+   "FOOD001803"
+  ],
+  "modified_at": "2026-01-26T03:00:00+00:00",
+  "published_at": "2026-01-26T03:00:00+00:00",
+  "source_name": "健康醫療網",
+  "status": "matched",
+  "title": "綠色、金色奇異果只差在甜度？應對便秘或提升免疫力 營養師教你這樣選！",
+  "url": "https://www.healthnews.com.tw/article/67444"
+ },
+ {
+  "article_id": "67488",
+  "content_hash": "6aab810127e5dd4c25687b205dd3cc44cce7ce75772e03eaa18116b9a0e2ab9d",
+  "first_fetched_at": "2026-10-20T14:22:22.837699+00:00",
+  "last_changed_at": "2026-10-20T14:22:22.837699+00:00",
+  "last_fetched_at": "2026-10-20T14:22:22.837699+00:00",
+  "matched_food_ids": [
+   "FOOD000245",
+   "FOOD000257",
+   "FOOD001063"
+  ],
+  "modified_at": "2026-02-01T07:00:00+00:00",
+  "published_at": "2026-02-01T07:00:00+00:00",
+  "source_name": "健康醫療網",
+  "status": "matched",
+  "title": "「杜拜巧克力Q餅」韓女團也愛？開心果成甜點寵兒 但4族群別吃太多！",
+  "url": "https://www.healthnews.com.tw/article/67488"
+ },
+ {
+  "article_id": "67502",
+  "content_hash": "792364cb7a2eaf1267ceff23dd8c4563024a1b2bcd17c9495e70f9ecac8003cb",
+  "first_fetched_at": "2026-10-20T14:22:24.893972+00:00",
+  "last_changed_at": "2026-10-20T14:22:24.893972+00:00",
+  "last_fetched_at": "2026-10-20T14:22:24.893972+00:00",
+  "matched_food_ids": [
+   "FOOD000232",
+   "FOOD000245",
+   "FOOD001574",
+   "FOOD001789",
+   "FOOD001803"
+  ],
+  "modified_at": "2026-01-29T11:00:00+00:00",
+  "published_at": "2026-01-29T11:00:00+00:00",
+  "source_name": "健康醫療網",
+  "status": "matched",
+  "title": "別再全酒進補！營養師揭「現代坐月子6大原則」這樣吃最安全",
+  "url": "https://www.healthnews.com.tw/article/67502"
+ },
+ {
+  "article_id": "67546",
+  "content_hash": "2be929f81fd2cc3d78f62de2298071c11403330b519d9b8df2ce88cf25d149a3",
+  "first_fetched_at": "2026-10-20T14:21:56.075180+00:00",
+  "last_changed_at": "2026-10-20T14:21:56.075180+00:00",
+  "last_fetched_at": "2026-10-20T14:21:56.075180+00:00",
+  "matched_food_ids": [
+   "FOOD000267",
+   "FOOD000307",
+   "FOOD001836",
+   "FOOD001837"
+  ],
+  "modified_at": "2026-02-16T13:00:00+00:00",
+  "published_at": "2026-02-16T13:00:00+00:00",
+  "source_name": "健康醫療網",
+  "status": "matched",
+  "title": "過年別讓「食積」壞了好心情 中醫師教你護胃這樣做",
+  "url": "https://www.healthnews.com.tw/article/67546"
+ },
+ {
+  "article_id": "67571",
+  "content_hash": "6140f3ee9f286808e32bf048b5ef3cebdbd557885b5728b997c0e202ad242959",
+  "first_fetched_at": "2026-10-20T14:22:01.908929+00:00",
+  "last_changed_at": "2026-10-20T14:22:01.908929+00:00",
+  "last_fetched_at": "2026-10-20T14:22:01.908929+00:00",
+  "matched_food_ids": [
+   "FOOD000114",
+   "FOOD000245",
+   "FOOD000420",
+   "FOOD000710",
+   "FOOD001481"
+  ],
+  "modified_at": "2026-02-15T07:00:00+00:00",
+  "published_at": "2026-02-15T07:00:00+00:00",
+  "source_name": "健康醫療網",
+  "status": "matched",
+  "title": "想吃點心又怕胖？營養師大推「過年6類組合」兼顧心情與健康",
+  "url": "https://www.healthnews.com.tw/article/67571"
+ },
+ {
+  "article_id": "67683",
+  "content_hash": "b546090441517ced9bb927eb147bee3caf025b960951ec4d7d37ac2747f810e0",
+  "first_fetched_at": "2026-10-20T14:22:14.928198+00:00",
+  "last_changed_at": "2026-10-20T14:22:14.928198+00:00",
+  "last_fetched_at": "2026-10-20T14:22:14.928198+00:00",
+  "matched_food_ids": [
+   "FOOD000334",
+   "FOOD000706",
+   "FOOD001204",
+   "FOOD001619",
+   "FOOD001665"
+  ],
+  "modified_at": "2026-02-12T03:00:00+00:00",
+  "published_at": "2026-02-12T03:00:00+00:00",
+  "source_name": "健康醫療網",
+  "status": "matched",
+  "title": "營養師提醒：春節飲食「停看聽」防三高失控 過年安心吃不踩雷",
+  "url": "https://www.healthnews.com.tw/article/67683"
+ },
+ {
+  "article_id": "67801",
+  "content_hash": "23bbac94eb86118478e48f05db178703796484fb0eb997a77302b8820b0d5386",
+  "first_fetched_at": "2026-10-20T14:21:02.561704+00:00",
+  "last_changed_at": "2026-10-20T14:21:02.561704+00:00",
+  "last_fetched_at": "2026-10-20T14:21:02.561704+00:00",
+  "matched_food_ids": [
+   "FOOD001147"
+  ],
+  "modified_at": "2026-03-24T03:00:00+00:00",
+  "published_at": "2026-03-24T03:00:00+00:00",
+  "source_name": "健康醫療網",
+  "status": "matched",
+  "title": "想補纖維又怕脹氣？護理師教9招 喝水、少量多餐與飯後散步都能幫忙",
+  "url": "https://www.healthnews.com.tw/article/67801"
+ },
+ {
+  "article_id": "67802",
+  "content_hash": "eb559b229cf1e5c4c7e31c47a888da4a8d7088a04cea5518a4c8cf49cf634c53",
+  "first_fetched_at": "2026-10-20T14:21:19.636233+00:00",
+  "last_changed_at": "2026-10-20T14:21:19.636233+00:00",
+  "last_fetched_at": "2026-10-20T14:21:19.636233+00:00",
+  "matched_food_ids": [
+   "FOOD000945",
+   "FOOD001481"
+  ],
+  "modified_at": "2026-03-16T03:00:00+00:00",
+  "published_at": "2026-03-16T03:00:00+00:00",
+  "source_name": "健康醫療網",
+  "status": "matched",
+  "title": "明明有曬太陽還是缺維生素D？藥師：女性常見3個關鍵原因",
+  "url": "https://www.healthnews.com.tw/article/67802"
+ },
+ {
+  "article_id": "68037",
+  "content_hash": "1b94115b712d701f911b234aa9916547367e4175f03b0fb90bab81daa964305f",
+  "first_fetched_at": "2026-10-20T14:20:54.662299+00:00",
+  "last_changed_at": "2026-10-20T14:20:54.662299+00:00",
+  "last_fetched_at": "2026-10-20T14:20:54.662299+00:00",
+  "matched_food_ids": [
+   "FOOD000439",
+   "FOOD000452",
+   "FOOD001954"
+  ],
+  "modified_at": "2026-04-05T04:00:00+00:00",
+  "published_at": "2026-04-05T04:00:00+00:00",
+  "source_name": "健康醫療網",
+  "status": "matched",
+  "title": "奇亞籽要咬碎還是直接吞？營養師解答：「多做1件事」助吸收",
+  "url": "https://www.healthnews.com.tw/article/68037"
+ },
+ {
+  "article_id": "68257",
+  "content_hash": "71c6a710bace9a42e728c29e907c8b32883930c20de54d4b46ce31283b75124f",
+  "first_fetched_at": "2026-10-20T14:20:14.835469+00:00",
+  "last_changed_at": "2026-10-20T14:20:14.835469+00:00",
+  "last_fetched_at": "2026-10-20T14:20:14.835469+00:00",
+  "matched_food_ids": [
+   "FOOD000315",
+   "FOOD000945",
+   "FOOD001000",
+   "FOOD001135",
+   "FOOD001566"
+  ],
+  "modified_at": "2026-04-19T04:00:00+00:00",
+  "published_at": "2026-04-19T04:00:00+00:00",
+  "source_name": "健康醫療網",
+  "status": "matched",
+  "title": "越南「蛋咖啡」掀議！網兩派吵翻 醫：蛋黃未熟恐添1菌感染風險",
+  "url": "https://www.healthnews.com.tw/article/68257"
+ },
+ {
+  "article_id": "68272",
+  "content_hash": "ade8501969f362bd38859a3af9c3c6655bb126456628cf7ed9d3aa9ffc2024bb",
+  "first_fetched_at": "2026-10-20T14:20:11.029615+00:00",
+  "last_changed_at": "2026-10-20T14:20:11.029615+00:00",
+  "last_fetched_at": "2026-10-20T14:20:11.029615+00:00",
+  "matched_food_ids": [
+   "FOOD001407",
+   "FOOD001526",
+   "FOOD001527"
+  ],
+  "modified_at": "2026-04-22T03:00:00+00:00",
+  "published_at": "2026-04-22T03:00:00+00:00",
+  "source_name": "健康醫療網",
+  "status": "matched",
+  "title": "網瘋「檸檬水＋橄欖油」能養顏助消化？營養師：效果有限 4類人別跟風",
+  "url": "https://www.healthnews.com.tw/article/68272"
+ },
+ {
+  "article_id": "68280",
+  "content_hash": "5c66894051793e7b9c691a4cbb5275f9cd8d542369fe9c6ada69818da89ed147",
+  "first_fetched_at": "2026-10-20T14:20:08.518845+00:00",
+  "last_changed_at": "2026-10-20T14:20:08.518845+00:00",
+  "last_fetched_at": "2026-10-20T14:20:08.518845+00:00",
+  "matched_food_ids": [
+   "FOOD000851"
+  ],
+  "modified_at": "2026-04-25T04:00:00+00:00",
+  "published_at": "2026-04-25T04:00:00+00:00",
+  "source_name": "健康醫療網",
+  "status": "matched",
+  "title": "研究：銀髮族吃「植物性飲食」失智風險降 但若為加工食品仍無益健康",
+  "url": "https://www.healthnews.com.tw/article/68280"
+ },
+ {
+  "article_id": "68281",
+  "content_hash": "226f0f83ce29b03a53e6cd1e183896cadb3f838676ca5d2ffb76c18050487508",
+  "first_fetched_at": "2026-10-20T14:20:06.790745+00:00",
+  "last_changed_at": "2026-10-20T14:20:06.790745+00:00",
+  "last_fetched_at": "2026-10-20T14:20:06.790745+00:00",
+  "matched_food_ids": [
+   "FOOD000943",
+   "FOOD001407",
+   "FOOD001481"
+  ],
+  "modified_at": "2026-04-27T03:00:00+00:00",
+  "published_at": "2026-04-27T03:00:00+00:00",
+  "source_name": "健康醫療網",
+  "status": "matched",
+  "title": "別盲目追養生潮！腫瘤醫破解6大營養迷思 「想要活得健康」先抓住1點",
+  "url": "https://www.healthnews.com.tw/article/68281"
+ },
+ {
+  "article_id": "68413",
+  "content_hash": "82a2b51544988ed39ff84130ccdd93bff7cf68e721ccfe36c8738cae8caf981d",
+  "first_fetched_at": "2026-10-20T14:13:39.709464+00:00",
+  "last_changed_at": "2026-10-20T14:13:39.709464+00:00",
+  "last_fetched_at": "2026-10-20T14:13:39.709464+00:00",
+  "matched_food_ids": [
+   "FOOD000943",
+   "FOOD001217",
+   "FOOD001651"
+  ],
+  "modified_at": "2026-05-15T01:00:00+00:00",
+  "published_at": "2026-05-15T01:00:00+00:00",
+  "source_name": "健康醫療網",
+  "status": "matched",
+  "title": "腎臟病要少吃肉卻怕肌少症？醫揭關鍵平衡：蛋白質「這樣吃」才不傷身",
+  "url": "https://www.healthnews.com.tw/article/68413"
+ },
+ {
+  "article_id": "68630",
+  "content_hash": "b74da043a841e45def8e2139916ab2f1052176ee4f51abfc15a9b42c0a3b9e45",
+  "first_fetched_at": "2026-10-20T14:19:45.826555+00:00",
+  "last_changed_at": "2026-10-20T14:19:45.826555+00:00",
+  "last_fetched_at": "2026-10-20T14:19:45.826555+00:00",
+  "matched_food_ids": [
+   "FOOD000357"
+  ],
+  "modified_at": "2026-06-09T03:00:00+00:00",
+  "published_at": "2026-06-09T03:00:00+00:00",
+  "source_name": "健康醫療網",
+  "status": "matched",
+  "title": "營養師列羽衣甘藍4健康益處！加1物吃助營養吸收 這類人食用要注意",
+  "url": "https://www.healthnews.com.tw/article/68630"
+ },
+ {
+  "article_id": "68680",
+  "content_hash": "e818f0d12fb798183034429fd79e66e3709d6f7640ad05627d65444df674bb68",
+  "first_fetched_at": "2026-10-20T14:19:50.340541+00:00",
+  "last_changed_at": "2026-10-20T14:19:50.340541+00:00",
+  "last_fetched_at": "2026-10-20T14:19:50.340541+00:00",
+  "matched_food_ids": [
+   "FOOD000081",
+   "FOOD000114",
+   "FOOD000556",
+   "FOOD001048",
+   "FOOD001619",
+   "FOOD001642"
+  ],
+  "modified_at": "2026-06-07T05:00:00+00:00",
+  "published_at": "2026-06-07T05:00:00+00:00",
+  "source_name": "健康醫療網",
+  "status": "matched",
+  "title": "端午不「暈碳」！營養師教戰「三款創意健康粽」穩血糖、減碳排",
+  "url": "https://www.healthnews.com.tw/article/68680"
+ },
+ {
+  "article_id": "68755",
+  "content_hash": "867f059f26c4be97204beff5ba7012908379f742400f4085ce0a0a9825e50bbc",
+  "first_fetched_at": "2026-10-20T14:19:41.784834+00:00",
+  "last_changed_at": "2026-10-20T14:19:41.784834+00:00",
+  "last_fetched_at": "2026-10-20T14:19:41.784834+00:00",
+  "matched_food_ids": [
+   "FOOD000678",
+   "FOOD001619"
+  ],
+  "modified_at": "2026-06-10T11:00:00+00:00",
+  "published_at": "2026-06-10T11:00:00+00:00",
+  "source_name": "健康醫療網",
+  "status": "matched",
+  "title": "考季逢端午吃粽怕負擔 營養師分享「４特色粽」兼顧考運與健康",
+  "url": "https://www.healthnews.com.tw/article/68755"
+ },
+ {
+  "article_id": "68777",
+  "content_hash": "6d0356b124aef2caa76397e7075a03a39bd38c908cde8a056167c729768a3fb7",
+  "first_fetched_at": "2026-10-20T14:19:39.727074+00:00",
+  "last_changed_at": "2026-10-20T14:19:39.727074+00:00",
+  "last_fetched_at": "2026-10-20T14:19:39.727074+00:00",
+  "matched_food_ids": [
+   "FOOD001619"
+  ],
+  "modified_at": "2026-06-12T05:00:00+00:00",
+  "published_at": "2026-06-12T05:00:00+00:00",
+  "source_name": "健康醫療網",
+  "status": "matched",
+  "title": "端午吃粽難消化？營養師曝：「這樣吃」降脹氣機率",
+  "url": "https://www.healthnews.com.tw/article/68777"
+ },
+ {
+  "article_id": "68794",
+  "content_hash": "9716420559f7cc6d898098f8c584e14dcd1aaf83f8004d73ef3b70a42b94d6c6",
+  "first_fetched_at": "2026-10-20T14:19:44.084044+00:00",
+  "last_changed_at": "2026-10-20T14:19:44.084044+00:00",
+  "last_fetched_at": "2026-10-20T14:19:44.084044+00:00",
+  "matched_food_ids": [
+   "FOOD000369",
+   "FOOD000417",
+   "FOOD001266"
+  ],
+  "modified_at": "2026-06-09T09:22:00+00:00",
+  "published_at": "2026-06-09T09:22:00+00:00",
+  "source_name": "健康醫療網",
+  "status": "matched",
+  "title": "天氣熱狂吃西瓜、芒果 桃園醫院示警：恐增妊娠糖尿病風險",
+  "url": "https://www.healthnews.com.tw/article/68794"
+ },
+ {
+  "article_id": "68804",
+  "content_hash": "4cb320039878c2077e0614246131969ce796ab8988152fdd7c4ee2a9f7403c6f",
+  "first_fetched_at": "2026-10-20T14:19:17.879069+00:00",
+  "last_changed_at": "2026-10-20T14:19:17.879069+00:00",
+  "last_fetched_at": "2026-10-20T14:19:17.879069+00:00",
+  "matched_food_ids": [
+   "FOOD001063",
+   "FOOD001152"
+  ],
+  "modified_at": "2026-06-23T02:00:00+00:00",
+  "published_at": "2026-06-23T02:00:00+00:00",
+  "source_name": "健康醫療網",
+  "status": "matched",
+  "title": "養生堅果甜點暗藏健康陷阱 醫教你聰明吃避發炎",
+  "url": "https://www.healthnews.com.tw/article/68804"
+ },
+ {
+  "article_id": "68819",
+  "content_hash": "b991900c3f878394abc06076e046556f1eac05b1ff372095f7f3533cad164e62",
+  "first_fetched_at": "2026-10-20T14:19:29.878783+00:00",
+  "last_changed_at": "2026-10-20T14:19:29.878783+00:00",
+  "last_fetched_at": "2026-10-20T14:19:29.878783+00:00",
+  "matched_food_ids": [
+   "FOOD000087",
+   "FOOD000420"
+  ],
+  "modified_at": "2026-06-18T03:00:00+00:00",
+  "published_at": "2026-06-18T03:00:00+00:00",
+  "source_name": "健康醫療網",
+  "status": "matched",
+  "title": "粽子這樣搭配最健康！營養師授吃不胖、助消化秘訣",
+  "url": "https://www.healthnews.com.tw/article/68819"
+ },
+ {
+  "article_id": "68821",
+  "content_hash": "f0729b945345c330a2808800243125302b39c7edeef0f298e664ad8c117fc117",
+  "first_fetched_at": "2026-10-20T14:18:48.883415+00:00",
+  "last_changed_at": "2026-10-20T14:18:48.883415+00:00",
+  "last_fetched_at": "2026-10-20T14:18:48.883415+00:00",
+  "matched_food_ids": [
+   "FOOD000495",
+   "FOOD001940"
+  ],
+  "modified_at": "2026-07-06T03:00:00+00:00",
+  "published_at": "2026-07-06T03:00:00+00:00",
+  "source_name": "健康醫療網",
+  "status": "matched",
+  "title": "泡菜幫排塑膠微粒？研究發現特定益生菌是功臣 但人體效果待證實",
+  "url": "https://www.healthnews.com.tw/article/68821"
+ },
+ {
+  "article_id": "68822",
+  "content_hash": "784368ad93407e60c928fc90183e4cb1c3d4ba9f760f2f663aea8acbb751cd06",
+  "first_fetched_at": "2026-10-20T14:19:25.868991+00:00",
+  "last_changed_at": "2026-10-20T14:19:25.868991+00:00",
+  "last_fetched_at": "2026-10-20T14:19:25.868991+00:00",
+  "matched_food_ids": [
+   "FOOD000943",
+   "FOOD001481"
+  ],
+  "modified_at": "2026-06-19T02:00:00+00:00",
+  "published_at": "2026-06-19T02:00:00+00:00",
+  "source_name": "健康醫療網",
+  "status": "matched",
+  "title": "蛋白質吃越多越好？營養師揭中年人常犯7大錯誤 恐增胖又流失肌肉",
+  "url": "https://www.healthnews.com.tw/article/68822"
+ },
+ {
+  "article_id": "68851",
+  "content_hash": "0576905a8b8254131a5abaf31654134075aa9cd8076658acd6891a67ea5c63e8",
+  "first_fetched_at": "2026-10-20T14:13:26.009316+00:00",
+  "last_changed_at": "2026-10-20T14:13:26.009316+00:00",
+  "last_fetched_at": "2026-10-20T14:13:26.009316+00:00",
+  "matched_food_ids": [
+   "FOOD000943",
+   "FOOD001129",
+   "FOOD001407"
+  ],
+  "modified_at": "2026-08-02T02:00:00+00:00",
+  "published_at": "2026-08-02T02:00:00+00:00",
+  "source_name": "健康醫療網",
+  "status": "matched",
+  "title": "椰子油漱口助「排毒」？搭配生酮飲食成風潮 醫提醒喝油養生4迷思",
+  "url": "https://www.healthnews.com.tw/article/68851"
+ },
+ {
+  "article_id": "68870",
+  "content_hash": "0735f27cc4ef0610f305c7ae3df23d3e1e3d46f0693f9d72c92b003f4f84c660",
+  "first_fetched_at": "2026-10-20T14:19:32.098986+00:00",
+  "last_changed_at": "2026-10-20T14:19:32.098986+00:00",
+  "last_fetched_at": "2026-10-20T14:19:32.098986+00:00",
+  "matched_food_ids": [
+   "FOOD000363",
+   "FOOD000638",
+   "FOOD001167",
+   "FOOD001619",
+   "FOOD001679"
+  ],
+  "modified_at": "2026-06-17T10:25:00+00:00",
+  "published_at": "2026-06-17T10:25:00+00:00",
+  "source_name": "健康醫療網",
+  "status": "matched",
+  "title": "端午吃鹼粽要注意！天晟醫院營養師教你這樣吃才健康",
+  "url": "https://www.healthnews.com.tw/article/68870"
+ },
+ {
+  "article_id": "68871",
+  "content_hash": "72b84d279e82c6a70f7af7ad0472569c45399e3fbc7e47c5d0be855fa4c4f6bb",
+  "first_fetched_at": "2026-10-20T14:19:28.495933+00:00",
+  "last_changed_at": "2026-10-20T14:19:28.495933+00:00",
+  "last_fetched_at": "2026-10-20T14:19:28.495933+00:00",
+  "matched_food_ids": [
+   "FOOD000081",
+   "FOOD000087",
+   "FOOD000342",
+   "FOOD000346",
+   "FOOD000420",
+   "FOOD001487",
+   "FOOD001619",
+   "FOOD001678"
+  ],
+  "modified_at": "2026-06-18T10:36:00+00:00",
+  "published_at": "2026-06-18T10:36:00+00:00",
+  "source_name": "健康醫療網",
+  "status": "matched",
+  "title": "楊梅天成醫院公開「健康五穀粽」食譜 減少精製澱粉與油脂攝取",
+  "url": "https://www.healthnews.com.tw/article/68871"
+ },
+ {
+  "article_id": "68887",
+  "content_hash": "fbcbcdd91c1fec47c6aecb22d36cae37c983f4b7ff62565c764ad6e03fe884dc",
+  "first_fetched_at": "2026-10-20T14:19:12.246218+00:00",
+  "last_changed_at": "2026-10-20T14:19:12.246218+00:00",
+  "last_fetched_at": "2026-10-20T14:19:12.246218+00:00",
+  "matched_food_ids": [
+   "FOOD000218",
+   "FOOD000342",
+   "FOOD000810",
+   "FOOD001216",
+   "FOOD001803"
+  ],
+  "modified_at": "2026-06-28T02:00:00+00:00",
+  "published_at": "2026-06-28T02:00:00+00:00",
+  "source_name": "健康醫療網",
+  "status": "matched",
+  "title": "綠竹筍怎麼挑？專家：高纖助消化 多吃但少做1事小心腹脹、便祕",
+  "url": "https://www.healthnews.com.tw/article/68887"
+ },
+ {
+  "article_id": "69068",
+  "content_hash": "4ca426028a7127e21fd7a97e17bf9bfe8b1b6ddf49e2bc7725431ca4364d25c2",
+  "first_fetched_at": "2026-10-20T14:18:37.198682+00:00",
+  "last_changed_at": "2026-10-20T14:18:37.198682+00:00",
+  "last_fetched_at": "2026-10-20T14:18:37.198682+00:00",
+  "matched_food_ids": [
+   "FOOD000369",
+   "FOOD000517",
+   "FOOD000680",
+   "FOOD001011",
+   "FOOD001217",
+   "FOOD001494"
+  ],
+  "modified_at": "2026-07-09T04:00:00+00:00",
+  "published_at": "2026-07-09T04:00:00+00:00",
+  "source_name": "健康醫療網",
+  "status": "matched",
+  "title": "天熱別只喝手搖飲！營養師推消暑3寶 補水降火又少負擔",
+  "url": "https://www.healthnews.com.tw/article/69068"
+ },
+ {
+  "article_id": "69106",
+  "content_hash": "900597115780ad065a1720d869253dbbc342a27796fa5ea593af81841921ecfc",
+  "first_fetched_at": "2026-10-20T14:18:16.809038+00:00",
+  "last_changed_at": "2026-10-20T14:18:16.809038+00:00",
+  "last_fetched_at": "2026-10-20T14:18:16.809038+00:00",
+  "matched_food_ids": [
+   "FOOD001526",
+   "FOOD001803"
+  ],
+  "modified_at": "2026-07-16T04:00:00+00:00",
+  "published_at": "2026-07-16T04:00:00+00:00",
+  "source_name": "健康醫療網",
+  "status": "matched",
+  "title": "吹冷氣易陷慢性缺水危機？「補水三原則」教你聰明喝水",
+  "url": "https://www.healthnews.com.tw/article/69106"
+ },
+ {
+  "article_id": "69109",
+  "content_hash": "a2dcf27c58dc3cd88ed8222147b47f08614e58f49eae8a18351b78c03e694d31",
+  "first_fetched_at": "2026-10-20T14:13:37.686041+00:00",
+  "last_changed_at": "2026-10-20T14:13:37.686041+00:00",
+  "last_fetched_at": "2026-10-20T14:13:37.686041+00:00",
+  "matched_food_ids": [
+   "FOOD000111",
+   "FOOD000444",
+   "FOOD000631",
+   "FOOD001481"
+  ],
+  "modified_at": "2026-07-22T11:00:00+00:00",
+  "published_at": "2026-07-22T11:00:00+00:00",
+  "source_name": "健康醫療網",
+  "status": "matched",
+  "title": "經常脹氣、便秘、疲累是腸漏症？這「4問題」自測揪腸道失衡",
+  "url": "https://www.healthnews.com.tw/article/69109"
+ },
+ {
+  "article_id": "69148",
+  "content_hash": "b383341a5908d5584ef179455eb720edf4d9161eff4a3b3c517bb2b6bcc6a76f",
+  "first_fetched_at": "2026-10-20T14:18:15.928105+00:00",
+  "last_changed_at": "2026-10-20T14:18:15.928105+00:00",
+  "last_fetched_at": "2026-10-20T14:18:15.928105+00:00",
+  "matched_food_ids": [
+   "FOOD000114",
+   "FOOD000426",
+   "FOOD000529",
+   "FOOD000608",
+   "FOOD000609",
+   "FOOD000867",
+   "FOOD000943",
+   "FOOD001130"
+  ],
+  "modified_at": "2026-07-17T10:34:00+00:00",
+  "published_at": "2026-07-17T10:34:00+00:00",
+  "source_name": "健康醫療網",
+  "status": "matched",
+  "title": "夏日食慾不振！北榮桃園分院 「晶瑩五彩春捲」享受清爽健康美味",
+  "url": "https://www.healthnews.com.tw/article/69148"
+ },
+ {
+  "article_id": "69169",
+  "content_hash": "38805ec74736a0ed632d77f1e9a4e88a49d10ab9309d78eec7948abc6af11cad",
+  "first_fetched_at": "2026-10-20T14:13:31.813897+00:00",
+  "last_changed_at": "2026-10-20T14:13:31.813897+00:00",
+  "last_fetched_at": "2026-10-20T14:13:31.813897+00:00",
+  "matched_food_ids": [
+   "FOOD000943",
+   "FOOD001172"
+  ],
+  "modified_at": "2026-07-28T03:00:00+00:00",
+  "published_at": "2026-07-28T03:00:00+00:00",
+  "source_name": "健康醫療網",
+  "status": "matched",
+  "title": "每天1顆酪梨吃半年！研究觀察LDL粒子下降 估心臟病風險降4%",
+  "url": "https://www.healthnews.com.tw/article/69169"
+ },
+ {
+  "article_id": "69229",
+  "content_hash": "805c8b92aea6996e157c5ac00ac232ec7165b5e794e00d326b4664dad2235d40",
+  "first_fetched_at": "2026-10-20T14:18:11.285604+00:00",
+  "last_changed_at": "2026-10-20T14:18:11.285604+00:00",
+  "last_fetched_at": "2026-10-20T14:18:11.285604+00:00",
+  "matched_food_ids": [
+   "FOOD000347",
+   "FOOD000453",
+   "FOOD000521",
+   "FOOD000588",
+   "FOOD001071",
+   "FOOD001223",
+   "FOOD001407",
+   "FOOD001748"
+  ],
+  "modified_at": "2026-07-21T10:48:00+00:00",
+  "published_at": "2026-07-21T10:48:00+00:00",
+  "source_name": "健康醫療網",
+  "status": "matched",
+  "title": "不只問題油品！這3個日常習慣，恐害你天天吃進一級致癌物「苯駢芘」，營養師授4招排毒",
+  "url": "https://www.healthnews.com.tw/article/69229"
+ },
+ {
+  "article_id": "69299",
+  "content_hash": "d49298ad6fa580efc3c01f338183f45c8a41c913b9661d361e72061dcc950b05",
+  "first_fetched_at": "2026-10-20T14:13:01.703175+00:00",
+  "last_changed_at": "2026-10-20T14:13:01.703175+00:00",
+  "last_fetched_at": "2026-10-20T14:13:01.703175+00:00",
+  "matched_food_ids": [
+   "FOOD000615"
+  ],
+  "modified_at": "2026-08-15T05:00:00+00:00",
+  "published_at": "2026-08-15T05:00:00+00:00",
+  "source_name": "健康醫療網",
+  "status": "matched",
+  "title": "零食一口接一口停不下嘴？專家揭1原因讓大腦誤判熱量攝取 體重也悄悄升",
+  "url": "https://www.healthnews.com.tw/article/69299"
+ },
+ {
+  "article_id": "69341",
+  "content_hash": "9ce0377edef0d871b774b1b0c15f9b53989eed001e8d06365d671a0b19d398a4",
+  "first_fetched_at": "2026-10-20T14:13:09.650741+00:00",
+  "last_changed_at": "2026-10-20T14:13:09.650741+00:00",
+  "last_fetched_at": "2026-10-20T14:13:09.650741+00:00",
+  "matched_food_ids": [
+   "FOOD000839",
+   "FOOD001432",
+   "FOOD001954"
+  ],
+  "modified_at": "2026-08-10T01:00:00+00:00",
+  "published_at": "2026-08-10T01:00:00+00:00",
+  "source_name": "健康醫療網",
+  "status": "matched",
+  "title": "只吃豆漿和蛋 血糖反而不穩？營養師破解糖尿病早餐秘笈",
+  "url": "https://www.healthnews.com.tw/article/69341"
+ },
+ {
+  "article_id": "69565",
+  "content_hash": "32073c1ce109626cc76dc651fbe9b35a28975dcd36036bc74d3334cf053ca0dc",
+  "first_fetched_at": "2026-10-20T14:12:43.724096+00:00",
+  "last_changed_at": "2026-10-20T14:12:43.724096+00:00",
+  "last_fetched_at": "2026-10-20T14:12:43.724096+00:00",
+  "matched_food_ids": [
+   "FOOD000281",
+   "FOOD000296",
+   "FOOD000363"
+  ],
+  "modified_at": "2026-08-28T05:00:00+00:00",
+  "published_at": "2026-08-28T05:00:00+00:00",
+  "source_name": "健康醫療網",
+  "status": "matched",
+  "title": "「冰箱肉粽不吃很浪費」男每週吃3次竟暈碳、胃食道逆流 教你正確吃法",
+  "url": "https://www.healthnews.com.tw/article/69565"
+ },
+ {
+  "article_id": "69606",
+  "content_hash": "01188c17117d95165708a6db9c0efa1b68be0afbcb969e4e91a90d3d12e6f70b",
+  "first_fetched_at": "2026-10-20T14:12:09.742425+00:00",
+  "last_changed_at": "2026-10-20T14:12:09.742425+00:00",
+  "last_fetched_at": "2026-10-20T14:12:09.742425+00:00",
+  "matched_food_ids": [
+   "FOOD000943",
+   "FOOD001481",
+   "FOOD001773"
+  ],
+  "modified_at": "2026-09-15T02:00:00+00:00",
+  "published_at": "2026-09-15T02:00:00+00:00",
+  "source_name": "健康醫療網",
+  "status": "matched",
+  "title": "想用優格助力腸道健康？醫：可留意4面向 1原因建議「飯後吃」更佳",
+  "url": "https://www.healthnews.com.tw/article/69606"
+ },
+ {
+  "article_id": "69614",
+  "content_hash": "b1849a11a51ae86e7112f2d339c924fc8afdfe141ba07ee9ad954a2393ccd37b",
+  "first_fetched_at": "2026-10-20T14:12:37.679659+00:00",
+  "last_changed_at": "2026-10-20T14:12:37.679659+00:00",
+  "last_fetched_at": "2026-10-20T14:12:37.679659+00:00",
+  "matched_food_ids": [
+   "FOOD000428",
+   "FOOD000525",
+   "FOOD000943",
+   "FOOD001159"
+  ],
+  "modified_at": "2026-09-02T01:30:00+00:00",
+  "published_at": "2026-09-02T01:30:00+00:00",
+  "source_name": "健康醫療網",
+  "status": "matched",
+  "title": "破解保健品迷思！專家教你重塑健康識能與建立營養新思維",
+  "url": "https://www.healthnews.com.tw/article/69614"
+ },
+ {
+  "article_id": "69687",
+  "content_hash": "f88cce41b7499ae75c3cad416ee190f6af530f6e3253735aac55907bd8f7912c",
+  "first_fetched_at": "2026-10-20T14:12:15.615542+00:00",
+  "last_changed_at": "2026-10-20T14:12:15.615542+00:00",
+  "last_fetched_at": "2026-10-20T14:12:15.615542+00:00",
+  "matched_food_ids": [
+   "FOOD000453",
+   "FOOD000521"
+  ],
+  "modified_at": "2026-09-10T03:00:00+00:00",
+  "published_at": "2026-09-10T03:00:00+00:00",
+  "source_name": "健康醫療網",
+  "status": "matched",
+  "title": "每天2顆綠奇異果有助排便？醫解析研究與腸道健康飲食原則",
+  "url": "https://www.healthnews.com.tw/article/69687"
+ },
+ {
+  "article_id": "69869",
+  "content_hash": "1c5445321591e1bcf699653ab2143d9c50284236f2d31c64aacf56d4e3edd232",
+  "first_fetched_at": "2026-10-20T14:11:17.581475+00:00",
+  "last_changed_at": "2026-10-20T14:11:17.581475+00:00",
+  "last_fetched_at": "2026-10-20T14:11:17.581475+00:00",
+  "matched_food_ids": [
+   "FOOD000618"
+  ],
+  "modified_at": "2026-10-02T02:00:00+00:00",
+  "published_at": "2026-10-02T02:00:00+00:00",
+  "source_name": "健康醫療網",
+  "status": "matched",
+  "title": "怎麼吃都還是脹氣？營養師解析何謂「低FODMAP飲食」 找出腸胃潛在地雷",
+  "url": "https://www.healthnews.com.tw/article/69869"
+ },
+ {
+  "article_id": "69872",
+  "content_hash": "27d17c5147a2da749943632e538fc1f97bfdf05e3f49c2269d92194db4d7860e",
+  "first_fetched_at": "2026-10-20T14:11:15.671621+00:00",
+  "last_changed_at": "2026-10-20T14:11:15.671621+00:00",
+  "last_fetched_at": "2026-10-20T14:11:15.671621+00:00",
+  "matched_food_ids": [
+   "FOOD000393",
+   "FOOD000428",
+   "FOOD001803"
+  ],
+  "modified_at": "2026-10-04T10:00:00+00:00",
+  "published_at": "2026-10-04T10:00:00+00:00",
+  "source_name": "健康醫療網",
+  "status": "matched",
+  "title": "連假聚餐頻繁影響健康？醫：可「先蔬後肉」、分食共享",
+  "url": "https://www.healthnews.com.tw/article/69872"
+ },
+ {
+  "article_id": "70004",
+  "content_hash": "e672e6c7fb373511b6e0af2e1a19a7311b202da57fcc0177bf92d008fcf837e0",
+  "first_fetched_at": "2026-10-20T14:11:13.798158+00:00",
+  "last_changed_at": "2026-10-20T14:11:13.798158+00:00",
+  "last_fetched_at": "2026-10-20T14:11:13.798158+00:00",
+  "matched_food_ids": [
+   "FOOD000521",
+   "FOOD000678",
+   "FOOD000981"
+  ],
+  "modified_at": "2026-10-13T05:00:00+00:00",
+  "published_at": "2026-10-13T05:00:00+00:00",
+  "source_name": "健康醫療網",
+  "status": "matched",
+  "title": "芭樂籽吃多會便秘？營養師揭關鍵 紅白芭樂營養差異一次看",
+  "url": "https://www.healthnews.com.tw/article/70004"
+ }
+]
