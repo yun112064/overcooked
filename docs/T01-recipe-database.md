@@ -61,6 +61,34 @@ python scripts/import_recipes.py `
 
 匯入以六張表的主鍵執行 upsert。同一檔案重跑會更新相同主鍵，不會新增重複紀錄。整批匯入使用同一交易；失敗時由呼叫端回滾。原始 Excel 永遠以唯讀方式開啟。
 
+## 分類修正表（決策 #38）
+
+工作簿部分食譜的 `category` 分錯（例如 R0140「蕃茄炒蛋」標成「主食」，選了白飯就不能指定它）。工作簿不改，改用
+`config/recipe_category_overrides.json`（`recipe_id → {category, reason, decided_at}`，`recipe_name` 僅供閱讀）：
+
+- 目前 25 筆，皆為使用者 2026-10-21 確認：主食→主菜 24 道（R0020、R0043、R0088、R0091、R0092、R0094、R0095、R0096、
+  R0098、R0105、R0106、R0116、R0117、R0129、R0130、R0132、R0137、R0140、R0144、R0149、R0180、R0185、R0188、R0192），
+  主食→點心 1 道（R0173 椰子芝麻脆餅）。其餘主食分類不變。
+- 匯入：`scripts/import_recipes.py` 預設讀取修正表（`--category-overrides ""` 可停用），報告的
+  `category_overrides.applied` 列出每筆 from／to／理由，`missing_recipe_ids` 列出工作簿沒有的編號。
+- 既有資料庫不必重新匯入，直接套用（冪等，已修正者列為 unchanged，印出每筆變更；連線用 `DATABASE_URL`）：
+
+```powershell
+$env:PYTHONPATH = 'backend'
+python -m app.jobs.apply_category_overrides --dry-run   # 先看會改哪些
+python -m app.jobs.apply_category_overrides
+```
+
+  容器內：`docker compose exec backend python -m app.jobs.apply_category_overrides`（Dockerfile 已複製修正表）。
+
+## 名稱正規化與異體字（決策 #36）
+
+`recipe_import.normalize_name` 是全系統共用的名稱比對鍵：NFKC、小寫、只留文字與數字，並把常見異體字視為同字
+（`config/name_variants.json`：蕃→番、臺→台、葱→蔥、麪／麫→麵；統一方向取工作簿較常用的寫法，缺檔時用程式內預設）。
+`standard_dish_id`、`normalized_name`、食材別名歧義判定、T11 指定菜比對與昨日去重、T14 食材名稱解析都經過它。
+對真實工作簿的影響：合格數仍為 281；新增 4 筆歧義別名（番茄／蕃茄、葱花／蔥花分屬不同 FOOD），由 T14 依使用次數自動選擇。
+已匯入資料的 `standard_dish_id` 會在下次重新匯入時更新；T11 查詢依菜名重新計算，不受舊 ID 影響。
+
 ## 缺值及轉換規則
 
 - 原始 `amount`、`unit`、`weight_g` 分別保存於 `source_amount`、`source_unit`、`source_weight_g`。
@@ -153,7 +181,7 @@ ORDER BY recipe_id;
 
 ## 與 Ticket 11 的介接
 
-- 指定菜與昨日同菜判斷使用 `recipes.standard_dish_id`。
+- 指定菜與昨日同菜判斷使用 `recipes.standard_dish_id`（由正規化菜名計算，異體字視為同字，決策 #36）。
 - 菜名輸入先比對 `recipe_name`／`name_aliases`，結果回傳 `standard_dish_id`。
 - 食材包含、排除及禁忌使用 `recipe_ingredients.food_id`，不以顯示名稱作最終判斷。
 - 食材文字可透過 `ingredient_aliases` 解析為 `Food_ID`；`ambiguous_aliases` 不可自動決定食材。

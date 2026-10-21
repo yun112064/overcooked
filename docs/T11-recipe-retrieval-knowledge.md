@@ -10,14 +10,14 @@
 | `backend/app/services/meal_history.py` | `previous_day_context(db, household_id, meal_date, specified_dish_ids=...)`、`recheck_previous_day(db, context, dishes)`、`record_adopted(...)` |
 
 - 只查 `recipes.is_eligible IS TRUE`；同一 `standard_dish_id` 的多個來源視為同一道菜，只選一次。
-- 指定菜：名稱正規化（`recipe_import.normalize_name`）後比對菜名與別名。查無 → `no_feasible_database_menu`／`SPECIFIED_DISH_NOT_IN_DATABASE`；對到多道不同菜 → `dish_identity_unresolved`／`SPECIFIED_DISH_AMBIGUOUS`（回報問題，不默認為不同菜，也不自動轉 AI）；指定菜的所有食譜都含排除食材 → `specified_dish_conflict`／`SPECIFIED_DISH_DIETARY_CONFLICT`（`details.conflicts` 列出菜名與衝突食材），T14 回報衝突、**不轉 AI、不換菜**（2026-10-21 修正，pre-review #1）。
+- 指定菜：名稱正規化（`recipe_import.normalize_name`，含異體字對照 `config/name_variants.json`：番/蕃、臺/台、葱/蔥、麪/麵視為同字，決策 #36）後比對菜名與別名；例如問卷「番茄炒蛋」對到 R0140「蕃茄炒蛋」。同一道菜的分組依菜名重新計算標準菜色 ID，異體字規則上線前存成不同 ID 的資料也視為同一道。查無 → `no_feasible_database_menu`／`SPECIFIED_DISH_NOT_IN_DATABASE`；對到多道不同菜 → `dish_identity_unresolved`／`SPECIFIED_DISH_AMBIGUOUS`（回報問題，不默認為不同菜，也不自動轉 AI）；指定菜的所有食譜都含排除食材 → `specified_dish_conflict`／`SPECIFIED_DISH_DIETARY_CONFLICT`（`details.conflicts` 列出菜名與衝突食材），T14 回報衝突、**不轉 AI、不換菜**（2026-10-21 修正，pre-review #1）。
 - 候選組合：`database_menu` 另回 `alternatives`（依排名，第一組即 `selected`，最多 `MAX_COMBINATIONS = 20` 組），由 T14 依序以 T12 驗證（pre-review #2）。
 - 禁忌：呼叫端傳入 `meal_request.restrictions(...)["excluded_food_ids"]`（已含同義／上位展開），含任一排除食材的食譜不入選。
-- 昨日排除：餐食日期減一個日曆日、同家庭、全部餐別、`status='adopted'`；不往前回溯。同菜以標準菜色 ID 加名稱／別名換算的 ID 交集判定。明確指定菜只豁免它自己。
+- 昨日排除：餐食日期減一個日曆日、同家庭、全部餐別、`status='adopted'`；不往前回溯。同菜以標準菜色 ID 加名稱／別名換算的 ID 交集判定（換算經同一正規化，異體字視為同菜）。明確指定菜只豁免它自己。
 - 不足菜數時的原因：排除昨日菜前足夠 → `ALL_EXCLUDED_BY_PREVIOUS_DAY`，否則 `NO_MATCHING_RECIPES`。兩者皆是自動 AI 回退原因（`code = NO_FEASIBLE_DATABASE_MENU`），結果附 `previous_day`，AI 模式仍須避開其中的 `excluded_dishes`。
 - 已有食材（含已確認同義組）與口味偏好（比對菜類、菜系、烹調方法）只影響排序。預算、營養由 T12／T13／T15 驗證；主食不計入菜數。
 - 菜色結構（決策 #22，2026-10-21 使用者實測回報後修正）：
-  - 問卷有選主食（`staples.resolve(draft.staple)` 不為 None）時，`category=主食` 的食譜不進資料庫候選；選「不需要主食」則可入選。`category=點心` 一律不放入正餐。
+  - 問卷有選主食（`staples.resolve(draft.staple)` 不為 None）時，`category=主食` 的食譜不進資料庫候選；選「不需要主食」則可入選。`category=點心` 一律不放入正餐。`category` 以 T01 分類修正表（`config/recipe_category_overrides.json`，決策 #38）修正後的值為準，例如 R0140 蕃茄炒蛋為主菜。
   - 指定菜仍計入菜數；若有選主食又指定主食類的菜 → `specified_dish_staple_conflict`／`SPECIFIED_DISH_STAPLE_CONFLICT`（`details` 含指定菜與主食），T14 以同名代碼失敗回報、請使用者擇一，**不默默丟掉指定菜、不轉 AI**。
   - 組合至少一道主菜（指定菜已含主菜則不強制補）、湯總數最多一道（指定湯佔用名額）；指定菜只有湯／點心且菜數已滿時尊重指定。結構湊不出 → `no_feasible_database_menu`／`MENU_STRUCTURE_UNMET`，照常自動 AI 回退。
   - 組合依排名字典序產生，以後綴計數剪枝，只走得出合格組合的分支（不先產生再丟棄）。

@@ -33,8 +33,15 @@ Migration：`b5d2e8f41c07`（`generation_results`，接在 `a1c4e7f20b39` 後）
 - 菜數、重複菜、指定菜都在、禁忌食材（含同義展開）、昨日未指定菜（`PREVIOUS_DAY_DISH_CONFLICT`）。
   AI 模式重新計算昨日比對：指定菜即使不在資料庫也只豁免它自己，其他昨日菜仍排除。
 - AI 候選另外檢查：拒答 `MODEL_REFUSED`、截斷 `OUTPUT_TRUNCATED`、JSON／schema 錯誤 `INVALID_FORMAT`（含 schema 外欄位，例如模型自報價格）、
-  食材名稱對不到標準字典 `INGREDIENT_UNRESOLVED`／`INGREDIENT_AMBIGUOUS`、模型給的 FOOD 編號與名稱矛盾 `INGREDIENT_ID_MISMATCH`、
+  食材名稱對不到標準字典 `INGREDIENT_UNRESOLVED`、模型給的 FOOD 編號與名稱矛盾（或不在同名候選內）`INGREDIENT_ID_MISMATCH`、
   用量非正或過大 `INVALID_QUANTITY`、缺步驟或烹調方式。
+- 合法食材清單（決策 #37，提示詞 `t14-menu-prompt-v2`）：模型輸入的 `allowed_ingredients` 是合格食譜實際用到的標準食材名稱
+  ＋現有食材，依正規化名稱去重（異體字同名只列最常用的寫法）、排除禁忌食材；instructions 規定食材 `name` 必須一字不差照抄清單。
+  真實工作簿約 430 個名稱、JSON 約 5.4 KB（`_max_input_tokens` 以 UTF-8 位元組保守估計，約增加 5,400 個預留 token；
+  實際計費約 3,000 token 以內，gpt-5.4-mini 每次不到 NT$0.1）。
+- 名稱對到多個 FOOD（例如番茄 FOOD001016／蕃茄 FOOD001444）不再判 `INGREDIENT_AMBIGUOUS`：模型給的 food_id 在候選內就用它
+  （`MODEL_FOOD_ID_AMONG_CANDIDATES`）；否則選合格食譜中使用次數最多者（`MOST_USED_IN_ELIGIBLE_RECIPES`，同數取編號最小並標
+  `TIE_BROKEN_BY_FOOD_ID`）。選擇與候選使用次數記在結果的 `ingredient_resolutions`（不是問題、不影響採用）。
 - 無效候選 → `RetryableJobError(code=GENERATION_FAILED)`；該次呼叫已結算，重試不重複計費。T10 上限兩次嘗試，
   回退或說明不重置次數，第二次仍無效即失敗並回報原因，不無限重送。
 - 營養不符（±10%、缺營養）與價格只影響可採用判定，存進結果，不算無效候選。模型輸出沒有價格、營養或來源欄位，AI 菜 `recipe_id` 一律為 null、`source = ai`。
@@ -71,7 +78,7 @@ Migration：`b5d2e8f41c07`（`generation_results`，接在 `a1c4e7f20b39` 後）
 | `payload` | 完整快照（JSONB；Decimal 以字串保存精確值），見下 |
 
 `payload` 主要鍵：`schema_version`（`generation_result/v1`）、`mode`、`mode_label`（「資料庫菜單」／「AI 生成菜單」）、`fallback_reason`、
-`fallback_details`、`request`、`query_source`（T11 查詢結果，含候選與 `alternatives`）、`database_candidates`、`dishes`（標準菜色 ID、別名、來源、recipe_id、是否指定、步驟、每 1n 食材）、`staple`、
+`fallback_details`、`request`、`query_source`（T11 查詢結果，含候選與 `alternatives`）、`database_candidates`、`dishes`（標準菜色 ID、別名、來源、recipe_id、是否指定、步驟、每 1n 食材）、`ingredient_resolutions`（AI 食材同名多 FOOD 的自動選擇紀錄，資料庫模式為空）、`staple`、
 `restrictions`、`targets`（T03）、`previous_day`（PreviousDayContext）、`calculation`（T12 完整輸出，含 `requirements`）、
 `cost`（T13；`budget_status` OK／PRICE_INCOMPLETE／BUDGET_EXCEEDED）、`validation`（必要條件已通過、營養可採用、預算狀態）、
 `knowledge`（RAG 快照）、`explanation`、`evidence`（模型／prompt／schema 版本、知識索引與向量模型、價格表版本、嘗試次數、付費呼叫鍵）、`result_version`。
