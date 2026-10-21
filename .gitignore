@@ -1,0 +1,47 @@
+.DS_Store
+.AppleDouble
+.LSOverride
+.venv/
+venv/
+env/
+.env
+.env.*
+!.env.example
+!.env.dev.example
+__pycache__/
+*.py[cod]
+.pytest_cache/
+
+# 例外：T01 已審核、取得授權的食譜工作簿放進 Git，讓隊友啟動時自動匯入同一份資料
+data/*
+!data/recipe_dataset_1017.xlsx
+# 資料種子：開發資料庫整理好的推估、營養知識、價格快照（scripts/export_seed_data.py 匯出；不含個人資料）
+!data/seed/
+outputs/
+logs/
+
+# T04 source downloads are large raw inputs; generated JSON is committed.
+nutrition_model/data/raw/
+
+# 模型權重一般不進 Git；只有 T09 正式使用的那一份放在 inference/models/，讓隊友下載就能辨識
+*.pt
+*.onnx
+!inference/models/*.pt
+.venv-yolo/
+
+# 本機開發腳本的執行狀態（PID、匯入報告）
+.dev/
+
+# T17 正式環境設定範例（真實 .env.prod／.env.team 不進 Git）
+!.env.prod.example
+!deploy/team/.env.team.example
+
+# demo 分支只保留系統程式、設定、測試、資料與模組 README；開發與規劃文件只留本機
+docs/
+tickets/
+spec.md
+requirements.md
+architecture.md
+architecture-research.md
+nutrition_target/docs/
+~$*

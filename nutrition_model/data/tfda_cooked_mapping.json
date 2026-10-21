@@ -1,0 +1,23 @@
+{
+  "version": "1",
+  "mappings": [
+    {
+      "input_names": ["白飯"],
+      "cooking_method": "蒸煮",
+      "cooked_ingredient_id": "A0550601",
+      "note": "TFDA描述：白米加1.1倍去離子水，用電鍋烹煮。白飯重量須標記 cooked；其他米種、加水比須另行確認。"
+    },
+    {
+      "input_names": ["白芝麻", "白芝麻(熟)"],
+      "cooking_method": "烤",
+      "cooked_ingredient_id": "C1610101",
+      "note": "TFDA描述明確標示熟(烤)。2022年取樣版尚未納入此對應。"
+    },
+    {
+      "input_names": ["黑芝麻", "黑芝麻(熟)"],
+      "cooking_method": "烤",
+      "cooked_ingredient_id": "C1610201",
+      "note": "TFDA描述明確標示熟(烤)。2022年取樣版尚未納入此對應。"
+    }
+  ]
+}

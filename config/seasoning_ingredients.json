@@ -1,0 +1,781 @@
+{
+  "note": "調味料（決策 #44）：視為家中足量——缺料清單不列、不查價（T02 定期查價也排除）、成本 0；營養照常計算。ingredients 是生效清單（可人工增修）；rules 只用來掃描合格食譜找候選，exclude 為規則誤判者。",
+  "decided_on": "2026-10-21",
+  "decision": "#44",
+  "rules": {
+    "description": "以 TFDA／工作簿標準食材名稱比對：keywords 為名稱包含的字，suffixes 為名稱結尾；依序比對，第一個命中的分類生效，exclude 優先。",
+    "keywords": {
+      "鹽": [
+        "鹽",
+        "塩"
+      ],
+      "醬油類": [
+        "醬油",
+        "蔭油",
+        "老抽",
+        "鮮味露"
+      ],
+      "醬料": [
+        "醬",
+        "蠔油",
+        "沙茶",
+        "味噌",
+        "魚露",
+        "美乃滋",
+        "豆瓣",
+        "豆豉",
+        "豆腐乳",
+        "番茄糊",
+        "蕃茄膏"
+      ],
+      "醋": [
+        "醋"
+      ],
+      "糖": [
+        "糖"
+      ],
+      "料理酒": [
+        "酒",
+        "味醂",
+        "味霖"
+      ],
+      "調味粉": [
+        "雞粉",
+        "鮮味炒手",
+        "烹大師",
+        "鰹魚粉",
+        "柴魚粉",
+        "味精",
+        "五香粉",
+        "五味粉",
+        "七味粉",
+        "辣椒粉"
+      ],
+      "香料與香辛料": [
+        "胡椒",
+        "花椒",
+        "香料",
+        "八角",
+        "月桂葉",
+        "迷迭香",
+        "百里香",
+        "肉桂",
+        "桂皮",
+        "香葉",
+        "草果",
+        "小茴香",
+        "甘草",
+        "乾辣椒"
+      ],
+      "勾芡用澱粉": [
+        "太白粉",
+        "大白粉",
+        "地瓜粉",
+        "玉米澱粉",
+        "蓮藕粉"
+      ]
+    },
+    "suffixes": {
+      "食用油": [
+        "油"
+      ]
+    }
+  },
+  "exclude": {
+    "FOOD000242": {
+      "name": "奶油",
+      "reason": "乳製品，合格食譜中多作為麵糊／烘焙主要材料（如 [麵糊] 奶油 20g），需購買"
+    },
+    "FOOD001520": {
+      "name": "鮮奶油",
+      "reason": "乳製品，合格食譜中用量大（如 [內餡] 鮮奶油 200ml），需購買"
+    },
+    "FOOD001010": {
+      "name": "無塩奶油",
+      "reason": "乳製品（烘焙用奶油），需購買"
+    },
+    "FOOD000885": {
+      "name": "啤酒",
+      "reason": "整瓶入菜作為燉煮湯汁（啤酒 300ml），不是少量料理酒"
+    },
+    "FOOD001101": {
+      "name": "黑啤酒",
+      "reason": "整罐入菜作為燉煮湯汁（黑啤酒 1罐），不是少量料理酒"
+    },
+    "FOOD000650": {
+      "name": "紅酒",
+      "reason": "半瓶入菜作為燉煮湯汁（紅酒 半瓶），不是少量料理酒"
+    },
+    "FOOD001011": {
+      "name": "無糖豆漿",
+      "reason": "名稱含「糖」但為飲品／主料，不是糖"
+    },
+    "FOOD001676": {
+      "name": "罐頭花瓜醬汁",
+      "reason": "花瓜罐頭附帶的湯汁，隨花瓜購買，不另計調味料"
+    }
+  },
+  "manual_include": {
+    "FOOD000091": {
+      "category": "勾芡用澱粉",
+      "reason": "太白粉水（太白粉加水），合格食譜皆為少許勾芡"
+    },
+    "FOOD001649": {
+      "category": "勾芡用澱粉",
+      "reason": "合格食譜僅「麵粉 一匙」少量使用（勾芡／裹粉），與主料用的中筋／低筋／高筋麵粉不同編號"
+    }
+  },
+  "ingredients": {
+    "FOOD000002": {
+      "name": "七味粉",
+      "category": "調味粉",
+      "recipe_uses": 1
+    },
+    "FOOD000007": {
+      "name": "八角",
+      "category": "香料與香辛料",
+      "recipe_uses": 6
+    },
+    "FOOD000025": {
+      "name": "大白粉",
+      "category": "勾芡用澱粉",
+      "recipe_uses": 1
+    },
+    "FOOD000053": {
+      "name": "小茴香",
+      "category": "香料與香辛料",
+      "recipe_uses": 1
+    },
+    "FOOD000069": {
+      "name": "山葵胡椒粉",
+      "category": "香料與香辛料",
+      "recipe_uses": 1
+    },
+    "FOOD000075": {
+      "name": "干貝醬",
+      "category": "醬料",
+      "recipe_uses": 1
+    },
+    "FOOD000079": {
+      "name": "五印醋",
+      "category": "醋",
+      "recipe_uses": 1
+    },
+    "FOOD000080": {
+      "name": "五味粉",
+      "category": "調味粉",
+      "recipe_uses": 1
+    },
+    "FOOD000086": {
+      "name": "五香粉",
+      "category": "調味粉",
+      "recipe_uses": 4
+    },
+    "FOOD000090": {
+      "name": "太白粉",
+      "category": "勾芡用澱粉",
+      "recipe_uses": 38
+    },
+    "FOOD000091": {
+      "name": "太白粉水",
+      "category": "勾芡用澱粉",
+      "recipe_uses": 4
+    },
+    "FOOD000107": {
+      "name": "日式炒麵醬",
+      "category": "醬料",
+      "recipe_uses": 1
+    },
+    "FOOD000109": {
+      "name": "月桂葉",
+      "category": "香料與香辛料",
+      "recipe_uses": 3
+    },
+    "FOOD000233": {
+      "name": "台式醬油",
+      "category": "醬油類",
+      "recipe_uses": 1
+    },
+    "FOOD000264": {
+      "name": "玉米澱粉",
+      "category": "勾芡用澱粉",
+      "recipe_uses": 2
+    },
+    "FOOD000267": {
+      "name": "甘草",
+      "category": "香料與香辛料",
+      "recipe_uses": 1
+    },
+    "FOOD000282": {
+      "name": "白米醋",
+      "category": "醋",
+      "recipe_uses": 1
+    },
+    "FOOD000289": {
+      "name": "白胡椒粉",
+      "category": "香料與香辛料",
+      "recipe_uses": 40
+    },
+    "FOOD000301": {
+      "name": "白醋",
+      "category": "醋",
+      "recipe_uses": 14
+    },
+    "FOOD000320": {
+      "name": "冰糖",
+      "category": "糖",
+      "recipe_uses": 17
+    },
+    "FOOD000326": {
+      "name": "地瓜粉",
+      "category": "勾芡用澱粉",
+      "recipe_uses": 6
+    },
+    "FOOD000335": {
+      "name": "有機素蠔油",
+      "category": "醬料",
+      "recipe_uses": 1
+    },
+    "FOOD000338": {
+      "name": "百里香",
+      "category": "香料與香辛料",
+      "recipe_uses": 1
+    },
+    "FOOD000347": {
+      "name": "米油",
+      "category": "食用油",
+      "recipe_uses": 1
+    },
+    "FOOD000352": {
+      "name": "米酒",
+      "category": "料理酒",
+      "recipe_uses": 75
+    },
+    "FOOD000358": {
+      "name": "老抽",
+      "category": "醬油類",
+      "recipe_uses": 1
+    },
+    "FOOD000360": {
+      "name": "肉桂",
+      "category": "香料與香辛料",
+      "recipe_uses": 1
+    },
+    "FOOD000396": {
+      "name": "沙拉油",
+      "category": "食用油",
+      "recipe_uses": 1
+    },
+    "FOOD000398": {
+      "name": "沙拉醬",
+      "category": "醬料",
+      "recipe_uses": 2
+    },
+    "FOOD000400": {
+      "name": "沙茶",
+      "category": "醬料",
+      "recipe_uses": 2
+    },
+    "FOOD000402": {
+      "name": "沙茶醬",
+      "category": "醬料",
+      "recipe_uses": 6
+    },
+    "FOOD000403": {
+      "name": "沙茶醬的油",
+      "category": "醬料",
+      "recipe_uses": 1
+    },
+    "FOOD000427": {
+      "name": "豆豉",
+      "category": "醬料",
+      "recipe_uses": 1
+    },
+    "FOOD000430": {
+      "name": "豆腐乳",
+      "category": "醬料",
+      "recipe_uses": 1
+    },
+    "FOOD000433": {
+      "name": "豆瓣醬",
+      "category": "醬料",
+      "recipe_uses": 4
+    },
+    "FOOD000441": {
+      "name": "其他香料",
+      "category": "香料與香辛料",
+      "recipe_uses": 1
+    },
+    "FOOD000444": {
+      "name": "味噌",
+      "category": "醬料",
+      "recipe_uses": 3
+    },
+    "FOOD000445": {
+      "name": "味醂",
+      "category": "料理酒",
+      "recipe_uses": 15
+    },
+    "FOOD000472": {
+      "name": "油",
+      "category": "食用油",
+      "recipe_uses": 35
+    },
+    "FOOD000493": {
+      "name": "法式香料",
+      "category": "香料與香辛料",
+      "recipe_uses": 1
+    },
+    "FOOD000512": {
+      "name": "芝麻油",
+      "category": "食用油",
+      "recipe_uses": 2
+    },
+    "FOOD000533": {
+      "name": "花生醬",
+      "category": "醬料",
+      "recipe_uses": 2
+    },
+    "FOOD000548": {
+      "name": "花椒",
+      "category": "香料與香辛料",
+      "recipe_uses": 1
+    },
+    "FOOD000549": {
+      "name": "花椒粉",
+      "category": "香料與香辛料",
+      "recipe_uses": 2
+    },
+    "FOOD000550": {
+      "name": "花椒粒",
+      "category": "香料與香辛料",
+      "recipe_uses": 2
+    },
+    "FOOD000628": {
+      "name": "砂糖",
+      "category": "糖",
+      "recipe_uses": 93
+    },
+    "FOOD000635": {
+      "name": "紅冰糖",
+      "category": "糖",
+      "recipe_uses": 1
+    },
+    "FOOD000659": {
+      "name": "紅標料理米酒",
+      "category": "料理酒",
+      "recipe_uses": 1
+    },
+    "FOOD000663": {
+      "name": "紅糖",
+      "category": "糖",
+      "recipe_uses": 1
+    },
+    "FOOD000671": {
+      "name": "美乃滋",
+      "category": "醬料",
+      "recipe_uses": 4
+    },
+    "FOOD000672": {
+      "name": "美極鮮味露",
+      "category": "醬油類",
+      "recipe_uses": 1
+    },
+    "FOOD000675": {
+      "name": "胡椒",
+      "category": "香料與香辛料",
+      "recipe_uses": 9
+    },
+    "FOOD000676": {
+      "name": "胡椒粉",
+      "category": "香料與香辛料",
+      "recipe_uses": 20
+    },
+    "FOOD000677": {
+      "name": "胡椒鹽",
+      "category": "鹽",
+      "recipe_uses": 3
+    },
+    "FOOD000691": {
+      "name": "食鹽",
+      "category": "鹽",
+      "recipe_uses": 139
+    },
+    "FOOD000693": {
+      "name": "香油",
+      "category": "食用油",
+      "recipe_uses": 26
+    },
+    "FOOD000707": {
+      "name": "香葉",
+      "category": "香料與香辛料",
+      "recipe_uses": 1
+    },
+    "FOOD000708": {
+      "name": "香蒜胡椒鹽",
+      "category": "鹽",
+      "recipe_uses": 1
+    },
+    "FOOD000717": {
+      "name": "料酒",
+      "category": "料理酒",
+      "recipe_uses": 1
+    },
+    "FOOD000718": {
+      "name": "料理酒",
+      "category": "料理酒",
+      "recipe_uses": 1
+    },
+    "FOOD000722": {
+      "name": "柴魚粉",
+      "category": "調味粉",
+      "recipe_uses": 1
+    },
+    "FOOD000727": {
+      "name": "桂皮",
+      "category": "香料與香辛料",
+      "recipe_uses": 1
+    },
+    "FOOD000742": {
+      "name": "海鹽",
+      "category": "鹽",
+      "recipe_uses": 1
+    },
+    "FOOD000752": {
+      "name": "烏醋",
+      "category": "醋",
+      "recipe_uses": 9
+    },
+    "FOOD000818": {
+      "name": "素蠔油",
+      "category": "醬料",
+      "recipe_uses": 7
+    },
+    "FOOD000827": {
+      "name": "草果",
+      "category": "香料與香辛料",
+      "recipe_uses": 1
+    },
+    "FOOD000844": {
+      "name": "迷迭香",
+      "category": "香料與香辛料",
+      "recipe_uses": 2
+    },
+    "FOOD000845": {
+      "name": "酒",
+      "category": "料理酒",
+      "recipe_uses": 9
+    },
+    "FOOD000862": {
+      "name": "高粱酒",
+      "category": "料理酒",
+      "recipe_uses": 1
+    },
+    "FOOD000863": {
+      "name": "高粱醋",
+      "category": "醋",
+      "recipe_uses": 1
+    },
+    "FOOD000865": {
+      "name": "高鮮味精",
+      "category": "調味粉",
+      "recipe_uses": 1
+    },
+    "FOOD000880": {
+      "name": "乾辣椒",
+      "category": "香料與香辛料",
+      "recipe_uses": 2
+    },
+    "FOOD000882": {
+      "name": "乾燥迷迭香",
+      "category": "香料與香辛料",
+      "recipe_uses": 2
+    },
+    "FOOD000902": {
+      "name": "淡醬油",
+      "category": "醬油類",
+      "recipe_uses": 1
+    },
+    "FOOD000906": {
+      "name": "清酒",
+      "category": "料理酒",
+      "recipe_uses": 1
+    },
+    "FOOD000911": {
+      "name": "烹大師",
+      "category": "調味粉",
+      "recipe_uses": 2
+    },
+    "FOOD000924": {
+      "name": "甜麵醬",
+      "category": "醬料",
+      "recipe_uses": 1
+    },
+    "FOOD000928": {
+      "name": "粗黑胡椒粉",
+      "category": "香料與香辛料",
+      "recipe_uses": 1
+    },
+    "FOOD000930": {
+      "name": "細糖",
+      "category": "糖",
+      "recipe_uses": 2
+    },
+    "FOOD000931": {
+      "name": "紹興酒",
+      "category": "料理酒",
+      "recipe_uses": 5
+    },
+    "FOOD000975": {
+      "name": "魚露",
+      "category": "醬料",
+      "recipe_uses": 4
+    },
+    "FOOD000978": {
+      "name": "麥芽糖",
+      "category": "糖",
+      "recipe_uses": 1
+    },
+    "FOOD000981": {
+      "name": "麻油",
+      "category": "食用油",
+      "recipe_uses": 15
+    },
+    "FOOD000982": {
+      "name": "凱撒沙拉醬",
+      "category": "醬料",
+      "recipe_uses": 1
+    },
+    "FOOD000998": {
+      "name": "普羅旺斯風味香料",
+      "category": "香料與香辛料",
+      "recipe_uses": 1
+    },
+    "FOOD001017": {
+      "name": "番茄糊",
+      "category": "醬料",
+      "recipe_uses": 1
+    },
+    "FOOD001018": {
+      "name": "番茄醬",
+      "category": "醬料",
+      "recipe_uses": 15
+    },
+    "FOOD001067": {
+      "name": "黃冰糖",
+      "category": "糖",
+      "recipe_uses": 1
+    },
+    "FOOD001071": {
+      "name": "黃豆油",
+      "category": "食用油",
+      "recipe_uses": 1
+    },
+    "FOOD001075": {
+      "name": "黃芥末醬",
+      "category": "醬料",
+      "recipe_uses": 1
+    },
+    "FOOD001099": {
+      "name": "黑胡椒粉",
+      "category": "香料與香辛料",
+      "recipe_uses": 28
+    },
+    "FOOD001109": {
+      "name": "黑醋",
+      "category": "醋",
+      "recipe_uses": 2
+    },
+    "FOOD001111": {
+      "name": "黑糖",
+      "category": "糖",
+      "recipe_uses": 2
+    },
+    "FOOD001129": {
+      "name": "椰子油",
+      "category": "食用油",
+      "recipe_uses": 1
+    },
+    "FOOD001148": {
+      "name": "義大利麵醬",
+      "category": "醬料",
+      "recipe_uses": 1
+    },
+    "FOOD001149": {
+      "name": "義式香料",
+      "category": "香料與香辛料",
+      "recipe_uses": 1
+    },
+    "FOOD001164": {
+      "name": "葵花油",
+      "category": "食用油",
+      "recipe_uses": 1
+    },
+    "FOOD001173": {
+      "name": "酪梨油",
+      "category": "食用油",
+      "recipe_uses": 1
+    },
+    "FOOD001214": {
+      "name": "綜合香料",
+      "category": "香料與香辛料",
+      "recipe_uses": 1
+    },
+    "FOOD001248": {
+      "name": "辣豆瓣",
+      "category": "醬料",
+      "recipe_uses": 2
+    },
+    "FOOD001249": {
+      "name": "辣豆瓣醬",
+      "category": "醬料",
+      "recipe_uses": 2
+    },
+    "FOOD001251": {
+      "name": "辣椒粉",
+      "category": "調味粉",
+      "recipe_uses": 1
+    },
+    "FOOD001252": {
+      "name": "辣椒醬",
+      "category": "醬料",
+      "recipe_uses": 1
+    },
+    "FOOD001254": {
+      "name": "酸黃瓜醬",
+      "category": "醬料",
+      "recipe_uses": 1
+    },
+    "FOOD001302": {
+      "name": "蓮藕粉",
+      "category": "勾芡用澱粉",
+      "recipe_uses": 1
+    },
+    "FOOD001309": {
+      "name": "蔭油",
+      "category": "醬油類",
+      "recipe_uses": 2
+    },
+    "FOOD001367": {
+      "name": "豬油",
+      "category": "食用油",
+      "recipe_uses": 3
+    },
+    "FOOD001396": {
+      "name": "醋",
+      "category": "醋",
+      "recipe_uses": 4
+    },
+    "FOOD001407": {
+      "name": "橄欖油",
+      "category": "食用油",
+      "recipe_uses": 16
+    },
+    "FOOD001437": {
+      "name": "糖",
+      "category": "糖",
+      "recipe_uses": 1
+    },
+    "FOOD001439": {
+      "name": "糖粉",
+      "category": "糖",
+      "recipe_uses": 2
+    },
+    "FOOD001445": {
+      "name": "蕃茄膏",
+      "category": "醬料",
+      "recipe_uses": 1
+    },
+    "FOOD001498": {
+      "name": "薑油",
+      "category": "食用油",
+      "recipe_uses": 1
+    },
+    "FOOD001504": {
+      "name": "韓式芝麻油",
+      "category": "食用油",
+      "recipe_uses": 1
+    },
+    "FOOD001505": {
+      "name": "韓式烤肉醬",
+      "category": "醬料",
+      "recipe_uses": 1
+    },
+    "FOOD001506": {
+      "name": "韓式辣椒粉",
+      "category": "調味粉",
+      "recipe_uses": 1
+    },
+    "FOOD001507": {
+      "name": "韓式辣椒醬",
+      "category": "醬料",
+      "recipe_uses": 1
+    },
+    "FOOD001508": {
+      "name": "韓式辣醬",
+      "category": "醬料",
+      "recipe_uses": 1
+    },
+    "FOOD001521": {
+      "name": "鮮味炒手",
+      "category": "調味粉",
+      "recipe_uses": 3
+    },
+    "FOOD001522": {
+      "name": "鮮雞粉",
+      "category": "調味粉",
+      "recipe_uses": 1
+    },
+    "FOOD001541": {
+      "name": "醬油",
+      "category": "醬油類",
+      "recipe_uses": 113
+    },
+    "FOOD001542": {
+      "name": "醬油膏",
+      "category": "醬油類",
+      "recipe_uses": 18
+    },
+    "FOOD001562": {
+      "name": "雞粉",
+      "category": "調味粉",
+      "recipe_uses": 6
+    },
+    "FOOD001623": {
+      "name": "糯米辣椒醬",
+      "category": "醬料",
+      "recipe_uses": 1
+    },
+    "FOOD001636": {
+      "name": "蠔油",
+      "category": "醬料",
+      "recipe_uses": 14
+    },
+    "FOOD001649": {
+      "name": "麵粉",
+      "category": "勾芡用澱粉",
+      "reason": "合格食譜僅「麵粉 一匙」少量使用（勾芡／裹粉），與主料用的中筋／低筋／高筋麵粉不同編號",
+      "recipe_uses": 1
+    },
+    "FOOD001660": {
+      "name": "鰹魚粉",
+      "category": "調味粉",
+      "recipe_uses": 4
+    },
+    "FOOD001680": {
+      "name": "鹽",
+      "category": "鹽",
+      "recipe_uses": 1
+    },
+    "FOOD001681": {
+      "name": "鹽巴",
+      "category": "鹽",
+      "recipe_uses": 1
+    },
+    "FOOD001682": {
+      "name": "鹽麴",
+      "category": "鹽",
+      "recipe_uses": 1
+    }
+  }
+}

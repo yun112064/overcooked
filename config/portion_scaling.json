@@ -1,0 +1,10 @@
+{
+  "version": "portion-scaling-2026-10-21",
+  "decision": "decisions #48",
+  "review_status": "pending_review",
+  "note": "份量模型：每道菜（依計算列的 dish_id 分組，主食除外）可整道等比例縮放，倍率為原食譜每人份（1n）用量的 dish_scale_min～dish_scale_max，以 dish_scale_step 為格點；食譜內配方比例不變。與主食克數（config/staples.json 的可調範圍）一起做熱量與蛋白質 ±10% 對齊；資料庫模式與 AI 模式都適用。格點總數超過 max_grid_points 時自動放粗格點（端點與 1.0 一律保留），限制每組候選的計算量。對齊時優先選最接近目標者，同分時少動用量、再優先保持整道菜原份量（先調主食）。數值為開發者先填的合理值，待營養審核者確認。",
+  "dish_scale_min": "0.4",
+  "dish_scale_max": "1.0",
+  "dish_scale_step": "0.05",
+  "max_grid_points": 50000
+}

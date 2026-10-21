@@ -1,0 +1,178 @@
+{
+  "success": true,
+  "recipe_name": "熟白芝麻（七項營養完整示例）",
+  "ingredients": [
+    {
+      "success": true,
+      "ingredient_id": "C1610101",
+      "standard_name": "白芝麻(熟)",
+      "input_name": "白芝麻(熟)",
+      "state": "cooked",
+      "weight_g": 100,
+      "nutrition": {
+        "energy_kcal": 626.0,
+        "carbohydrate_g": 15.7,
+        "protein_g": 20.3,
+        "fat_g": 58.7,
+        "sugars_g": 0.5,
+        "sodium_mg": 24.0,
+        "dietary_fiber_g": 10.7
+      },
+      "nutrition_complete": true,
+      "missing_fields": [],
+      "source": {
+        "provider": "TFDA",
+        "source_id": "C1610101",
+        "source_food_id": "TFDA_C1610101",
+        "source_file": "食材營養成分表.xlsx",
+        "source_sheet": "食材營養成分",
+        "source_version": "TFDA 食品營養成分資料集",
+        "source_url": "https://data.gov.tw/dataset/8543"
+      },
+      "ingredient": "白芝麻(熟)",
+      "nutrition_basis": "cooked_tfda",
+      "cooking_adjustment_complete": true,
+      "is_estimated": false,
+      "missing_reason": null,
+      "nutrient_sources": {
+        "energy_kcal": {
+          "basis": "cooked_tfda",
+          "source": {
+            "provider": "TFDA",
+            "source_id": "C1610101",
+            "source_food_id": "TFDA_C1610101",
+            "source_file": "食材營養成分表.xlsx",
+            "source_sheet": "食材營養成分",
+            "source_version": "TFDA 食品營養成分資料集",
+            "source_url": "https://data.gov.tw/dataset/8543"
+          },
+          "is_estimated": false
+        },
+        "carbohydrate_g": {
+          "basis": "cooked_tfda",
+          "source": {
+            "provider": "TFDA",
+            "source_id": "C1610101",
+            "source_food_id": "TFDA_C1610101",
+            "source_file": "食材營養成分表.xlsx",
+            "source_sheet": "食材營養成分",
+            "source_version": "TFDA 食品營養成分資料集",
+            "source_url": "https://data.gov.tw/dataset/8543"
+          },
+          "is_estimated": false
+        },
+        "protein_g": {
+          "basis": "cooked_tfda",
+          "source": {
+            "provider": "TFDA",
+            "source_id": "C1610101",
+            "source_food_id": "TFDA_C1610101",
+            "source_file": "食材營養成分表.xlsx",
+            "source_sheet": "食材營養成分",
+            "source_version": "TFDA 食品營養成分資料集",
+            "source_url": "https://data.gov.tw/dataset/8543"
+          },
+          "is_estimated": false
+        },
+        "fat_g": {
+          "basis": "cooked_tfda",
+          "source": {
+            "provider": "TFDA",
+            "source_id": "C1610101",
+            "source_food_id": "TFDA_C1610101",
+            "source_file": "食材營養成分表.xlsx",
+            "source_sheet": "食材營養成分",
+            "source_version": "TFDA 食品營養成分資料集",
+            "source_url": "https://data.gov.tw/dataset/8543"
+          },
+          "is_estimated": false
+        },
+        "sugars_g": {
+          "basis": "cooked_tfda",
+          "source": {
+            "provider": "TFDA",
+            "source_id": "C1610101",
+            "source_food_id": "TFDA_C1610101",
+            "source_file": "食材營養成分表.xlsx",
+            "source_sheet": "食材營養成分",
+            "source_version": "TFDA 食品營養成分資料集",
+            "source_url": "https://data.gov.tw/dataset/8543"
+          },
+          "is_estimated": false
+        },
+        "sodium_mg": {
+          "basis": "cooked_tfda",
+          "source": {
+            "provider": "TFDA",
+            "source_id": "C1610101",
+            "source_food_id": "TFDA_C1610101",
+            "source_file": "食材營養成分表.xlsx",
+            "source_sheet": "食材營養成分",
+            "source_version": "TFDA 食品營養成分資料集",
+            "source_url": "https://data.gov.tw/dataset/8543"
+          },
+          "is_estimated": false
+        },
+        "dietary_fiber_g": {
+          "basis": "cooked_tfda",
+          "source": {
+            "provider": "TFDA",
+            "source_id": "C1610101",
+            "source_food_id": "TFDA_C1610101",
+            "source_file": "食材營養成分表.xlsx",
+            "source_sheet": "食材營養成分",
+            "source_version": "TFDA 食品營養成分資料集",
+            "source_url": "https://data.gov.tw/dataset/8543"
+          },
+          "is_estimated": false
+        }
+      },
+      "cooked_weight_g": 100,
+      "retained_fraction": 1
+    }
+  ],
+  "total_nutrition": {
+    "energy_kcal": 626.0,
+    "carbohydrate_g": 15.7,
+    "protein_g": 20.3,
+    "fat_g": 58.7,
+    "sugars_g": 0.5,
+    "sodium_mg": 24.0,
+    "dietary_fiber_g": 10.7
+  },
+  "partial_nutrition_totals": {
+    "energy_kcal": 626.0,
+    "carbohydrate_g": 15.7,
+    "protein_g": 20.3,
+    "fat_g": 58.7,
+    "sugars_g": 0.5,
+    "sodium_mg": 24.0,
+    "dietary_fiber_g": 10.7
+  },
+  "nutrition_complete": true,
+  "cooking_adjustment_complete": true,
+  "missing_nutrients": {},
+  "failed_ingredients": [],
+  "cooking_incomplete": [],
+  "is_estimated": false,
+  "servings": 2,
+  "cooked_weight_g": 100,
+  "per_serving_nutrition": {
+    "energy_kcal": 313.0,
+    "carbohydrate_g": 7.85,
+    "protein_g": 10.15,
+    "fat_g": 29.35,
+    "sugars_g": 0.25,
+    "sodium_mg": 12.0,
+    "dietary_fiber_g": 5.35
+  },
+  "nutrition_per_100g": {
+    "energy_kcal": 626.0,
+    "carbohydrate_g": 15.7,
+    "protein_g": 20.3,
+    "fat_g": 58.7,
+    "sugars_g": 0.5,
+    "sodium_mg": 24.0,
+    "dietary_fiber_g": 10.7
+  }
+}

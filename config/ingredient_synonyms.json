@@ -1,0 +1,319 @@
+{
+  "note": "同義食材對照（不修改 Excel／資料庫）。依據為 recipe_dataset_1017.xlsx 的 ingredient_aliases：某食材的別名剛好是另一筆標準名稱。過敏／禁吃一律套用（含 pending_confirmation，寧可多排除）；家中已有與查價只套用 status=confirmed 的組。隊友確認後把 status 改為 confirmed，或改為 rejected 表示不是同一種食材。",
+  "source_workbook_sha256": "6bcaca41549572e39bd0fc40d0d216663df6438ae8be50079f92d81aa32c7304",
+  "drafted_on": "2026-10-19",
+  "groups": [
+    {
+      "id": "SYN001",
+      "status": "confirmed",
+      "foods": [
+        {
+          "food_id": "FOOD000691",
+          "name": "食鹽",
+          "recipe_uses": 146
+        },
+        {
+          "food_id": "FOOD001680",
+          "name": "鹽",
+          "recipe_uses": 1
+        },
+        {
+          "food_id": "FOOD001681",
+          "name": "鹽巴",
+          "recipe_uses": 1
+        }
+      ],
+      "evidence": [
+        "AL00038：食鹽 的別名「鹽巴」＝標準名稱 FOOD001681",
+        "AL00039：食鹽 的別名「鹽」＝標準名稱 FOOD001680"
+      ]
+    },
+    {
+      "id": "SYN002",
+      "status": "confirmed",
+      "foods": [
+        {
+          "food_id": "FOOD000039",
+          "name": "大蒜",
+          "recipe_uses": 125
+        },
+        {
+          "food_id": "FOOD001237",
+          "name": "蒜頭",
+          "recipe_uses": 1
+        }
+      ],
+      "evidence": [
+        "AL00009：大蒜 的別名「蒜頭」＝標準名稱 FOOD001237"
+      ]
+    },
+    {
+      "id": "SYN003",
+      "status": "confirmed",
+      "foods": [
+        {
+          "food_id": "FOOD001566",
+          "name": "雞蛋",
+          "recipe_uses": 61
+        },
+        {
+          "food_id": "FOOD000315",
+          "name": "全蛋",
+          "recipe_uses": 1
+        }
+      ],
+      "evidence": [
+        "AL00006：雞蛋 的別名「全蛋」＝標準名稱 FOOD000315"
+      ]
+    },
+    {
+      "id": "SYN004",
+      "status": "confirmed",
+      "foods": [
+        {
+          "food_id": "FOOD000693",
+          "name": "香油",
+          "recipe_uses": 28
+        },
+        {
+          "food_id": "FOOD000512",
+          "name": "芝麻油",
+          "recipe_uses": 2
+        }
+      ],
+      "evidence": [
+        "AL00044：芝麻油 的別名「香油」＝標準名稱 FOOD000693"
+      ]
+    },
+    {
+      "id": "SYN005",
+      "status": "confirmed",
+      "foods": [
+        {
+          "food_id": "FOOD001016",
+          "name": "番茄",
+          "recipe_uses": 20
+        },
+        {
+          "food_id": "FOOD001444",
+          "name": "蕃茄",
+          "recipe_uses": 2
+        }
+      ],
+      "evidence": [
+        "AL00014：番茄 的別名「蕃茄」＝標準名稱 FOOD001444",
+        "AL00161：蕃茄 的別名「番茄」＝標準名稱 FOOD001016"
+      ]
+    },
+    {
+      "id": "SYN006",
+      "status": "confirmed",
+      "foods": [
+        {
+          "food_id": "FOOD000867",
+          "name": "高麗菜",
+          "recipe_uses": 15
+        },
+        {
+          "food_id": "FOOD001130",
+          "name": "椰菜",
+          "recipe_uses": 1
+        }
+      ],
+      "evidence": [
+        "AL00030：高麗菜 的別名「椰菜」＝標準名稱 FOOD001130"
+      ]
+    },
+    {
+      "id": "SYN007",
+      "status": "confirmed",
+      "foods": [
+        {
+          "food_id": "FOOD000281",
+          "name": "白米飯",
+          "recipe_uses": 10
+        },
+        {
+          "food_id": "FOOD000296",
+          "name": "白飯",
+          "recipe_uses": 3
+        }
+      ],
+      "evidence": [
+        "AL00040：白米飯 的別名「白飯」＝標準名稱 FOOD000296"
+      ]
+    },
+    {
+      "id": "SYN008",
+      "status": "confirmed",
+      "foods": [
+        {
+          "food_id": "FOOD000705",
+          "name": "香菜",
+          "recipe_uses": 7
+        },
+        {
+          "food_id": "FOOD000520",
+          "name": "芫荽",
+          "recipe_uses": 0
+        }
+      ],
+      "evidence": [
+        "AL00023：香菜 的別名「芫荽」＝標準名稱 FOOD000520"
+      ]
+    },
+    {
+      "id": "SYN009",
+      "status": "confirmed",
+      "foods": [
+        {
+          "food_id": "FOOD000588",
+          "name": "青花菜",
+          "recipe_uses": 3
+        },
+        {
+          "food_id": "FOOD001223",
+          "name": "綠花椰菜",
+          "recipe_uses": 1
+        }
+      ],
+      "evidence": [
+        "AL00020：青花菜 的別名「綠花椰菜」＝標準名稱 FOOD001223"
+      ]
+    },
+    {
+      "id": "SYN010",
+      "status": "confirmed",
+      "foods": [
+        {
+          "food_id": "FOOD000168",
+          "name": "水蓮菜",
+          "recipe_uses": 4
+        },
+        {
+          "food_id": "FOOD001477",
+          "name": "龍骨瓣莕菜",
+          "recipe_uses": 0
+        }
+      ],
+      "evidence": [
+        "AL00034：水蓮菜 的別名「龍骨瓣莕菜」＝標準名稱 FOOD001477"
+      ]
+    },
+    {
+      "id": "SYN011",
+      "status": "confirmed",
+      "foods": [
+        {
+          "food_id": "FOOD000210",
+          "name": "牛腱肉",
+          "recipe_uses": 1
+        },
+        {
+          "food_id": "FOOD000209",
+          "name": "牛腱",
+          "recipe_uses": 1
+        }
+      ],
+      "evidence": [
+        "AL00047：牛腱肉 的別名「牛腱」＝標準名稱 FOOD000209"
+      ]
+    },
+    {
+      "id": "SYN012",
+      "status": "confirmed",
+      "foods": [
+        {
+          "food_id": "FOOD001307",
+          "name": "蔥花",
+          "recipe_uses": 1
+        },
+        {
+          "food_id": "FOOD001162",
+          "name": "葱花",
+          "recipe_uses": 1
+        }
+      ],
+      "evidence": [
+        "AL00164：葱花 的別名「蔥花」＝標準名稱 FOOD001307",
+        "AL00166：蔥花 的別名「葱花」＝標準名稱 FOOD001162"
+      ]
+    },
+    {
+      "id": "SYN013",
+      "status": "confirmed",
+      "foods": [
+        {
+          "food_id": "FOOD001071",
+          "name": "黃豆油",
+          "recipe_uses": 1
+        },
+        {
+          "food_id": "FOOD001748",
+          "name": "大豆油",
+          "recipe_uses": 0
+        }
+      ],
+      "evidence": [
+        "AL00037：黃豆油 的別名「大豆油」＝標準名稱 FOOD001748"
+      ]
+    },
+    {
+      "id": "SYN014",
+      "status": "confirmed",
+      "foods": [
+        {
+          "food_id": "FOOD000810",
+          "name": "粉絲",
+          "recipe_uses": 1
+        },
+        {
+          "food_id": "FOOD000218",
+          "name": "冬粉",
+          "recipe_uses": 0
+        }
+      ],
+      "evidence": [
+        "AL00035：粉絲 的別名「冬粉」＝標準名稱 FOOD000218"
+      ]
+    }
+  ],
+  "broader": [
+    {
+      "food_id": "FOOD000183",
+      "name": "牛肉",
+      "status": "confirmed",
+      "includes": [
+        {
+          "food_id": "FOOD000176",
+          "name": "牛小排"
+        },
+        {
+          "food_id": "FOOD000205",
+          "name": "牛排"
+        },
+        {
+          "food_id": "FOOD000190",
+          "name": "牛肉貢丸"
+        },
+        {
+          "food_id": "FOOD000195",
+          "name": "牛肋條"
+        },
+        {
+          "food_id": "FOOD000208",
+          "name": "牛腩"
+        },
+        {
+          "food_id": "FOOD000209",
+          "name": "牛腱"
+        },
+        {
+          "food_id": "FOOD000210",
+          "name": "牛腱肉"
+        }
+      ],
+      "evidence": "多個部位以「牛肉」作為別名"
+    }
+  ]
+}

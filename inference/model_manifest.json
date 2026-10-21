@@ -1,0 +1,39 @@
+{
+  "model_id": "yolo26s-food41-denoise-seed45-50e",
+  "architecture": "YOLO26s",
+  "weights_path": "inference/models/yolo26s-food41-denoise-seed45-50e.pt",
+  "weights_source": "yolo_training/runs/yolo26s_opencv_full_20261017/denoise_seed45_50e/weights/best.pt",
+  "weights_sha256": "6f72205222e3b20ba0edd477f8f6ad44b1ca0082d5309383e2759cde0cad205f",
+  "initial_weights_sha256": "646f8bc3fe0a656803d95c294f7852321748cb29d13466a1af8862e2db384a1b",
+  "imgsz": 640,
+  "preprocess": "denoise",
+  "preprocess_detail": "cv2.medianBlur(image, 3)，與訓練資料 food41_opencv_yolo11s_full_20261016/denoise 相同",
+  "classes": [
+    "Beef-tomato", "Bell-peppers", "Broccoli", "Cabbage", "Celery", "Chili-pepper", "Chinese-kale",
+    "Cucumber", "Fushan-lettuce", "Loofah-strips", "Napa-cabbage", "Onion", "Pumpkin", "Soybean-sprouts",
+    "Sweet-potato", "Zucchini", "basil", "bitter-gourd", "bok-choy", "carrot", "chives", "coriander",
+    "corn", "egg", "eggplant", "garlic", "ginger", "green-bean", "green-onion", "lettuce", "okra",
+    "potato", "rape", "spinach", "sweet-potato-leaves", "water-spinach", "white-radish",
+    "white-water-snowflake", "winter-melon"
+  ],
+  "test_metrics": {
+    "source": "yolo_training/runs/yolo26s_opencv_full_20261017/comparison/scores.json",
+    "test_images": 591,
+    "test_instances": 1353,
+    "precision": 0.7779,
+    "recall": 0.7699,
+    "map50": 0.8298,
+    "map50_95": 0.6339,
+    "inference_ms_per_image_rtx4060": 5.45
+  },
+  "selection": {
+    "decided_on": "2026-10-18",
+    "rule": "YOLO26s 各次訓練中，以同一份 591 張獨立 test 集的 mAP50–95 最高者為準",
+    "compared": {
+      "denoise": 0.6339, "white_balance": 0.6287, "brightness_contrast": 0.6229, "raw": 0.6212,
+      "sharpen": 0.6196, "saturation": 0.6080, "clahe": 0.6067, "gamma": 0.6043
+    },
+    "not_yet_comparable": "yolo26s_combinations_20261018（brightness_denoise 等組合）選定時仍在訓練、尚無 test 評估；完成評估後若較高應發行新版本"
+  },
+  "acceptance": "AC22 尚未通過：test precision 77.79%、recall 76.99%，未達各 80% 門檻；此數字是整體值，AC22 另需主要類別 macro 指標與 IoU≥0.5 一對一配對報告"
+}

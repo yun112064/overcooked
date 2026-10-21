@@ -1,0 +1,12 @@
+# T17 雲端每日備份（systemd）。安裝：
+#   sudo cp deploy/cloud/meal-planner-backup.service deploy/cloud/meal-planner-backup.timer /etc/systemd/system/
+#   sudo systemctl daemon-reload && sudo systemctl enable --now meal-planner-backup.timer
+[Unit]
+Description=Meal planner daily backup (cloud DB + Data Root + rule snapshots)
+Wants=docker.service
+After=docker.service
+
+[Service]
+Type=oneshot
+WorkingDirectory=/opt/meal-planner/code
+ExecStart=/usr/bin/python3 -m ops.backup cloud --env-file /opt/meal-planner/code/.env.prod

@@ -1,0 +1,62 @@
+# T17 雲端正式環境覆寫檔（Cloudflare Tunnel；2026-10-20 使用者以 Cloudflare Tunnel 取代 Caddy 的對外 HTTPS）
+#
+#   docker compose --env-file .env.prod -f compose.yaml -f compose.prod.yaml config   # 檢查合併結果
+#   python -m ops.deploy --env-file .env.prod                                         # 正式部署（含部署前備份）
+#
+# - 主機不開任何連入埠：所有容器的 ports 清空；cloudflared 主動連出到 Cloudflare，HTTPS 憑證由 Cloudflare 處理。
+# - Cloudflare 後台 tunnel 的 Public Hostname：${PUBLIC_HOSTNAME} → http://frontend:80
+#   （frontend 容器只在內部網路提供靜態檔並把 /api/* 轉給 backend:8000，不處理任何憑證；/api/internal/* 一律 404）。
+# - 團隊電腦用的內部 hostname：cloud-internal.<網域> → http://backend:8000，前面有只允許團隊電腦服務權杖的
+#   Cloudflare Access 應用程式；後端再核對 INTERNAL_API_TOKEN（pre-review #6）。
+# - db 與 backend 只在 Compose 內部網路可達。
+# - 秘密只放主機上的 .env.prod（不進 Git），變數名稱見 .env.prod.example。
+
+services:
+  db:
+    ports: !reset []
+    restart: unless-stopped
+
+  backend:
+    ports: !reset []
+    environment:
+      ALLOWED_ORIGINS: https://${PUBLIC_HOSTNAME:?Set PUBLIC_HOSTNAME in .env.prod}
+      COOKIE_SECURE: "true"
+      # 正式環境不在啟動時升級 schema；只由 ops.deploy 在部署前備份後升級，啟動時 schema 閘門確認在 head
+      AUTO_MIGRATE: "false"
+      TEAM_ACCESS_CLIENT_ID: ${TEAM_ACCESS_CLIENT_ID:-}
+      TEAM_ACCESS_CLIENT_SECRET: ${TEAM_ACCESS_CLIENT_SECRET:-}
+      # 團隊電腦呼叫雲端內部 API 的 Bearer token（另有 Access 應用程式保護內部 hostname）
+      INTERNAL_API_TOKEN: ${INTERNAL_API_TOKEN:-}
+    volumes:
+      - ${PROJECT_DATA_ROOT:?Set PROJECT_DATA_ROOT}:/app/data
+      - ${PROJECT_RUNTIME_ROOT:?Set PROJECT_RUNTIME_ROOT}:/app/runtime
+      - ${PROJECT_BACKUP_ROOT:?Set PROJECT_BACKUP_ROOT}:/app/backups
+    restart: unless-stopped
+
+  worker:
+    environment:
+      TEAM_ACCESS_CLIENT_ID: ${TEAM_ACCESS_CLIENT_ID:-}
+      TEAM_ACCESS_CLIENT_SECRET: ${TEAM_ACCESS_CLIENT_SECRET:-}
+    volumes:
+      - ${PROJECT_DATA_ROOT:?Set PROJECT_DATA_ROOT}:/app/data
+    restart: unless-stopped
+
+  scheduler:
+    volumes:
+      - ${PROJECT_DATA_ROOT:?Set PROJECT_DATA_ROOT}:/app/data
+
+  frontend:
+    ports: !reset []
+    restart: unless-stopped
+
+  cloudflared:
+    image: cloudflare/cloudflared:2026.9.0
+    container_name: meal-planner-cloudflared
+    command: ["tunnel", "--no-autoupdate", "run"]
+    environment:
+      # 遠端管理的 named tunnel 權杖（Cloudflare Zero Trust → Networks → Tunnels）；只放 .env.prod
+      TUNNEL_TOKEN: ${CLOUDFLARE_TUNNEL_TOKEN:?Set CLOUDFLARE_TUNNEL_TOKEN in .env.prod}
+    depends_on:
+      frontend:
+        condition: service_started
+    restart: unless-stopped

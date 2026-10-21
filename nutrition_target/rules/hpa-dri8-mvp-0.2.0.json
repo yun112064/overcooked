@@ -1,0 +1,87 @@
+{
+  "rule_version": "hpa-dri8-mvp-0.2.0",
+  "rule_status": "user_confirmed_mvp",
+  "source_verification": "text_verified_pdf_visual_check_pending",
+  "product_scope": "adult_standard_for_all_ages_mvp",
+  "energy": {
+    "equation_id": "hpa-dri8-wei1",
+    "intercept": "28.2437",
+    "male_coefficient": "2.4275",
+    "age_coefficient": "-0.02277",
+    "weight_coefficient": "-0.1234",
+    "pal": {
+      "sedentary": "1.3",
+      "low_active": "1.5",
+      "active": "1.7",
+      "highly_active": "1.9"
+    }
+  },
+  "protein": {
+    "rule_id": "mvp-adult-uniform-1.1",
+    "g_per_kg": "1.1",
+    "age_adjustments_enabled": false
+  },
+  "goal_adjustments": {
+    "general": {
+      "energy_multiplier": "1",
+      "energy_offset_kcal": "0"
+    },
+    "maintain": {
+      "energy_multiplier": "1",
+      "energy_offset_kcal": "0"
+    },
+    "muscle_gain": {
+      "energy_multiplier": "1.05",
+      "energy_offset_kcal": "0"
+    },
+    "fat_loss": {
+      "energy_multiplier": "1",
+      "energy_offset_kcal": "-500",
+      "minimum_daily_energy_kcal": "1200"
+    }
+  },
+  "allowed_portions": [
+    "0.7",
+    "0.85",
+    "1",
+    "1.15",
+    "1.3"
+  ],
+  "meal_ratios": {
+    "breakfast": "0.3",
+    "lunch": "0.3",
+    "dinner": "0.4"
+  },
+  "source": {
+    "publisher": "衛生福利部國民健康署",
+    "title": "國人膳食營養素參考攝取量及其說明",
+    "edition": "8",
+    "publication_date": "2023-12",
+    "energy_printed_pages": [
+      37,
+      38,
+      40,
+      41
+    ],
+    "original_energy_scope": "adults_age_19_and_above",
+    "url": "https://www.hpa.gov.tw/Pages/Detail.aspx?id=549&nodeid=4248&pid=12285",
+    "checked_on": "2026-10-05",
+    "protein_printed_pages": [
+      116,
+      117
+    ]
+  },
+  "decision_date": "2026-10-05",
+  "adjustment_sources": [
+    {
+      "id": "hpa-weight-management",
+      "url": "https://health.hpa.gov.tw/hpa/info/print.aspx?enc=ms8UXTGwISDdpLhTR1JPDA%3D%3D",
+      "use": "500 kcal deficit and 1200 kcal floor; product applicability per user MVP decision"
+    },
+    {
+      "id": "helms-2023",
+      "url": "https://link.springer.com/article/10.1186/s40798-023-00651-y",
+      "use": "5 percent surplus candidate approved by user; trial population had resistance training"
+    }
+  ]
+}

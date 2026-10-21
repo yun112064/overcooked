@@ -1,0 +1,49 @@
+{
+ "after_import": "python -m knowledge_rag.admin index build --version <索引版本>",
+ "alembic_version": "d4e8a2c7f913",
+ "exported_at": "2026-10-21T16:15:22+00:00",
+ "files": {
+  "conversion_factor_estimates.json": {
+   "bytes": 3902469,
+   "count": 1969,
+   "database": "app",
+   "sha256": "fdfcaec12df397b374f3ade5cb3b868ee6f18e2342185e47e1d96800d21a3a5f",
+   "source": "烹調產率／保留率、單位克數、TFDA 樣本對照（含人工對照）、TFDA 空白營養推估（LLM 推估與人工值皆保留 status／source／reviewer 等審核欄位）"
+  },
+  "knowledge_records.json": {
+   "bytes": 578734,
+   "count": 199,
+   "database": "knowledge",
+   "sha256": "bf293dcbdc88bf824acb5bb5c021bdaef5107416777ecdf0a01cef20204016f1",
+   "source": "健康醫療網營養知識：現行版本、已核准、分類為營養知識；不含向量，匯入後需重建索引"
+  },
+  "knowledge_source_articles.json": {
+   "bytes": 47807,
+   "count": 70,
+   "database": "knowledge",
+   "sha256": "4542e4fd13cfc72bd37edec1568ee6d82a2f9877122cc698a3a5c0ed306f4d50",
+   "source": "上述知識對應的健康醫療網文章中繼資料（不含原文全文）"
+  },
+  "price_collection_runs.json": {
+   "bytes": 10323,
+   "count": 6,
+   "database": "app",
+   "sha256": "35e3132e9f91114b02b84c33681fcb1c2636e30d77ed37f7cd9fc9645c58d198",
+   "source": "全聯（pxmart）與萬家福（uniprosperity）價格蒐集批次"
+  },
+  "price_quote_snapshots.json": {
+   "bytes": 10424108,
+   "count": 1851,
+   "database": "app",
+   "sha256": "97568e6d6c1040b8cdefa0592311f65166384bcb4f69f1e8e84c52ae988ca731",
+   "source": "價格快照；以 run_key＋canonical_name 對應批次"
+  }
+ },
+ "format_version": 1,
+ "import_command": "python -m app.jobs.import_seed_data",
+ "license_notes": [
+  "健康醫療網（healthnews.com.tw）內容：經電話口頭授權使用，顯示時必須帶出處（決策 #25）。",
+  "萬家福價格：網站條款風險由使用者承擔（決策 #26）。",
+  "不含任何家庭、成員、需求、生成結果、採用紀錄、工作佇列、額度或帳號資料。"
+ ]
+}

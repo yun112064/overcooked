@@ -1,0 +1,135 @@
+
+services:
+  db:
+    image: pgvector/pgvector:0.8.6-pg17
+    container_name: meal-planner-db
+
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+      POSTGRES_DB: meal_planner
+
+    ports:
+      - "127.0.0.1:5432:5432"
+
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d meal_planner"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+
+    image: meal-planner-backend
+    container_name: meal-planner-backend
+
+    environment:
+      DATABASE_URL: postgresql+psycopg://postgres:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}@db:5432/meal_planner
+      PROJECT_DATA_ROOT: /app/data
+      PYTHONUNBUFFERED: "1"
+      PROJECT_RUNTIME_ROOT: /app/runtime
+      PROJECT_BACKUP_ROOT: /app/backups
+      # 狀態修改請求只接受這些前端來源；正式網域部署時改為 https://<網域>
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-http://localhost:8080}
+      COOKIE_SECURE: ${COOKIE_SECURE:-true}
+      # T09 團隊電腦 YOLO 推論服務；未設定時辨識顯示不可用，可手動輸入
+      RECOGNITION_SERVICE_URL: ${RECOGNITION_SERVICE_URL:-}
+      RECOGNITION_SERVICE_TOKEN: ${RECOGNITION_SERVICE_TOKEN:-}
+      # T11 團隊電腦營養知識 RAG 與 OpenAI 向量化；未設定時知識顯示不可用
+      KNOWLEDGE_SERVICE_URL: ${KNOWLEDGE_SERVICE_URL:-}
+      KNOWLEDGE_SERVICE_TOKEN: ${KNOWLEDGE_SERVICE_TOKEN:-}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+
+    ports:
+      - "127.0.0.1:8000:8000"
+
+    volumes:
+      # 主機端路徑由 .env 的 PROJECT_*_ROOT 設定；未設定時沿用開發機預設位置
+      - ${PROJECT_DATA_ROOT:-../AIPE04期末專題_data}:/app/data
+      - ${PROJECT_RUNTIME_ROOT:-../AIPE04期末專題_runtime}:/app/runtime
+      - ${PROJECT_BACKUP_ROOT:-../AIPE04期末專題_backups}:/app/backups
+
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=3)"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 15s
+
+    depends_on:
+      db:
+        condition: service_healthy
+
+  # T10：生成／推論工作程序，可視負載啟動多個副本
+  worker:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    image: meal-planner-backend
+    command: ["python", "-m", "app.jobs.worker"]
+    environment:
+      DATABASE_URL: postgresql+psycopg://postgres:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}@db:5432/meal_planner
+      PROJECT_DATA_ROOT: /app/data
+      PYTHONUNBUFFERED: "1"
+      # T11 知識 RAG 與向量化在 worker 中執行
+      KNOWLEDGE_SERVICE_URL: ${KNOWLEDGE_SERVICE_URL:-}
+      KNOWLEDGE_SERVICE_TOKEN: ${KNOWLEDGE_SERVICE_TOKEN:-}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+    volumes:
+      - ${PROJECT_DATA_ROOT:-../AIPE04期末專題_data}:/app/data
+    depends_on:
+      backend:
+        condition: service_healthy
+
+  # T10：單一排程程序（以 PostgreSQL advisory lock 保證只會有一個在執行）
+  scheduler:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    image: meal-planner-backend
+    command: ["python", "-m", "app.jobs.scheduler"]
+    environment:
+      DATABASE_URL: postgresql+psycopg://postgres:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}@db:5432/meal_planner
+      PROJECT_DATA_ROOT: /app/data
+      PYTHONUNBUFFERED: "1"
+      LOG_CLEANUP_APPLY: "true"
+      # T02 每日查價（由同一個排程程序執行）
+      PRICE_SCHEDULER_ENABLED: ${PRICE_SCHEDULER_ENABLED:-true}
+      PRICE_SCHEDULER_HOUR: ${PRICE_SCHEDULER_HOUR:-3}
+      PRICE_SCHEDULER_MINUTE: ${PRICE_SCHEDULER_MINUTE:-0}
+      PRICE_SCHEDULER_TIMEZONE: ${PRICE_SCHEDULER_TIMEZONE:-Asia/Taipei}
+      PRICE_WORKBOOK_PATH: ${PRICE_WORKBOOK_PATH_CONTAINER:-/app/data/recipe_dataset_1017.xlsx}
+      PRICE_COLLECTION_DELAY_SECONDS: ${PRICE_COLLECTION_DELAY_SECONDS:-1.5}
+      PRICE_COLLECTION_TIMEOUT_SECONDS: ${PRICE_COLLECTION_TIMEOUT_SECONDS:-15}
+      PRICE_COLLECTION_RETRIES: ${PRICE_COLLECTION_RETRIES:-1}
+      PRICE_COLLECTION_BATCH_SIZE: ${PRICE_COLLECTION_BATCH_SIZE:-0}
+    volumes:
+      - ${PROJECT_DATA_ROOT:-../AIPE04期末專題_data}:/app/data
+    restart: unless-stopped
+    depends_on:
+      backend:
+        condition: service_healthy
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+
+    container_name: meal-planner-frontend
+
+    ports:
+      - "127.0.0.1:8080:80"
+
+    depends_on:
+      backend:
+        condition: service_healthy
+
+volumes:
+  postgres_data:
+  backend_data:

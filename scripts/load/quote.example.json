@@ -1,0 +1,13 @@
+{
+  "note": "T18 真實報價範本。複製後填入實際報價；null 代表尚未取得，計算結果會是 incomplete。金額請寫成字串以保留精確小數。billing：monthly（amount 為月費）、yearly（amount 為年費）、usage（unit_price × monthly_quantity）、tokens（依 config/model_pricing.json 與每月預估 token 數）。tax_rate 必填，免稅請填 \"0\"。",
+  "quote_date": null,
+  "fx": {"USD_TWD": null, "source": null, "checked_on": null},
+  "items": [
+    {"category": "host", "name": "雲端主機（網站、API、worker、scheduler）", "currency": "USD", "billing": "monthly", "amount": null, "tax_rate": null, "source": null, "checked_on": null},
+    {"category": "data", "name": "PostgreSQL／磁碟儲存", "currency": "USD", "billing": "monthly", "amount": null, "tax_rate": null, "source": null, "checked_on": null},
+    {"category": "data", "name": "對外流量／網域／憑證", "currency": "USD", "billing": "monthly", "amount": null, "tax_rate": null, "source": null, "checked_on": null},
+    {"category": "backup", "name": "雲端與團隊電腦必要資料備份", "currency": "USD", "billing": "monthly", "amount": null, "tax_rate": null, "source": null, "checked_on": null},
+    {"category": "model", "name": "gpt-5.4-mini：菜單生成＋自動 AI 回退＋最終食材知識說明", "currency": "USD", "billing": "tokens", "model": "gpt-5.4-mini-2026-03-17", "monthly_input_tokens": null, "monthly_output_tokens": null, "tax_rate": null, "source": null, "checked_on": null},
+    {"category": "embedding", "name": "text-embedding-3-small：知識查詢向量化（不沿用食譜 embedding 假設）", "currency": "USD", "billing": "tokens", "model": "text-embedding-3-small", "monthly_input_tokens": null, "monthly_output_tokens": "0", "tax_rate": null, "source": null, "checked_on": null}
+  ]
+}

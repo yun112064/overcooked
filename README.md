@@ -1,0 +1,89 @@
+# 今天吃啥：家庭餐食規劃系統
+
+目前整合 T06 系統骨架、T03 營養目標、T04 食譜營養估算，以及 T07 登入與家庭成員、T08 當餐問卷、T10 持久工作與額度控制。各模組的程式、資料與驗收狀態請依各自文件核對。
+
+| 目錄 | 用途 | 文件 |
+|---|---|---|
+| `nutrition_target/` | T03：個人、餐別及家庭合計營養目標，含規則、測試與交接文件 | [T03 README](nutrition_target/README.md) |
+| `nutrition_model/` | T04：TFDA 食材與烹調營養估算 | [T04 README](nutrition_model/README.md) |
+| `backend/`、`frontend/` | T06 骨架與日誌；T07 登入／家庭／成員；T08 問卷草稿；T10 背景工作（`app/jobs/`）與付費額度 | 設定見 `.env.example`、`compose.yaml` |
+| `config/model_pricing.json` | T10 付費呼叫預留與結算用的模型價格表（未列價模型一律拒絕呼叫） | 正式接入前須依官方價格重新核對 |
+| `inference/` | T09 團隊電腦 YOLO26s 推論服務（OpenCV 降噪前處理），權重不進 Git | [推論服務 README](inference/README.md) |
+| `knowledge_rag/`、`backend/app/services/recipe_retrieval.py` 等 | T11 結構化食譜查詢、昨日去重、團隊電腦營養知識 RAG（只驗證合成資料，G07 未通過） | [T11 文件](docs/T11-recipe-retrieval-knowledge.md) |
+| `backend/app/services/meal_calculation.py` | T12：基準營養對齊、n 倍縮放與整餐 ±10% 營養驗證；輸出整餐食材需求量給 T13 | [T12 說明](docs/T12-meal-calculation.md) |
+| `backend/app/services/generation.py`、`llm_client.py` | T14：資料庫菜單優先、查無可行方案自動「AI 生成菜單」、最終食材知識說明；結果存 `generation_results`（依問卷遞增版本） | [T14 說明](docs/T14-generation.md) |
+| `backend/app/services/meal_validation.py`、`meal_results.py`、`api/meal_results.py` | T15：結果讀取（全家配方、缺料雙價格、數值營養、知識說明、昨日比對）、R09 採用資格判定、缺價重試／接受例外與缺營養繼續查看的決定紀錄 | [T15 說明](docs/T15-meal-results.md) |
+| `backend/app/services/meal_plans.py`、`api/meal_plans.py`、`frontend/src/pages/MealHistoryPage.tsx` | T16：單一交易採用指定結果版本（重驗版本、資格、缺價接受與昨日歷史，冪等）、完整快照與依日期回看已採用餐食紀錄 | [T16 說明](docs/T16-adoption-history.md) |
+| `scripts/load/` | T18：五人負載腳本、每月總費用試算、預留防繞過驗證與記錄範本（工具已備；實機驗收尚未執行，G06 未驗證） | [T18 說明](docs/T18-load-and-cost.md) |
+| `docs/qa/` | T19：完整使用情境 QA 清單、測試者計時表與缺陷紀錄範本（**尚未由真人執行**，待 T17 實際環境） | [T19 情境](docs/qa/T19-scenarios.md)、[狀態](docs/qa/T19-status.md) |
+| `migrations/` | 資料庫遷移 | `alembic.ini` |
+| `tests/` | T06 日誌與隱私、T07／T08／T10 API 與資料庫測試；T03 測試已移入模組 | CI 見 `.github/workflows/t06-ci.yml` |
+| `docs/` | 跨模組決議及 T04 驗收／交接記錄 | [決議與整合待辦](docs/T04-T06-merge-pending.md) |
+| `docs/acceptance/` | T20：AC／Gate 驗收矩陣、操作維護展示交接、限制說明（**MVP 尚未完成**，T18／T19 與正式環境證據待補） | [驗收矩陣](docs/acceptance/matrix.md)、[交接](docs/acceptance/handoff.md)、[限制](docs/acceptance/limitations.md) |
+
+T03 已決議以 Spec 為準，使用版本化規則 `hpa-dri8-mvp-0.3.0` 的目標限制。LLM 烹調係數用途及採用所需的必要營養欄位仍待決議。
+
+**程式碼合併與目錄整理不代表 G03／G04／G07 通過，也不代表主系統 API、容器或營養方案採用驗收完成。** 詳細限制與實際測試記錄見上方文件。
+
+T03 快速驗證，在專案根目錄執行：
+
+```sh
+python -m unittest discover -s nutrition_target/tests -t . -v
+python -m nutrition_target --rules nutrition_target/rules/hpa-dri8-mvp-0.3.0.json --input nutrition_target/tests/fixtures/member-A.json --operation daily
+```
+
+## 本機開發一鍵啟動
+
+需要 Docker Desktop、Python 3.12、Node.js。在專案根目錄雙擊 `start-dev.cmd`（或執行 `scripts\start-dev.ps1`），完成後開啟 http://localhost:5173 ；雙擊 `stop-dev.cmd` 全部關閉（資料庫資料保留）。
+
+腳本每次啟動都會自動同步，平常新增功能不必修改它：
+
+- 第一次執行時由 `.env.dev.example` 建立 `.env.dev`，密碼與 token 隨機產生；YOLO 權重等路徑請依自己的電腦修改。
+- 沒有 `.venv` 就自動建立；`requirements.txt` 或 `package-lock.json` 有變動時重新安裝套件。
+- 資料庫容器 `overcooked-dev-db` 不存在就建立（資料存在具名 volume `overcooked-dev-pgdata`），每次都會執行 `alembic upgrade head`；資料庫還沒有食譜時，自動從 `data/recipe_dataset_1017.xlsx` 匯入。
+- 後端（含 `--reload`）、worker、前端、YOLO 全部在同一個視窗執行，輸出以 `[backend]`、`[frontend]` 等前綴區分；在該視窗按 Ctrl+C 即全部關閉。YOLO 第一次會自動建立 `.venv-yolo`；設 `DEV_SKIP_YOLO=1` 可略過，辨識顯示不可用，仍可手動輸入食材。開發環境不啟動 scheduler，所以不會在本機每天抓取全聯價格。
+
+`.env.dev` 裡的其他設定（例如之後的 API key）會原樣傳給後端與 worker。只有新增獨立程序（例如 T11 的知識 RAG 服務）時，才需要在腳本加一個 `Start-Service-Window`。
+
+## 首次啟動匯入資料種子
+
+`data/seed/` 是從開發資料庫匯出、已整理好的資料（不含任何家庭、成員、需求、生成結果、採用紀錄、工作佇列、額度或帳號資料）：
+
+| 檔案 | 內容 |
+|---|---|
+| `conversion_factor_estimates.json` | 烹調產率／保留率、單位克數、TFDA 樣本對照（含人工對照）、TFDA 空白營養推估；保留 status／source／reviewer 等審核欄位 |
+| `knowledge_records.json`、`knowledge_source_articles.json` | 健康醫療網營養知識（現行版本、已核准、分類為營養知識）與對應文章中繼資料；不含向量 |
+| `price_collection_runs.json`、`price_quote_snapshots.json` | 全聯、萬家福價格快照 |
+| `manifest.json` | 匯出時間、筆數、sha256、alembic 版本、來源與授權註記 |
+
+授權：健康醫療網內容為電話口頭授權、顯示時必須帶出處（決策 #25）；萬家福條款風險由使用者承擔（決策 #26）。repo 僅供團隊使用，不對外散布。
+
+clone 後第一次執行 `start-dev.cmd`（建立資料庫、套用 migration、建立知識庫）之後，在 repo 根目錄的 PowerShell：
+
+```powershell
+.\scripts\dev-run.ps1 -m app.jobs.import_seed_data --dry-run   # 先試算會新增幾筆（不寫入）
+.\scripts\dev-run.ps1 -m app.jobs.import_seed_data             # 匯入業務庫與知識庫（免費、冪等，重跑不會重複）
+.\scripts\dev-run.ps1 -m knowledge_rag.admin index build --version seed-<日期>   # 需後端執行中；經雲端額度付費向量化（約 200 筆）
+```
+
+- 冪等：推估以 id、價格批次以 run_key、快照以 run_key＋食材名、知識以 (knowledge_id, 版本) 去重；本機已有的列不覆寫。`--only app|knowledge` 可只匯入其中一個資料庫。
+- 匯入前檢查 sha256 與 alembic 版本：資料庫比種子舊時會要求先 `alembic upgrade head`（`start-dev` 會自動執行）。
+- 維護者更新種子（唯讀讀取開發資料庫）：`.\scripts\dev-run.ps1 scripts\export_seed_data.py`，確認筆數後 commit `data/seed/`。
+- `start-dev` 偵測到推估表為空時會提示上述指令，但不會自動匯入或呼叫付費 API。
+
+## 系統啟動（T06–T10）
+
+`docker compose up -d --build` 會啟動資料庫、後端 API（啟動時自動執行 Alembic 遷移）、生成工作程序 `worker`、單一排程程序 `scheduler` 與前端。先依 `.env.example` 建立 `.env`，至少設定 `POSTGRES_PASSWORD`。
+
+- 工作程序：`python -m app.jobs.worker`，可視負載開多個副本；以短交易與 `SKIP LOCKED` 領取工作。
+- 排程程序：`python -m app.jobs.scheduler`，以 PostgreSQL advisory lock 保證只有一個在執行，負責回收逾時工作與每日日誌清理。
+- 費用追查：`python -m app.jobs.admin budget` 顯示本月額度帳與未結清呼叫；`python -m app.jobs.admin reconcile <id> <實際金額> <說明>` 依帳單核對結果不明的呼叫。
+- 菜單生成（T14）：worker 先組資料庫菜單，查無可行方案自動改由 OpenAI（`gpt-5.4-mini-2026-03-17`，每筆呼叫經額度預留／結算）生成並標示「AI 生成菜單」；未設定 `OPENAI_API_KEY` 時資料庫菜單照常，AI 回退會明確失敗。詳見 [T14 說明](docs/T14-generation.md)。
+
+需要資料庫的 API 測試以 `TEST_DATABASE_URL` 指定一個可清空的 PostgreSQL（含 pgvector），測試會以 Alembic 重建資料表；未設定時這些測試會略過。
+
+```sh
+TEST_DATABASE_URL=postgresql+psycopg://postgres:<密碼>@localhost:5432/meal_planner_test PYTHONPATH=backend python -m unittest discover -s tests -p 'test_*.py' -v
+```
+
+Windows 搭配 Docker Desktop 時主機請寫 `127.0.0.1`，不要寫 `localhost`：`localhost` 會先解析成 IPv6 `::1`，Docker Desktop 在 `::1` 上接受連線卻不完成 PostgreSQL 握手，測試會在連線時無限等待。

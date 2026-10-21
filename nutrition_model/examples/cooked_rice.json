@@ -1,0 +1,7 @@
+{
+  "recipe_name": "兩份白飯（實際熟重）",
+  "servings": 2,
+  "ingredients": [
+    {"name": "白飯", "weight_g": 300, "weight_basis": "cooked"}
+  ]
+}

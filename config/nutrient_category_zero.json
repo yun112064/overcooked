@@ -1,0 +1,36 @@
+{
+  "version": "nutrient-category-zero-2026-10-21",
+  "decision": "decisions #45",
+  "note": "TFDA 食品營養成分資料庫樣本 ID 的類別碼：第一碼字母為食品大類（A 穀物、B 澱粉、C 堅果種子、D 水果、E 蔬菜、F 藻類、G 菇類、H 豆類、I 肉類、J 魚貝類、K 蛋類、L 乳品、M 油脂、N 糖類、O 飲料、P 調味料及香辛料、Q 糕餅點心、R 加工調理食品），其後兩碼為次分類（例：M11 大豆油、N01 蔗糖、P03 食鹽、P07 醬油）。只有 TFDA 該欄位空白、且樣本 ID 以 prefixes 任一開頭時，才把 nutrients 中的營養素視為已知 0（計算 trace 標示 category_zero）；TFDA 有值一律以 TFDA 為準。規則刻意保守，只收明顯必然為 0 者；其餘空白交給 nutrient_fill 推估（可人工覆核）。",
+  "rules": [
+    {
+      "id": "animal_flesh_no_fiber",
+      "category": "I 肉類、J 魚貝類（不含 J06 魚漿等加工副產品）、K 蛋類",
+      "prefixes": ["I", "J02", "J04", "J07", "J08", "J2", "J3", "J4", "J5", "K"],
+      "nutrients": ["dietary_fiber_g"],
+      "reason": "膳食纖維只來自植物細胞壁；生鮮肉類、內臟、魚貝、蝦蟹、頭足類與蛋不含膳食纖維（TFDA 這些類別有值者全為 0）。J06 旗魚魚漿 TFDA 測得 2.6 g（可能添加澱粉或植物膠），因此排除 J06。"
+    },
+    {
+      "id": "refined_pure_fat",
+      "category": "M 油脂中的純油（豬油、雞油、各式植物油、酥油、調合油）與 P0900201 香油",
+      "prefixes": ["M02", "M03", "M11", "M12", "M13", "M15", "M16", "M17", "M18", "M19", "M20", "M21", "M22", "M23",
+                   "M24", "M25", "M26", "M27", "M99", "P0900201"],
+      "nutrients": ["carbohydrate_g", "sugars_g", "dietary_fiber_g", "sodium_mg"],
+      "reason": "精煉動植物油約 100% 為脂肪（TFDA 脂肪 99.6–100.3 g），不含醣類與纖維，製程不加鹽，鈉僅為微量（TFDA 有值者 0–3 mg）。排除含乳糖或加鹽的奶油（M09）、人造奶油（M10）、未精煉牛油（M01，碳水 4.2 g）與亞麻仁油（M14，碳水 6.9 g）。"
+    },
+    {
+      "id": "refined_sugar",
+      "category": "N 糖類中的精製糖：方糖、冰糖（N01001／N01002）與果糖（N03001）",
+      "prefixes": ["N0100101", "N0100201", "N0300101"],
+      "nutrients": ["protein_g", "fat_g", "dietary_fiber_g"],
+      "reason": "精製蔗糖與果糖為純醣類結晶或糖漿，不含蛋白質、脂肪與膳食纖維。紅砂糖、黑砂糖（N01003／N01004）保留糖蜜，TFDA 測得少量蛋白質與脂肪，因此不納入。"
+    },
+    {
+      "id": "salt_mineral_only",
+      "category": "P03 食鹽（岩鹽、低鈉鹽）",
+      "prefixes": ["P03"],
+      "nutrients": ["protein_g", "fat_g", "dietary_fiber_g"],
+      "reason": "食鹽為氯化鈉（低鈉鹽另含氯化鉀）等礦物質，不含蛋白質、脂肪與膳食纖維。低鈉鹽 TFDA 碳水 2.8 g（可能含添加物），因此不把糖與碳水列入規則。"
+    }
+  ]
+}

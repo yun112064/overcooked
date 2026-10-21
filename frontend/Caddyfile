@@ -1,0 +1,31 @@
+{
+    log default {
+        exclude http.log.error
+    }
+
+    log sanitized_errors {
+        output stderr
+        include http.log.error
+        format filter {
+            request delete
+            wrap json
+        }
+    }
+}
+
+:80 {
+    # 團隊電腦專用的內部 API 只走 Access 保護的內部 hostname，不從公開網站轉發
+    handle_path /api/internal/* {
+        respond 404
+    }
+
+    handle_path /api/* {
+        reverse_proxy backend:8000
+    }
+
+    handle {
+        root * /usr/share/caddy
+        try_files {path} /index.html
+        file_server
+    }
+}
