@@ -99,7 +99,9 @@ class KnowledgeStoreTests(unittest.TestCase):
         bad = [dict(self.record("K8", BOKCHOY, "x"), source_url="ftp://example.invalid"),
                dict(self.record("K8", BOKCHOY, "x"), excerpt="  "),
                dict(self.record("K8", BOKCHOY, "x"), ingredient_id="青江菜"),
-               {k: v for k, v in self.record("K8", BOKCHOY, "x").items() if k != "rights"}]
+               {k: v for k, v in self.record("K8", BOKCHOY, "x").items() if k != "rights"},
+               # 決策 #29：營養知識的支持句必須逐字出自原文
+               dict(self.record("K8", BOKCHOY, "青江菜含鈣"), evidence_quote="青江菜可治病")]
         for rec in bad:
             with self.subTest(rec=rec), self.assertRaises(ValueError):
                 self.store.import_record(rec)

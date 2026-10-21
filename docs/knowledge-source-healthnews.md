@@ -52,6 +52,11 @@ python -m knowledge_rag.admin crawl --max-pages 5                # 只抓前 5 �
 python -m knowledge_rag.admin crawl --channel <頻道ID> --channel <頻道ID>
 python -m knowledge_rag.admin crawl --ids 69000-70078            # 文章 ID 範圍（新的先抓）
 python -m knowledge_rag.admin crawl --queued                     # 雲端待補食材優先（經雲端內部 API）
+python -m knowledge_rag.admin classify --dry-run                 # 列出待分類筆數與批數，不花錢
+python -m knowledge_rag.admin classify                           # 營養分類＋萃取（gpt-5.4-mini，經雲端內部 API 與 T10 額度）
+python -m knowledge_rag.admin classify --limit 50                # 本次最多 50 筆
+python -m knowledge_rag.admin classify --reclassify              # 重跑所有現行的待審／已核准紀錄（prompt 或關鍵字改版後）
+python -m knowledge_rag.admin classify --apply-rejections        # 把已核准但分類為非營養的紀錄退回（可加 --dry-run 先看）
 python -m knowledge_rag.admin list --status pending
 python -m knowledge_rag.admin show hn-70049-FOOD000585-1
 python -m knowledge_rag.admin approve hn-70049-FOOD000585-1 <版本> --reviewer 王小明 --note "已核對原文與出處"
@@ -82,10 +87,48 @@ python -m knowledge_rag.admin index build --version idx-2026-10-21   # 每批送
   - 通用詞（食鹽、沙拉油、清水、砂糖、醬油、米酒、太白粉等，見 `healthnews.GENERIC_TERMS`）只有出現在**標題**時才算；
   - 候選超過 5 種時，只留標題提到的食材或全文出現 **2 次以上**者；
   - 依（是否在標題、出現次數、首次出現位置）排序，**每篇最多 8 種**。
+- **營養關鍵字前置過濾（決策 #29）**：段落必須同時含食材名稱與任一營養／健康效益關鍵字
+  （`config/nutrition_keywords.json`：膳食纖維、維生素、礦物質、蛋白質、熱量、鈣、鐵、鉀、抗氧化、血糖、腸胃、免疫…，可增修）才存。
+  只談做法、口感、擺盤的段落（例如春捲內餡「保留清甜與脆度」）不會進知識庫。關鍵字只是粗篩，真正的判斷在下一步分類。
 - 段落再比對，只有相關食材各成一筆知識。
 - `knowledge_id = hn-<文章ID>-<FOOD編號>-<第幾段>`，`source_version` 是段落 SHA-256 的前 16 碼，
   並保存 `content_hash`、`fetched_at`、`published_at`、`title`、`article_id`、`content_provider`、`authorization_ref`。
 - 抓取狀態記在知識庫的 `source_articles`（不存全文）。
+
+### 營養分類與萃取（決策 #29）
+
+流程固定為 **crawl → classify → approve → index build**。
+
+- `classify` 把未分類的現行待審／已核准紀錄，每 10 筆一批送雲端內部 API `/internal/knowledge/classify`；
+  雲端以 `gpt-5.4-mini-2026-03-17` Structured Outputs 回傳每筆的 `is_nutrition_knowledge`（是否陳述**該食材**的營養成分或健康效益）、
+  `nutrition_fact`（一句繁體中文、只根據原文，例如「高麗菜含膳食纖維，有助腸胃消化」）、`evidence_quote`（原文支持句）與 `reason`。
+  每批經 T10 額度預留／結算，呼叫鍵 `knowledge-classify:<run_id>:<批次>`（`run_id` 預設依時間＋亂數產生，重跑不會撞鍵）。
+- 團隊電腦寫入前以程式驗證（`knowledge_rag/classify.py`）：`evidence_quote` 必須是原文 excerpt 的連續子字串；
+  `nutrition_fact` 必須是一句（≤80 字）、含營養關鍵字，且至少一個關鍵字也出現在 `evidence_quote`。
+- 結果寫在 `knowledge_records` 的 `classification`（`nutrition`／`not_nutrition`／`invalid`）、`nutrition_fact`、`evidence_quote`、
+  `classification_reason`、`classified_at`、`classifier_model`、`classifier_prompt_version`（`schema.sql` 以 `ADD COLUMN IF NOT EXISTS` 追加，可重複套用）。
+- **待審**且非營養或驗證失敗 → 直接退回（`reviewer=classifier`，`review_note` 記原因），紀錄保留。
+- **已核准**但分類為非營養 → `classify` 只列在 `approved_non_nutrition`；加 `--apply-rejections` 才退回
+  （`reviewer=classifier`，`review_note` 保留原核准者與註記）。退回後立即不再被檢索；重建索引後索引也不含它。
+- 模型拒答、截斷或格式不符（`CLASSIFICATION_INVALID_OUTPUT`）：該批列在 `failed_batches`，紀錄維持未分類，下次再跑；
+  額度不足、可能已計費、連線失敗則整個指令停止。
+- **只有 `classification='nutrition'` 且已核准的現行版本會進索引與被檢索**；`approve-all --dev-bulk` 也只核准分類為營養知識者。
+  人工 `approve` 不限制，但未分類的核准紀錄不會進索引。
+- 生成的知識說明只把 `nutrition_fact`／`evidence_quote` 給模型（不給整段原文）；說明裡出現的營養素／效益關鍵字必須都能在引用紀錄的
+  `nutrition_fact` 或 `evidence_quote` 找到，否則該食材省略（`NOT_GROUNDED_IN_NUTRITION_FACT`）；檢索到但沒有營養知識的食材也省略
+  （`NO_NUTRITION_FACT`）。畫面呈現「高麗菜：含膳食纖維，有助腸胃消化」＋「來源：健康醫療網《標題》（日期）」與原文連結。
+
+#### 費用估算（gpt-5.4-mini：輸入 US$0.75、輸出 US$4.50／百萬 token；匯率以 `USD_TWD_RATE=33` 計）
+
+| 項目 | 估算 |
+|---|---|
+| 每筆輸入 | 片段 ≤400 字 ≈ 500–600 token；每批另含指示與 schema ≈ 700 token |
+| 每筆輸出 | ≈ 150–200 token（JSON、營養知識、支持句、理由） |
+| 655 筆（66 批） | 輸入 ≈ 0.41M token ≈ US$0.31；輸出 ≈ 0.13M token ≈ US$0.59；合計 **≈ US$0.9（約 NT$30）** |
+| 重建索引 | 只含營養知識（< 655 筆）× ≈ 600 token × US$0.02／百萬 ≈ US$0.01，可忽略 |
+
+T10 預留以位元組數當 token 上限（保守），每批約預留 NT$1–2，結算後依實際用量釋放差額。
+`classify --dry-run` 會列出待處理筆數與批數，執行前可先確認。
 
 ### 重抓與版本
 
@@ -109,7 +152,7 @@ python -m knowledge_rag.admin index build --version idx-2026-10-21   # 每批送
 
 ### 團隊電腦不連雲端資料庫（pre-review #6）
 
-`crawl --queued`、`index build` 與 `status` 的佇列計數都經**雲端內部 API**（`backend/app/api/internal_knowledge.py`），
+`crawl --queued`、`classify`、`index build` 與 `status` 的佇列計數都經**雲端內部 API**（`backend/app/api/internal_knowledge.py`），
 團隊電腦**不需要也不可設定**雲端 `DATABASE_URL`（`ops.preflight team` 視為錯誤），也不持有 `OPENAI_API_KEY`。
 
 | 方法 | 路徑（雲端後端） | 用途 |
@@ -118,6 +161,7 @@ python -m knowledge_rag.admin index build --version idx-2026-10-21   # 每批送
 | POST | `/internal/knowledge/crawl-requests/complete` | `{outcomes: {FOOD編號: {pending, approved}}}` → 標為已處理 |
 | GET | `/internal/knowledge/crawl-requests/summary` | 待處理數 |
 | POST | `/internal/knowledge/embeddings` | `{index_version, batch_no, texts}` → 雲端經 T10 額度預留後呼叫 OpenAI，回傳向量（呼叫鍵 `knowledge-index:<版本>:<批次>`，重建請用新版本） |
+| POST | `/internal/knowledge/classify` | `{run_id, batch_no, records: [{knowledge_id, source_version, ingredient_name, excerpt}]}`（每批 ≤20）→ 雲端經 T10 額度以 gpt-5.4-mini 分類與萃取（呼叫鍵 `knowledge-classify:<run_id>:<批次>`）；格式不符回 502 `CLASSIFICATION_INVALID_OUTPUT` |
 
 驗證與 T17 雲端→團隊電腦相同的兩層，方向相反：
 1. Cloudflare Access：雲端 tunnel 另加內部 hostname（例如 `cloud-internal.<網域>` → `http://backend:8000`），
@@ -135,6 +179,7 @@ tunnel 斷線（`UNREACHABLE`）、Access 拒絕（`AUTH_FAILED`）都是明確�
 |---|---|
 | 每天一次 | `crawl --max-pages 3`（新文章） |
 | 每天一次 | `crawl --queued`（經雲端內部 API） |
+| 抓取後 | `classify`（只處理新進未分類的紀錄） |
 | 審核後 | `index build --version idx-<日期>`（每次用新的版本名稱） |
 | 每週一次（選用） | `crawl --max-pages 20 --refresh`（檢查文章是否被修改） |
 
@@ -162,14 +207,31 @@ start-dev 執行中（後端要在線，index build 經本機內部 API 向量�
 ```powershell
 # 1. 抓取營養飲食分類（每次請求 ≥2 秒；先用 --max-pages 5 試，之後再拿掉抓全部）
 .\scripts\dev-run.ps1 -m knowledge_rag.admin crawl --max-pages 5
-# 2. 僅限開發：整批核准待審的非轉載紀錄（reviewer=dev-bulk；轉載文章 third_party_unconfirmed 一律排除，
+# 2. 營養分類與萃取（決策 #29；經本機後端內部 API 呼叫 gpt-5.4-mini，T10 額度控制）；先 --dry-run 看筆數
+.\scripts\dev-run.ps1 -m knowledge_rag.admin classify --dry-run
+.\scripts\dev-run.ps1 -m knowledge_rag.admin classify
+# 3. 僅限開發：整批核准「分類為營養知識」的待審非轉載紀錄（reviewer=dev-bulk；未分類與轉載文章一律排除，
 #    要用轉載文章仍須逐筆 approve --confirm-third-party-license）。APP_ENV 不是 development（例如 production）時拒絕執行
 .\scripts\dev-run.ps1 -m knowledge_rag.admin approve-all --dev-bulk --reviewer dev-bulk --note "開發環境整批核准，未逐筆人工審核"
-# 3. 建索引並啟用（版本名稱每次要新的）
+# 4. 建索引並啟用（版本名稱每次要新的；只含已核准的營養知識）
 .\scripts\dev-run.ps1 -m knowledge_rag.admin index build --version idx-dev-2026-10-21
-# 4. 確認：active_index 有值、records.approved > 0
+# 5. 確認：active_index 有值、records.approved > 0、classification 計數
 .\scripts\dev-run.ps1 -m knowledge_rag.admin status
 ```
+
+**既有資料重新清整（決策 #29 之前已用舊版整批核准的開發庫）**：
+
+```powershell
+.\scripts\dev-run.ps1 -m knowledge_rag.admin classify --dry-run                       # 待分類筆數
+.\scripts\dev-run.ps1 -m knowledge_rag.admin classify                                 # 分類＋萃取；待審的非營養直接退回
+.\scripts\dev-run.ps1 -m knowledge_rag.admin classify --apply-rejections --dry-run    # 列出會被退回的已核准紀錄
+.\scripts\dev-run.ps1 -m knowledge_rag.admin classify --apply-rejections              # 退回（reviewer=classifier）
+.\scripts\dev-run.ps1 -m knowledge_rag.admin approve-all --dev-bulk --reviewer dev-bulk --note "決策 #29 重新清整後整批核准"
+.\scripts\dev-run.ps1 -m knowledge_rag.admin index build --version idx-dev-<新版本>  # 重建索引（新版本名）
+.\scripts\dev-run.ps1 -m knowledge_rag.admin status
+```
+
+重建索引後，舊結果的知識說明不會自動更新；請重新生成，或對舊結果按「只重試知識說明」。
 
 確認生成有知識：
 
@@ -187,6 +249,10 @@ start-dev 執行中（後端要在線，index build 經本機內部 API 向量�
 
 - 一篇文章最多對應 8 種相關食材（見上），但仍可能有順帶提到的；只是順帶提到的請退回。
 - 比對只看名稱，不理解語意（例如「不建議吃」也會比對到）。審核時要看片段內容。
+- 營養分類由 gpt-5.4-mini 判斷，可能誤判；程式只能驗證支持句出自原文、營養知識含關鍵字，無法保證醫學正確性。
+  開發環境的整批核准未經人工逐筆審核；正式環境仍須人工核對 `nutrition_fact` 與原文。
+- 關鍵字前置過濾可能漏掉用詞不在清單上的營養段落（例如只寫「顧眼睛」）；可增修 `config/nutrition_keywords.json` 後重抓（`--refresh`）。
+- 說明的依據檢查以關鍵字比對：說明用了 nutrition_fact 沒有的同義詞（例如原文「消化」、說明寫「蠕動」）也會被省略，寧可少說不亂說。
 - 同名的不同 FOOD 編號（例如工作簿中兩筆「雞蛋」）會各得一筆。
 - 文章被刪除或段落變少時，舊知識不會自動下架；需要人工退回新版本或在審核時處理。
 - 分類頁列表的標題可能被截斷（`...`），佇列的標題比對只是優先順序，正文比對才決定知識。

@@ -17,6 +17,7 @@ import re
 import unicodedata
 from dataclasses import dataclass, field
 from html.parser import HTMLParser
+from pathlib import Path
 
 SITE = "https://www.healthnews.com.tw"
 SOURCE_NAME = "健康醫療網"
@@ -34,6 +35,21 @@ GENERIC_TERMS = ("清水", "開水", "熱水", "冷水", "溫水", "冰水", "�
 MIN_MENTIONS = 2
 SMALL_ARTICLE_FOODS = 5
 MAX_FOODS_PER_ARTICLE = 8
+# 決策 #29：營養／健康效益關鍵字（可設定）；段落需同時含食材名與任一關鍵字才存
+NUTRITION_KEYWORDS_PATH = Path(__file__).resolve().parents[1] / "config" / "nutrition_keywords.json"
+
+
+def load_nutrition_keywords(path: str | Path | None = None) -> list[str]:
+    data = json.loads(Path(path or NUTRITION_KEYWORDS_PATH).read_text(encoding="utf-8"))
+    keywords = [k.strip() for k in data.get("keywords", []) if isinstance(k, str) and k.strip()]
+    if not keywords:
+        raise ValueError("nutrition keyword list is empty")
+    return keywords
+
+
+def has_nutrition_keyword(text: str, keywords) -> bool:
+    text = _norm(text)
+    return any(_norm(k) in text for k in keywords)
 
 
 def channel_url(channel_id: str, page: int = 1) -> str:

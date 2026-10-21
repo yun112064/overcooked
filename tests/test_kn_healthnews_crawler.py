@@ -56,8 +56,8 @@ class HealthnewsCrawlerTests(unittest.TestCase):
         from knowledge_rag.crawler import HealthnewsCrawler
         from knowledge_rag.healthnews import FoodMatcher
         matcher = FoodMatcher([(i, name, aliases, []) for i, (name, aliases) in FOODS.items()])
-        return HealthnewsCrawler(self.store, self.fetcher, matcher, authorization_ref=AUTH_REF,
-                                 max_passage_chars=60, **kw)
+        kw.setdefault("max_passage_chars", 60)
+        return HealthnewsCrawler(self.store, self.fetcher, matcher, authorization_ref=AUTH_REF, **kw)
 
     def pending(self):
         return {r["knowledge_id"]: r for r in self.store.list_records(status="pending")}
@@ -68,8 +68,8 @@ class HealthnewsCrawlerTests(unittest.TestCase):
         self.assertEqual(report["articles_fetched"], 5)
         pending = self.pending()
         self.assertEqual(set(pending), {
-            f"hn-80003-{BOKCHOY}-1", f"hn-80003-{EGG}-1", f"hn-80003-{CARROT}-1",
-            f"hn-80001-{TOMATO}-1", f"hn-80001-{EGG}-1", f"hn-79990-{CABBAGE}-1"})
+            f"hn-80003-{BOKCHOY}-1", f"hn-80003-{EGG}-1", f"hn-80003-{CARROT}-1", f"hn-79990-{CABBAGE}-1"})
+        # 80001「番茄炒雞蛋是家常菜」沒有營養關鍵字：決策 #29 前置過濾，不存
         rec = self.store.get_record(f"hn-80003-{BOKCHOY}-1")
         self.assertEqual(rec["status"], "pending")
         self.assertEqual(rec["ingredient_id"], BOKCHOY)
@@ -114,7 +114,8 @@ class HealthnewsCrawlerTests(unittest.TestCase):
         self.crawler().crawl_channel(CHANNEL)
         self.store.import_record({"knowledge_id": "K-SYN", "ingredient_id": BOKCHOY, "excerpt": "合成已審核",
                                   "source_url": "https://example.invalid/k", "source_version": "v1",
-                                  "rights": "合成", "conditions": "合成"})
+                                  "rights": "合成", "conditions": "合成",
+                                  "nutrition_fact": "合成已審核", "evidence_quote": "合成已審核"})
         self.store.review("K-SYN", "v1", reviewer="審核者", approved=True, note="ok")
         self.store.build_index("idx-1", "text-embedding-3-small", lambda t: self.embedder.embed(t)[0])
         result = self.store.search([BOKCHOY, EGG, TOMATO], fake_vector("鈣"), "text-embedding-3-small")
@@ -151,6 +152,21 @@ class HealthnewsCrawlerTests(unittest.TestCase):
         report = self.crawler().crawl_ids(80000, 80003)
         self.assertEqual(report["articles_fetched"], 3)
         self.assertEqual(report["articles_missing"], 1)  # 80000 不存在
+        self.assertIn(f"hn-80003-{BOKCHOY}-1", self.pending())
+        self.assertNotIn(f"hn-80001-{TOMATO}-1", self.pending())  # 只談做法，無營養關鍵字
+
+    def test_passages_need_an_ingredient_and_a_nutrition_keyword(self):
+        # 決策 #29：只提到食材的料理介紹（春捲內餡）不存；同篇陳述營養效益的段落才存
+        self.fetcher.pages[f"{SITE}/article/79970"] = synthetic_article("79970", "合成：晶瑩五彩春捲", [
+            "合成：高麗菜出現在晶瑩五彩春捲的蔬菜餡料中，可與紅蘿蔔等一起簡單處理，保留清甜與脆度，讓內餡呈現繽紛色彩。",
+            "合成：高麗菜含膳食纖維，可以幫助腸胃消化。"])
+        self.crawler().crawl_ids(79970, 79970)
+        pending = {k: r for k, r in self.pending().items() if k.startswith("hn-79970-")}
+        self.assertEqual(list(pending), [f"hn-79970-{CABBAGE}-1"])
+        self.assertEqual(pending[f"hn-79970-{CABBAGE}-1"]["excerpt"], "合成：高麗菜含膳食纖維，可以幫助腸胃消化。")
+
+    def test_nutrition_keywords_are_configurable(self):
+        self.crawler(nutrition_keywords=["家常菜"]).crawl_ids(80001, 80001)
         self.assertIn(f"hn-80001-{TOMATO}-1", self.pending())
 
     def test_authorization_reference_is_required(self):

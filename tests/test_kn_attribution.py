@@ -30,6 +30,11 @@ class AttributionThroughServiceTests(unittest.TestCase):
         matcher = FoodMatcher([(i, name, aliases, []) for i, (name, aliases) in FOODS.items()])
         HealthnewsCrawler(store, FakeFetcher(site_pages()), matcher, authorization_ref=AUTH_REF).crawl_ids(80003, 80003)
         kid = f"hn-80003-{BOKCHOY}-1"
+        quote = "合成段落一：青江菜是常見的深綠色蔬菜，含有鈣質。"
+        store.save_classification(kid, store.get_record(kid)["source_version"],
+                                  {"classification": "nutrition", "nutrition_fact": "青江菜含鈣質。",
+                                   "evidence_quote": quote, "reason": "陳述營養成分"},
+                                  model="gpt-5.4-mini-2026-03-17", prompt_version="kn-classify-prompt-v1")
         store.review(kid, store.get_record(kid)["source_version"], reviewer="審核者", approved=True, note="已核對原文",
                      confirm_third_party_license=True)
         embedder = FakeEmbedder()
@@ -43,6 +48,8 @@ class AttributionThroughServiceTests(unittest.TestCase):
                          ("健康醫療網", "合成：青江菜補鈣小知識", f"{SITE}/article/80003"))
         self.assertEqual(rec["published_at"][:10], "2026-09-01")
         self.assertEqual(rec["content_provider"], "合成月刊")
+        # 決策 #29：檢索結果帶出驗證過的營養知識與原文支持句
+        self.assertEqual((rec["nutrition_fact"], rec["evidence_quote"]), ("青江菜含鈣質。", quote))
 
 
 class AttributionInExplanationTests(GenerationTestCase):
