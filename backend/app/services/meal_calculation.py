@@ -736,7 +736,8 @@ def make_tfda_calculator(*, cooking_factors: CookingFactorLookup | None = None,
 
     tfda_resolver（decisions #28，app.services.tfda_mapping.TfdaResolver）：食譜名稱 → TFDA 樣本；
     未提供時只用精確名稱（T04 原行為）。
-    nutrient_fills(TFDA 樣本 ID, 營養素)（decisions #32）：TFDA 樣本必要營養空白時的快取推估（每 100 g）。
+    nutrient_fills(TFDA 樣本 ID, 營養素)（decisions #32／#45）：TFDA 樣本 7 種營養素欄位空白時的快取推估（每 100 g）；
+    符合「類別必然為 0」規則（config/nutrient_category_zero.json）者一律先補已知 0，不查推估（見 _fill_blanks）。
 
     優先順序（decisions #19／#32）：TFDA／USDA 實測 > 人工核可／覆寫 > LLM 推估；rejected 永不使用。
     人工與 LLM 的先後由查表端（app.estimation.store）決定，此處只在 T04 實測算不出必要營養時才套用。
@@ -752,7 +753,8 @@ def _water_nutrition(ln: IngredientLine, grams: Decimal, service) -> IngredientN
              "nutrition_basis": WATER_KNOWN_ZERO, "nutrition_source": WATER_KNOWN_ZERO,
              "weight_basis": ln.weight_basis, "weight_basis_source": ln.weight_basis_source,
              "yield_basis": None, "raw_weight_g": grams, "cooked_weight_g": None, "is_estimated": False,
-             "missing_reason": None, "estimated_factors": [], "estimated_nutrients": [], "tfda_mapping": None}
+             "missing_reason": None, "estimated_factors": [], "estimated_nutrients": [], "tfda_mapping": None,
+             "category_zero": {}}
     return IngredientNutrition({k: Decimal(0) for k in service.NUTRIENTS}, trace, None)
 
 
@@ -815,7 +817,7 @@ def _tfda_calculate(rows, cooking_factors, tfda_resolver=None, nutrient_fills=No
             "cooked_weight_g": _scaled(row.get("cooked_weight_g"), grams),
             "is_estimated": bool(row.get("is_estimated")), "missing_reason": row.get("missing_reason"),
             "estimated_factors": [], "estimated_nutrients": [], "approximate_nutrients": [],
-            "tfda_mapping": res.trace() if res else None,
+            "tfda_mapping": res.trace() if res else None, "category_zero": {},
         }
         method_key = _method_key(ln)  # 熟食熟重（#35）時 basis 為 cooked，不套烹調係數
         # T04 烹調管線不接受 unspecified 狀態的樣本（回報 ingredient_not_found）；有生組成時仍可套快取係數
@@ -828,41 +830,58 @@ def _tfda_calculate(rows, cooking_factors, tfda_resolver=None, nutrient_fills=No
             if factor is not None and factor.usable:
                 _apply_cooking_factor(service, ln, grams, factor, nutrients, trace, tfda_name)
                 applied = bool(trace["estimated_factors"])
-        if nutrient_fills and (row.get("success") or applied):
-            _apply_nutrient_fills(nutrient_fills, grams, nutrients, trace, factor if applied else None)
+        if row.get("success") or applied:
+            _fill_blanks(nutrient_fills, grams, nutrients, trace, factor if applied else None, basis)
         error = (None if applied else row.get("error")) or (
             None if row.get("success") or applied else "nutrition_unavailable")
         out.append(IngredientNutrition(nutrients, trace, error))
     return out
 
 
-def _apply_nutrient_fills(lookup: NutrientFillLookup, grams: Decimal, nutrients: dict, trace: dict,
-                          cooking_factor) -> None:
-    """decisions #32：TFDA 樣本的必要營養欄位空白時，以快取的每 100 g 推估值補上。
+def _fill_weight(grams: Decimal, record: dict, trace: dict, cooking_factor, weight_basis: str) -> Decimal:
+    """每 100 g 推估值要乘的重量：熟樣本配生重時用熟重（trace 的熟重，或生重 × 快取產率），其餘照克數。"""
+    if record.get("state") == "cooked" and weight_basis == "raw":
+        if trace.get("cooked_weight_g") is not None:
+            return Decimal(trace["cooked_weight_g"])
+        if cooking_factor is not None and cooking_factor.yield_factor is not None:
+            return grams * cooking_factor.yield_factor
+    return grams
 
-    只補「樣本本身空白」的必要營養（TFDA 有值一律以 TFDA 為準）；推估值視為該樣本的組成：
-    - 已套快取烹調係數者：生樣本 × 該營養保留率；熟樣本 × 產率（與同列其他營養一致）；
-    - 否則（T04 直接以樣本組成計算）照克數換算。
-    至少要有一項營養已由該樣本算出才補，避免只補出孤立的單一營養。
+
+def _fill_blanks(lookup: NutrientFillLookup | None, grams: Decimal, nutrients: dict, trace: dict,
+                 cooking_factor, weight_basis: str = "raw") -> None:
+    """TFDA 樣本營養欄位空白時補值（TFDA 有值一律以 TFDA 為準；不以 0 代替未知）：
+
+    1. decisions #45：符合「食品類別上必然為 0」規則（config/nutrient_category_zero.json）→ 已知 0，
+       trace.category_zero 記錄規則與樣本；不算推估、不呼叫 LLM；
+    2. decisions #32／#45：其餘 7 種營養素以快取的每 100 g 推估（kind=nutrient_fill）補上，推估值視為該樣本的組成：
+       - 熟樣本 → × 熟重（見 _fill_weight）；
+       - 生樣本已套快取烹調係數者 → × 生重 × 該營養保留率（非必要營養素沒有保留率，視為 1，decisions #40）；
+       - 否則照克數換算。
+    至少要有一項營養已由該樣本算出才補，避免只補出孤立的營養。
     """
-    from app.services import tfda_mapping
+    from app.services import nutrient_category_zero, tfda_mapping
 
     record = tfda_mapping.sample(trace.get("sample_id"))
-    if record is None or all(nutrients.get(k) is None for k in REQUIRED_NUTRIENTS):
+    if record is None or all(v is None for v in nutrients.values()):
         return
     service = _nutrition_model()
-    for key in REQUIRED_NUTRIENTS:
+    zero = trace.setdefault("category_zero", {})
+    for key in service.NUTRIENTS:
         if nutrients.get(key) is not None or service.finite_number(record["nutrition_per_100g"].get(key)):
             continue
-        estimate = lookup(record["ingredient_id"], key)
+        rule = nutrient_category_zero.applies(record, key)
+        if rule is not None:
+            nutrients[key] = Decimal(0)
+            zero[key] = {"rule": rule["id"], "sample_id": record["ingredient_id"]}
+            continue
+        estimate = lookup(record["ingredient_id"], key) if lookup else None
         if estimate is None or not estimate.usable or estimate.nutrient_per_100g is None:
             continue
-        value = estimate.nutrient_per_100g * grams / REFERENCE_GRAMS
-        if cooking_factor is not None:
-            if (trace.get("nutrition_basis") or "").startswith("cooked_tfda_"):
-                value *= cooking_factor.yield_factor or Decimal(1)
-            else:
-                value *= (cooking_factor.retention or {}).get(key, Decimal(1))
+        value = estimate.nutrient_per_100g * _fill_weight(grams, record, trace, cooking_factor,
+                                                          weight_basis) / REFERENCE_GRAMS
+        if cooking_factor is not None and record.get("state") != "cooked":
+            value *= (cooking_factor.retention or {}).get(key, Decimal(1))
         nutrients[key] = value
         trace["estimated_factors"].append(estimate.marker())
         trace["estimated_nutrients"] = [*trace.get("estimated_nutrients", []), key]

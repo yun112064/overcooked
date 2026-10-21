@@ -1,5 +1,5 @@
-"""換算係數快取（decisions #19）、TFDA 對照快取（decisions #28，kind=tfda_mapping）與 TFDA 必要營養缺值推估
-（decisions #32，kind=nutrient_fill，鍵為 TFDA 樣本 ID＋營養素）：寫入、覆核與查表。
+"""換算係數快取（decisions #19）、TFDA 對照快取（decisions #28，kind=tfda_mapping）與 TFDA 營養缺值推估
+（decisions #32／#45，kind=nutrient_fill，7 種營養素，鍵為 TFDA 樣本 ID＋營養素）：寫入、覆核與查表。
 
 取用優先順序（同一 kind + food_id + key）：
 1. TFDA／USDA 實測：不入此表，T12 計算時永遠先用（見 meal_calculation.make_tfda_calculator）；
@@ -21,19 +21,33 @@ from app.meal_calc.types import EstimatedFactor
 KINDS = ("cooking", "unit", "tfda_mapping", "nutrient_fill")
 HUMAN_REVIEWED = ("approved", "overridden")
 REVIEW_ACTIONS = {"approve": "approved", "reject": "rejected"}
-# decisions #32：缺值營養推估（kind=nutrient_fill）只補必要營養；每 100 g 的合理範圍（含邊界）
-FILL_NUTRIENTS = ("energy_kcal", "protein_g")
-FILL_RANGE = {"energy_kcal": (Decimal(0), Decimal(900)), "protein_g": (Decimal(0), Decimal(100))}
+# decisions #32／#45：缺值營養推估（kind=nutrient_fill）涵蓋全部 7 種營養素；每 100 g 的合理範圍（含邊界）
+FILL_NUTRIENTS = ("energy_kcal", "protein_g", "carbohydrate_g", "fat_g", "sugars_g", "dietary_fiber_g", "sodium_mg")
+GRAM_RANGE = (Decimal(0), Decimal(100))
+FILL_RANGE = {"energy_kcal": (Decimal(0), Decimal(900)), "protein_g": GRAM_RANGE, "carbohydrate_g": GRAM_RANGE,
+              "fat_g": GRAM_RANGE, "sugars_g": GRAM_RANGE, "dietary_fiber_g": GRAM_RANGE,
+              "sodium_mg": (Decimal(0), Decimal(40000))}
+FILL_MAX = max(high for _, high in FILL_RANGE.values())
 KCAL_PER_PROTEIN_G = Decimal(4)
+KCAL_PER_FAT_G = Decimal(9)
+# 碳水＋蛋白質＋脂肪＋纖維（每 100 g）可略超過 100 g（TFDA 碳水常含纖維、各項分析誤差）
+MACRO_SUM_MAX = Decimal(105)
+SUGAR_OVER_CARB_TOLERANCE = Decimal(1)
+
+
+def _num(value) -> Decimal | None:
+    return None if value is None else Decimal(str(value))
 
 
 def check_fill(sample_id: str, nutrient: str, value: Decimal) -> str | None:
     """nutrient_fill 值的檢查；回傳失敗原因（None 代表可用）。LLM 批次與人工覆寫共用。
 
-    - 樣本必須存在、營養素必須是必要營養、且 TFDA 該欄位必須空白（TFDA 有值一律優先）；
-    - 數值在合理範圍內，並與樣本已知的另一項必要營養一致（每克蛋白質約 4 kcal，蛋白質熱量不可超過總熱量）。
+    - 樣本必須存在、營養素必須是 7 種之一、TFDA 該欄位必須空白（TFDA 有值一律優先），
+      且不適用「類別必然為 0」規則（decisions #45，那些營養素已是已知 0，不需推估）；
+    - 數值在合理範圍內（每 100 g：熱量 0–900 kcal、各克數 0–100 g、鈉 0–40000 mg），並與樣本已知值一致：
+      糖 ≤ 碳水（容許 1 g）、碳水＋蛋白質＋脂肪＋纖維 ≤ 105 g、蛋白質 4 kcal／g＋脂肪 9 kcal／g 不超過總熱量。
     """
-    from app.services import tfda_mapping
+    from app.services import nutrient_category_zero, tfda_mapping
 
     record = tfda_mapping.sample(sample_id)
     if record is None:
@@ -43,13 +57,26 @@ def check_fill(sample_id: str, nutrient: str, value: Decimal) -> str | None:
     known = record.get("nutrition_per_100g") or {}
     if known.get(nutrient) is not None:
         return f"TFDA {sample_id} already has {nutrient}; TFDA wins"
+    rule = nutrient_category_zero.applies(record, nutrient)
+    if rule is not None:
+        return f"{nutrient} of {sample_id} is a category zero ({rule['id']}); no estimate needed"
     low, high = FILL_RANGE[nutrient]
     if not low <= value <= high:
         return "OUT_OF_RANGE"
-    energy = value if nutrient == "energy_kcal" else known.get("energy_kcal")
-    protein = value if nutrient == "protein_g" else known.get("protein_g")
-    if energy is not None and protein is not None:
-        if Decimal(str(protein)) * KCAL_PER_PROTEIN_G > Decimal(str(energy)) * Decimal("1.1") + 1:
+    values = {k: _num(known.get(k)) for k in FILL_NUTRIENTS}
+    values[nutrient] = value
+    sugars, carbs = values["sugars_g"], values["carbohydrate_g"]
+    if sugars is not None and carbs is not None and sugars > carbs + SUGAR_OVER_CARB_TOLERANCE:
+        return "OUT_OF_RANGE"
+    if nutrient in ("carbohydrate_g", "protein_g", "fat_g", "dietary_fiber_g"):
+        mass = sum((values[k] or Decimal(0)) for k in ("carbohydrate_g", "protein_g", "fat_g", "dietary_fiber_g"))
+        if mass > MACRO_SUM_MAX:
+            return "OUT_OF_RANGE"
+    energy = values["energy_kcal"]
+    if energy is not None and nutrient in ("energy_kcal", "protein_g", "fat_g"):
+        macro_kcal = ((values["protein_g"] or Decimal(0)) * KCAL_PER_PROTEIN_G
+                      + (values["fat_g"] or Decimal(0)) * KCAL_PER_FAT_G)
+        if macro_kcal > energy * Decimal("1.1") + 1:
             return "OUT_OF_RANGE"
     return None
 

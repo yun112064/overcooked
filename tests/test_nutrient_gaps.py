@@ -129,18 +129,18 @@ class NutrientFillCalculatorTests(unittest.TestCase):
     """#32：TFDA 樣本必要營養空白時套用快取推估；TFDA 有值一律優先。"""
 
     def test_blank_protein_is_filled_and_marked_llm_estimated(self):
-        # 方糖 N0100101：385 kcal／100 g，蛋白質空白
-        calc = mc.make_tfda_calculator(nutrient_fills=fills(fill("N0100101", "protein_g", "0.1")))
-        [sugar] = calc([(line("方糖", "10", consumed_as_is=True), D("10"))])
+        # 麥芽糖 N0200101：325 kcal／100 g，蛋白質空白（不在 #45 類別 0 規則內）
+        calc = mc.make_tfda_calculator(nutrient_fills=fills(fill("N0200101", "protein_g", "0.1")))
+        [sugar] = calc([(line("麥芽糖", "10", consumed_as_is=True), D("10"))])
         self.assertIsNone(sugar.error)
-        self.assertEqual(sugar.nutrients["energy_kcal"], D("38.5"))
+        self.assertEqual(sugar.nutrients["energy_kcal"], D("32.5"))
         self.assertEqual(sugar.nutrients["protein_g"], D("0.01"))
         self.assertIn("protein_g", sugar.trace["estimated_nutrients"])
         [marker] = sugar.trace["estimated_factors"]
         self.assertEqual((marker["kind"], marker["key"], marker["llm_estimated"]), ("nutrient_fill", "protein_g", True))
 
     def test_without_a_fill_protein_stays_unknown(self):
-        [sugar] = mc.tfda_calculator([(line("方糖", "10", consumed_as_is=True), D("10"))])
+        [sugar] = mc.tfda_calculator([(line("麥芽糖", "10", consumed_as_is=True), D("10"))])
         self.assertIsNone(sugar.nutrients["protein_g"])
 
     def test_fill_follows_the_cached_cooking_retention(self):
@@ -161,19 +161,19 @@ class NutrientFillCalculatorTests(unittest.TestCase):
         self.assertEqual(oil.trace["estimated_factors"], [])
 
     def test_human_fill_is_not_labelled_llm(self):
-        calc = mc.make_tfda_calculator(nutrient_fills=fills(fill("N0100101", "protein_g", "0", source="human",
+        calc = mc.make_tfda_calculator(nutrient_fills=fills(fill("N0200101", "protein_g", "0", source="human",
                                                                  status="overridden")))
-        [sugar] = calc([(line("方糖", "10", consumed_as_is=True), D("10"))])
+        [sugar] = calc([(line("麥芽糖", "10", consumed_as_is=True), D("10"))])
         self.assertEqual(sugar.nutrients["protein_g"], D("0"))
         self.assertFalse(sugar.trace["estimated_factors"][0]["llm_estimated"])
 
     def test_meal_result_lists_the_estimated_nutrient(self):
-        calc = mc.make_tfda_calculator(nutrient_fills=fills(fill("N0100101", "protein_g", "0")))
-        result = mc.calculate_meal([line("方糖", "10", consumed_as_is=True), line("白飯", "100", weight_basis="cooked")],
-                                   mc.MealTargets(Fraction(1), Fraction("221.5"), Fraction("3.1")), mode="ai",
+        calc = mc.make_tfda_calculator(nutrient_fills=fills(fill("N0200101", "protein_g", "0")))
+        result = mc.calculate_meal([line("麥芽糖", "10", consumed_as_is=True), line("白飯", "100", weight_basis="cooked")],
+                                   mc.MealTargets(Fraction(1), Fraction("215.5"), Fraction("3.1")), mode="ai",
                                    calculator=calc)
         self.assertTrue(result["adoptable"], result["block_reasons"])
-        self.assertEqual(result["llm_estimates"]["food_ids"], ["F-方糖"])
+        self.assertEqual(result["llm_estimates"]["food_ids"], ["F-麥芽糖"])
         self.assertIn("protein_g", result["llm_estimates"]["nutrients"])
         sugar = result["ingredients"][0]
         self.assertTrue(sugar["llm_estimated"])
@@ -247,12 +247,13 @@ class NutrientFillBatchTests(unittest.TestCase):
         with session_factory()() as db:
             gaps = batch.scan(db)
         fill_keys = sorted((g.food_id, g.key) for g in gaps if g.kind == "nutrient_fill")
-        # 冰糖 N0100201、香油 P0900201 蛋白質空白；大蒜兩項皆有值；水不需對照
-        self.assertEqual(fill_keys, [("N0100201", "protein_g"), ("P0900201", "protein_g")])
+        # 香油 P0900201 蛋白質空白（糖、纖維、鈉為 #45 類別 0）；冰糖 N0100201 的蛋白質、脂肪、纖維為類別 0；
+        # 大蒜皆有值；水不需對照；主食白飯 A0550601 的糖空白（#45 主食樣本一併掃描）
+        self.assertEqual(fill_keys, [("A0550601", "sugars_g"), ("P0900201", "protein_g")])
         self.assertNotIn(WATER, {g.food_id for g in gaps if g.kind == "tfda_mapping"})
-        sugar = next(g for g in gaps if g.food_id == "N0100201")
-        self.assertEqual(sugar.input_snapshot["known_per_100g"]["energy_kcal"], 387)
-        self.assertEqual(sugar.input_snapshot["recipe_ids"], ["R001"])
+        oil = next(g for g in gaps if g.food_id == "P0900201")
+        self.assertEqual(oil.input_snapshot["known_per_100g"]["energy_kcal"], 883)
+        self.assertEqual(oil.input_snapshot["recipe_ids"], ["R001"])
 
     def test_dry_run_reports_without_calling_or_writing(self):
         responder = FakeResponder()
@@ -270,16 +271,16 @@ class NutrientFillBatchTests(unittest.TestCase):
         self.assertFalse(call["schema"]["additionalProperties"])
         [row] = self.rows()
         self.assertEqual((row["food_id"], row["key"], row["nutrient_per_100g"], row["status"], row["model"]),
-                         ("N0100201", "protein_g", D("0.1"), "llm_estimated", MODEL))
+                         ("A0550601", "sugars_g", D("0.1"), "llm_estimated", MODEL))
         self.assertEqual(row["prompt_version"], batch.FILL_PROMPT_VERSION)
         reservations = self.reservations()
         self.assertEqual(len(reservations), 2)
         self.assertTrue(all(r.status == "settled" and r.purpose == batch.FILL_PURPOSE for r in reservations))
         with session_factory()() as db:
             calc = mc.cached_factor_calculator(db)
-        [sugar] = calc([(line("冰糖", "20", consumed_as_is=True), D("20"))])
-        self.assertEqual(sugar.nutrients["protein_g"], D("0.02"))
-        self.assertTrue(sugar.trace["estimated_factors"][0]["llm_estimated"])
+        [rice] = calc([(line("白飯", "150", weight_basis="cooked"), D("150"))])
+        self.assertEqual(rice.nutrients["sugars_g"], D("0.15"))
+        self.assertTrue(rice.trace["estimated_factors"][0]["llm_estimated"])
 
     def test_rerun_is_idempotent(self):
         self.run_batch(FakeResponder())
@@ -289,10 +290,10 @@ class NutrientFillBatchTests(unittest.TestCase):
 
     def test_refusal_and_bad_format_are_not_written(self):
         from app.services.llm_client import StructuredResponse
-        report = self.run_batch(FakeResponder({("N0100201", "protein_g"): StructuredResponse("refused", refusal="no"),
+        report = self.run_batch(FakeResponder({("A0550601", "sugars_g"): StructuredResponse("refused", refusal="no"),
                                                ("P0900201", "protein_g"): -3}))
         self.assertEqual({(f["food_id"], f["reason"]) for f in report["failed"]},
-                         {("N0100201", "MODEL_REFUSED"), ("P0900201", "OUT_OF_RANGE")})
+                         {("A0550601", "MODEL_REFUSED"), ("P0900201", "OUT_OF_RANGE")})
         self.assertEqual(self.rows(), [])
 
 
@@ -316,23 +317,23 @@ class NutrientFillCommandLineTests(unittest.TestCase):
         return code, out.getvalue(), err.getvalue()
 
     def test_override_list_approve_and_reject(self):
-        code, _, err = self.cli("override", "--kind", "nutrient_fill", "--food", "N0100101", "--key", "protein_g",
+        code, _, err = self.cli("override", "--kind", "nutrient_fill", "--food", "N0200101", "--key", "protein_g",
                                 "--value", "0", "--reviewer", "營養師A", "--note", "糖不含蛋白質")
         self.assertEqual(code, 0, err)
         with session_factory()() as db:
-            factor = store.load_snapshot(db).nutrient_fill("N0100101", "protein_g")
+            factor = store.load_snapshot(db).nutrient_fill("N0200101", "protein_g")
         self.assertEqual((factor.source, factor.nutrient_per_100g), ("human", D("0")))
         code, out, _ = self.cli("list", "--kind", "nutrient_fill")
         [row] = json.loads(out)
         self.assertEqual(self.cli("reject", row["id"], "--reviewer", "營養師B")[0], 0)
         with session_factory()() as db:
-            self.assertIsNone(store.load_snapshot(db).nutrient_fill("N0100101", "protein_g"))
+            self.assertIsNone(store.load_snapshot(db).nutrient_fill("N0200101", "protein_g"))
 
     def test_override_is_refused_when_tfda_has_a_value_or_value_is_implausible(self):
         cases = [("E2100101", "protein_g", "1"),   # 大蒜蛋白質 TFDA 有值
                  ("N0100101", "protein_g", "-1"),
                  ("P0600101", "protein_g", "5"),   # 米醋 10 kcal：5 g 蛋白質需 20 kcal，不一致
-                 ("N0100101", "fat_g", "0"),       # 只補必要營養
+                 ("N0100101", "fat_g", "0"),       # #45：精製糖的脂肪為類別 0，不需推估
                  ("NOPE", "protein_g", "0")]
         for sample, key, value in cases:
             with self.subTest(sample=sample, key=key):
