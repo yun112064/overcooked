@@ -158,6 +158,58 @@ class UnknownPriceTests(unittest.TestCase):
         self.assertEqual(result.missing_items, [])
 
 
+SALT = "FOOD000691"
+
+
+class SeasoningTests(unittest.TestCase):
+    """決策 #44：調味料視為家中足量——缺量 0、不查價、不列缺料、成本 0；營養由呼叫端照配方計算。"""
+
+    def test_seasoning_is_treated_like_owned_without_lookup(self):
+        quote_for, calls = lookup({CABBAGE: quote(CABBAGE, "60", "300")})
+        result = compute_meal_cost([req(CABBAGE, "100"), req(SALT, "3")], set(), Decimal("100"), quote_for,
+                                   now=NOW, seasoning_food_ids={SALT})
+
+        self.assertEqual(calls, [CABBAGE])
+        salt = next(line for line in result.lines if line.food_id == SALT)
+        self.assertEqual(salt.price_status, "seasoning")
+        self.assertEqual(salt.required_grams, Decimal("3"))  # 配方用量保留供營養計算
+        self.assertEqual((salt.shortage_grams, salt.purchase_price, salt.cost), (Decimal(0), Decimal(0), Decimal(0)))
+        self.assertEqual([line.food_id for line in result.missing_items], [CABBAGE])
+        self.assertTrue(result.price_complete)
+        self.assertEqual(result.purchase_total, Decimal("60"))
+
+    def test_default_seasonings_come_from_the_config_file(self):
+        from app.services.seasonings import load_seasonings
+        seasonings = load_seasonings()
+        # 鹽、醬油、雞粉、米酒、油、太白粉（勾芡）、白胡椒粉
+        for food_id in ("FOOD000691", "FOOD001541", "FOOD001562", "FOOD000352", "FOOD000472", "FOOD000090",
+                        "FOOD000289"):
+            self.assertIn(food_id, seasonings)
+        # 主料用的麵粉、生鮮辛香（大蒜、青蔥）、水（另由免計價設定處理）不是調味料
+        for food_id in ("FOOD000077", "FOOD000377", "FOOD000039", "FOOD000598", WATER, CABBAGE):
+            self.assertNotIn(food_id, seasonings)
+
+    def test_config_list_follows_its_rules_or_states_a_reason(self):
+        import json
+
+        from app.services.seasonings import SEASONINGS_PATH, classify
+        data = json.loads(SEASONINGS_PATH.read_text(encoding="utf-8"))
+        for food_id, entry in data["ingredients"].items():
+            with self.subTest(food_id=food_id, name=entry["name"]):
+                self.assertTrue(classify(food_id, entry["name"]) or entry.get("reason"))
+        self.assertFalse(set(data["exclude"]) & set(data["ingredients"]))
+        self.assertIsNone(classify("FOOD000650", "紅酒"))       # exclude 優先於規則
+        self.assertEqual(classify(None, "鮮味炒手"), "調味粉")
+        self.assertIsNone(classify(None, "中筋麵粉"))
+
+    def test_compute_uses_config_seasonings_by_default(self):
+        quote_for, calls = lookup({})
+        result = compute_meal_cost([req(SALT, "3")], set(), Decimal("10"), quote_for, now=NOW)
+        self.assertEqual(calls, [])
+        self.assertEqual(result.missing_items, [])
+        self.assertEqual(result.cost_total, Decimal("0"))
+
+
 class TraceabilityTests(unittest.TestCase):
     def test_missing_line_keeps_package_source_time_and_conditions(self):
         valid_until = NOW + timedelta(days=2)
