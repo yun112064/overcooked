@@ -366,6 +366,30 @@ def validate(gap: Gap, response) -> tuple[dict | None, str | None]:
     return {**values, "assumptions": assumptions[:10]}, None
 
 
+def out_of_range_details(gap: Gap, response) -> dict:
+    """decisions #56：OUT_OF_RANGE 的證據——模型原始值（values）與實際超界的欄位（out_of_range_fields）。"""
+    try:
+        if gap.kind == "nutrient_fill":
+            value = _dec(NutrientFillOutput.model_validate_json(response.output_text or "").value_per_100g)
+            return {"values": {gap.key: value},
+                    "out_of_range_fields": store.fill_violations(gap.food_id, gap.key, value)}
+        if gap.kind == "cooking":
+            out = CookingFactorOutput.model_validate_json(response.output_text or "")
+            values = {"yield_factor": _dec(out.yield_factor), "energy_retention": _dec(out.energy_retention),
+                      "protein_retention": _dec(out.protein_retention)}
+            bounds = {"yield_factor": YIELD_RANGE, "energy_retention": RETENTION_RANGE,
+                      "protein_retention": RETENTION_RANGE}
+        elif gap.kind == "unit":
+            out = UnitWeightOutput.model_validate_json(response.output_text or "")
+            values = {"grams_per_unit": _dec(out.grams_per_unit)}
+            bounds = {"grams_per_unit": _unit_bounds(gap.key)}
+        else:
+            return {}
+    except (ValidationError, ArithmeticError, ValueError):
+        return {}
+    return {"values": values, "out_of_range_fields": [k for k, v in values.items() if not _within(v, bounds[k])]}
+
+
 def _validate_mapping(gap: Gap, response) -> tuple[dict | None, str | None]:
     """模型只能選候選清單內的樣本 ID 或 NONE；其他一律不採用（不寫入，下次再試）。"""
     try:
@@ -515,7 +539,8 @@ def _run_phase(factory, responder, report, kinds, *, dry_run, refresh, limit) ->
             return
         values, failure = validate(gap, response)
         if failure:
-            report["failed"].append({"kind": gap.kind, "food_id": gap.food_id, "key": gap.key, "reason": failure})
+            report["failed"].append({"kind": gap.kind, "food_id": gap.food_id, "key": gap.key, "reason": failure,
+                                     **(out_of_range_details(gap, response) if failure == "OUT_OF_RANGE" else {})})
             continue
         with factory() as db, db.begin():
             store.add_estimate(db, kind=gap.kind, food_id=gap.food_id, key=gap.key, food_name=gap.food_name,

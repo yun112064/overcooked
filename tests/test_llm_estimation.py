@@ -501,6 +501,11 @@ class BatchEstimationTests(unittest.TestCase):
                 self.assertIn(reason, {f["reason"] for f in report["failed"] if f["kind"] == "cooking"})
                 self.assertIn("OUT_OF_RANGE", {f["reason"] for f in report["failed"] if f["kind"] == "unit"})
                 self.assertEqual(self.rows(), [])
+                if reason == "OUT_OF_RANGE":
+                    # decisions #56：報告記錄超界欄位與模型原始值
+                    bad = next(f for f in report["failed"] if f["kind"] == "cooking")
+                    self.assertEqual(bad["out_of_range_fields"], ["energy_retention"])
+                    self.assertEqual(bad["values"]["energy_retention"], Decimal("0.2"))
 
     def test_without_api_key_it_fails_clearly_and_writes_nothing(self):
         with self.assertRaises(batch.EstimationUnavailable) as ctx:

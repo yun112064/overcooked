@@ -195,6 +195,14 @@ class CheckFillTests(unittest.TestCase):
         # 醬油碳水 14.7 g
         self.assertEqual(store.check_fill("P0700101", "sugars_g", D("20")), "OUT_OF_RANGE")
 
+    def test_sugar_vs_carbohydrate_is_only_checked_when_filling_one_of_them(self):
+        # decisions #56：培根 R5100801 的 TFDA 碳水 0、糖 1.4（樣本本身不一致）；補膳食纖維不應因此被拒
+        self.assertIsNone(store.check_fill("R5100801", "dietary_fiber_g", D("0")))
+
+    def test_violations_name_the_out_of_range_fields(self):
+        self.assertEqual(store.fill_violations("P0700101", "sugars_g", D("20")), ["sugars_g>carbohydrate_g"])
+        self.assertEqual(store.fill_violations("M0100101", "sodium_mg", D("40001")), ["sodium_mg"])
+
     def test_macros_cannot_exceed_100_g_by_much(self):
         # 醬油：碳水 14.7＋蛋白質 7.8＋脂肪 90 > 105 g
         self.assertEqual(store.check_fill("P0700101", "fat_g", D("90")), "OUT_OF_RANGE")

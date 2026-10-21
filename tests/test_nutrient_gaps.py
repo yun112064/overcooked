@@ -294,6 +294,9 @@ class NutrientFillBatchTests(unittest.TestCase):
                                                ("P0900201", "protein_g"): -3}))
         self.assertEqual({(f["food_id"], f["reason"]) for f in report["failed"]},
                          {("A0550601", "MODEL_REFUSED"), ("P0900201", "OUT_OF_RANGE")})
+        # decisions #56：失敗報告記錄超界欄位與模型原始值
+        [bad] = [f for f in report["failed"] if f["reason"] == "OUT_OF_RANGE"]
+        self.assertEqual((bad["out_of_range_fields"], bad["values"]), (["protein_g"], {"protein_g": D("-3")}))
         self.assertEqual(self.rows(), [])
 
 
