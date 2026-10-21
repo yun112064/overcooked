@@ -397,15 +397,12 @@ class TfdaCalculatorTests(unittest.TestCase):
         self.assertEqual(rice.error, "cooked_food_requires_cooked_weight_basis")
         self.assertIsNone(rice.nutrients["energy_kcal"])
 
-    def test_raw_food_without_approved_cooking_basis_is_incomplete_not_zero(self):
+    def test_raw_food_without_cooking_factor_uses_raw_composition(self):
+        # decisions #49(b)：生樣本查不到烹調係數 → TFDA 生組成 × 生重近似，仍追溯到生食樣品
         [chicken] = self.calc(line("雞胸肉", "150", cooking_method="烤"))
-        self.assertIsNone(chicken.nutrients["energy_kcal"])
-        self.assertIsNone(chicken.nutrients["protein_g"])
-        self.assertEqual(chicken.trace["sample_id"], "I0402402")  # 仍追溯到生食樣品
-        result = mc.calculate_meal([line("雞胸肉", "150", cooking_method="烤")], single("1"),
-                                   mode="ai", calculator=mc.tfda_calculator)
-        self.assertFalse(result["adoptable"])
-        self.assertIn("NUTRITION_INCOMPLETE", [r["code"] for r in result["block_reasons"]])
+        self.assertEqual(chicken.nutrients["energy_kcal"], D("175.5"))
+        self.assertEqual(chicken.trace["sample_id"], "I0402402")
+        self.assertEqual(chicken.trace["nutrition_basis"], mc.RAW_COMPOSITION_FALLBACK)
 
     def test_oil_counted_as_used(self):
         [oil] = self.calc(line("大豆油", "5", consumed_as_is=True))

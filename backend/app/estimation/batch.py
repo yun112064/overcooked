@@ -164,7 +164,8 @@ def cooking_gap_context(name: str, methods: list[str]) -> dict | None:
     method = methods[0] if len(methods) == 1 else None
     probe = mc.IngredientLine(food_id="probe", name=name, grams_per_n=Decimal(100), cooking_method=method,
                               cooking_methods=tuple(methods) if method is None else ())
-    [row] = mc.tfda_calculator([(probe, Decimal(100))])
+    # 關閉生組成近似（decisions #49(b)）：係數仍優於近似，缺口照列；原樣組成類別（#49(a)）不需係數，不列
+    [row] = mc.make_tfda_calculator(raw_fallback=False)([(probe, Decimal(100))])
     # ingredient_not_found 可能只是 T04 烹調管線不接受 unspecified 狀態的樣本（如大蒜），仍可套保留率
     if (row.error and row.error != "ingredient_not_found") or all(
             row.nutrients.get(k) is not None for k in mc.REQUIRED_NUTRIENTS):

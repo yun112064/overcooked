@@ -79,17 +79,20 @@ class CachedCookingFactorTests(unittest.TestCase):
         self.assertEqual(sesame.trace["sample_id"], "C1610101")
         self.assertEqual(sesame.trace["estimated_factors"][0]["yield_factor"], D("0.95"))
 
-    def test_without_a_cached_factor_the_old_behaviour_stays(self):
+    def test_without_a_cached_factor_raw_composition_is_used(self):
+        # decisions #49(b)：沒有係數 → TFDA 生組成 × 生重近似（117 kcal/100 g × 150 g），不算 LLM 推估
         calc = mc.make_tfda_calculator(cooking_factors=lookup())
         [chicken] = calc([(line("雞胸肉", "150", cooking_method="烤"), D("150"))])
-        self.assertIsNone(chicken.nutrients["energy_kcal"])
+        self.assertEqual(chicken.nutrients["energy_kcal"], D("175.5"))
         self.assertFalse(chicken.trace["is_estimated"])
+        self.assertTrue(chicken.trace["raw_composition_fallback"])
         self.assertEqual(chicken.trace.get("estimated_factors"), [])
 
     def test_rejected_factor_is_never_used(self):
         calc = mc.make_tfda_calculator(cooking_factors=lookup(cooking("F-雞胸肉", "roast", status="rejected")))
         [chicken] = calc([(line("雞胸肉", "150", cooking_method="烤"), D("150"))])
-        self.assertIsNone(chicken.nutrients["energy_kcal"])
+        self.assertEqual(chicken.nutrients["energy_kcal"], D("175.5"))  # 生組成近似，不是保留率 0.95
+        self.assertEqual(chicken.trace["estimated_factors"], [])
 
     def test_tfda_measured_data_wins_over_any_cached_factor(self):
         # 白飯為 TFDA 熟樣品、以熟重計：不套任何推估
@@ -122,7 +125,7 @@ class CachedCookingFactorTests(unittest.TestCase):
         self.assertEqual(chicken.nutrients["energy_kcal"], D("166.725"))
         self.assertEqual(chicken.trace["estimated_factors"][0]["key"], key)
         [plain] = mc.tfda_calculator([(ln, D("150"))])
-        self.assertIsNone(plain.nutrients["energy_kcal"])  # 沒有推估值：維持不可採用
+        self.assertTrue(plain.trace["raw_composition_fallback"])  # 沒有推估值：生組成近似（decisions #49）
 
     def test_default_tfda_calculator_never_calls_a_configured_llm(self):
         import os
@@ -132,7 +135,7 @@ class CachedCookingFactorTests(unittest.TestCase):
             import llm_cooking_estimator as est
             with patch.object(est, "urlopen", side_effect=AssertionError("LLM called at request time")):
                 [chicken] = mc.tfda_calculator([(line("雞胸肉", "150", cooking_method="烤"), D("150"))])
-        self.assertIsNone(chicken.nutrients["energy_kcal"])
+        self.assertFalse(chicken.trace["is_estimated"])  # 沒有呼叫 LLM：只有生組成近似
         self.assertIsNotNone(sys_mod)
 
 

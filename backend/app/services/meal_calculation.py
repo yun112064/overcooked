@@ -492,6 +492,42 @@ WATER_KNOWN_ZERO = "water_known_zero"
 WATER_NAMES = frozenset({"水", "清水", "開水", "冷水", "熱水", "溫水", "滾水", "冰水", "飲用水", "自來水"})
 # decisions #35：食材名稱本身就是熟食（工作簿克數即熟重）；只在對照到的 TFDA 樣本為 cooked 時才生效
 COOKED_FOOD_SUFFIXES = ("飯", "粥")
+# decisions #51：市售即為熟品的食材（config/market_cooked_ingredients.json）＋TFDA 熟樣本 → 熟重
+MARKET_COOKED_SAMPLE = "market_cooked_cooked_sample"
+MARKET_COOKED_PATH = PROJECT_ROOT / "config" / "market_cooked_ingredients.json"
+# decisions #49(a)：unspecified 的調味料、糖、油脂、香料、乾貨等以原樣組成計算（config/nutrition_as_is_categories.json）
+UNSPECIFIED_AS_IS = "unspecified_as_is"
+AS_IS_PATH = PROJECT_ROOT / "config" / "nutrition_as_is_categories.json"
+# decisions #49(b)：生樣本查不到烹調係數 → TFDA 生組成 × 生重近似（熱量、蛋白質也適用）
+RAW_COMPOSITION_FALLBACK = "raw_composition_fallback"
+
+
+@lru_cache(maxsize=1)
+def as_is_rules() -> tuple[dict, ...]:
+    import json
+
+    return tuple(json.loads(AS_IS_PATH.read_text(encoding="utf-8"))["rules"])
+
+
+def as_is_rule(record: dict | None) -> dict | None:
+    """TFDA 樣本為 unspecified 且類別碼符合設定時回傳規則（id、reason…），否則 None。"""
+    if not record or record.get("state") != "unspecified":
+        return None
+    sample_id = record.get("ingredient_id") or ""
+    return next((r for r in as_is_rules() if any(sample_id.startswith(p) for p in r["prefixes"])), None)
+
+
+@lru_cache(maxsize=1)
+def market_cooked_entries() -> tuple[dict, ...]:
+    import json
+
+    return tuple(json.loads(MARKET_COOKED_PATH.read_text(encoding="utf-8"))["ingredients"])
+
+
+def is_market_cooked(food_id: str | None, name: str | None) -> bool:
+    name = (name or "").strip()
+    return any((food_id and e.get("food_id") == food_id) or (name and e.get("name") == name)
+               for e in market_cooked_entries())
 
 
 @lru_cache(maxsize=1)
@@ -635,14 +671,33 @@ def _no_request_time_llm(payload):
     return {"success": False, "error": "llm_not_configured"}
 
 
+# decisions #49(c)：常見同義寫法 → 食譜工作簿用語（炒、拌、煮、煎、燙、蒸、炸、烤、燉、滷、氣炸、微波），
+# 再交給 T04 正規化；工作簿用語本身不在此表，既有快取鍵不變
+METHOD_SYNONYMS = {
+    "清炒": "炒", "快炒": "炒", "爆炒": "炒", "熱炒": "炒", "翻炒": "炒", "乾炒": "炒", "拌炒": "炒",
+    "水煮": "煮", "燉湯": "煮", "熬煮": "煮", "熬": "煮", "煨": "燉", "燜": "燉", "紅燒": "燉", "燉煮": "燉",
+    "清蒸": "蒸", "蒸煮": "蒸", "隔水蒸": "蒸",
+    "香煎": "煎", "乾煎": "煎", "煎炒": "煎", "半煎炸": "煎",
+    "油炸": "炸", "酥炸": "炸", "乾炸": "炸", "油煎炸": "炸", "炸物": "炸",
+    "汆燙": "燙", "氽燙": "燙", "川燙": "燙", "燙煮": "燙", "涮": "燙", "汆": "燙",
+    "涼拌": "拌", "拌勻": "拌", "生拌": "拌",
+    "烘烤": "烤", "焗": "烤", "烘": "烤", "焗烤": "烤", "炙烤": "烤", "烤箱": "烤",
+    "滷製": "滷", "滷煮": "滷", "紅滷": "滷",
+    "氣炸鍋": "氣炸", "微波爐": "微波",
+}
+METHOD_SEPARATORS = ("+", "、", "，", ",", "/", "／", "及", "和", "與", "後", "再", " ")
+
+
 def normalize_cooking_method(method: str | None) -> str | None:
-    """烹調方式正規化（沿用 T04 cooking_yield_service），作為快取係數的查表鍵。"""
-    if not method:
+    """單一烹調方式正規化：同義寫法先轉成工作簿用語，再沿用 T04 cooking_yield_service 的對照。"""
+    if not method or not str(method).strip():
         return None
+    text = str(method).strip()
+    text = METHOD_SYNONYMS.get(text, text)
     _nutrition_model()
     import cooking_yield_service
 
-    return cooking_yield_service.normalize_method(method) or None
+    return cooking_yield_service.normalize_method(text) or None
 
 
 def combined_method_key(methods) -> str | None:
@@ -651,9 +706,23 @@ def combined_method_key(methods) -> str | None:
     return "+".join(keys) or None
 
 
+def cooking_method_key(methods) -> str | None:
+    """decisions #49(c)：AI 路徑用的烹調方式鍵，與快取組合鍵（combined_method_key）同一規則。
+
+    methods 可為單一字串（「炒」「清炒」「煮+炒」「炒、拌」皆可，依 METHOD_SEPARATORS 拆開）或字串清單；
+    回傳正規化、去重、排序後以「+」連接的鍵（單一方式即該方式，如 "stir"），沒有方式回傳 None。
+    """
+    if methods is None:
+        return None
+    parts = [methods] if isinstance(methods, str) else [str(m) for m in methods if m is not None]
+    for sep in METHOD_SEPARATORS:
+        parts = [piece for part in parts for piece in part.split(sep)]
+    return combined_method_key([p for p in parts if p.strip()])
+
+
 def _method_key(ln: IngredientLine) -> str | None:
     if ln.cooking_method:
-        return normalize_cooking_method(ln.cooking_method)
+        return cooking_method_key(ln.cooking_method)
     return combined_method_key(ln.cooking_methods) if len(ln.cooking_methods) > 1 else None
 
 
@@ -731,7 +800,8 @@ NutrientFillLookup = Callable[[str, str], "EstimatedFactor | None"]
 
 
 def make_tfda_calculator(*, cooking_factors: CookingFactorLookup | None = None,
-                         tfda_resolver=None, nutrient_fills: NutrientFillLookup | None = None) -> Calculator:
+                         tfda_resolver=None, nutrient_fills: NutrientFillLookup | None = None,
+                         raw_fallback: bool = True) -> Calculator:
     """建立 TFDA calculator；cooking_factors(food_id, 正規化烹調方式) 回傳快取係數或 None。
 
     tfda_resolver（decisions #28，app.services.tfda_mapping.TfdaResolver）：食譜名稱 → TFDA 樣本；
@@ -741,9 +811,11 @@ def make_tfda_calculator(*, cooking_factors: CookingFactorLookup | None = None,
 
     優先順序（decisions #19／#32）：TFDA／USDA 實測 > 人工核可／覆寫 > LLM 推估；rejected 永不使用。
     人工與 LLM 的先後由查表端（app.estimation.store）決定，此處只在 T04 實測算不出必要營養時才套用。
+    raw_fallback（decisions #49(b)）：查不到烹調係數時以 TFDA 生組成 × 生重近似；推估批次掃描缺口時關閉
+    （才看得出哪些組合仍值得推估係數）。
     """
     def calculate(rows: list[tuple[IngredientLine, Decimal]]) -> list[IngredientNutrition]:
-        return _tfda_calculate(rows, cooking_factors, tfda_resolver, nutrient_fills)
+        return _tfda_calculate(rows, cooking_factors, tfda_resolver, nutrient_fills, raw_fallback)
     return calculate
 
 
@@ -758,19 +830,27 @@ def _water_nutrition(ln: IngredientLine, grams: Decimal, service) -> IngredientN
     return IngredientNutrition({k: Decimal(0) for k in service.NUTRIENTS}, trace, None)
 
 
-def _effective_basis(ln: IngredientLine, res) -> tuple[str, str | None, str | None]:
-    """(weight_basis, 依據, 烹調方式)。decisions #35：工作簿慣例（#17 生重）下，對照到 TFDA 熟樣本且食材名稱
-    本身就是熟食（白米飯、白飯…）時改視為熟重；熟樣本已是熟的狀態，不再套烹調方式（另列的油鹽照算）。"""
-    from app.services import tfda_mapping
+def _effective_basis(ln: IngredientLine, record: dict | None) -> tuple[str, str | None, str | None]:
+    """(weight_basis, 依據, 烹調方式)。對照到 TFDA 熟樣本時：
 
-    record = tfda_mapping.sample(res.sample_id) if res else None
-    if (ln.weight_basis == "raw" and ln.weight_basis_source == WORKBOOK_RAW_CONVENTION and record
-            and record.get("state") == "cooked" and is_cooked_food_name(ln.name)):
-        return "cooked", COOKED_FOOD_SAMPLE, None
+    - decisions #35／#51：工作簿慣例（#17 生重）或 AI 宣告（MODEL_DECLARED）的生重，食材名稱本身是熟食（白飯、
+      白米飯…）或列在市售熟品清單（桂竹筍、鹹蛋黃、杏仁果…）時改視為熟重；
+    - 熟重配熟樣本一律不再套烹調方式（熟樣本已是熟的狀態；另列的油鹽照算）。
+    """
+    cooked_sample = bool(record and record.get("state") == "cooked")
+    if (cooked_sample and ln.weight_basis == "raw"
+            and ln.weight_basis_source in (WORKBOOK_RAW_CONVENTION, MODEL_DECLARED)):
+        if is_market_cooked(ln.food_id, ln.name):
+            return "cooked", MARKET_COOKED_SAMPLE, None
+        if is_cooked_food_name(ln.name):
+            return "cooked", COOKED_FOOD_SAMPLE, None
+    if cooked_sample and ln.weight_basis == "cooked":
+        return "cooked", ln.weight_basis_source, None
     return ln.weight_basis, ln.weight_basis_source, ln.cooking_method
 
 
-def _tfda_calculate(rows, cooking_factors, tfda_resolver=None, nutrient_fills=None) -> list[IngredientNutrition]:
+def _tfda_calculate(rows, cooking_factors, tfda_resolver=None, nutrient_fills=None,
+                    raw_fallback=True) -> list[IngredientNutrition]:
     """以 T04 TFDA 管線計算每項食材（計算期間不呼叫 LLM，見 _no_request_time_llm）。
 
     為了讓 ±10% 邊界精確（AC12），克數不轉 float 送進 T04：每項食材一律以 100 g 呼叫 T04 取得
@@ -785,20 +865,24 @@ def _tfda_calculate(rows, cooking_factors, tfda_resolver=None, nutrient_fills=No
     resolver = tfda_resolver or tfda_mapping.EXACT_ONLY
     water = [is_water(ln.food_id, ln.name) for ln, _ in rows]
     resolutions = [None if w else resolver.resolve(ln.food_id, ln.name) for (ln, _), w in zip(rows, water)]
-    bases = [_effective_basis(ln, res) for (ln, _), res in zip(rows, resolutions)]
+    records = [tfda_mapping.sample(res.sample_id) if res else None for res in resolutions]
+    bases = [_effective_basis(ln, record) for (ln, _), record in zip(rows, records)]
+    # decisions #49(a)：unspecified 的調味料、糖、油脂、香料、乾貨等一律以原樣組成計算（生重、不套烹調）
+    as_is = [as_is_rule(record) if basis == "raw" else None for record, (basis, _, _) in zip(records, bases)]
     items = []
-    for (ln, _), res, (basis, _, method), w in zip(rows, resolutions, bases, water):
+    for (ln, _), res, (basis, _, method), w, rule in zip(rows, resolutions, bases, water, as_is):
         if w:
             continue
         item = {"name": res.tfda_name if res else ln.name, "weight_g": float(REFERENCE_GRAMS),
-                "weight_basis": basis, "consumed_as_is": ln.consumed_as_is}
-        if method:
+                "weight_basis": basis, "consumed_as_is": ln.consumed_as_is or rule is not None}
+        if method and rule is None:
             item["cooking_method"] = method
         items.append(item)
     recipe = service.calculate_recipe_nutrition("meal", items, estimator=_no_request_time_llm) if items else {}
     t04_rows = iter(recipe.get("ingredients") or [{}] * len(items))
     out = []
-    for (ln, grams), res, (basis, basis_source, method), w in zip(rows, resolutions, bases, water):
+    for (ln, grams), res, record, (basis, basis_source, method), w, rule in zip(
+            rows, resolutions, records, bases, water, as_is):
         grams = Decimal(grams)
         if w:
             out.append(_water_nutrition(ln, grams, service))
@@ -819,23 +903,57 @@ def _tfda_calculate(rows, cooking_factors, tfda_resolver=None, nutrient_fills=No
             "estimated_factors": [], "estimated_nutrients": [], "approximate_nutrients": [],
             "tfda_mapping": res.trace() if res else None, "category_zero": {},
         }
-        method_key = _method_key(ln)  # 熟食熟重（#35）時 basis 為 cooked，不套烹調係數
+        method_key = _method_key(ln)  # 熟食熟重（#35／#51）時 basis 為 cooked，不套烹調係數
+        if rule is not None and row.get("success"):
+            trace.update(nutrition_basis=UNSPECIFIED_AS_IS, as_is_rule=rule["id"])
         # T04 烹調管線不接受 unspecified 狀態的樣本（回報 ingredient_not_found）；有生組成時仍可套快取係數
         usable_row = row.get("success") or (row.get("error") == "ingredient_not_found"
                                             and _raw_composition(service, tfda_name) is not None)
-        applied, factor = False, None
-        if (cooking_factors and method_key and basis == "raw" and usable_row
+        applied, factor, fallback = False, None, False
+        if (cooking_factors and method_key and basis == "raw" and usable_row and rule is None
                 and any(nutrients.get(k) is None for k in REQUIRED_NUTRIENTS)):
             factor = cooking_factors(ln.food_id, method_key)
             if factor is not None and factor.usable:
                 _apply_cooking_factor(service, ln, grams, factor, nutrients, trace, tfda_name)
                 applied = bool(trace["estimated_factors"])
-        if row.get("success") or applied:
+        if (raw_fallback and basis == "raw" and usable_row and rule is None and record is not None
+                and record.get("state") != "cooked" and any(nutrients.get(k) is None for k in REQUIRED_NUTRIENTS)):
+            fallback = _raw_fallback(service, record, grams, nutrients, trace)
+        if row.get("success") or applied or fallback:
             _fill_blanks(nutrient_fills, grams, nutrients, trace, factor if applied else None, basis)
-        error = (None if applied else row.get("error")) or (
-            None if row.get("success") or applied else "nutrition_unavailable")
+        error = (None if applied or fallback else row.get("error")) or (
+            None if row.get("success") or applied or fallback else "nutrition_unavailable")
+        if (error is None and basis == "cooked" and record is not None and record.get("state") != "cooked"
+                and all(nutrients.get(k) is None for k in REQUIRED_NUTRIENTS)):
+            # 不靜默變成未知：熟重（例如 AI 宣告 cooked）配生樣本沒有依據換回生重
+            error = "cooked_weight_requires_cooked_sample"
         out.append(IngredientNutrition(nutrients, trace, error))
     return out
+
+
+def _raw_fallback(service, record: dict, grams: Decimal, nutrients: dict, trace: dict) -> bool:
+    """decisions #49(b)：查不到烹調係數（多方式組合鍵、AI 單一方式或沒有方式）時，以 TFDA 生組成 × 生重近似
+    尚缺的營養（熱量、蛋白質也適用，延伸 #40），trace 標 raw_composition_fallback；畫面不顯示（#42）。
+    TFDA 生組成空白者仍為 None（之後交給類別 0 規則或 nutrient_fill）。"""
+    filled = []
+    for key in service.NUTRIENTS:
+        value = record["nutrition_per_100g"].get(key)
+        if nutrients.get(key) is None and service.finite_number(value):
+            nutrients[key] = Decimal(str(value)) * grams / REFERENCE_GRAMS
+            filled.append(key)
+    if not filled:
+        return False
+    trace["raw_composition_fallback"] = True
+    trace["nutrition_basis"] = RAW_COMPOSITION_FALLBACK
+    trace["approximate_nutrients"] = [*trace.get("approximate_nutrients", []), *filled]
+    trace.setdefault("nutrient_basis", {}).update({k: RAW_COMPOSITION_FALLBACK for k in filled})
+    if trace.get("sample_id") is None:
+        source = record["source"]
+        trace.update(sample_id=source.get("source_id"), provider=source.get("provider"),
+                     source_version=source.get("source_version"), source_url=source.get("source_url"))
+    if all(nutrients.get(k) is not None for k in REQUIRED_NUTRIENTS):
+        trace["missing_reason"] = None
+    return True
 
 
 def _fill_weight(grams: Decimal, record: dict, trace: dict, cooking_factor, weight_basis: str) -> Decimal:
