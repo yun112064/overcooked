@@ -19,6 +19,8 @@ COPY config/price_exempt_ingredients.json /app/config/price_exempt_ingredients.j
 COPY config/ingredient_synonyms.json /app/config/ingredient_synonyms.json
 
 COPY config/staples.json /app/config/staples.json
+# 決策 #29：知識說明的營養關鍵字依據檢查（與團隊電腦爬蟲前置過濾共用）
+COPY config/nutrition_keywords.json /app/config/nutrition_keywords.json
 ENV PYTHONPATH=/app
 COPY alembic.ini /app/alembic.ini
 COPY migrations /app/migrations

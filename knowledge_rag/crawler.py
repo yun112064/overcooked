@@ -16,7 +16,8 @@ import unicodedata
 from datetime import datetime, timezone
 
 from knowledge_rag.healthnews import (NUTRITION_CHANNEL, SOURCE_NAME, FoodMatcher, article_url, channel_url,
-                                      parse_article, parse_listing, split_passages)
+                                      has_nutrition_keyword, load_nutrition_keywords, parse_article, parse_listing,
+                                      split_passages)
 
 CONDITIONS = "摘自健康醫療網報導，僅供一般飲食知識參考，不是個人醫療建議"
 
@@ -31,10 +32,11 @@ def _norm(text: str) -> str:
 
 class HealthnewsCrawler:
     def __init__(self, store, fetcher, matcher: FoodMatcher, *, authorization_ref: str,
-                 max_passage_chars: int = 400, now=lambda: datetime.now(timezone.utc)):
+                 max_passage_chars: int = 400, now=lambda: datetime.now(timezone.utc), nutrition_keywords=None):
         if not isinstance(authorization_ref, str) or not authorization_ref.strip():
             raise ValueError("authorization_ref (where the written permission is stored) is required")
         self.store, self.fetcher, self.matcher = store, fetcher, matcher
+        self.nutrition_keywords = list(nutrition_keywords) if nutrition_keywords else load_nutrition_keywords()
         self.authorization_ref = authorization_ref.strip()
         self.max_passage_chars = max_passage_chars
         self.now = now
@@ -49,6 +51,8 @@ class HealthnewsCrawler:
         records, ordinal = [], {}
         relevant = set(self.matcher.relevant(article.title, article.paragraphs))
         for passage in split_passages(article.paragraphs, self.max_passage_chars):
+            if not has_nutrition_keyword(passage, self.nutrition_keywords):
+                continue  # 決策 #29：只提到食材、沒有營養／健康效益字眼的段落（做法、口感、擺盤）不存
             for food_id in sorted(self.matcher.match(passage) & relevant):
                 ordinal[food_id] = ordinal.get(food_id, 0) + 1
                 digest = _sha(passage)

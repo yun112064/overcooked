@@ -48,7 +48,12 @@ def _vector(values) -> str:
 
 
 def _embedding_text(row: dict) -> str:
-    return f"{row['excerpt']}\n適用條件：{row['conditions']}"
+    fact = f"營養知識：{row['nutrition_fact']}\n" if row.get("nutrition_fact") else ""
+    return f"{fact}{row['excerpt']}\n適用條件：{row['conditions']}"
+
+
+# 決策 #29：只有分類為營養知識（nutrition_fact 已驗證）且已核准的現行版本可進索引與被檢索
+CLASSIFIER_REVIEWER = "classifier"
 
 
 class KnowledgeStore:
@@ -75,11 +80,18 @@ class KnowledgeStore:
         if parsed.scheme not in ("http", "https") or not parsed.netloc:
             raise ValueError("Invalid source URL")
         extra = {k: record[k] for k in SOURCE_FIELDS if record.get(k) is not None}
+        fact, quote = record.get("nutrition_fact"), record.get("evidence_quote")
+        if fact is not None or quote is not None:  # 人工整理的知識可直接帶營養知識與原文支持句
+            if not (isinstance(fact, str) and fact.strip() and isinstance(quote, str) and quote.strip()
+                    and quote.strip() in record["excerpt"]):
+                raise ValueError("nutrition_fact requires an evidence_quote taken verbatim from the excerpt")
+            extra.update(classification="nutrition", nutrition_fact=fact.strip(), evidence_quote=quote.strip(),
+                         classification_reason="匯入時提供", classifier_model="manual-import")
         if extra.get("source_name") and not str(extra.get("authorization_ref") or "").strip():
             raise ValueError("External-source knowledge requires an authorization_ref")
         if extra.get("content_provider") and extra.get("license_status") != LICENSE_CONFIRMED:
             extra["license_status"] = LICENSE_UNCONFIRMED  # 轉載內容一律先擱置，待審核者確認授權
-        columns = [*FIELDS, *extra]
+        columns = [*FIELDS, *extra]  # extra 的鍵來自固定白名單
         with self._connect() as conn:
             try:
                 return conn.execute(
@@ -126,7 +138,8 @@ class KnowledgeStore:
         with self._connect() as conn:
             rows = conn.execute(
                 "SELECT * FROM (SELECT DISTINCT ON (knowledge_id) * FROM knowledge_records "
-                "ORDER BY knowledge_id, seq DESC) c WHERE status = 'approved' ORDER BY knowledge_id").fetchall()
+                "ORDER BY knowledge_id, seq DESC) c WHERE status = 'approved' AND classification = 'nutrition' "
+                "ORDER BY knowledge_id").fetchall()
             conn.execute("INSERT INTO knowledge_indexes (index_version, embedding_model, dimensions, status) "
                          "VALUES (%s, %s, %s, 'building')", (index_version, embedding_model, DIMENSIONS))
             conn.commit()
@@ -187,10 +200,11 @@ class KnowledgeStore:
                           ON e.knowledge_id = c.knowledge_id AND e.source_version = c.source_version
                          AND e.index_version = %(idx)s
                         WHERE c.ingredient_id = ANY(%(ids)s) AND c.status = 'approved'
+                          AND c.classification = 'nutrition'
                     )
                     SELECT knowledge_id, source_version, ingredient_id, excerpt, source_url, rights, conditions,
                            status, reviewer, reviewed_at, distance, source_name, title, published_at,
-                           content_provider
+                           content_provider, nutrition_fact, evidence_quote
                     FROM ranked WHERE rn <= %(k)s ORDER BY ingredient_id, distance, knowledge_id
                 """, {"q": query, "idx": index["index_version"], "ids": wanted, "k": limit_per_ingredient}).fetchall()
         except psycopg.Error:
@@ -202,6 +216,64 @@ class KnowledgeStore:
         return {"status": "available" if records else "not_found", "records": records,
                 "by_ingredient": {i: "available" if i in found else "not_found" for i in wanted},
                 "index_version": index["index_version"], "embedding_model": index["embedding_model"]}
+
+    # --- 營養分類（決策 #29） ---
+
+    def records_for_classification(self, *, reclassify: bool = False, limit: int | None = None) -> list[dict]:
+        """現行版本中待審／已核准者；預設只取尚未分類的，reclassify 時全部（已退回的不再送出）。"""
+        with self._connect() as conn:
+            return conn.execute(
+                "SELECT * FROM (SELECT DISTINCT ON (knowledge_id) * FROM knowledge_records "
+                "ORDER BY knowledge_id, seq DESC) c WHERE c.status IN ('pending', 'approved') "
+                "AND (%(all)s OR c.classification IS NULL) ORDER BY c.seq LIMIT %(n)s",
+                {"all": reclassify, "n": limit}).fetchall()
+
+    def save_classification(self, knowledge_id: str, source_version: str, result: dict, *, model: str,
+                            prompt_version: str) -> dict:
+        """寫入分類結果；待審且非營養（含驗證失敗）的直接退回（reviewer=classifier＋原因），保留紀錄。
+        已核准者只更新分類欄位，退回需 revoke_approval（classify --apply-rejections）。"""
+        with self._connect() as conn:
+            row = conn.execute(
+                "UPDATE knowledge_records SET classification = %(c)s, nutrition_fact = %(f)s, evidence_quote = %(q)s, "
+                "classification_reason = %(r)s, classified_at = now(), classifier_model = %(m)s, "
+                "classifier_prompt_version = %(p)s WHERE knowledge_id = %(k)s AND source_version = %(v)s "
+                "RETURNING status", {"c": result["classification"], "f": result["nutrition_fact"],
+                                     "q": result["evidence_quote"], "r": result["reason"], "m": model,
+                                     "p": prompt_version, "k": knowledge_id, "v": source_version}).fetchone()
+            if row is None:
+                raise ValueError("Knowledge version not found")
+            status = row["status"]
+            if status == "pending" and result["classification"] != "nutrition":
+                status = conn.execute(
+                    "UPDATE knowledge_records SET status = 'rejected', reviewer = %s, reviewed_at = now(), "
+                    "review_note = %s WHERE knowledge_id = %s AND source_version = %s RETURNING status",
+                    (CLASSIFIER_REVIEWER, f"[自動分類退回：{result['classification']}] {result['reason']}",
+                     knowledge_id, source_version)).fetchone()["status"]
+        return {"knowledge_id": knowledge_id, "source_version": source_version, "status": status,
+                "classification": result["classification"]}
+
+    def approved_non_nutrition(self) -> list[dict]:
+        """現行且已核准、但分類為非營養或驗證失敗的版本（舊的開發整批核准留下的）。"""
+        with self._connect() as conn:
+            return conn.execute(
+                "SELECT * FROM (SELECT DISTINCT ON (knowledge_id) * FROM knowledge_records "
+                "ORDER BY knowledge_id, seq DESC) c WHERE c.status = 'approved' "
+                "AND c.classification IN ('not_nutrition', 'invalid') ORDER BY c.seq").fetchall()
+
+    def revoke_approval(self, knowledge_id: str, source_version: str, *, reason: str,
+                        reviewer: str = CLASSIFIER_REVIEWER) -> dict:
+        """已核准 → 退回；審核紀錄保留原核准者與註記。之後檢索即不提供（search 只取 approved）。"""
+        with self._connect() as conn:
+            row = conn.execute(
+                "UPDATE knowledge_records SET status = 'rejected', "
+                "review_note = '[分類器退回：' || %(r)s || '；原核准：' || reviewer || '：' || review_note || ']', "
+                "reviewer = %(who)s, reviewed_at = now() "
+                "WHERE knowledge_id = %(k)s AND source_version = %(v)s AND status = 'approved' "
+                "RETURNING knowledge_id, source_version, status",
+                {"r": reason, "who": reviewer, "k": knowledge_id, "v": source_version}).fetchone()
+        if row is None:
+            raise ValueError("Only an approved version can be revoked")
+        return row
 
     # --- 管理查詢（管理指令用） ---
 
@@ -245,7 +317,12 @@ class KnowledgeStore:
                 "SELECT count(*) AS n FROM (SELECT DISTINCT ON (knowledge_id) status, license_status FROM "
                 "knowledge_records ORDER BY knowledge_id, seq DESC) c WHERE c.status = 'pending' "
                 "AND c.license_status = %s", (LICENSE_UNCONFIRMED,)).fetchone()["n"]
+            classes = {(r["classification"] or "unclassified"): r["n"] for r in conn.execute(
+                "SELECT classification, count(*) AS n FROM (SELECT DISTINCT ON (knowledge_id) classification, status "
+                "FROM knowledge_records ORDER BY knowledge_id, seq DESC) c WHERE c.status <> 'rejected' "
+                "GROUP BY classification")}
         return {"records": {k: counts.get(k, 0) for k in ("pending", "approved", "rejected")},
+                "classification": classes,
                 "approved_awaiting_new_version_review": superseded, "articles": articles, "active_index": index,
                 "license_holds": holds}
 

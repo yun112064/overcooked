@@ -60,6 +60,8 @@ class FakeEmbedder:
 
 
 def record(knowledge_id, ingredient_id, excerpt, version="v1"):
+    """合成知識；附上人工整理的營養知識（決策 #29：只有分類為營養知識者會進索引）。"""
     return {"knowledge_id": knowledge_id, "ingredient_id": ingredient_id, "excerpt": excerpt,
             "source_url": f"https://example.invalid/knowledge/{knowledge_id}", "source_version": version,
-            "rights": "合成測試資料，非真實來源", "conditions": "一般成人；合成情境"}
+            "rights": "合成測試資料，非真實來源", "conditions": "一般成人；合成情境",
+            "nutrition_fact": excerpt, "evidence_quote": excerpt}

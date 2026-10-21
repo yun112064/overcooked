@@ -9,13 +9,16 @@
 知識不修改配方、TFDA 數值或採用資格；配方食材改變後必須重新呼叫。
 """
 import copy
+import functools
+import json
+import unicodedata
 from collections.abc import Callable
 from datetime import datetime, timedelta, timezone
 
 import httpx
 from sqlalchemy.orm import sessionmaker
 
-from app.core.config import settings
+from app.core.config import PROJECT_ROOT, settings
 from app.services import spend
 from app.services.team_link import TeamCredentials, failure_reason, settings_credentials
 
@@ -23,6 +26,32 @@ RECORD_FIELDS = ("knowledge_id", "source_version", "ingredient_id", "excerpt", "
 # G07 出處欄位（外部來源必帶；合成資料為 None）。顯示時一律保留，不可移除（健康醫療網使用條款第 7 條）
 ATTRIBUTION_FIELDS = ("source_name", "title", "published_at", "content_provider")
 TAIPEI = timezone(timedelta(hours=8))
+# 決策 #29：團隊電腦分類萃取、驗證過的營養知識（一句）與原文支持句；舊資料／未分類為 None，不可用來寫說明
+NUTRITION_FIELDS = ("nutrition_fact", "evidence_quote")
+NUTRITION_KEYWORDS_PATH = PROJECT_ROOT / "config" / "nutrition_keywords.json"
+
+
+@functools.lru_cache(maxsize=1)
+def nutrition_keywords() -> tuple[str, ...]:
+    """營養／健康效益關鍵字（config/nutrition_keywords.json，與團隊電腦爬蟲前置過濾共用）。"""
+    data = json.loads(NUTRITION_KEYWORDS_PATH.read_text(encoding="utf-8"))
+    return tuple(k.strip() for k in data["keywords"] if isinstance(k, str) and k.strip())
+
+
+def _keywords_in(text: str) -> set[str]:
+    text = unicodedata.normalize("NFKC", text or "").lower()
+    return {k for k in nutrition_keywords() if unicodedata.normalize("NFKC", k).lower() in text}
+
+
+def grounded_in_nutrition(explanation: str, records: list[dict]) -> bool:
+    """說明必須寫營養素或健康效益（至少一個關鍵字），且每個關鍵字都要出現在引用紀錄的 nutrition_fact／evidence_quote。
+
+    只寫口感、做法或加入原文沒有的功效（例如多寫「降血壓」）都不通過，該食材的說明省略。
+    """
+    used = _keywords_in(explanation)
+    support = set().union(*(_keywords_in(f"{r.get('nutrition_fact') or ''}\n{r.get('evidence_quote') or ''}")
+                            for r in records)) if records else set()
+    return bool(used) and used <= support
 
 
 def _attribution_fields(r: dict) -> dict:
@@ -110,9 +139,12 @@ def _validated(body, wanted: set[str], embedding_model: str) -> dict:
                 raise ValueError
             if not (isinstance(r.get("reviewer"), str) and r.get("reviewed_at")):
                 raise ValueError
+            nutrition = {k: r.get(k) for k in NUTRITION_FIELDS}
+            if any(v is not None and not isinstance(v, str) for v in nutrition.values()):
+                raise ValueError
             clean.append({**{k: r[k] for k in RECORD_FIELDS}, "reviewer": r["reviewer"],
                           "reviewed_at": r["reviewed_at"], "distance": r.get("distance"),
-                          **_attribution_fields(r)})
+                          **_attribution_fields(r), **nutrition})
     except (KeyError, TypeError, ValueError, AttributeError):
         raise KnowledgeUnavailable("INVALID_RESPONSE") from None
     return {"records": clean, "index_version": index_version}

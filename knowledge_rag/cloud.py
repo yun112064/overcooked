@@ -53,12 +53,15 @@ class CloudClient:
         status, raw = self.transport(method, f"{self.base_url}{path}", dict(self.headers), body, self.timeout)
         if status in (401, 403) or 300 <= status < 400:
             raise CloudError("AUTH_FAILED")
-        if status in TUNNEL_DOWN:
-            raise CloudError("UNREACHABLE", f"HTTP {status}")
         try:
             data = json.loads(raw or b"{}")
         except ValueError:
+            if status in TUNNEL_DOWN:
+                raise CloudError("UNREACHABLE", f"HTTP {status}") from None
             raise CloudError("INVALID_RESPONSE") from None
+        if status in TUNNEL_DOWN and not (isinstance(data, dict) and isinstance(data.get("error"), dict)
+                                          and data["error"].get("code")):
+            raise CloudError("UNREACHABLE", f"HTTP {status}")  # 通道錯誤頁；後端自己的 502 帶明確錯誤碼
         if status != 200:
             error = (data.get("error") or {}) if isinstance(data, dict) else {}
             raise CloudError(error.get("code") or "SERVICE_ERROR", error.get("message") or f"HTTP {status}")
@@ -74,6 +77,16 @@ class CloudClient:
 
     def pending_count(self) -> int:
         return int(self._call("GET", "/internal/knowledge/crawl-requests/summary")["pending"])
+
+    # --- 營養知識分類與萃取（決策 #29） ---
+
+    def classify_batch(self, run_id: str, batch_no: int, records: list[dict]) -> dict:
+        """records：[{knowledge_id, source_version, ingredient_name, excerpt}] → {model, prompt_version, items}。"""
+        data = self._call("POST", "/internal/knowledge/classify",
+                          {"run_id": run_id, "batch_no": batch_no, "records": list(records)})
+        if not isinstance(data.get("items"), list) or not data.get("model"):
+            raise CloudError("INVALID_RESPONSE")
+        return data
 
     # --- 建索引向量化 ---
 

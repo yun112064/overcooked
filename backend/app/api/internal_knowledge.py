@@ -88,3 +88,44 @@ def embed_index_batch(body: EmbedBody, factory=Depends(get_session_factory), emb
     except spend.UncertainBilling:
         raise ApiError(502, "BILLING_UNCERTAIN", "向量化結果不明，可能已計費；請核對額度紀錄後以新索引版本重建。") from None
     return {"model": embedder.model, "vectors": vectors}
+
+
+# --- 決策 #29：營養知識分類與萃取（gpt-5.4-mini，經 T10 額度） ---
+
+def get_classifier_responder():
+    from app.services.llm_client import default_responder
+    return default_responder()
+
+
+class ClassifyRecord(BaseModel):
+    knowledge_id: str = Field(min_length=1, max_length=64)
+    source_version: str = Field(min_length=1, max_length=100)
+    ingredient_name: str = Field(min_length=1, max_length=100)
+    excerpt: str = Field(min_length=1, max_length=4000)
+
+
+class ClassifyBody(BaseModel):
+    run_id: str = Field(min_length=1, max_length=60, pattern=r"^[A-Za-z0-9._\-]+$")
+    batch_no: int = Field(ge=0, le=100_000)
+    records: list[ClassifyRecord] = Field(min_length=1, max_length=20)
+
+
+@router.post("/classify")
+def classify_knowledge_batch(body: ClassifyBody, factory=Depends(get_session_factory),
+                             responder=Depends(get_classifier_responder)):
+    """一批知識紀錄的營養分類與萃取。呼叫鍵含 run_id 與批次（重跑請用新的 run_id）。"""
+    from app.services import knowledge_classification
+    if responder is None:
+        raise ApiError(503, "CLASSIFIER_NOT_CONFIGURED", "雲端未設定語言模型服務。")
+    try:
+        return knowledge_classification.classify_batch(factory, responder, body.run_id, body.batch_no,
+                                                       [r.model_dump() for r in body.records])
+    except knowledge_classification.ClassificationInvalid as exc:
+        raise ApiError(502, "CLASSIFICATION_INVALID_OUTPUT", "分類結果格式不符，整批未採用（已計費）。",
+                       {"reason": exc.reason}) from None
+    except spend.BudgetExhausted:
+        raise ApiError(503, "SERVICE_BUDGET_EXHAUSTED", "本月外部服務額度不足，已停止分類。") from None
+    except spend.CallNotBilled:
+        raise ApiError(502, "CLASSIFIER_UNAVAILABLE", "分類服務暫時無法使用（未計費），請以新的 run_id 重試。") from None
+    except spend.UncertainBilling:
+        raise ApiError(502, "BILLING_UNCERTAIN", "分類結果不明，可能已計費；請核對額度紀錄後以新的 run_id 重跑。") from None

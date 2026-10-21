@@ -61,6 +61,19 @@ CREATE INDEX IF NOT EXISTS ix_knowledge_records_article ON knowledge_records (so
 -- 審核者明確確認授權涵蓋轉載內容後才可核准，改為 third_party_confirmed 並寫入審核紀錄。非轉載為 NULL。
 ALTER TABLE knowledge_records ADD COLUMN IF NOT EXISTS license_status    VARCHAR(40);
 
+-- 決策 #29：營養知識分類與萃取（gpt-5.4-mini，經雲端內部 API 與 T10 額度）。只有 classification='nutrition'
+-- 且已核准的現行版本會進索引與檢索；nutrition_fact 是以原文為依據的一句營養知識，evidence_quote 必須是 excerpt
+-- 的子字串（程式驗證）。非營養／驗證失敗：待審者直接退回（reviewer=classifier），已核准者需 classify --apply-rejections。
+-- 分類欄位不是原文內容，可在審核後更新（重新分類）；excerpt 等內容欄位仍不可修改。
+ALTER TABLE knowledge_records ADD COLUMN IF NOT EXISTS classification VARCHAR(20)
+    CONSTRAINT ck_knowledge_classification CHECK (classification IN ('nutrition', 'not_nutrition', 'invalid'));
+ALTER TABLE knowledge_records ADD COLUMN IF NOT EXISTS nutrition_fact            TEXT;
+ALTER TABLE knowledge_records ADD COLUMN IF NOT EXISTS evidence_quote            TEXT;
+ALTER TABLE knowledge_records ADD COLUMN IF NOT EXISTS classification_reason     TEXT;
+ALTER TABLE knowledge_records ADD COLUMN IF NOT EXISTS classified_at             TIMESTAMPTZ;
+ALTER TABLE knowledge_records ADD COLUMN IF NOT EXISTS classifier_model          VARCHAR(100);
+ALTER TABLE knowledge_records ADD COLUMN IF NOT EXISTS classifier_prompt_version VARCHAR(100);
+
 -- 抓取狀態：每篇來源文章一列，用來跳過已抓過的文章與判斷內容是否改變（不存原文全文）。
 CREATE TABLE IF NOT EXISTS source_articles (
     source_name      TEXT         NOT NULL,

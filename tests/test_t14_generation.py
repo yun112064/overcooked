@@ -76,11 +76,13 @@ class FakeKnowledgeClient:
                 "index_version": self.index_version}
 
 
-def knowledge_record(kid, food_id, excerpt):
+def knowledge_record(kid, food_id, excerpt, nutrition_fact=..., evidence_quote=...):
+    """檢索到的審核知識；預設整段即為營養知識與支持句（決策 #29），可傳 None 模擬未分類／非營養段落。"""
     return {"knowledge_id": kid, "source_version": "v1", "ingredient_id": food_id, "excerpt": excerpt,
             "source_url": f"https://example.invalid/k/{kid}", "rights": "合成測試資料",
             "conditions": "一般成人；合成情境", "reviewer": "審核者", "reviewed_at": "2026-10-01T00:00:00Z",
-            "distance": 0.1}
+            "distance": 0.1, "nutrition_fact": excerpt if nutrition_fact is ... else nutrition_fact,
+            "evidence_quote": excerpt if evidence_quote is ... else evidence_quote}
 
 
 @requires_db
@@ -440,6 +442,55 @@ class KnowledgeExplanationTests(GenerationTestCase):
         # 向量化與說明各一筆已結算的預留
         self.assertEqual([(r.purpose, r.status) for r in self.reservations()],
                          [("knowledge_query_embedding", "settled"), ("knowledge_explanation", "settled")])
+
+    SPRING_ROLL = ("高麗菜出現在晶瑩五彩春捲的蔬菜餡料中，資料提到可與紅蘿蔔等一起簡單處理，保留清甜與脆度，"
+                   "也有助於讓整體內餡呈現繽紛色彩與清爽口感。")
+
+    def test_non_nutrition_passage_is_never_explained(self):
+        # 決策 #29（使用者實測）：春捲做法段落沒有營養知識 → 不送給模型；模型硬寫也一律省略該食材
+        self.create_request(dish_count=2)
+        job_id = self.submit()
+        records = [knowledge_record("K1", TOMATO, "番茄含維生素（合成）"),
+                   knowledge_record("K3", CABBAGE, self.SPRING_ROLL, nutrition_fact=None, evidence_quote=None)]
+        responder = FakeResponder({"items": [
+            {"ingredient_id": TOMATO, "explanation": "含維生素。", "citations": [self.cite("K1", TOMATO)]},
+            {"ingredient_id": CABBAGE, "explanation": self.SPRING_ROLL, "citations": [self.cite("K3", CABBAGE)]},
+        ]})
+        self.run_job(responder, knowledge=FakeKnowledgeClient(records), embedder=self.embedder)
+        self.assertEqual(self.job(job_id)["status"], "succeeded")
+        [row] = self.results()
+        explanation = row.payload["explanation"]
+        self.assertEqual([i["ingredient_id"] for i in explanation["items"]], [TOMATO])
+        self.assertIn({"ingredient_id": CABBAGE, "reason": "NO_NUTRITION_FACT"}, explanation["dropped"])
+        sent = json.loads(responder.calls[0]["input_text"])
+        self.assertEqual([k["knowledge_id"] for k in sent["knowledge"]], ["K1"])
+        self.assertEqual([i["ingredient_id"] for i in sent["ingredients"]], [TOMATO])
+        self.assertNotIn("excerpt", sent["knowledge"][0])  # 只給營養知識與支持句，不給整段原文
+        self.assertEqual(sent["knowledge"][0]["nutrition_fact"], "番茄含維生素（合成）")
+        self.assertIn("營養", responder.calls[0]["instructions"])
+
+    def test_explanation_must_be_grounded_in_the_cited_nutrition_fact(self):
+        # 說明寫的營養素／效益必須出現在引用紀錄的 nutrition_fact 或 evidence_quote；寫口感或額外功效即省略
+        self.create_request(dish_count=2)
+        self.submit()
+        records = [knowledge_record("K1", TOMATO, "番茄含維生素（合成）"),
+                   knowledge_record("K2", EGG, "雞蛋含蛋白質（合成）"),
+                   knowledge_record("K3", CABBAGE, "合成：高麗菜出現在春捲餡料中。高麗菜含膳食纖維，可以幫助腸胃消化。",
+                                    nutrition_fact="高麗菜含膳食纖維，有助腸胃消化。",
+                                    evidence_quote="高麗菜含膳食纖維，可以幫助腸胃消化。")]
+        responder = FakeResponder({"items": [
+            {"ingredient_id": TOMATO, "explanation": "保留清甜與脆度，口感清爽。", "citations": [self.cite("K1", TOMATO)]},
+            {"ingredient_id": EGG, "explanation": "含蛋白質，還能降血壓。", "citations": [self.cite("K2", EGG)]},
+            {"ingredient_id": CABBAGE, "explanation": "含膳食纖維，有助腸胃消化。", "citations": [self.cite("K3", CABBAGE)]},
+        ]})
+        self.run_job(responder, knowledge=FakeKnowledgeClient(records), embedder=self.embedder)
+        [row] = self.results()
+        explanation = row.payload["explanation"]
+        [item] = explanation["items"]
+        self.assertEqual((item["ingredient_name"], item["explanation"]), ("高麗菜", "含膳食纖維，有助腸胃消化。"))
+        self.assertEqual(item["citations"][0]["nutrition_fact"], "高麗菜含膳食纖維，有助腸胃消化。")
+        self.assertEqual(sorted((d["ingredient_id"], d["reason"]) for d in explanation["dropped"]),
+                         sorted([(TOMATO, "NOT_GROUNDED_IN_NUTRITION_FACT"), (EGG, "NOT_GROUNDED_IN_NUTRITION_FACT")]))
 
     def test_missing_knowledge_is_omitted_without_explanation_call(self):
         self.create_request(dish_count=2)

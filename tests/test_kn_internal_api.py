@@ -1,6 +1,7 @@
 """pre-review #6：團隊電腦經雲端內部 API（Access 服務權杖＋Bearer）處理補抓佇列與建索引向量化，
 不需要雲端 DATABASE_URL。驗證失敗一律拒絕；向量化仍經 T10 額度；團隊端錯誤是明確的 CloudError。
 """
+import json
 import os
 import subprocess
 import sys
@@ -65,6 +66,55 @@ class InternalApiTests(unittest.TestCase):
             db.execute(text("UPDATE budget_months SET spent_twd = limit_twd - committed_twd - reserved_twd"))
         with self.assertRaises(CloudError) as ctx:
             self.cloud.index_embedder("idx-int-2", self.embedder.model)(["x"])
+        self.assertEqual(ctx.exception.code, "SERVICE_BUDGET_EXHAUSTED")
+
+    def classify_records(self):
+        return [{"knowledge_id": "hn-1-FOOD000867-1", "source_version": "a1", "ingredient_name": "高麗菜",
+                 "excerpt": "高麗菜含膳食纖維，可以幫助腸胃消化。"},
+                {"knowledge_id": "hn-2-FOOD000867-1", "source_version": "b1", "ingredient_name": "高麗菜",
+                 "excerpt": "高麗菜出現在春捲餡料中，保留清甜與脆度。"}]
+
+    def test_classification_goes_through_spend_control_with_gpt_5_4_mini(self):
+        # 決策 #29／#11：分類與萃取在雲端以 gpt-5.4-mini Structured Outputs 執行，經 T10 預留／結算
+        from app.core.config import settings
+        from app.db.models import UsageReservation
+        from sqlalchemy import select
+        from test_kn_admin import FakeClassifier
+        classifier = FakeClassifier()
+        cloud = internal_cloud(self.factory, self.embedder, classifier)
+        result = cloud.classify_batch("run-1", 0, self.classify_records())
+        self.assertEqual(result["model"], settings.generation_model)
+        self.assertEqual([(i["knowledge_id"], i["is_nutrition_knowledge"]) for i in result["items"]],
+                         [("hn-1-FOOD000867-1", True), ("hn-2-FOOD000867-1", False)])
+        self.assertEqual(result["items"][0]["evidence_quote"], "高麗菜含膳食纖維，可以幫助腸胃消化。")
+        [call] = classifier.calls
+        self.assertEqual(call["model"], "gpt-5.4-mini-2026-03-17")
+        self.assertIn("is_nutrition_knowledge", json.dumps(call["schema"]))
+        with self.factory() as db:
+            rows = db.scalars(select(UsageReservation)).all()
+        self.assertEqual([(r.call_key, r.purpose, r.status) for r in rows],
+                         [("knowledge-classify:run-1:0", "knowledge_classification", "settled")])
+
+    def test_classification_failures_are_explicit(self):
+        from knowledge_rag.cloud import CloudError
+        from app.services.llm_client import StructuredResponse
+        from test_kn_admin import FakeClassifier
+        cloud = internal_cloud(self.factory, self.embedder, None)
+        with self.assertRaises(CloudError) as ctx:
+            cloud.classify_batch("run-2", 0, self.classify_records())
+        self.assertEqual(ctx.exception.code, "CLASSIFIER_NOT_CONFIGURED")
+        # 模型回傳格式錯誤：已計費，但整批不採用（留待下次分類），不是空結果
+        cloud = internal_cloud(self.factory, self.embedder,
+                               FakeClassifier(fail_with=StructuredResponse("completed", output_text="{")))
+        with self.assertRaises(CloudError) as ctx:
+            cloud.classify_batch("run-3", 0, self.classify_records())
+        self.assertEqual(ctx.exception.code, "CLASSIFICATION_INVALID_OUTPUT")
+        from sqlalchemy import text
+        with self.factory() as db, db.begin():  # 本月額度用完
+            db.execute(text("UPDATE budget_months SET spent_twd = limit_twd - committed_twd - reserved_twd"))
+        cloud = internal_cloud(self.factory, self.embedder, FakeClassifier())
+        with self.assertRaises(CloudError) as ctx:
+            cloud.classify_batch("run-4", 0, self.classify_records())
         self.assertEqual(ctx.exception.code, "SERVICE_BUDGET_EXHAUSTED")
 
     def test_tunnel_outage_and_access_rejection_are_errors_not_empty_queues(self):
