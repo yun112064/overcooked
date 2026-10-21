@@ -9,6 +9,7 @@ from dataclasses import dataclass
 from datetime import date, datetime, timezone
 from decimal import Decimal, InvalidOperation
 from difflib import SequenceMatcher
+from functools import lru_cache
 from pathlib import Path
 from typing import Any, Iterable
 
@@ -245,8 +246,26 @@ def _split_list(value: Any) -> list[str]:
     return [item.strip() for item in re.split(r"[；;]", text_value) if item.strip()]
 
 
+NAME_VARIANTS_PATH = Path(__file__).resolve().parents[3] / "config" / "name_variants.json"
+# 設定檔不存在時（例如只複製 backend 的環境）使用的預設異體字對照（決策 #36）
+DEFAULT_NAME_VARIANTS = {"蕃": "番", "臺": "台", "葱": "蔥", "麪": "麵", "麫": "麵"}
+
+
+@lru_cache(maxsize=1)
+def _variant_table() -> dict[int, str]:
+    try:
+        variants = json.loads(NAME_VARIANTS_PATH.read_text(encoding="utf-8"))["variants"]
+    except FileNotFoundError:
+        variants = DEFAULT_NAME_VARIANTS
+    return str.maketrans(variants)
+
+
 def normalize_name(value: str) -> str:
-    normalized = unicodedata.normalize("NFKC", value).lower()
+    """名稱比對鍵：NFKC、小寫、只留文字與數字，常見異體字視為同字（config/name_variants.json）。
+
+    指定菜比對、菜色識別（standard_dish_id）、食材名稱解析與昨日去重都用這個函式。
+    """
+    normalized = unicodedata.normalize("NFKC", value).lower().translate(_variant_table())
     return "".join(character for character in normalized if character.isalnum())
 
 

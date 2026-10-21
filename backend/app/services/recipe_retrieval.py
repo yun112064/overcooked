@@ -23,7 +23,7 @@ from sqlalchemy.orm import Session
 from app.models import Recipe, RecipeIngredient
 from app.services import meal_history, staples, synonyms
 from app.services.meal_request import MealRequestDraft
-from app.services.recipe_import import normalize_name
+from app.services.recipe_import import normalize_name, standard_dish_id
 
 DATABASE_MENU = "database_menu"
 NO_FEASIBLE = "no_feasible_database_menu"
@@ -105,9 +105,12 @@ def _load_recipes(db: Session) -> list[dict]:
 
 
 def _group(recipes: list[dict]) -> list[_Dish]:
+    """依菜名重新計算標準菜色 ID 分組（決策 #36）：異體字規則上線前匯入、存成不同 ID 的
+    「番茄炒蛋／蕃茄炒蛋」仍是同一道菜，不必等重新匯入。"""
     groups: dict[str, _Dish] = {}
     for r in recipes:
-        groups.setdefault(r["standard_dish_id"], _Dish(r["standard_dish_id"], [])).recipes.append(r)
+        key = standard_dish_id(r["recipe_name"])
+        groups.setdefault(key, _Dish(key, [])).recipes.append(r)
     return list(groups.values())
 
 
