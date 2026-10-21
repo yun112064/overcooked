@@ -767,19 +767,49 @@ class DatabaseCandidateTests(GenerationTestCase):
         self.assertGreater(len(row.payload["fallback_details"]["tried"]), 1)
         self.assertFalse(row.payload["calculation"]["adoptable"])  # AI 結果仍可查看
 
-    def test_first_viewable_combination_is_kept_when_none_is_adoptable_but_some_only_miss_data(self):
-        from app.services.meal_calculation import IngredientNutrition
+    def test_combinations_that_only_miss_data_are_never_the_result_and_fall_back_to_ai(self):
+        """決策 #47：營養未知（缺資料）的資料庫組合永不作為結果；沒有可採用組合一律轉 AI，並記錄每組原因。"""
+        from app.services.meal_calculation import MODEL_DECLARED, IngredientNutrition
         self.create_request(dish_count=2)
-        energy, _ = self.reference()
+        energy, protein = self.reference()
 
-        def missing_protein(rows):
-            return [IngredientNutrition({"energy_kcal": energy / 200 * g, "protein_g": None}, {}) for _, g in rows]
+        def database_lines_miss_protein(rows):
+            # 資料庫食譜的食材缺蛋白質；AI 菜（模型宣告生熟）可算 → AI 結果可採用
+            return [IngredientNutrition(
+                {"energy_kcal": energy / 200 * g,
+                 "protein_g": protein / 200 * g if ln.weight_basis_source == MODEL_DECLARED else None}, {})
+                for ln, g in rows]
         job_id = self.submit()
-        responder = FakeResponder()
-        self.run_job(responder, calculator=missing_protein)
+        responder = FakeResponder(menu(ai_dish("番茄蛋花湯", [(TOMATO, 50), (EGG, 50)], method="煮"),
+                                       ai_dish("蒜香高麗菜", [(CABBAGE, 50), (GARLIC, 50)])))
+        self.run_job(responder, calculator=database_lines_miss_protein)
         self.assertEqual(self.job(job_id)["status"], "succeeded")
         [row] = self.results()
-        self.assertEqual(row.mode, "database_menu")  # 缺資料不是「不可行」：保留資料庫菜單讓使用者決定
+        self.assertEqual((row.mode, row.fallback_reason), ("ai_generated_menu", "DATABASE_MENU_NOT_ADOPTABLE"))
+        self.assertEqual(len(responder.calls), 1)
+        tried = row.payload["fallback_details"]["tried"]
+        self.assertGreater(len(tried), 1)
+        evaluated = [t for t in tried if "block_codes" in t]  # 其餘為撞菜等共同驗證未過（problems）
+        self.assertTrue(evaluated and all("NUTRITION_INCOMPLETE" in t["block_codes"] for t in evaluated), tried)
+        self.assertTrue(row.payload["calculation"]["adoptable"], row.payload["calculation"]["block_reasons"])
+
+    def test_first_adoptable_combination_wins_even_after_combinations_missing_data(self):
+        from app.services.meal_calculation import IngredientNutrition
+        self.create_request(dish_count=2)
+        energy, protein = self.reference()
+
+        def cabbage_misses_protein(rows):
+            return [IngredientNutrition({"energy_kcal": energy / 200 * g,
+                                         "protein_g": None if ln.food_id == CABBAGE else protein / 200 * g}, {})
+                    for ln, g in rows]
+        job_id = self.submit()
+        responder = FakeResponder()
+        self.run_job(responder, calculator=cabbage_misses_protein)
+        self.assertEqual(self.job(job_id)["status"], "succeeded")
+        [row] = self.results()
+        self.assertEqual(row.mode, "database_menu")
+        self.assertEqual([d["recipe_id"] for d in row.payload["dishes"]], ["R01", "R03"])
+        self.assertTrue(row.payload["calculation"]["adoptable"])
         self.assertEqual(responder.calls, [])
 
 
