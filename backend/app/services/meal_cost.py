@@ -15,7 +15,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timezone
 from decimal import ROUND_CEILING, Decimal
 from typing import Callable, Iterable
 
@@ -176,17 +176,23 @@ def _unit_price(quote: PriceQuote) -> Decimal:
     return quote.price / quote.package_quantity if quote.package_quantity else Decimal("Infinity")
 
 
-def latest_quote(db: Session, food_id: str) -> PriceQuote | None:
+def latest_quote(db: Session, food_id: str, *, now: datetime | None = None) -> PriceQuote | None:
     """某 FOOD 編號最新的可用報價（唯讀查 T02 快照，含第二來源萬家福）。
 
     每個來源取最新一筆成功快照（保留原查詢時間，不冒充新取得）。兩個來源都有可用價時，
     T02 沒有跨來源規則，因此取「完整包裝（克）且單位價最低」者，同價優先全聯，理由寫入
-    selection_reasons。從未成功則回最新一筆失敗快照，保留來源的缺值原因（估價不算已知價格）。
-    完全沒查過回 None。
+    selection_reasons。已過期（valid_until < now）的報價不參與比價，避免過期低價遮蔽另一來源
+    仍有效的報價；全部過期時回最新一筆過期報價，讓成本計算標示 PRICE_EXPIRED。
+    從未成功則回最新一筆失敗快照，保留來源的缺值原因（估價不算已知價格）。完全沒查過回 None。
     """
     params = {"food_id": food_id}
+    now = now or datetime.now(timezone.utc)
     successes = [PriceQuote.model_validate(p) for p in
                  db.execute(text(LATEST_SUCCESS_PER_PROVIDER_SQL), params).scalars().all()]
+    current = [q for q in successes if q.valid_until is None or q.valid_until >= now]
+    if successes and not current:
+        return max(successes, key=lambda q: q.queried_at)
+    successes = current
     if successes:
         ranked = sorted(successes, key=lambda q: (q.package_unit != "g", _unit_price(q),
                                                   q.retailer != PRIMARY_RETAILER))
@@ -209,5 +215,5 @@ def meal_cost_from_db(
     *,
     now: datetime,
 ) -> MealCost:
-    return compute_meal_cost(requirements, available_food_ids, budget, lambda food_id: latest_quote(db, food_id),
-                             now=now)
+    return compute_meal_cost(requirements, available_food_ids, budget,
+                             lambda food_id: latest_quote(db, food_id, now=now), now=now)

@@ -107,6 +107,24 @@ class T08ApiTests(unittest.TestCase):
         reread = self.client.get(f"/meal-requests/{created['id']}").json()
         self.assertEqual(reread["draft"], updated["draft"])
 
+    def test_saving_an_unchanged_draft_keeps_status_and_version(self):
+        """回報 P1：回看問卷時內容未改，儲存不得把 result_ready 改回 draft、不得升版；已採用的也不得回 409。"""
+        from sqlalchemy import text
+        from db_support import session_factory
+        draft = full_draft([{"member_id": self.a["id"]}])
+        created = self.create(draft)
+        for status in ("result_ready", "confirmed"):
+            with session_factory()() as db, db.begin():
+                db.execute(text("UPDATE meal_requests SET status = :s WHERE id = :id"),
+                           {"s": status, "id": created["id"]})
+            res = self.client.put(f"/meal-requests/{created['id']}", json={"version": 1, "draft": draft})
+            self.assertEqual(res.status_code, 200, res.text)
+            self.assertEqual((res.json()["status"], res.json()["version"]), (status, 1))
+        # 內容真的有改：已採用的仍拒絕
+        changed = full_draft([{"member_id": self.a["id"]}], budget="999")
+        res = self.client.put(f"/meal-requests/{created['id']}", json={"version": 1, "draft": changed})
+        self.assertEqual(res.status_code, 409, res.text)
+
     def test_invalid_input_is_rejected_without_losing_saved_draft(self):
         created = self.create(full_draft([{"member_id": self.a["id"]}]))
         bad = full_draft([{"member_id": self.a["id"]}], budget="-5")

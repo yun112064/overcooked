@@ -14,6 +14,9 @@ type FormValues = z.infer<typeof schema>
 
 type HouseholdList = { households: Household[]; current_household_id: string | null }
 
+// 與目前家庭無關的快取（帳號、家庭清單、主食選項、團隊服務狀態、食材目錄）；其餘都依家庭區分
+const GLOBAL_QUERY_KEYS = new Set(['me', 'households', 'staple-options', 'team-status', 'ingredients'])
+
 export default function HouseholdPage() {
   const queryClient = useQueryClient()
   const navigate = useNavigate()
@@ -27,9 +30,11 @@ export default function HouseholdPage() {
   })
 
   const afterChange = async () => {
+    // 換家庭：成員、問卷、結果、採用紀錄、工作等都屬於上一個家庭，全部清掉，避免短暫顯示舊資料或點進 404；
+    // 只保留與家庭無關的快取
+    queryClient.removeQueries({ predicate: (q) => !GLOBAL_QUERY_KEYS.has(String(q.queryKey[0])) })
     await queryClient.invalidateQueries({ queryKey: ['me'] })
     await queryClient.invalidateQueries({ queryKey: ['households'] })
-    queryClient.removeQueries({ queryKey: ['members'] })
     navigate('/members')
   }
 

@@ -4,7 +4,7 @@ import {
   Paper, Stack, Step, StepLabel, Stepper, TextField, Typography,
 } from '@mui/material'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { Controller, useForm, useWatch, type FieldPath } from 'react-hook-form'
 import { Link, useParams } from 'react-router'
 import { z } from 'zod'
@@ -121,11 +121,14 @@ function Editor({ initial, members: memberList }: { initial: MealRequest; member
 
   const form = useForm<FormValues>({ mode: 'onTouched', resolver: zodResolver(schema), defaultValues: toForm(initial, memberList) })
   const { control, register, trigger, getValues, setError, formState: { errors } } = form
+  // 上次儲存的草稿內容：切換步驟時內容沒變就不儲存（回看問卷不會讓已生成的結果退回草稿）
+  const lastSaved = useRef(JSON.stringify(toDraft(toForm(initial, memberList))))
 
   const save = useMutation({
     mutationFn: async () =>
       (await api.put<MealRequest>(`/meal-requests/${id}`, { version: server.version, draft: toDraft(getValues()) })).data,
     onSuccess: (row) => {
+      lastSaved.current = JSON.stringify(toDraft(getValues()))
       setServer(row)
       queryClient.setQueryData(['meal-request', id], row)
       queryClient.invalidateQueries({ queryKey: ['meal-requests'] })
@@ -148,12 +151,16 @@ function Editor({ initial, members: memberList }: { initial: MealRequest; member
     queryClient.setQueryData(['meal-request', id], row)
   }
   const locked = server.status === 'queued' || server.status === 'running'
+  const adopted = server.status === 'confirmed'
+  const readOnly = locked || adopted
 
   const goTo = async (next: number) => {
-    // 生成中只能瀏覽，不儲存
-    if (locked) { setStep(next); return }
+    // 生成中或已採用只能瀏覽，不儲存
+    if (readOnly) { setStep(next); return }
     // 只檢查格式；未填完也能前往下一步，草稿不會遺失
     if (!(await trigger(STEP_FIELDS[step]))) return
+    // 內容沒變（例如按上一步回看）就不儲存
+    if (JSON.stringify(toDraft(getValues())) === lastSaved.current) { setStep(next); return }
     try {
       await save.mutateAsync()
       setStep(next)
@@ -195,6 +202,7 @@ function Editor({ initial, members: memberList }: { initial: MealRequest; member
       )}
       {save.isError && !conflict && <Alert severity="error">{errorMessage(save.error)}</Alert>}
       {locked && <Alert severity="info">此問卷正在生成中，完成前無法修改。</Alert>}
+      {adopted && <Alert severity="info">此問卷已採用，只能瀏覽；如需調整請建立新的問卷。</Alert>}
 
       <Paper variant="outlined" sx={{ p: { xs: 2, sm: 3 } }}>
         {step === 0 && (
@@ -319,7 +327,7 @@ function Editor({ initial, members: memberList }: { initial: MealRequest; member
       <Box sx={{ display: 'flex', gap: 1, justifyContent: 'space-between', flexWrap: 'wrap' }}>
         <Button disabled={step === 0 || save.isPending} onClick={() => goTo(step - 1)}>上一步</Button>
         <Box sx={{ display: 'flex', gap: 1 }}>
-          <Button variant="outlined" disabled={save.isPending || locked} onClick={() => goTo(step)}>儲存草稿</Button>
+          <Button variant="outlined" disabled={save.isPending || readOnly} onClick={() => goTo(step)}>儲存草稿</Button>
           {step < STEPS.length - 1 && (
             <Button variant="contained" disabled={save.isPending} onClick={() => goTo(step + 1)}>下一步</Button>
           )}

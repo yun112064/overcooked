@@ -108,6 +108,11 @@ def get_request(request_id: uuid.UUID, household_id=Depends(current_household_id
 def update_request(request_id: uuid.UUID, body: DraftUpdate, auth: AuthContext = Depends(current_auth),
                    household_id=Depends(current_household_id), db: Session = Depends(get_db)):
     row = get_owned_request(db, household_id, request_id, lock=True)
+    payload = service.dump(body.draft)
+    if row.version == body.version and payload == row.payload:
+        # 內容沒變（例如回看問卷）：不升版、不改狀態，已有的結果與採用都保留
+        db.rollback()
+        return _out(db, row)
     if row.status in ("queued", "running"):
         raise ApiError(409, "VERSION_CONFLICT", "此問卷正在生成中，請等待結果後再修改。",
                        {"reason": "GENERATION_IN_PROGRESS"})
@@ -116,7 +121,6 @@ def update_request(request_id: uuid.UUID, body: DraftUpdate, auth: AuthContext =
     if row.version != body.version:
         raise version_conflict()
     _reject_bad_references(db, household_id, body.draft)
-    payload = service.dump(body.draft)
     row.version += 1
     # 失敗或已有結果後再修改：回到草稿，新版本需重新送出生成
     row.status = "draft"

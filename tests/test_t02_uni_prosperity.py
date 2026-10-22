@@ -368,6 +368,24 @@ class CrossSourceQuoteTests(unittest.TestCase):
         self.seed("uniprosperity", self.uni_quote("200", "800"))  # 萬家福新快照變貴 → 改回全聯
         self.assertEqual(self.latest().retailer, "PX Mart")
 
+    def test_expired_cheaper_quote_does_not_hide_a_valid_one(self):
+        """回報 P2：較便宜的報價已過期、另一來源仍有效時，要用有效的那筆，不能被判缺價。"""
+        from test_t13_meal_cost import quote
+        past = datetime.now(timezone.utc) - timedelta(days=1)
+        self.seed("pxmart", quote("FOOD000867", "45", "300"))                       # 15 元/100 g，有效
+        self.seed("uniprosperity", self.uni_quote("50", "800", valid_until=past))   # 6.25 元/100 g，已過期
+        chosen = self.latest()
+        self.assertEqual((chosen.retailer, chosen.price), ("PX Mart", Decimal("45")))
+
+    def test_all_quotes_expired_keeps_an_expired_quote_for_the_reason(self):
+        from test_t13_meal_cost import quote
+        past = datetime.now(timezone.utc) - timedelta(days=1)
+        self.seed("pxmart", quote("FOOD000867", "45", "300", valid_until=past))
+        self.seed("uniprosperity", self.uni_quote("50", "800", valid_until=past))
+        chosen = self.latest()
+        self.assertIsNotNone(chosen.valid_until)
+        self.assertLess(chosen.valid_until, datetime.now(timezone.utc))
+
     def test_failures_stay_unknown(self):
         from test_t13_meal_cost import missing_quote
         self.seed("pxmart", missing_quote("FOOD000867"))

@@ -146,8 +146,9 @@ class T10Tests(unittest.TestCase):
         self.assertEqual(self.submit().status_code, 202)
         busy = self.submit(key="key-00000009")
         self.assertEqual(busy.json()["error"]["details"]["reason"], "ALREADY_RUNNING")
+        # 生成中真的修改內容 → 拒絕（內容未變的儲存是 no-op，見 test_t08 回看問卷）
         edit = self.client.put(f"/meal-requests/{self.request['id']}",
-                               json={"version": 1, "draft": draft(self.member_id)})
+                               json={"version": 1, "draft": {**draft(self.member_id), "budget": "350"}})
         self.assertEqual(edit.json()["error"]["details"]["reason"], "GENERATION_IN_PROGRESS")
 
     def test_jobs_are_household_scoped(self):
@@ -188,8 +189,12 @@ class T10Tests(unittest.TestCase):
         self.assertEqual(self.request_status(), "failed")
         reread = self.client.get(f"/meal-requests/{self.request['id']}").json()
         self.assertEqual(reread["draft"]["budget"], "300")
+        # 失敗後內容未變的儲存保留 failed（可直接重送）；真的修改才回到草稿
+        same = self.client.put(f"/meal-requests/{self.request['id']}",
+                               json={"version": 1, "draft": draft(self.member_id)})
+        self.assertEqual((same.json()["status"], same.json()["version"]), ("failed", 1))
         edited = self.client.put(f"/meal-requests/{self.request['id']}",
-                                 json={"version": 1, "draft": draft(self.member_id)})
+                                 json={"version": 1, "draft": {**draft(self.member_id), "budget": "350"}})
         self.assertEqual(edited.json()["status"], "draft")
         # 未呼叫任何付費服務
         self.assertEqual(self.ledger().reserved_twd + self.ledger().spent_twd, 0)
