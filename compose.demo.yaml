@@ -1,0 +1,139 @@
+# 單機 demo 覆寫檔：全部放在團隊電腦，對外只經 Cloudflare 快速通道（trycloudflare.com 臨時網址，免帳號）
+#
+#   .\scripts\demo-up.ps1        啟動（產生 .env.demo、migration、匯入種子、YOLO、通道）
+#   .\scripts\demo-down.ps1      關閉（資料保留）
+#   docker compose -p overcooked-demo --env-file .env.demo -f compose.yaml -f compose.demo.yaml config   檢查合併結果
+#
+# - 主機不開任何連入埠：所有容器的 ports 清空；只有 cloudflared 主動連出，公開網址只轉到 frontend:80
+#   （frontend 的 Caddy 只提供靜態檔並把 /api/* 轉給 backend；/api/internal/* 一律 404）。
+# - 資料全在本 project 的具名 volume（overcooked-demo_*），不碰開發用的 overcooked-dev-db 與其 volume。
+# - 知識資料庫與知識 RAG 服務在同一個內部網路；YOLO 需要 GPU，留在主機原生執行（綁 127.0.0.1，
+#   容器經 host.docker.internal 連線）。知識管理指令經內部網路直接呼叫 backend:8000 的內部 API，不需要 Access 權杖。
+# - 秘密只放 .env.demo（不進 Git），由 demo-up 產生。
+
+name: overcooked-demo
+
+services:
+  db:
+    container_name: overcooked-demo-db
+    ports: !reset []
+    volumes: !override
+      - demo_pg:/var/lib/postgresql/data
+    restart: unless-stopped
+
+  backend:
+    image: overcooked-demo-backend
+    container_name: overcooked-demo-backend
+    ports: !reset []
+    environment:
+      ALLOWED_ORIGINS: https://${PUBLIC_HOSTNAME:-demo.invalid}
+      COOKIE_SECURE: "true"
+      # 不在啟動時升級 schema；由 demo-up 先執行 alembic upgrade head，啟動時 schema 閘門確認在 head
+      AUTO_MIGRATE: "false"
+      RECOGNITION_SERVICE_URL: http://host.docker.internal:${DEMO_YOLO_PORT:-8775}
+      RECOGNITION_SERVICE_TOKEN: ${INFERENCE_TOKEN:?Set INFERENCE_TOKEN in .env.demo}
+      KNOWLEDGE_SERVICE_URL: http://knowledge-rag:8766
+      KNOWLEDGE_SERVICE_TOKEN: ${KNOWLEDGE_SERVICE_TOKEN:?Set KNOWLEDGE_SERVICE_TOKEN in .env.demo}
+      INTERNAL_API_TOKEN: ${INTERNAL_API_TOKEN:?Set INTERNAL_API_TOKEN in .env.demo}
+    volumes: !override
+      - demo_data:/app/data
+      - demo_runtime:/app/runtime
+      - demo_backups:/app/backups
+    restart: unless-stopped
+
+  worker:
+    image: overcooked-demo-backend
+    environment:
+      KNOWLEDGE_SERVICE_URL: http://knowledge-rag:8766
+      KNOWLEDGE_SERVICE_TOKEN: ${KNOWLEDGE_SERVICE_TOKEN:?Set KNOWLEDGE_SERVICE_TOKEN in .env.demo}
+    volumes: !override
+      - demo_data:/app/data
+    restart: unless-stopped
+
+  scheduler:
+    image: overcooked-demo-backend
+    environment:
+      PRICE_WORKBOOK_PATH: /app/workbook/recipe_dataset_1017.xlsx
+    volumes: !override
+      - demo_data:/app/data
+      - ./data/recipe_dataset_1017.xlsx:/app/workbook/recipe_dataset_1017.xlsx:ro
+
+  frontend:
+    container_name: overcooked-demo-frontend
+    ports: !reset []
+    restart: unless-stopped
+
+  knowledge-db:
+    image: pgvector/pgvector:0.8.6-pg17
+    container_name: overcooked-demo-knowledge-db
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${KNOWLEDGE_DB_PASSWORD:?Set KNOWLEDGE_DB_PASSWORD in .env.demo}
+      POSTGRES_DB: meal_knowledge
+    volumes:
+      - demo_knowledge_pg:/var/lib/postgresql/data
+      - ./knowledge_rag/schema.sql:/docker-entrypoint-initdb.d/10-knowledge-schema.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d meal_knowledge"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+  knowledge-rag:
+    build:
+      context: .
+      dockerfile: deploy/team/knowledge.Dockerfile
+    image: overcooked-demo-knowledge-rag
+    container_name: overcooked-demo-knowledge-rag
+    environment:
+      KNOWLEDGE_DATABASE_URL: postgresql://postgres:${KNOWLEDGE_DB_PASSWORD:?Set KNOWLEDGE_DB_PASSWORD}@knowledge-db:5432/meal_knowledge
+      KNOWLEDGE_TOKEN: ${KNOWLEDGE_SERVICE_TOKEN:?Set KNOWLEDGE_SERVICE_TOKEN}
+      KNOWLEDGE_HOST: 0.0.0.0
+      KNOWLEDGE_PORT: "8766"
+    depends_on:
+      knowledge-db:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # 一次性工具（食譜匯入、資料種子、知識建索引）：docker compose ... run --rm tools <指令>
+  # 以唯讀掛載整個 repo，與開發機 scripts/dev-run.ps1 相同的相對路徑；不常駐
+  tools:
+    image: overcooked-demo-backend
+    profiles: ["tools"]
+    working_dir: /repo
+    volumes:
+      - .:/repo:ro
+    environment:
+      PYTHONPATH: /repo:/repo/backend
+      PYTHONUNBUFFERED: "1"
+      DATABASE_URL: postgresql+psycopg://postgres:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env.demo}@db:5432/meal_planner
+      KNOWLEDGE_DATABASE_URL: postgresql://postgres:${KNOWLEDGE_DB_PASSWORD:?Set KNOWLEDGE_DB_PASSWORD}@knowledge-db:5432/meal_knowledge
+      # 知識管理指令把同一內部網路的 backend 當成「雲端內部 API」，不經 Cloudflare、不需 Access 權杖
+      CLOUD_INTERNAL_URL: http://backend:8000
+      CLOUD_INTERNAL_TOKEN: ${INTERNAL_API_TOKEN:?Set INTERNAL_API_TOKEN}
+      KNOWLEDGE_AUTHORIZATION_REF: ${KNOWLEDGE_AUTHORIZATION_REF:-}
+    depends_on:
+      db:
+        condition: service_healthy
+      knowledge-db:
+        condition: service_healthy
+
+  cloudflared:
+    image: cloudflare/cloudflared:2026.9.0
+    container_name: overcooked-demo-cloudflared
+    profiles: ["tunnel"]
+    # 快速通道：不需 Cloudflare 帳號或 token，每次重建容器網址都會變
+    command: ["tunnel", "--no-autoupdate", "--url", "http://frontend:80"]
+    depends_on:
+      frontend:
+        condition: service_started
+    # 不自動重啟：電腦重開後不會帶著新網址（與舊的 ALLOWED_ORIGINS 不符）自行上線，要重新執行 demo-up
+    restart: "no"
+
+volumes:
+  demo_pg:
+  demo_data:
+  demo_runtime:
+  demo_backups:
+  demo_knowledge_pg:

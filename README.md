@@ -71,6 +71,10 @@ clone 後第一次執行 `start-dev.cmd`（建立資料庫、套用 migration、
 - 維護者更新種子（唯讀讀取開發資料庫）：`.\scripts\dev-run.ps1 scripts\export_seed_data.py`，確認筆數後 commit `data/seed/`。
 - `start-dev` 偵測到推估表為空時會提示上述指令，但不會自動匯入或呼叫付費 API。
 
+## 單機 demo 部署
+
+整套系統放在這台 Windows 電腦（Docker Desktop），經 Cloudflare 快速通道對外，不需網域與 Cloudflare 帳號。在 repo 根目錄的 PowerShell 執行 `.\scripts\demo-up.ps1`：第一次會產生 `.env.demo`（隨機密碼與內部權杖，`OPENAI_API_KEY` 從 `.env.dev` 帶入；不進 Git）、建置映像、套用 migration、匯入食譜與資料種子、在主機啟動 YOLO（沿用 `start-dev` 建好的 `.venv-yolo`，沒有就略過）、建立知識索引，最後印出 `https://<隨機>.trycloudflare.com` 網址。`-SkipYolo`、`-SkipKnowledgeIndex` 可略過對應步驟，`-NoTunnel` 只在本機啟動、不開對外網址。關閉用 `.\scripts\demo-down.ps1`（資料保留在 `overcooked-demo_*` volume；`-Purge` 才刪除，會要求確認）。注意：網址每次執行 `demo-up` 都會變，要重新分享；電腦關機、睡眠或執行 `demo-down` 即離線（重開機後不會自動上線，要再執行 `demo-up`）。主機不開任何連入埠，只有前端經 cloudflared 對外，`/api/internal/*` 對外一律 404；demo 與開發環境（`overcooked-dev-db`）資料完全分開。費用：快速通道免費；第一次建知識索引約 NT$0.1，之後只有使用者觸發的菜單生成與知識查詢會呼叫 OpenAI（一律經 T10 額度預留）。
+
 ## 系統啟動（T06–T10）
 
 `docker compose up -d --build` 會啟動資料庫、後端 API（啟動時自動執行 Alembic 遷移）、生成工作程序 `worker`、單一排程程序 `scheduler` 與前端。先依 `.env.example` 建立 `.env`，至少設定 `POSTGRES_PASSWORD`。

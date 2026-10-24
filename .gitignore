@@ -35,6 +35,8 @@ nutrition_model/data/raw/
 # T17 正式環境設定範例（真實 .env.prod／.env.team 不進 Git）
 !.env.prod.example
 !deploy/team/.env.team.example
+# 單機 demo 設定（scripts/demo-up.ps1 產生，含秘密）
+.env.demo
 
 # demo 分支只保留系統程式、設定、測試、資料與模組 README；開發與規劃文件只留本機
 docs/
