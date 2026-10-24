@@ -43,6 +43,15 @@ class IntakeCalculationTests(unittest.TestCase):
         self.assertEqual(rows[1].nutrients["sodium_mg"], Decimal(400))
         self.assertEqual(totals["sodium_mg"], 799)
 
+    def test_zero_ratio_part_counts_as_zero_without_asking_the_calculator(self):
+        # 重複列出的高湯（比例 0）：即使該樣本缺某項營養，也是 0、不是未知，不能讓整餐變未知
+        rows, totals, missing, _ = _evaluate([line("FOOD_X", (("FOOD_X", "高湯", Decimal(0)),)), line("SALT")],
+                                             [Decimal(500), Decimal(1)], calculator)
+        self.assertEqual(rows[0].nutrients["sodium_mg"], 0)
+        self.assertEqual(rows[0].nutrients["energy_kcal"], 0)
+        self.assertEqual(totals["sodium_mg"], 400)
+        self.assertNotIn("sodium_mg", missing)
+
     def test_unknown_part_makes_the_ingredient_unknown(self):
         parts = (("YOLK", "鹹蛋黃", Decimal("0.3")), ("FOOD_X", "未知", Decimal("0.1")))
         rows, totals, missing, partial = _evaluate([line("EGG", parts)], [Decimal(120)], calculator)

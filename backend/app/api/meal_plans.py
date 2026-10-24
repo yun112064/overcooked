@@ -48,11 +48,16 @@ def list_plans(date: date | None = None, household_id=Depends(current_household_
 
 
 @router.get("/trend")
-def plan_trend(days: int = Query(30, ge=1, le=366), household_id=Depends(current_household_id),
-               db: Session = Depends(get_db)):
-    """最近 days 天（含今天）每筆已採用餐食的營養與成本，供歷史圖表使用。"""
-    since = date.today() - timedelta(days=days - 1)
-    return {"since": since.isoformat(), "items": service.trend(db, household_id, since)}
+def plan_trend(days: int = Query(30, ge=1, le=366), until: date | None = None,
+               household_id=Depends(current_household_id), db: Session = Depends(get_db)):
+    """截至 until（含，預設伺服器今天）的最近 days 天每筆已採用餐食的營養與成本，供歷史圖表使用。
+
+    前端傳使用者本機的今天：伺服器時區可能不同；預先安排的未來餐食不列入。
+    """
+    until = until or date.today()
+    since = until - timedelta(days=days - 1)
+    return {"since": since.isoformat(), "until": until.isoformat(),
+            "items": service.trend(db, household_id, since, until)}
 
 
 @router.get("/{plan_id}")

@@ -147,8 +147,10 @@ function Legend({ items }: { items: [string, string, boolean][] }) {
 function Trends({ selected, onPick }: { selected: string; onPick: (date: string) => void }) {
   const [days, setDays] = useState(30)
   const trend = useQuery({
-    queryKey: ['meal-plan-trend', days],
-    queryFn: async () => (await api.get<{ since: string; items: TrendItem[] }>('/meal-plans/trend', { params: { days } })).data,
+    queryKey: ['meal-plan-trend', days, today()],
+    // 截止日用本機今天：預先安排的未來餐食不列入統計，與圖表範圍一致
+    queryFn: async () => (await api.get<{ since: string; until: string; items: TrendItem[] }>('/meal-plans/trend',
+      { params: { days, until: today() } })).data,
   })
   const data = useMemo(() => (trend.data ? byDay(trend.data.items, trend.data.since, days) : []), [trend.data, days])
   const items = trend.data?.items ?? []

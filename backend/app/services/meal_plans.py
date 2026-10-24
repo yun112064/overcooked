@@ -238,11 +238,14 @@ def on_date(db: Session, household_id, day: date) -> list[AdoptedMealPlan]:
         AdoptedMealPlan.status == "adopted")).all())
 
 
-def trend(db: Session, household_id, since: date) -> list[dict]:
-    """歷史圖表用：since 起每筆已採用餐食的整餐熱量、蛋白質、目標與成本（皆取自採用當下快照；未知為 None）。"""
+def trend(db: Session, household_id, since: date, until: date) -> list[dict]:
+    """歷史圖表用：since～until（含）每筆已採用餐食的整餐熱量、蛋白質、目標與成本（取自採用當下快照；未知為 None）。
+
+    until 必填：問卷可預先安排未來餐食，統計與圖表都只看到今天為止。
+    """
     rows = _ordered(db.scalars(select(AdoptedMealPlan).where(
         AdoptedMealPlan.household_id == household_id, AdoptedMealPlan.meal_date >= since,
-        AdoptedMealPlan.status == "adopted")).all())
+        AdoptedMealPlan.meal_date <= until, AdoptedMealPlan.status == "adopted")).all())
     out = []
     for plan in rows:
         payload = (plan.snapshot or {}).get("result") or {}

@@ -110,6 +110,11 @@ class AdoptionTests(PlanTestCase):
         self.assertEqual(money(item["cost_total"]), Decimal(20))
         self.assertEqual(money(item["known_cost_total"]), Decimal(20))
         self.assertEqual(self.client.get("/meal-plans/trend", params={"days": 0}).status_code, 422)
+        # 截止日（使用者本機今天）之後的餐食是預先安排的未來餐，不列入統計
+        before = self.client.get("/meal-plans/trend", params={"days": 30, "until": "2026-08-19"}).json()
+        self.assertEqual((before["since"], before["until"], before["items"]), ("2026-07-21", "2026-08-19", []))
+        on_day = self.client.get("/meal-plans/trend", params={"days": 1, "until": "2026-08-20"}).json()
+        self.assertEqual([i["meal_date"] for i in on_day["items"]], ["2026-08-20"])
         other, _ = self.other_household()
         self.assertEqual(other.get("/meal-plans/trend", params={"days": 366}).json()["items"], [])
 

@@ -175,7 +175,11 @@ def _evaluate(lines, grams, calculator):
 
 
 def _intake_calculate(calculator, pairs):
-    """有 intake_parts 的食材改以「實際吃下的組成」計算營養，各組成加總（任一組成缺值即缺值）。"""
+    """有 intake_parts 的食材改以「實際吃下的組成」計算營養，各組成加總（任一組成缺值即缺值）。
+
+    比例 0 的組成（例如重複列出的高湯）不送 calculator，直接計為 0：即使該樣本缺某項營養，
+    也不能讓這項食材、進而整餐變成未知。
+    """
     expanded, owners = [], []
     for idx, (ln, g) in enumerate(pairs):
         if not ln.intake_parts:
@@ -183,26 +187,35 @@ def _intake_calculate(calculator, pairs):
             owners.append(idx)
             continue
         for food_id, name, ratio in ln.intake_parts:
+            if Decimal(ratio) == 0:
+                continue
             expanded.append((replace(ln, food_id=food_id, name=name, intake_parts=None), g * Decimal(ratio)))
             owners.append(idx)
-    results = calculator(expanded)
+    results = calculator(expanded) if expanded else []
     if not any(ln.intake_parts for ln, _ in pairs):
         return results
     grouped: dict[int, list] = {}
     for owner, row in zip(owners, results):
         grouped.setdefault(owner, []).append(row)
+    # 全部組成都是 0 的食材：每一項營養都給 0（含其他食材出現的營養），合計時才不會被當成缺值
+    all_keys = list(dict.fromkeys([*REQUIRED_NUTRIENTS, *(k for r in results for k in r.nutrients)]))
     out = []
     for idx, (ln, g) in enumerate(pairs):
-        rows = grouped[idx]
+        rows = grouped.get(idx, [])
         if not ln.intake_parts:
             out.append(rows[0])
+            continue
+        adjustment = {"parts": [{"food_id": f, "name": n, "ratio": str(r), "grams": str(g * Decimal(r))}
+                                for f, n, r in ln.intake_parts],
+                      "part_traces": [r.trace for r in rows]}
+        if not rows:
+            out.append(IngredientNutrition({k: Decimal(0) for k in all_keys},
+                                           {"food_id": ln.food_id, "intake_adjustment": adjustment}, None))
             continue
         keys = list(dict.fromkeys(k for r in rows for k in r.nutrients))
         nutrients = {k: (None if any(r.nutrients.get(k) is None for r in rows)
                          else sum((Decimal(r.nutrients[k]) for r in rows), Decimal(0))) for k in keys}
-        trace = {**rows[0].trace, "intake_adjustment": {
-            "parts": [{"food_id": f, "name": n, "ratio": str(r), "grams": str(g * Decimal(r))} for f, n, r in ln.intake_parts],
-            "part_traces": [r.trace for r in rows]}}
+        trace = {**rows[0].trace, "intake_adjustment": adjustment}
         out.append(IngredientNutrition(nutrients, trace, next((r.error for r in rows if r.error), None)))
     return out
 
