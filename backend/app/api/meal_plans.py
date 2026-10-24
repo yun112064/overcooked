@@ -1,8 +1,8 @@
 """T16 /meal-plans：採用指定結果版本，依日期查看已採用餐食紀錄（皆限本家庭；他家庭一律 404）。"""
 import uuid
-from datetime import date
+from datetime import date, timedelta
 
-from fastapi import APIRouter, Depends, Header, Response
+from fastapi import APIRouter, Depends, Header, Query, Response
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
@@ -45,6 +45,14 @@ def list_plans(date: date | None = None, household_id=Depends(current_household_
         return {"dates": service.recent_dates(db, household_id)}
     return {"meal_date": date.isoformat(),
             "meal_plans": [service.detail(p) for p in service.on_date(db, household_id, date)]}
+
+
+@router.get("/trend")
+def plan_trend(days: int = Query(30, ge=1, le=366), household_id=Depends(current_household_id),
+               db: Session = Depends(get_db)):
+    """最近 days 天（含今天）每筆已採用餐食的營養與成本，供歷史圖表使用。"""
+    since = date.today() - timedelta(days=days - 1)
+    return {"since": since.isoformat(), "items": service.trend(db, household_id, since)}
 
 
 @router.get("/{plan_id}")

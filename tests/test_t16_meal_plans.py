@@ -83,6 +83,11 @@ class AdoptionTests(PlanTestCase):
         self.assertTrue(detail["targets"]["rule_version"])
         energy, _ = self.reference()
         self.assertEqual(Decimal(detail["nutrition"]["energy_kcal"]), energy)
+        # 每人營養：一位成員 N=1，吃到整餐；每日建議含 7 項
+        [person] = detail["nutrition"]["per_person"]
+        self.assertTrue(person["name"])
+        self.assertEqual(Decimal(person["intake"]["energy_kcal"]), energy)
+        self.assertEqual(len(person["daily"]), 7)
         # 價格快照與缺值標示
         self.assertEqual(money(detail["prices"]["cost_total"]), Decimal(20))
         self.assertEqual(detail["missing"], {"price_food_ids": [], "price_exception_accepted": False,
@@ -91,6 +96,22 @@ class AdoptionTests(PlanTestCase):
         for key in ("result_schema_version", "nutrition_rule_version", "pricing_version", "adoption_rule_version"):
             self.assertTrue(detail["versions"][key], key)
         self.assertEqual(detail["previous_day"]["previous_date"], "2026-08-19")
+
+    def test_trend_lists_adopted_meals_with_nutrition_and_cost_for_this_household_only(self):
+        self.generate()
+        self.assertEqual(self.adopt().status_code, 201)
+        res = self.client.get("/meal-plans/trend", params={"days": 366})
+        self.assertEqual(res.status_code, 200, res.text)
+        [item] = [i for i in res.json()["items"] if i["meal_date"] == "2026-08-20"]
+        energy, _ = self.reference()
+        self.assertEqual(item["meal_type"], "dinner")
+        self.assertEqual(Decimal(item["energy_kcal"]), energy)
+        self.assertTrue(item["target_energy_kcal"])
+        self.assertEqual(money(item["cost_total"]), Decimal(20))
+        self.assertEqual(money(item["known_cost_total"]), Decimal(20))
+        self.assertEqual(self.client.get("/meal-plans/trend", params={"days": 0}).status_code, 422)
+        other, _ = self.other_household()
+        self.assertEqual(other.get("/meal-plans/trend", params={"days": 366}).json()["items"], [])
 
     def test_ai_menu_adoption_keeps_ai_label_fallback_reason_and_knowledge_citations(self):
         from knowledge_support import FakeEmbedder

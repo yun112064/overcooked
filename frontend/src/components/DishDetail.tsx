@@ -1,7 +1,21 @@
-import { Box, Typography } from '@mui/material'
+import { Box, Chip, Tooltip, Typography } from '@mui/material'
 import type { ResultIngredient } from '../api/types'
 
 type Ingredient = Pick<ResultIngredient, 'name' | 'group' | 'display_amount' | 'display_unit' | 'display_text' | 'display_grams'>
+
+/** 每日鈉上限（mg），與 config/daily_reference_nutrients.json 一致；只用於提示文字 */
+const SODIUM_DAILY_MAX = 2400
+
+/** 高鈉提醒：每人份鈉達門檻的菜加上標籤（只提醒，不影響採用）。 */
+export function HighSodiumTag({ high, sodium }: { high?: boolean; sodium?: string | null }) {
+  if (!high || sodium == null) return null
+  const mg = Number(sodium)
+  return (
+    <Tooltip title={`每人份約 ${Math.round(mg)} mg 鈉，約占每日上限 ${SODIUM_DAILY_MAX} mg 的 ${Math.round((mg / SODIUM_DAILY_MAX) * 100)}%`}>
+      <Chip size="small" color="warning" variant="outlined" label={`高鈉・${Math.round(mg)} mg`} sx={{ cursor: 'help' }} />
+    </Tooltip>
+  )
+}
 
 /** 後端已取整的畫面用量（克到 1 g、其他單位到整數）；沒有數量時顯示原文 */
 function shown(i: Ingredient) {

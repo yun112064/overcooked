@@ -17,7 +17,7 @@ import copy
 from datetime import date, datetime, timezone
 
 from sqlalchemy import func, select, text
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, object_session
 
 from app.api.errors import ApiError, not_found, version_conflict
 from app.db.models import AdoptedMealPlan, GenerationResult, MealRequest, MealResultDecision
@@ -216,7 +216,7 @@ def detail(plan: AdoptedMealPlan) -> dict:
         "participations": targets.get("items") or [],
         "targets": {"rule_version": targets.get("rule_version"), "total_n": targets.get("total_n"),
                     "target": targets.get("target")},
-        "nutrition": meal_results._nutrition(payload),
+        "nutrition": meal_results.nutrition_with_people(object_session(plan), plan.household_id, payload),
         "prices": meal_results._prices(payload),
         "missing": snap.get("missing"),
         "price_exception": snap.get("price_exception"),
@@ -236,6 +236,27 @@ def on_date(db: Session, household_id, day: date) -> list[AdoptedMealPlan]:
     return _ordered(db.scalars(select(AdoptedMealPlan).where(
         AdoptedMealPlan.household_id == household_id, AdoptedMealPlan.meal_date == day,
         AdoptedMealPlan.status == "adopted")).all())
+
+
+def trend(db: Session, household_id, since: date) -> list[dict]:
+    """歷史圖表用：since 起每筆已採用餐食的整餐熱量、蛋白質、目標與成本（皆取自採用當下快照；未知為 None）。"""
+    rows = _ordered(db.scalars(select(AdoptedMealPlan).where(
+        AdoptedMealPlan.household_id == household_id, AdoptedMealPlan.meal_date >= since,
+        AdoptedMealPlan.status == "adopted")).all())
+    out = []
+    for plan in rows:
+        payload = (plan.snapshot or {}).get("result") or {}
+        nutrition = meal_results._nutrition(payload) if payload else {}
+        prices = meal_results._prices(payload) if payload else {}
+        target = nutrition.get("target") or {}
+        out.append({
+            "meal_date": plan.meal_date.isoformat(), "meal_type": plan.meal_type,
+            "energy_kcal": nutrition.get("energy_kcal"), "protein_g": nutrition.get("protein_g"),
+            "target_energy_kcal": target.get("energy_kcal"), "target_protein_g": target.get("protein_g"),
+            "cost_total": prices.get("cost_total"), "known_cost_total": prices.get("known_cost_total"),
+            "budget": prices.get("budget"),
+        })
+    return out
 
 
 def recent_dates(db: Session, household_id, limit: int = 60) -> list[dict]:

@@ -168,6 +168,25 @@ export type Job = {
 
 // --- T15 生成結果與缺值決策（金額、克數、營養以字串保存精確值；null 代表未知，不是 0） ---
 
+/** 每日建議：target 為建議值、range 為建議範圍、max 為上限 */
+export type DailyReference = {
+  kind: 'target' | 'range' | 'max'; value?: string; min?: string; max?: string; label: string; caveat?: string
+}
+
+export type PersonNutrition = {
+  member_id: string
+  /** 成員已刪除時為 null */
+  name: string | null
+  kinds: ('dining' | 'bento')[]
+  n: string
+  share: string
+  /** 這一餐（用餐＋便當合計）占每日建議的比例，例如晚餐 0.4 */
+  meal_ratio: string
+  intake: Record<string, string | null>
+  known_partial: Record<string, string>
+  daily: Record<string, DailyReference>
+}
+
 export type DecisionKind = 'accept_missing_price' | 'continue_missing_nutrition'
 
 export type ResultBlock = { code: string; message: string; [key: string]: unknown }
@@ -338,6 +357,10 @@ export type MealResult = {
     /** decisions #41：顯示用步驟，[調味] 等分組代稱已展開成實際食材；舊結果與原文相同 */
     steps_display?: string[]
     ingredients: ResultIngredient[]
+    /** 每人份（每 1n）鈉；任一食材缺值為 null。舊結果沒有此欄 */
+    sodium_mg_per_serving?: string | null
+    /** 每人份鈉達高鈉門檻（只提醒，不影響採用） */
+    high_sodium?: boolean
   }[]
   /** 主食（decisions #16）：計入營養與 ±10%，不計價格；份量設定待營養審核者確認 */
   staple: {
@@ -372,6 +395,13 @@ export type MealResult = {
     llm_estimates?: LlmEstimates
     llm_mappings?: LlmMappings
     approximations?: Approximations
+    /** 每人這一餐吃到的量（整餐 × n ÷ 總 n）對照每人每日建議；舊結果的目標缺漏時為空陣列 */
+    per_person?: PersonNutrition[]
+    daily_reference?: {
+      version: string; source: { publisher: string; title: string; url: string; verification: string }
+      /** 高鈉菜門檻（每人份 mg） */
+      high_sodium_dish_mg?: string
+    }
   }
   prices: {
     status: string
@@ -459,7 +489,7 @@ type ResultDish = MealResult['dishes'][number]
 export type MealPlanDetail = Omit<MealPlanSummary, 'dishes'> & {
   snapshot_available: boolean
   fallback_message?: string | null
-  dishes: (MealPlanDish & Partial<Pick<ResultDish, 'cooking_method' | 'steps' | 'steps_display' | 'ingredients'>> & {
+  dishes: (MealPlanDish & Partial<Pick<ResultDish, 'cooking_method' | 'steps' | 'steps_display' | 'ingredients' | 'sodium_mg_per_serving' | 'high_sodium'>> & {
     recipe_source?: { recipe_id: string; source_name: string; source_url: string } | null
   })[]
   nutrition?: MealResult['nutrition']

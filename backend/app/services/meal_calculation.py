@@ -11,10 +11,12 @@
 """
 import itertools
 import sys
-from dataclasses import dataclass
+import json
+from dataclasses import dataclass, replace
 from decimal import ROUND_HALF_UP, Decimal
 from fractions import Fraction
 from functools import lru_cache
+from pathlib import Path
 from typing import Callable
 
 from app.core.config import PROJECT_ROOT
@@ -117,6 +119,9 @@ class IngredientLine:
     weight_source: str | None = None
     # 顯示用（decisions #41）：raw_text 開頭 [X] 標記的食材分組（如「調味」「醃料」）；不參與計算
     group: str | None = None
+    # 實際吃下的組成（config/recipe_intake_adjustments.json）：((food_id, name, 克數比例), ...)。
+    # 只影響營養（例如燙青菜水裡的鹽只計一部分、鹹蛋只吃蛋黃）；顯示、缺料與價格仍用原食材與克數。None 為全部吃下。
+    intake_parts: tuple | None = None
 
 
 @dataclass
@@ -149,7 +154,7 @@ def _evaluate(lines, grams, calculator):
     已知部分合計只加總有值的食材（沒有任何已知值時為 None）；任一食材缺值時合計為 None，不以 0 代替。
     """
     known = [i for i, g in enumerate(grams) if g is not None]
-    computed = calculator([(lines[i], grams[i]) for i in known]) if known else []
+    computed = _intake_calculate(calculator, [(lines[i], grams[i]) for i in known]) if known else []
     rows = [None] * len(lines)
     for i, row in zip(known, computed):
         rows[i] = row
@@ -167,6 +172,69 @@ def _evaluate(lines, grams, calculator):
         else:
             totals[key] = partial[key]
     return rows, totals, missing, partial
+
+
+def _intake_calculate(calculator, pairs):
+    """有 intake_parts 的食材改以「實際吃下的組成」計算營養，各組成加總（任一組成缺值即缺值）。"""
+    expanded, owners = [], []
+    for idx, (ln, g) in enumerate(pairs):
+        if not ln.intake_parts:
+            expanded.append((ln, g))
+            owners.append(idx)
+            continue
+        for food_id, name, ratio in ln.intake_parts:
+            expanded.append((replace(ln, food_id=food_id, name=name, intake_parts=None), g * Decimal(ratio)))
+            owners.append(idx)
+    results = calculator(expanded)
+    if not any(ln.intake_parts for ln, _ in pairs):
+        return results
+    grouped: dict[int, list] = {}
+    for owner, row in zip(owners, results):
+        grouped.setdefault(owner, []).append(row)
+    out = []
+    for idx, (ln, g) in enumerate(pairs):
+        rows = grouped[idx]
+        if not ln.intake_parts:
+            out.append(rows[0])
+            continue
+        keys = list(dict.fromkeys(k for r in rows for k in r.nutrients))
+        nutrients = {k: (None if any(r.nutrients.get(k) is None for r in rows)
+                         else sum((Decimal(r.nutrients[k]) for r in rows), Decimal(0))) for k in keys}
+        trace = {**rows[0].trace, "intake_adjustment": {
+            "parts": [{"food_id": f, "name": n, "ratio": str(r), "grams": str(g * Decimal(r))} for f, n, r in ln.intake_parts],
+            "part_traces": [r.trace for r in rows]}}
+        out.append(IngredientNutrition(nutrients, trace, next((r.error for r in rows if r.error), None)))
+    return out
+
+
+INTAKE_ADJUSTMENTS_PATH = PROJECT_ROOT / "config" / "recipe_intake_adjustments.json"
+WEIGHT_CORRECTIONS_PATH = PROJECT_ROOT / "config" / "recipe_weight_corrections.json"
+
+
+@lru_cache(maxsize=2)
+def weight_corrections(path: str = str(WEIGHT_CORRECTIONS_PATH)) -> tuple[dict, dict]:
+    """工作簿換算錯誤的修正：(食譜 → 份數, 食譜食材 → 整份食譜克數)；檔案不存在時沒有修正。
+
+    與攝取量修正不同，這裡改的是實際用量，營養、缺料與價格都依修正後克數計算。
+    """
+    file = Path(path)
+    if not file.is_file():
+        return {}, {}
+    data = json.loads(file.read_text(encoding="utf-8"))
+    servings = {rid: Decimal(r["servings"]) for rid, r in data.get("recipes", {}).items()}
+    weights = {rid: Decimal(r["weight_g"]) for rid, r in data.get("ingredients", {}).items()}
+    return servings, weights
+
+
+@lru_cache(maxsize=2)
+def intake_adjustments(path: str = str(INTAKE_ADJUSTMENTS_PATH)) -> dict:
+    """recipe_ingredient_id → ((food_id, name, 克數比例), ...)；檔案不存在時沒有修正。"""
+    file = Path(path)
+    if not file.is_file():
+        return {}
+    data = json.loads(file.read_text(encoding="utf-8"))
+    return {rid: tuple((p["food_id"], p["name"], Decimal(p["ratio"])) for p in adj["parts"])
+            for rid, adj in data.get("adjustments", {}).items()}
 
 
 def _dedupe(names: list[str]) -> list[str]:
@@ -735,7 +803,8 @@ def load_recipe_lines(db, recipe_id: str, factors=None) -> list[IngredientLine]:
     recipe = db.get(Recipe, recipe_id)
     if recipe is None:
         raise LookupError(recipe_id)
-    servings = recipe.original_servings
+    servings_fix, weight_fix = weight_corrections()
+    servings = servings_fix.get(recipe_id, recipe.original_servings)
     methods = recipe.cooking_methods or []
     method = methods[0] if len(methods) == 1 else None
     rows = db.scalars(select(RecipeIngredient).where(RecipeIngredient.recipe_id == recipe_id)
@@ -754,6 +823,8 @@ def load_recipe_lines(db, recipe_id: str, factors=None) -> list[IngredientLine]:
         source = "recipe_grams" if weight is not None else None
         if weight is None and row.source_weight_g is not None:  # 含 g 單位範圍列（decisions #55）
             weight, source = row.source_weight_g, "workbook"
+        if row.recipe_ingredient_id in weight_fix:  # 工作簿換算錯誤的人工修正（config/recipe_weight_corrections.json）
+            weight, source = weight_fix[row.recipe_ingredient_id], "corrected"
         if not servings:
             reason = "servings_unresolved"
         elif weight is None:
@@ -774,6 +845,7 @@ def load_recipe_lines(db, recipe_id: str, factors=None) -> list[IngredientLine]:
             cooking_methods=tuple(methods) if len(methods) > 1 else (),
             unit=row.unit, amount_per_n=per_n(row.amount), raw_text=row.raw_text,
             weight_source=None if reason else source, group=ingredient_group(row.raw_text)[0],
+            intake_parts=intake_adjustments().get(row.recipe_ingredient_id),
         ))
     return lines
 

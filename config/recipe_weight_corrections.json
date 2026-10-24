@@ -1,0 +1,356 @@
+{
+  "version": "weights-2026-10-24",
+  "decided_on": "2026-10-24",
+  "note": "工作簿（recipe_dataset_1017.xlsx）換算錯誤的人工修正：改的是實際用量，營養、缺料清單與價格都依修正後克數計算（weight_source=corrected）。recipes 修正份數，ingredients 修正整份食譜的克數（不是每份）。每筆附理由；新增前請逐道讀食材原文與步驟確認。只是「沒有全部吃下去」的情況請改用 recipe_intake_adjustments.json。",
+  "conventions": {
+    "garlic_clove_g": {
+      "value": "5",
+      "text": "台灣食譜的「蒜頭／蒜仁／蒜末 X 顆」指蒜瓣，每瓣 5 g（同工作簿 R0293「蒜頭 3顆 12 g」、R0025「蒜 3粒 15 g」）；工作簿部分列誤當整顆蒜頭 50 g"
+    },
+    "fresh_shiitake_g": {
+      "value": "20",
+      "text": "新鮮香菇每朵約 20 g（同工作簿 R0080「新鮮香菇 兩朵 40 g」）；工作簿部分列誤為 80 g"
+    },
+    "vague_small": {
+      "text": "「少許」比照同工作簿：鹽 少許 1 g、雞粉 1/4 小匙 0.94 g；顆粒調味料、乾香草 少許 1–2 g，醬油 少許 1 茶匙 6 g，糖 少許 2 g（推估，待審核）"
+    }
+  },
+  "recipes": {
+    "R0169": {
+      "recipe": "雜菜薯仔瘦肉湯",
+      "servings": "4",
+      "reason": "份數原文「1 人份」，但用了粟米 1 條、椰菜 1 個、馬鈴薯 3 個、瘦肉 5 兩煲一大鍋湯；以 4 人份計。"
+    }
+  },
+  "ingredients": {
+    "RI000483": {
+      "recipe_id": "R0061",
+      "recipe": "沙茶豬肉燴飯",
+      "ingredient": "蒜頭 四顆",
+      "weight_g": "20",
+      "reason": "蒜瓣 4 × 5 g（原 200 g，1 人份）。"
+    },
+    "RI000502": {
+      "recipe_id": "R0062",
+      "recipe": "紅燒牛肉燴飯",
+      "ingredient": "蒜頭 3-4顆",
+      "weight_g": "17.5",
+      "reason": "蒜瓣 3.5 × 5 g（原 175 g）。"
+    },
+    "RI000615": {
+      "recipe_id": "R0070",
+      "recipe": "什錦炒麵",
+      "ingredient": "蒜頭 1顆",
+      "weight_g": "5",
+      "reason": "步驟「蒜頭切片」與其他配料同炒，指蒜瓣（原 50 g）。"
+    },
+    "RI000857": {
+      "recipe_id": "R0095",
+      "recipe": "豬肉咖哩",
+      "ingredient": "蒜米 3顆",
+      "weight_g": "15",
+      "reason": "蒜米即蒜瓣，3 × 5 g（原 150 g）。"
+    },
+    "RI000917": {
+      "recipe_id": "R0104",
+      "recipe": "蔥爆雞丁",
+      "ingredient": "蒜頭 3顆",
+      "weight_g": "15",
+      "reason": "蒜瓣 3 × 5 g（原 150 g）。"
+    },
+    "RI000927": {
+      "recipe_id": "R0105",
+      "recipe": "宮保雞丁",
+      "ingredient": "（大蒜）5顆",
+      "weight_g": "25",
+      "reason": "蒜瓣 5 × 5 g（原 250 g）。"
+    },
+    "RI001157": {
+      "recipe_id": "R0127",
+      "recipe": "紅燒糖醋吳郭魚",
+      "ingredient": "蒜頭 五顆",
+      "weight_g": "25",
+      "reason": "蒜瓣 5 × 5 g（原 250 g）。"
+    },
+    "RI001197": {
+      "recipe_id": "R0132",
+      "recipe": "椒鹽鮭魚",
+      "ingredient": "蒜頭 2顆",
+      "weight_g": "10",
+      "reason": "蒜瓣 2 × 5 g（原 100 g）。"
+    },
+    "RI001453": {
+      "recipe_id": "R0166",
+      "recipe": "醬煎豬排",
+      "ingredient": "[醃料]蒜頭 2顆",
+      "weight_g": "10",
+      "reason": "醃料用蒜瓣 2 × 5 g（原 100 g）。"
+    },
+    "RI001614": {
+      "recipe_id": "R0185",
+      "recipe": "三杯透抽",
+      "ingredient": "蒜仁 7顆",
+      "weight_g": "35",
+      "reason": "蒜仁即蒜瓣，7 × 5 g（原 350 g）。"
+    },
+    "RI001634": {
+      "recipe_id": "R0187",
+      "recipe": "三杯小卷",
+      "ingredient": "蒜頭 6顆",
+      "weight_g": "30",
+      "reason": "蒜瓣 6 × 5 g（原 300 g）。"
+    },
+    "RI001663": {
+      "recipe_id": "R0190",
+      "recipe": "泰式椒麻雞",
+      "ingredient": "蒜末 2-3顆",
+      "weight_g": "12.5",
+      "reason": "醬汁用蒜末，蒜瓣 2.5 × 5 g（原 125 g）。"
+    },
+    "RI001676": {
+      "recipe_id": "R0191",
+      "recipe": "日式馬鈴薯燉雞腿肉",
+      "ingredient": "蒜頭 五顆",
+      "weight_g": "25",
+      "reason": "蒜瓣 5 × 5 g（原 250 g）。"
+    },
+    "RI001702": {
+      "recipe_id": "R0195",
+      "recipe": "清炒青江菜",
+      "ingredient": "蒜 2顆",
+      "weight_g": "10",
+      "reason": "蒜瓣 2 × 5 g（原 100 g）。"
+    },
+    "RI002017": {
+      "recipe_id": "R0236",
+      "recipe": "涼拌秋葵",
+      "ingredient": "蒜末 3顆",
+      "weight_g": "15",
+      "reason": "蒜瓣 3 × 5 g（原 150 g）。"
+    },
+    "RI002066": {
+      "recipe_id": "R0242",
+      "recipe": "塔香地瓜葉",
+      "ingredient": "蒜末 3顆",
+      "weight_g": "15",
+      "reason": "蒜瓣 3 × 5 g（原 150 g）。"
+    },
+    "RI002240": {
+      "recipe_id": "R0269",
+      "recipe": "蠔油福山萵苣",
+      "ingredient": "新鮮香菇 5朵",
+      "weight_g": "100",
+      "reason": "新鮮香菇每朵 20 g（原 400 g）。"
+    },
+    "RI002367": {
+      "recipe_id": "R0287",
+      "recipe": "香菇炒水蓮",
+      "ingredient": "香菇 6朵",
+      "weight_g": "120",
+      "reason": "新鮮香菇每朵 20 g（原 480 g）。"
+    },
+    "RI001850": {
+      "recipe_id": "R0212",
+      "recipe": "南瓜炒米粉",
+      "ingredient": "米粉 2人份",
+      "weight_g": "150",
+      "reason": "乾米粉每人約 75 g（原 400 g，每人 200 g 乾米粉約 726 kcal）。"
+    },
+    "RI001852": {
+      "recipe_id": "R0212",
+      "recipe": "南瓜炒米粉",
+      "ingredient": "小蝦米 1小把",
+      "weight_g": "15",
+      "reason": "乾蝦米一小把約 15 g（原 100 g）。"
+    },
+    "RI001853": {
+      "recipe_id": "R0212",
+      "recipe": "南瓜炒米粉",
+      "ingredient": "芹菜或高麗菜 3支",
+      "weight_g": "150",
+      "reason": "「3 支」是芹菜的量（約 150 g）；原換算成 1500 g 高麗菜。"
+    },
+    "RI001880": {
+      "recipe_id": "R0215",
+      "recipe": "南瓜蒸排骨",
+      "ingredient": "排骨 2人份",
+      "weight_g": "300",
+      "reason": "排骨每人約 150 g（原 900 g，每人 450 g 約 1160 kcal）。"
+    },
+    "RI001883": {
+      "recipe_id": "R0215",
+      "recipe": "南瓜蒸排骨",
+      "ingredient": "糖 少許",
+      "weight_g": "2",
+      "reason": "醃料「糖 少許」，原換算 10 g 過大。"
+    },
+    "RI001885": {
+      "recipe_id": "R0215",
+      "recipe": "南瓜蒸排骨",
+      "ingredient": "雞粉 少許",
+      "weight_g": "1",
+      "reason": "醃料「雞粉 少許」，原換算 15 g 過大（約 1300 mg 鈉）。"
+    },
+    "RI002049": {
+      "recipe_id": "R0239",
+      "recipe": "皮蛋地瓜葉",
+      "ingredient": "雞粉 少許",
+      "weight_g": "1",
+      "reason": "原換算 15 g 過大。"
+    },
+    "RI002055": {
+      "recipe_id": "R0240",
+      "recipe": "燙地瓜葉",
+      "ingredient": "醬油 少許",
+      "weight_g": "6",
+      "reason": "步驟「少量醬油拌勻」（2 人份），改 1 茶匙；原換算 25.5 g（約 1.5 大匙）。"
+    },
+    "RI002124": {
+      "recipe_id": "R0253",
+      "recipe": "紅燒冬瓜排骨",
+      "ingredient": "烹大師 少許",
+      "weight_g": "2",
+      "reason": "步驟 4「加入少許烹大師調味」；原換算 50 g（約 4 大匙、8000 mg 鈉）。"
+    },
+    "RI001866": {
+      "recipe_id": "R0213",
+      "recipe": "夏季肉桂蜂蜜烤南瓜",
+      "ingredient": "肉桂 少許",
+      "weight_g": "1",
+      "reason": "原換算 100 g，明顯錯誤。"
+    },
+    "RI001862": {
+      "recipe_id": "R0213",
+      "recipe": "夏季肉桂蜂蜜烤南瓜",
+      "ingredient": "百里香 少許",
+      "weight_g": "1",
+      "reason": "乾香草少許；原換算 50 g（對到迷迭香粉樣本，約 216 kcal）。"
+    },
+    "RI001863": {
+      "recipe_id": "R0213",
+      "recipe": "夏季肉桂蜂蜜烤南瓜",
+      "ingredient": "迷迭香 少許",
+      "weight_g": "1",
+      "reason": "乾香草少許；原換算 50 g。"
+    },
+    "RI001927": {
+      "recipe_id": "R0223",
+      "recipe": "萵苣炒蛋",
+      "ingredient": "萵苣 8株",
+      "weight_g": "400",
+      "reason": "小株萵苣（大陸妹）每株約 50 g，3 人份炒蛋約 400 g；原換算 2000 g。"
+    },
+    "RI001074": {
+      "recipe_id": "R0120",
+      "recipe": "慢煮茶滷牛腱",
+      "ingredient": "牛腱 2件",
+      "weight_g": "1000",
+      "reason": "牛腱一件約 500 g；原換算 50 g（每人 12.5 g）。"
+    },
+    "RI000258": {
+      "recipe_id": "R0031",
+      "recipe": "味噌鮮魚湯",
+      "ingredient": "味噌 1包",
+      "weight_g": "80",
+      "reason": "4 人份味噌湯約 80 g 味噌（每 200 ml 約 1 大匙）；原換算整包 300 g（每份約 3100 mg 鈉）。"
+    },
+    "RI000733": {
+      "recipe_id": "R0081",
+      "recipe": "讚岐烏龍麵",
+      "ingredient": "昆布 10cm",
+      "weight_g": "10",
+      "reason": "10 公分乾昆布約 10 g；原換算 50 g。"
+    },
+    "RI000605": {
+      "recipe_id": "R0070",
+      "recipe": "什錦炒麵",
+      "ingredient": "油麵 20元",
+      "weight_g": "400",
+      "reason": "步驟「油麵大約 2-3 人份量」，2 人份以 400 g 計；原換算 600 g（每人 300 g 約 1080 kcal）。"
+    },
+    "RI000676": {
+      "recipe_id": "R0076",
+      "recipe": "餛飩湯麵",
+      "ingredient": "油麵 兩把（兩人份）",
+      "weight_g": "400",
+      "reason": "油麵每人約 200 g；原換算 600 g。"
+    },
+    "RI000463": {
+      "recipe_id": "R0058",
+      "recipe": "愛妻飯盒-韓式拌飯",
+      "ingredient": "鹽 1匙",
+      "weight_g": "3",
+      "reason": "步驟只用「小黃瓜加入半匙鹽」，半小匙約 3 g；原換算 12 g（約 4100 mg 鈉）。"
+    },
+    "RI001199": {
+      "recipe_id": "R0132",
+      "recipe": "椒鹽鮭魚",
+      "ingredient": "鹽巴/黑胡椒粉 適量",
+      "weight_g": "3",
+      "reason": "椒鹽撒在魚上，3 人份鹽約 3 g；原換算 10 g。"
+    },
+    "RI000628": {
+      "recipe_id": "R0071",
+      "recipe": "日式炒麵",
+      "ingredient": "柴魚（未寫用量）",
+      "weight_g": "6",
+      "reason": "步驟 8 起鍋後「撒上」柴魚片，3 人份約 6 g；原換算 100 g（每份 128 kcal）。"
+    },
+    "RI000980": {
+      "recipe_id": "R0111",
+      "recipe": "低卡蘑菇菠菜烘蛋",
+      "ingredient": "鹽巴及胡椒 適量",
+      "weight_g": "2",
+      "reason": "2 人份烘蛋調味；原換算 5 g。"
+    },
+    "RI002035": {
+      "recipe_id": "R0238",
+      "recipe": "糖醋秋葵肉卷",
+      "ingredient": "白芝麻 適量",
+      "weight_g": "4",
+      "reason": "撒在表面的芝麻，2 人份約 4 g；原換算 50 g（約 290 kcal）。"
+    },
+    "RI002079": {
+      "recipe_id": "R0244",
+      "recipe": "奶油地瓜燒",
+      "ingredient": "芝麻 少許",
+      "weight_g": "3",
+      "reason": "表面點綴的芝麻；原換算 50 g。"
+    },
+    "RI002094": {
+      "recipe_id": "R0247",
+      "recipe": "日式點心之茶巾地瓜燒",
+      "ingredient": "芝麻 少許",
+      "weight_g": "3",
+      "reason": "表面點綴的芝麻；原換算 50 g。"
+    },
+    "RI002234": {
+      "recipe_id": "R0268",
+      "recipe": "醬拌福山萵苣",
+      "ingredient": "黑白芝麻 少許",
+      "weight_g": "3",
+      "reason": "撒在表面的芝麻；原換算 50 g。"
+    },
+    "RI002362": {
+      "recipe_id": "R0286",
+      "recipe": "水蓮炒肉絲",
+      "ingredient": "枸杞 少許",
+      "weight_g": "5",
+      "reason": "配色用枸杞少許；原換算 50 g。"
+    },
+    "RI002093": {
+      "recipe_id": "R0247",
+      "recipe": "日式點心之茶巾地瓜燒",
+      "ingredient": "蛋水 少許",
+      "weight_g": "10",
+      "reason": "「蛋水」是刷表面上色用，約 10 g 蛋液；原換算成 2 顆雞蛋 110 g。"
+    },
+    "RI002206": {
+      "recipe_id": "R0265",
+      "recipe": "汆燙芥藍菜花",
+      "ingredient": "紅蘿蔔 少許",
+      "weight_g": "15",
+      "reason": "配色用紅蘿蔔少許；原換算 50 g。"
+    }
+  }
+}

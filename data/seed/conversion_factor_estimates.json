@@ -94417,6 +94417,31 @@
   "yield_factor": null
  },
  {
+  "assumptions": [],
+  "call_key": null,
+  "created_at": "2026-10-24T11:59:25.772024+00:00",
+  "energy_retention": null,
+  "factor_key": "tfda",
+  "food_id": "FOOD000316",
+  "food_name": null,
+  "grams_per_unit": null,
+  "id": "304eedc9-4901-46ef-a493-4c50d08f5d85",
+  "input_snapshot": {},
+  "kind": "tfda_mapping",
+  "model": null,
+  "nutrient_per_100g": null,
+  "prompt_version": null,
+  "protein_retention": null,
+  "review_note": "全麥麵包原 LLM 對照為麵包粉（乾燥麵包屑），改用 TFDA 土司(含全穀粉)",
+  "reviewed_at": "2026-10-24T11:59:25.772024+00:00",
+  "reviewer": "Claude 判讀（2026-10-24 全面檢查）",
+  "schema_version": null,
+  "source": "human",
+  "status": "overridden",
+  "tfda_sample_id": "Q1000201",
+  "yield_factor": null
+ },
+ {
   "assumptions": [
    "吐司就是一般白吐司/土司，候選中只有 Q1000101 是麵包類的土司；其他都是乾酪，不相符。"
   ],
@@ -123163,6 +123188,31 @@
   "source": "llm_estimated",
   "status": "llm_estimated",
   "tfda_sample_id": "J2300201",
+  "yield_factor": null
+ },
+ {
+  "assumptions": [],
+  "call_key": null,
+  "created_at": "2026-10-24T11:58:09.640292+00:00",
+  "energy_retention": null,
+  "factor_key": "tfda",
+  "food_id": "FOOD001312",
+  "food_name": null,
+  "grams_per_unit": null,
+  "id": "84074d83-0677-4b8f-9a6d-16945f94199a",
+  "input_snapshot": {},
+  "kind": "tfda_mapping",
+  "model": null,
+  "nutrient_per_100g": null,
+  "prompt_version": null,
+  "protein_retention": null,
+  "review_note": "蝦子是鮮蝦；原 LLM 對照因候選無鮮蝦而選了蝦米乾貨 J2300201（鈉 3186 mg/100g），改用與「蝦」FOOD001310 相同的 J2100701",
+  "reviewed_at": "2026-10-24T11:58:09.640292+00:00",
+  "reviewer": "Claude 判讀（2026-10-24 全面檢查）",
+  "schema_version": null,
+  "source": "human",
+  "status": "overridden",
+  "tfda_sample_id": "J2100701",
   "yield_factor": null
  },
  {

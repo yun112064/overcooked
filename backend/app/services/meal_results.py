@@ -8,6 +8,7 @@
 - request_knowledge_retry：知識服務故障或額度不足時，只重試知識說明（背景工作），產生新版本。
 採用交易與歷史在 T16，T16 必須以 meal_validation.evaluate 重新判定，不能信任前端或本模組的快取。
 """
+import uuid
 from datetime import datetime, timezone
 from decimal import Decimal
 
@@ -16,8 +17,8 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.api.errors import ApiError, idempotency_conflict, version_conflict
-from app.db.models import GenerationResult, MealRequest, MealResultDecision
-from app.services import idempotency, jobs, meal_history, meal_validation
+from app.db.models import GenerationResult, MealRequest, MealResultDecision, Member
+from app.services import idempotency, jobs, meal_history, meal_validation, per_person_nutrition
 from app.services.meal_calculation import display_count
 
 
@@ -118,11 +119,24 @@ def _llm_estimates(calc: dict) -> dict:
             "label": LLM_ESTIMATE_LABEL if summary.get("used") else None}
 
 
+def _dish_sodium(rows: list[dict], total_n) -> str | None:
+    """一道菜每人份（每 1n）的鈉：該菜各食材整餐鈉合計 ÷ 總份數；任一食材缺值即未知（不以 0 代替）。"""
+    if not rows or not total_n:
+        return None
+    values = [(r.get("nutrients") or {}).get("sodium_mg") for r in rows]
+    if any(v is None for v in values):
+        return None
+    return str(sum((Decimal(str(v)) for v in values), Decimal(0)) / Decimal(str(total_n)))
+
+
 def _dishes(payload: dict) -> list[dict]:
-    rows = (payload.get("calculation") or {}).get("ingredients") or []
+    calc = payload.get("calculation") or {}
+    rows = calc.get("ingredients") or []
+    threshold = Decimal(per_person_nutrition.load_reference()["high_sodium_dish"]["mg_per_serving"])
     out = []
     for d in payload["dishes"]:
         key = d.get("recipe_id") or d["standard_dish_id"]
+        sodium = _dish_sodium([r for r in rows if r.get("dish_id") == key], calc.get("total_n"))
         out.append({
             "standard_dish_id": d["standard_dish_id"], "dish_name": d["dish_name"], "aliases": d.get("aliases", []),
             "source": d["source"], "recipe_id": d.get("recipe_id"), "specified": d.get("specified", False),
@@ -130,6 +144,9 @@ def _dishes(payload: dict) -> list[dict]:
             # 決策 #41：顯示用步驟（分組代稱已展開）；舊結果沒有時沿用原文
             "steps_display": d.get("steps_display") or d.get("steps", []),
             "ingredients": [_ingredient(r) for r in rows if r.get("dish_id") == key],
+            # 高鈉提醒（config/daily_reference_nutrients.json high_sodium_dish）：只提醒，不影響採用資格
+            "sodium_mg_per_serving": sodium,
+            "high_sodium": sodium is not None and Decimal(sodium) >= threshold,
         })
     return out
 
@@ -243,6 +260,22 @@ def _previous_day(payload: dict) -> dict:
             "excluded_dishes": ctx.get("excluded_dishes") or [], "specified_repeats": repeats}
 
 
+def nutrition_with_people(db: Session, household_id, payload: dict) -> dict:
+    """整餐營養＋每人攝取量對照每日建議（per_person）；成員名稱取目前資料，已刪除成員為 None。"""
+    nutrition = _nutrition(payload)
+    ids = {i["participation_id"].split(":", 1)[0] for i in (payload.get("targets") or {}).get("items") or []}
+    valid = []
+    for raw in ids:
+        try:
+            valid.append(uuid.UUID(raw))
+        except ValueError:
+            pass
+    names = {str(m.id): m.display_name for m in db.scalars(
+        select(Member).where(Member.household_id == household_id, Member.id.in_(valid)))} if valid else {}
+    return {**nutrition, "per_person": per_person_nutrition.per_person(payload, nutrition, names),
+            "daily_reference": per_person_nutrition.reference_meta()}
+
+
 def view(db: Session, request: MealRequest, result: GenerationResult) -> dict:
     p = result.payload
     derived = db.get(GenerationResult, result.derived_from_result_id) if result.derived_from_result_id else None
@@ -255,7 +288,7 @@ def view(db: Session, request: MealRequest, result: GenerationResult) -> dict:
         "mode": result.mode, "mode_label": p["mode_label"], "fallback_reason": result.fallback_reason,
         "fallback_message": FALLBACK_MESSAGES.get(result.fallback_reason, "食譜資料庫沒有可行組合，已自動改由 AI 生成。")
         if result.fallback_reason else None,
-        "dishes": _dishes(p), "staple": staple_view(p), "nutrition": _nutrition(p), "prices": _prices(p),
+        "dishes": _dishes(p), "staple": staple_view(p), "nutrition": nutrition_with_people(db, request.household_id, p), "prices": _prices(p),
         "knowledge": {**(p.get("explanation") or {"status": "not_found", "items": []}),
                       "retry_available": knowledge_retry_available(p)},
         "knowledge_retry": p.get("knowledge_retry"), "price_retry": p.get("price_retry"),

@@ -40,9 +40,9 @@ function TeamStatus() {
   const color = (s: ServiceState) => (s.status === 'online' ? 'success' : s.status === 'offline' ? 'warning' : 'default')
   return (
     <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', alignItems: 'center' }}>
-      <Typography variant="caption" color="text.secondary">團隊電腦服務：</Typography>
-      <Chip size="small" color={color(recognition)} label={`蔬菜辨識 ${SERVICE_LABEL[recognition.status]}`} />
-      <Chip size="small" color={color(knowledge)} label={`營養知識 ${SERVICE_LABEL[knowledge.status]}`} />
+      <Typography variant="caption" color="text.secondary">服務狀態</Typography>
+      <Chip size="small" variant="outlined" color={color(recognition)} label={`蔬菜辨識・${SERVICE_LABEL[recognition.status]}`} />
+      <Chip size="small" variant="outlined" color={color(knowledge)} label={`營養知識・${SERVICE_LABEL[knowledge.status]}`} />
       {knowledge.status !== 'online' && (
         <Typography variant="caption" color="text.secondary">（菜單照常生成，知識說明之後可單獨重試）</Typography>
       )}
@@ -108,8 +108,9 @@ export default function GenerationPanel({ row, onChanged }: Props) {
       <TeamStatus />
       {job && lastJobForThisVersion && (
         <Box>
-          <Typography>
-            生成狀態：{STAGE_LABELS[job.stage ?? ''] ?? job.status}（第 {job.attempts}／{job.max_attempts} 次嘗試）
+          <Typography variant="body2">
+            生成狀態：<b>{STAGE_LABELS[job.stage ?? ''] ?? job.status}</b>
+            <Typography component="span" variant="caption" sx={{ ml: 1 }}>第 {job.attempts}／{job.max_attempts} 次嘗試</Typography>
           </Typography>
           {active && <LinearProgress sx={{ mt: 1 }} />}
           {job.status === 'failed' && job.error && (
@@ -129,11 +130,11 @@ export default function GenerationPanel({ row, onChanged }: Props) {
       {hasResult && !active && <MealResultView requestId={row.id} mealDate={row.draft.meal_date} onChanged={onChanged} />}
       <Box>
         <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-          <Button variant="contained" disabled={!canSubmit || submit.isPending} onClick={() => submit.mutate(false)}>
+          <Button variant="contained" size="large" disabled={!canSubmit || submit.isPending} onClick={() => submit.mutate(false)}>
             {job && lastJobForThisVersion && job.status === 'failed' ? '重新送出生成' : '送出生成'}
           </Button>
           {hasResult && !confirmed && (
-            <Button variant="outlined" disabled={!row.complete || !!active || submit.isPending}
+            <Button variant="outlined" size="large" disabled={!row.complete || !!active || submit.isPending}
               onClick={() => submit.mutate(true)}>
               重新生成
             </Button>

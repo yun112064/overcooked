@@ -27,6 +27,12 @@ COPY config/name_variants.json /app/config/name_variants.json
 COPY config/recipe_category_overrides.json /app/config/recipe_category_overrides.json
 # 決策 #44：調味料清單（T13 成本 0、不列缺料；T02 不查價）
 COPY config/seasoning_ingredients.json /app/config/seasoning_ingredients.json
+# 每人每日建議攝取量（熱量、蛋白質以外 5 項；結果頁每人營養對照）
+COPY config/daily_reference_nutrients.json /app/config/daily_reference_nutrients.json
+# 食材實際攝取量修正（燙水倒掉的鹽、鹹蛋只用蛋黃等；只影響營養）
+COPY config/recipe_intake_adjustments.json /app/config/recipe_intake_adjustments.json
+# 工作簿換算錯誤的克數／份數修正（營養、缺料、價格都依修正後克數）
+COPY config/recipe_weight_corrections.json /app/config/recipe_weight_corrections.json
 ENV PYTHONPATH=/app
 COPY alembic.ini /app/alembic.ini
 COPY migrations /app/migrations
