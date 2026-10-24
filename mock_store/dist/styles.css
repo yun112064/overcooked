@@ -18,8 +18,7 @@ button, input { font: inherit; }
 button, a { -webkit-tap-highlight-color: transparent; }
 button { cursor: pointer; }
 .topbar { height: 76px; display: flex; align-items: center; padding: 0 clamp(20px, 5vw, 72px); border-bottom: 1px solid var(--line); position: sticky; top: 0; background: rgba(255,253,247,.94); backdrop-filter: blur(14px); z-index: 20; }
-.brand { display: flex; align-items: center; gap: 10px; color: var(--ink); text-decoration: none; font-weight: 850; font-size: 20px; letter-spacing: -.5px; }
-.brand-mark { display: grid; place-items: center; width: 34px; height: 34px; border-radius: 50% 50% 45% 55%; background: var(--green); color: white; transform: rotate(-7deg); }
+.brand { color: var(--ink); text-decoration: none; font-family: Georgia, "Noto Serif TC", serif; font-weight: 700; font-size: 25px; letter-spacing: -1px; }
 nav { display: flex; gap: 30px; margin-left: auto; margin-right: 30px; }
 nav a { color: var(--muted); text-decoration: none; font-size: 14px; font-weight: 700; }
 .cart-chip { border: 0; background: var(--ink); color: white; border-radius: 999px; padding: 11px 16px; }

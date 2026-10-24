@@ -123,7 +123,7 @@ function renderOrder() {
     <small>訂單 ${state.order.id.slice(0, 8).toUpperCase()}</small>
     <strong>${labels[state.order.status]} · ${state.order.eta_minutes ? `約 ${state.order.eta_minutes} 分鐘` : '已完成'}</strong>
     <div class="timeline">${flow.map((status, index) => `<div class="timeline-item ${index <= current ? 'done' : ''}"><span class="timeline-dot"></span><span>${labels[status]}</span></div>`).join('')}</div>
-    ${state.order.status !== 'delivered' ? '<button class="advance" id="advance-order">模擬下一個配送狀態 →</button>' : '<small>謝謝使用 FreshDash 模擬配送！</small>'}`
+    ${state.order.status !== 'delivered' ? '<button class="advance" id="advance-order">模擬下一個配送狀態 →</button>' : '<small>謝謝使用 Overcooked 模擬配送！</small>'}`
 }
 
 async function checkout(event) {
