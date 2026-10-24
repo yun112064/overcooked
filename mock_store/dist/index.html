@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="冰箱缺料一鍵補貨的模擬量販店" />
+    <title>FreshDash｜冰箱缺料，快速補齊</title>
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <header class="topbar">
+      <a class="brand" href="#top" aria-label="FreshDash 首頁">
+        <span class="brand-mark">F</span><span>FreshDash</span>
+      </a>
+      <nav aria-label="主要導覽">
+        <a href="#products">今日選品</a><a href="#delivery">配送進度</a>
+      </nav>
+      <button class="cart-chip" id="open-cart" type="button">購物車 <strong id="cart-count">0</strong></button>
+    </header>
+
+    <main id="top">
+      <section class="hero">
+        <div class="hero-copy">
+          <p class="eyebrow">SMART FRIDGE × SAME-DAY DELIVERY</p>
+          <h1>晚餐少了什麼，<br /><em>一鍵補齊。</em></h1>
+          <p class="hero-text">把家庭餐食系統偵測到的缺料直接送進購物車，從門市備貨到送達，全程看得見。</p>
+          <div class="hero-actions">
+            <button class="primary" id="import-shortages" type="button">匯入冰箱缺料</button>
+            <a class="secondary" href="#products">自己逛逛</a>
+          </div>
+          <p class="hint">示範缺料：高麗菜 700g、雞腿肉 450g、雞蛋 300g</p>
+        </div>
+        <div class="hero-card" aria-label="配送資訊">
+          <div class="route-head"><span>現在下單</span><strong>約 35 分鐘</strong></div>
+          <div class="route-map">
+            <span class="pin store">店</span><span class="route-line"></span><span class="rider">🛵</span><span class="route-line second"></span><span class="pin home">家</span>
+          </div>
+          <div class="route-meta"><span>FreshDash 中山店</span><span>台北市</span></div>
+        </div>
+      </section>
+
+      <section class="trust-row" aria-label="服務特色">
+        <span>✓ 價格透明</span><span>✓ 冷藏配送</span><span>✓ 缺料自動換算包數</span><span>✓ 模擬付款、不產生真實扣款</span>
+      </section>
+
+      <section class="catalog" id="products">
+        <div class="section-head">
+          <div><p class="eyebrow">FRESH PICKS</p><h2>今晚需要的，都在這裡</h2></div>
+          <div class="filters" id="filters" aria-label="商品分類"></div>
+        </div>
+        <div class="product-grid" id="product-grid" aria-live="polite"></div>
+      </section>
+
+      <section class="delivery-section" id="delivery">
+        <div><p class="eyebrow">LIVE DELIVERY</p><h2>像叫車一樣，追蹤你的補貨</h2><p>結帳後可在 Demo 中逐步模擬接單、備貨、配送與送達。</p></div>
+        <div class="order-preview" id="order-preview"><span class="empty-icon">◎</span><strong>尚無配送中的訂單</strong><small>選好商品後，從購物車送出訂單。</small></div>
+      </section>
+    </main>
+
+    <aside class="cart-drawer" id="cart-drawer" aria-hidden="true" aria-label="購物車">
+      <div class="drawer-head"><div><small>YOUR CART</small><h2>今晚補貨</h2></div><button id="close-cart" aria-label="關閉購物車">×</button></div>
+      <div class="cart-items" id="cart-items"></div>
+      <div class="cart-summary"><span>商品小計</span><strong id="cart-subtotal">NT$ 0</strong></div>
+      <form id="checkout-form">
+        <label>收件人<input name="recipient" value="林小姐" required minlength="2" /></label>
+        <label>配送地址<input name="address" value="台北市中山區示範路 13 號" required minlength="6" /></label>
+        <button class="primary full" type="submit">送出補貨訂單</button>
+      </form>
+      <p class="simulation-note">此網站為功能模擬，不會產生真實訂單或付款。</p>
+    </aside>
+    <div class="backdrop" id="backdrop"></div>
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+    <script src="/app.js" defer></script>
+  </body>
+</html>
