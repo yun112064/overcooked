@@ -13,3 +13,9 @@ __pycache__/
 
 # T04 source downloads are large raw inputs; generated JSON is committed.
 nutrition_model/data/raw/
+
+# Local recipe datasets
+/local_data/
+
+# Local PostgreSQL database backups
+/*.dump
