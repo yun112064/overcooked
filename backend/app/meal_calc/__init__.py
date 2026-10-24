@@ -1,0 +1,1 @@
+"""Pure meal calculation contracts."""
