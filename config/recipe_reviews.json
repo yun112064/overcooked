@@ -22,5 +22,5 @@
     ["R0246", "R0250"],
     ["R0218", "R0260"]
   ],
-  "quantity_policy":"「適量／少許」等無數字用量，依資料整理時填入的 amount 欄作為參考用量（quantity_status=reference_amount）"
+  "quantity_policy": "「適量／少許」等無數字用量，依資料整理時填入的 amount 欄作為參考用量（quantity_status=reference_amount）"
 }
