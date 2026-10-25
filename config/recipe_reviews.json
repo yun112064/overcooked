@@ -12,5 +12,15 @@
     "step_review": "approved",
     "adjustable_range": "approved"
   },
-  "quantity_policy": "「適量／少許」等無數字用量，依資料整理時填入的 amount 欄作為參考用量（quantity_status=reference_amount）"
+  "distinct_recipe_pairs_note": "疑似重複（菜名與食材相近）經人工確認為不同食譜，2026-10-25 於開發對話中確認。同名重複（皮蛋瘦肉粥 R0068、三杯雞 R0192）不在此列，匯入時略過。",
+  "distinct_recipe_pairs": [
+    ["R0037", "R0046"],
+    ["R0064", "R0067"],
+    ["R0065", "R0067"],
+    ["R0065", "R0206"],
+    ["R0240", "R0241"],
+    ["R0246", "R0250"],
+    ["R0218", "R0260"]
+  ],
+  "quantity_policy":"「適量／少許」等無數字用量，依資料整理時填入的 amount 欄作為參考用量（quantity_status=reference_amount）"
 }

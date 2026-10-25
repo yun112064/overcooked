@@ -76,6 +76,29 @@ class QualityRuleTests(unittest.TestCase):
         self.assertEqual(rows["R002"]["duplicate_of_recipe_id"], "R001")
         self.assertEqual(bundle.report["g01"]["actual_qualified_recipes"], 2)
 
+    def test_import_selection_keeps_primary_and_reports_excel_rows(self):
+        from app.services.recipe_import import select_unique_recipe_bundle
+        original = parse([recipe("R002", "番茄炒蛋"), recipe("R001", "番茄炒蛋")])
+        selected = select_unique_recipe_bundle(original)
+        self.assertEqual([row["recipe_id"] for row in selected.recipes], ["R001"])
+        self.assertEqual([row["raw_id"] for row in selected.source_archive], ["RAW-R001"])
+        self.assertTrue(all(row["recipe_id"] == "R001" for row in selected.recipe_steps))
+        self.assertTrue(all(row["recipe_id"] == "R001" for row in selected.recipe_ingredients))
+        choice = selected.report["import_selection"]["selections"][0]
+        self.assertEqual((choice["kept"]["recipes_row"], choice["kept"]["source_archive_row"]), (3, 3))
+        self.assertEqual(choice["skipped"][0]["recipe_id"], "R002")
+        self.assertEqual(len(original.recipes), 2)  # Raw validation evidence is retained.
+        self.assertEqual(select_unique_recipe_bundle(selected), selected)
+
+    def test_import_selection_does_not_remove_suspected_duplicates(self):
+        from app.services.recipe_import import select_unique_recipe_bundle
+        same = [ingredient("FOOD000001", "番茄", 200), ingredient("FOOD000002", "雞蛋", 150)]
+        selected = select_unique_recipe_bundle(parse([
+            recipe("R001", "番茄炒蛋", ingredients=same),
+            recipe("R002", "家常番茄炒蛋", ingredients=same)]))
+        self.assertEqual(len(selected.recipes), 2)
+        self.assertEqual(selected.report["import_selection"]["skipped_duplicate_recipes"], 0)
+
     def test_suspected_duplicates_count_once_until_reviewed(self):
         same = [ingredient("FOOD000001", "番茄", 200), ingredient("FOOD000002", "雞蛋", 150)]
         bundle = parse([recipe("R001", "番茄炒蛋", ingredients=same),
@@ -160,6 +183,26 @@ class QualityRuleTests(unittest.TestCase):
         self.assertFalse(by_id(stale)["R001"]["is_eligible"])
         self.assertFalse(stale.report["review_record"]["applied"])
 
+    def test_reviewed_distinct_pair_is_not_a_duplicate_for_that_workbook_only(self):
+        from app.services.recipe_import import parse_recipe_workbook
+        same = [ingredient("FOOD000001", "番茄", 200), ingredient("FOOD000002", "雞蛋", 150)]
+        books = [recipe(recipe_id, name, ingredients=same, approved=None, rights_in_workbook=False)
+                 for recipe_id, name in (("R001", "番茄炒蛋"), ("R002", "家常番茄炒蛋"))]
+        with tempfile.TemporaryDirectory() as folder:
+            path = build(Path(folder) / "book.xlsx", books)
+            import hashlib
+            digest = hashlib.sha256(path.read_bytes()).hexdigest()
+            approvals = {key: "approved" for key in
+                         ("source_review", "recipe_review", "cooking_method", "step_review", "adjustable_range")}
+            record = {"workbook_sha256": digest, "approvals": approvals, "distinct_recipe_pairs": [["R002", "R001"]]}
+            reviewed = parse_recipe_workbook(path, SOURCE_RIGHTS, record)
+            stale = parse_recipe_workbook(path, SOURCE_RIGHTS, {**record, "workbook_sha256": "0" * 64})
+        rows = by_id(reviewed)
+        self.assertTrue(rows["R002"]["is_eligible"], rows["R002"]["quality_issues"])
+        self.assertEqual(rows["R002"]["duplicate_status"], "unique_candidate")
+        self.assertEqual(reviewed.report["duplicate_review"]["suspected_pairs"][0]["status"], "reviewed_distinct")
+        self.assertIn("suspected_duplicate_review_required", by_id(stale)["R002"]["quality_issues"])
+
     def test_unreviewed_recipe_never_pads_the_count(self):
         bundle = parse([recipe("R001", "清炒高麗菜", approved=False)])
         self.assertFalse(by_id(bundle)["R001"]["is_eligible"])
@@ -203,11 +246,14 @@ class ImportTests(unittest.TestCase):
         self.assertEqual(self.count(Recipe, is_eligible=True), 1)
         self.assertEqual(self.count(RecipeIngredient), 3)
 
-    def test_duplicate_listed_before_primary_imports(self):
-        from app.models import Recipe
+    def test_duplicate_listed_before_primary_only_imports_primary(self):
+        from app.models import Recipe, SourceArchive, RecipeIngredient, RecipeStep
         self.run_import([recipe("R002", "番茄炒蛋"), recipe("R001", "番茄炒蛋")])
         with session_factory()() as session:
-            self.assertEqual(session.get(Recipe, "R002").duplicate_of_recipe_id, "R001")
+            self.assertIsNone(session.get(Recipe, "R002"))
+            self.assertIsNotNone(session.get(Recipe, "R001"))
+        for model in (Recipe, SourceArchive, RecipeIngredient, RecipeStep):
+            self.assertEqual(self.count(model), 1)
 
     def test_reimport_is_idempotent(self):
         from app.models import RecipeIngredient, RecipeStep
