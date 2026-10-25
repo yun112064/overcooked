@@ -591,7 +591,16 @@ def _apply_review_record(raw_sheets: dict[str, list[dict[str, Any]]], record: di
         for row in raw_sheets[sheet]:
             if _text(row.get(field)) is None:
                 row[field] = status
+    # 步驟文字找不到關鍵字時，人工指定的烹調方式；工作簿已填者優先。
+    methods_by_recipe = record.get("recipe_cooking_methods") or {}
+    recipes_by_id = {_text(row.get("recipe_id")): row for row in raw_sheets["recipes"]}
+    for recipe_id, methods in methods_by_recipe.items():
+        if recipe_id not in recipes_by_id or not methods or set(methods) - set(METHOD_KEYWORDS):
+            raise WorkbookValidationError(f"Invalid cooking methods in review record: {recipe_id}: {methods!r}")
+        if _text(recipes_by_id[recipe_id].get("cooking_methods")) is None:
+            recipes_by_id[recipe_id]["cooking_methods"] = "；".join(methods)
     return {**summary, "applied": True, "approvals": record.get("approvals"),
+            "recipe_cooking_methods": methods_by_recipe,
             "distinct_recipe_pairs": record.get("distinct_recipe_pairs") or []}
 
 

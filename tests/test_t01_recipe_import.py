@@ -203,6 +203,31 @@ class QualityRuleTests(unittest.TestCase):
         self.assertEqual(reviewed.report["duplicate_review"]["suspected_pairs"][0]["status"], "reviewed_distinct")
         self.assertIn("suspected_duplicate_review_required", by_id(stale)["R002"]["quality_issues"])
 
+    def test_reviewed_cooking_method_fills_recipe_without_method_keywords(self):
+        from app.services.recipe_import import WorkbookValidationError, parse_recipe_workbook
+        books = [recipe("R001", "涼拌小黃瓜", steps=("小黃瓜拍開切段，加醋靜置",), approved=None,
+                        rights_in_workbook=False)]
+        with tempfile.TemporaryDirectory() as folder:
+            path = build(Path(folder) / "book.xlsx", books)
+            from openpyxl import load_workbook
+            book = load_workbook(path)  # 如真實工作簿：recipes 未填 cooking_methods
+            sheet = book["recipes"]
+            column = [cell.value for cell in sheet[1]].index("cooking_methods") + 1
+            sheet.cell(row=2, column=column).value = None
+            book.save(path)
+            import hashlib
+            digest = hashlib.sha256(path.read_bytes()).hexdigest()
+            approvals = {key: "approved" for key in
+                         ("source_review", "recipe_review", "cooking_method", "step_review", "adjustable_range")}
+            record = {"workbook_sha256": digest, "approvals": approvals, "recipe_cooking_methods": {"R001": ["拌"]}}
+            reviewed = parse_recipe_workbook(path, SOURCE_RIGHTS, record)
+            without = parse_recipe_workbook(path, SOURCE_RIGHTS, {**record, "recipe_cooking_methods": {}})
+            with self.assertRaises(WorkbookValidationError):
+                parse_recipe_workbook(path, SOURCE_RIGHTS, {**record, "recipe_cooking_methods": {"R001": ["醃"]}})
+        self.assertEqual(by_id(reviewed)["R001"]["cooking_methods"], ["拌"])
+        self.assertTrue(by_id(reviewed)["R001"]["is_eligible"], by_id(reviewed)["R001"]["quality_issues"])
+        self.assertIn("missing_cooking_method", by_id(without)["R001"]["quality_issues"])
+
     def test_unreviewed_recipe_never_pads_the_count(self):
         bundle = parse([recipe("R001", "清炒高麗菜", approved=False)])
         self.assertFalse(by_id(bundle)["R001"]["is_eligible"])
