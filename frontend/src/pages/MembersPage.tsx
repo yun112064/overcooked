@@ -11,14 +11,8 @@ import { useState } from 'react'
 import { api, errorMessage } from '../api/client'
 import { ACTIVITY_LABELS, GOAL_LABELS, type Member, type MemberOptions } from '../api/types'
 import MemberFormDialog from '../components/MemberFormDialog'
-import { EmptyState, PageHeader } from '../components/ui'
+import { EmptyState, MemberAvatar, PageHeader, Stat, StatRow } from '../components/ui'
 import { tokens } from '../theme'
-
-/** 頭像字：中文名去掉姓氏取第二個字（林媽媽→媽、小宇→宇），其他取第一個字母。 */
-function initial(name: string) {
-  const n = name.trim()
-  return /^\p{Script=Han}/u.test(n) && n.length >= 2 ? n[1] : n.slice(0, 1).toUpperCase()
-}
 
 export default function MembersPage() {
   const queryClient = useQueryClient()
@@ -66,19 +60,27 @@ export default function MembersPage() {
           action={addButton} />
       )}
 
-      <Box sx={{ display: 'grid', gap: 2, gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, minmax(0, 1fr))' } }}>
-        {members.data?.map((m) => (
+      {members.data && members.data.length > 0 && (
+        <Box sx={{ border: `1px solid ${tokens.line}`, borderRadius: 1, bgcolor: '#FFFDF9', p: { xs: 2, sm: 2.5 } }}>
+          <StatRow>
+            <Stat label="成員" value={members.data.length} unit="人" />
+            <Stat label="合計食量" value={members.data.reduce((sum, m) => sum + Number(m.portion), 0).toFixed(2).replace(/\.?0+$/, '')}
+              unit="n" note="全員一起用餐時的份數" />
+            <Stat label="有過敏" value={members.data.filter((m) => m.allergens.length > 0).length} unit="人"
+              tone={members.data.some((m) => m.allergens.length > 0) ? 'warn' : 'default'}
+              note={`共 ${new Set(members.data.flatMap((m) => m.allergens.map((a) => a.ingredient_id))).size} 種食材`} />
+            <Stat label="有不吃" value={members.data.filter((m) => m.avoided.length > 0).length} unit="人"
+              note={`共 ${new Set(members.data.flatMap((m) => m.avoided.map((a) => a.ingredient_id))).size} 種食材`} />
+          </StatRow>
+        </Box>
+      )}
+
+      <Box className="rise-in" sx={{ display: 'grid', gap: 2, gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, minmax(0, 1fr))' } }}>
+        {members.data?.map((m, idx) => (
           <Card key={m.id}>
             <CardContent>
               <Box sx={{ display: 'flex', gap: 2, alignItems: 'flex-start' }}>
-                <Box aria-hidden sx={{
-                  width: 44, height: 44, borderRadius: '50%', flexShrink: 0, display: 'grid', placeItems: 'center',
-                  bgcolor: m.equation_sex === 'F' ? '#F1E4DF' : '#E3E8EF',
-                  color: m.equation_sex === 'F' ? tokens.brick : tokens.indigoDark,
-                  fontFamily: tokens.serif, fontSize: '1.1rem',
-                }}>
-                  {initial(m.display_name)}
-                </Box>
+                <MemberAvatar name={m.display_name} index={idx} size={48} />
                 <Box sx={{ flexGrow: 1, minWidth: 0 }}>
                   <Typography variant="h6" component="h2" sx={{ lineHeight: 1.4 }}>{m.display_name}</Typography>
                   <Typography color="text.secondary" variant="body2">

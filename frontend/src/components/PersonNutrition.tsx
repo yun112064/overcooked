@@ -4,6 +4,8 @@ import { NUTRIENTS, type Nutrition } from '../api/nutrition'
 import type { DailyReference, PersonNutrition as Person } from '../api/types'
 import { tokens } from '../theme'
 import NutritionTable from './NutritionTable'
+import { IconTile } from './ui'
+import { NUTRIENT_VISUALS, TONES } from './visuals'
 
 const KIND_LABELS = { dining: '用餐', bento: '便當' } as const
 
@@ -67,7 +69,7 @@ function PersonCard({ person }: { person: Person }) {
           <Typography component="span" variant="caption" sx={{ ml: 1 }}>建議約 {Math.round(mealRatio * 100)}%</Typography>
         </Typography>
       )}
-      <Box component="dl" sx={{ m: 0, display: 'grid', gridTemplateColumns: 'minmax(64px, auto) 1fr', columnGap: 2, rowGap: 1.5 }}>
+      <Box component="dl" sx={{ m: 0, display: 'grid', gridTemplateColumns: 'minmax(96px, auto) 1fr', columnGap: 1.5, rowGap: 1.5, alignItems: 'start' }}>
         {NUTRIENTS.map(({ key, label, unit }) => {
           const raw = person.intake[key]
           const value = raw !== null && raw !== undefined ? Number(raw) : null
@@ -76,7 +78,9 @@ function PersonCard({ person }: { person: Person }) {
           const partial = person.known_partial[key]
           return (
             <Box key={key} sx={{ display: 'contents' }}>
-              <Typography component="dt" variant="body2" sx={{ fontWeight: key === 'energy_kcal' || key === 'protein_g' ? 500 : 400, pt: 0.25 }}>
+              <Typography component="dt" variant="body2" sx={{ fontWeight: key === 'energy_kcal' || key === 'protein_g' ? 500 : 400,
+                display: 'flex', alignItems: 'center', gap: 1 }}>
+                <IconTile icon={NUTRIENT_VISUALS[key].icon} tone={NUTRIENT_VISUALS[key].tone} size={24} />
                 {label}
               </Typography>
               <Box component="dd" sx={{ m: 0, minWidth: 0 }}>
@@ -107,6 +111,53 @@ function PersonCard({ person }: { person: Person }) {
   )
 }
 
+/** 三大營養素占熱量比例的參考範圍（國健署：碳水 50–60%、脂肪 20–30%、蛋白質 10–20%）。 */
+const MACROS = [
+  { key: 'carbohydrate_g', label: '碳水', kcal: 4, range: [50, 60], tone: 'amber' as const },
+  { key: 'protein_g', label: '蛋白質', kcal: 4, range: [10, 20], tone: 'indigo' as const },
+  { key: 'fat_g', label: '脂肪', kcal: 9, range: [20, 30], tone: 'matcha' as const },
+]
+
+/** 整餐三大營養素的熱量比例：一條堆疊長條＋每項的百分比、克數與參考範圍（文字並列，不只靠顏色）。 */
+export function MacroBar({ nutrition }: { nutrition: Nutrition }) {
+  const grams = (key: string) => {
+    const v = key === 'protein_g' ? nutrition.protein_g : nutrition.other_nutrients?.[key]
+    return v === null || v === undefined ? null : Number(v)
+  }
+  const parts = MACROS.map((m) => ({ ...m, g: grams(m.key) }))
+  if (parts.some((p) => p.g === null)) return null
+  const total = parts.reduce((sum, p) => sum + (p.g as number) * p.kcal, 0)
+  if (!total) return null
+  const rows = parts.map((p) => ({ ...p, pct: ((p.g as number) * p.kcal / total) * 100 }))
+  return (
+    <Box>
+      <Typography variant="caption" component="p" sx={{ letterSpacing: '0.16em', color: tokens.inkMuted, mb: 1 }}>
+        三大營養素熱量比例
+      </Typography>
+      <Box role="img" aria-label={rows.map((r) => `${r.label} ${Math.round(r.pct)}%`).join('、')}
+        sx={{ display: 'flex', height: 10, borderRadius: 5, overflow: 'hidden', gap: '2px', bgcolor: tokens.sand }}>
+        {rows.map((r) => <Box key={r.key} sx={{ width: `${r.pct}%`, bgcolor: TONES[r.tone].fg, opacity: 0.8 }} />)}
+      </Box>
+      <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 1.5, mt: 1.25 }}>
+        {rows.map((r) => {
+          const inRange = r.pct >= r.range[0] && r.pct <= r.range[1]
+          return (
+            <Box key={r.key}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
+                <Box aria-hidden sx={{ width: 8, height: 8, borderRadius: '2px', bgcolor: TONES[r.tone].fg }} />
+                <Typography variant="body2" sx={{ fontWeight: 500 }}>{r.label} {Math.round(r.pct)}%</Typography>
+              </Box>
+              <Typography variant="caption" component="p" sx={{ color: inRange ? '#5E7B5A' : tokens.ochre }}>
+                {Math.round(r.g as number)} g・建議 {r.range[0]}–{r.range[1]}%{inRange ? '' : (r.pct < r.range[0] ? '・偏低' : '・偏高')}
+              </Typography>
+            </Box>
+          )
+        })}
+      </Box>
+    </Box>
+  )
+}
+
 /** 營養：每人這一餐吃到多少，對照每人每日建議。舊結果沒有每人資料時改顯示整餐表。 */
 export default function PersonNutrition({ nutrition }: { nutrition: Nutrition }) {
   const [showWhole, setShowWhole] = useState(false)
@@ -119,7 +170,8 @@ export default function PersonNutrition({ nutrition }: { nutrition: Nutrition })
         {people.map((p) => <PersonCard key={p.member_id} person={p} />)}
       </Box>
       <Typography variant="caption" component="p">
-        每人吃到的量依食量 n 分配整餐；長條上的刻度是這一餐建議占每日的比例。熱量與蛋白質的每日建議依國健署公式與成員資料計算，
+        每人應吃的量依各自的當餐目標分配整餐（盛菜時大人、小孩份量不同）；長條上的刻度是這一餐建議占每日的比例
+        （早餐 30%、午餐 30%、晚餐 40%，再乘上食量 n）。熱量與蛋白質的每日建議：成人依國健署公式，未滿 19 歲依國健署分齡表；
         其餘依{src ? <Link href={src.url} target="_blank" rel="noreferrer">{src.publisher}建議</Link> : '國健署建議'}由每日熱量推算；
         糖為 TFDA 總糖，對照的是添加糖上限，僅供參考。
       </Typography>

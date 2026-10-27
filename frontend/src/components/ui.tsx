@@ -1,6 +1,49 @@
-import { Box, Paper, Stack, Typography, type SxProps, type Theme } from '@mui/material'
+import { Box, Paper, Stack, Tooltip, Typography, type SxProps, type Theme } from '@mui/material'
 import type { ReactNode } from 'react'
 import { tokens } from '../theme'
+import { initial, TONES, type Tone } from './visuals'
+
+/** 圓角方塊裡放一個圖示；純裝飾（aria-hidden），意義由旁邊的文字表達。 */
+export function IconTile({ icon, tone = 'ink', size = 40 }: { icon: ReactNode; tone?: Tone; size?: number }) {
+  const c = TONES[tone]
+  return (
+    <Box component="span" aria-hidden sx={{
+      width: size, height: size, borderRadius: '10px', flexShrink: 0, display: 'inline-grid', placeItems: 'center',
+      bgcolor: c.bg, color: c.fg, '& svg': { fontSize: size * 0.55 },
+    }}>{icon}</Box>
+  )
+}
+
+const AVATAR_TONES: Tone[] = ['brick', 'indigo', 'matcha', 'amber']
+
+/** 成員頭像；依順序輪替點綴色。 */
+export function MemberAvatar({ name, index = 0, size = 40, ring }: { name: string; index?: number; size?: number; ring?: string }) {
+  const c = TONES[AVATAR_TONES[index % AVATAR_TONES.length]]
+  return (
+    <Box aria-hidden sx={{
+      width: size, height: size, borderRadius: '50%', flexShrink: 0, display: 'grid', placeItems: 'center',
+      bgcolor: c.bg, color: c.fg, fontFamily: tokens.serif, fontSize: size * 0.42,
+      ...(ring ? { boxShadow: `0 0 0 2px ${ring}` } : {}),
+    }}>{initial(name)}</Box>
+  )
+}
+
+/** 疊在一起的成員頭像（最多 5 個，其餘顯示 +N）；名字放在 Tooltip 與螢幕閱讀器文字。 */
+export function AvatarStack({ names, ring = tokens.paper }: { names: string[]; ring?: string }) {
+  const shown = names.slice(0, 5)
+  return (
+    <Tooltip title={names.join('、')}>
+      <Box sx={{ display: 'flex', alignItems: 'center' }} aria-label={`成員：${names.join('、')}`} role="img">
+        {shown.map((n, i) => (
+          <Box key={n + i} sx={{ ml: i === 0 ? 0 : -1 }}><MemberAvatar name={n} index={i} size={32} ring={ring} /></Box>
+        ))}
+        {names.length > shown.length && (
+          <Typography variant="caption" sx={{ ml: 1 }}>+{names.length - shown.length}</Typography>
+        )}
+      </Box>
+    </Tooltip>
+  )
+}
 
 /** 品牌印章：方框裡一個明體「食」。 */
 export function BrandMark({ size = 32 }: { size?: number }) {

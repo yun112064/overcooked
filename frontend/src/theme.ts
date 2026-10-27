@@ -9,12 +9,18 @@ export const tokens = {
   lineStrong: '#D3C8B6',
   ink: '#3F3A34', // 主要文字
   inkSoft: '#6B6358', // 次要文字
-  inkMuted: '#958B7D',
+  inkMuted: '#6E6559', // 小字對比至少 4.5:1（最深的 sand 底上 4.62）
   indigo: '#4A5D7E',
   indigoDark: '#36465F',
   matcha: '#6F7D5C',
-  ochre: '#A87B3B',
+  ochre: '#8C6428', // 警示文字對比 5.2:1
   brick: '#A4553F',
+  amber: '#B7791F', // 食物點綴：早餐、碳水
+  // 點綴色的淺底（標籤、圖示方塊、圖表填色背景）
+  indigoTint: '#E6EAF1',
+  matchaTint: '#E9EDE3',
+  amberTint: '#F6EBD9',
+  brickTint: '#F3E3DD',
   serif: '"Noto Serif TC", "Songti TC", "PMingLiU", serif',
   sans: '"Noto Sans TC", "PingFang TC", "Microsoft JhengHei", system-ui, sans-serif',
 }
@@ -63,6 +69,14 @@ export const theme = createTheme({
       styleOverrides: {
         body: { backgroundColor: t.washi, WebkitFontSmoothing: 'antialiased' },
         '::selection': { backgroundColor: alpha(t.indigo, 0.18) },
+        // 鍵盤操作時一定看得到焦點（滑鼠點擊不顯示）
+        ':focus-visible': { outline: `2px solid ${alpha(t.indigo, 0.6)}`, outlineOffset: 2 },
+        // 列表依序淡入；只用在每頁的主要清單，並尊重「減少動態」設定
+        // 起點保留 40% 不透明：動畫被暫停（例如背景分頁）時內容仍看得到，不依賴動畫完成
+        '@keyframes rise-in': { from: { opacity: 0.4, transform: 'translateY(8px)' }, to: { opacity: 1, transform: 'none' } },
+        '.rise-in > *': { animation: 'rise-in 360ms cubic-bezier(0.2, 0.8, 0.2, 1) both' },
+        ...Object.fromEntries(Array.from({ length: 12 }, (_, i) => [`.rise-in > *:nth-of-type(${i + 1})`, { animationDelay: `${i * 50}ms` }])),
+        '@media (prefers-reduced-motion: reduce)': { '.rise-in > *': { animation: 'none' } },
       },
     },
     MuiPaper: {
@@ -74,7 +88,15 @@ export const theme = createTheme({
     },
     MuiCard: {
       defaultProps: { variant: 'outlined' },
-      styleOverrides: { root: { borderColor: t.line, transition: 'border-color .2s' } },
+      styleOverrides: {
+        root: {
+          borderColor: t.line, transition: 'border-color .2s, transform .2s, box-shadow .2s',
+          // 可點擊的卡片：滑鼠移上去時邊框加深、微微浮起
+          '&:has(.MuiCardActionArea-root):hover': { borderColor: t.lineStrong, transform: 'translateY(-1px)',
+            boxShadow: '0 6px 18px rgba(63,58,52,0.06)' },
+          '@media (prefers-reduced-motion: reduce)': { '&:has(.MuiCardActionArea-root):hover': { transform: 'none' } },
+        },
+      },
     },
     MuiCardActionArea: {
       styleOverrides: {
@@ -94,7 +116,8 @@ export const theme = createTheme({
         text: { '&:hover': { backgroundColor: alpha(t.ink, 0.04) } },
       },
     },
-    MuiIconButton: { styleOverrides: { root: { borderRadius: 4 } } },
+    // 觸控目標至少 44×44（小尺寸圖示按鈕也一樣）
+    MuiIconButton: { styleOverrides: { root: { borderRadius: 4, minWidth: 44, minHeight: 44 } } },
     MuiChip: {
       styleOverrides: {
         root: { borderRadius: 3, fontWeight: 500, letterSpacing: '0.04em' },

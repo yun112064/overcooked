@@ -11,8 +11,9 @@ import {
 import { api, errorMessage } from '../api/client'
 import { MEAL_LABELS, type MealPlanDetail } from '../api/types'
 import { DishIngredients, DishSteps, HighSodiumTag } from '../components/DishDetail'
-import PersonNutrition from '../components/PersonNutrition'
-import { EmptyState, PageHeader, Section, Stat, StatRow } from '../components/ui'
+import PersonNutrition, { MacroBar } from '../components/PersonNutrition'
+import { EmptyState, IconTile, PageHeader, Section, Stat, StatRow } from '../components/ui'
+import { MEAL_VISUALS } from '../components/visuals'
 import { tokens } from '../theme'
 
 const money = (v: string | null | undefined) => (v === null || v === undefined ? '未知' : `${Math.round(Number(v))} 元`)
@@ -217,12 +218,17 @@ function Trends({ selected, onPick }: { selected: string; onPick: (date: string)
 function PlanCard({ plan }: { plan: MealPlanDetail }) {
   const prices = plan.prices?.status === 'computed' ? plan.prices : null
   return (
-    <Section title={MEAL_LABELS[plan.meal_type]} aside={`採用於 ${new Date(plan.adopted_at).toLocaleString()}`}>
+    <Section title={
+      <Box component="span" sx={{ display: 'inline-flex', alignItems: 'center', gap: 1.5 }}>
+        {MEAL_VISUALS[plan.meal_type] && <IconTile icon={MEAL_VISUALS[plan.meal_type].icon} tone={MEAL_VISUALS[plan.meal_type].tone} size={34} />}
+        {MEAL_LABELS[plan.meal_type]}
+      </Box>
+    } aside={`採用於 ${new Date(plan.adopted_at).toLocaleString()}`}>
       <Stack spacing={2.5}>
         <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
           <Chip size="small" color={plan.ai_generated ? 'secondary' : 'default'} variant={plan.ai_generated ? 'outlined' : 'filled'}
             label={plan.mode_label} />
-          {plan.price_exception_accepted && <Chip size="small" color="warning" variant="outlined" label="已接受缺價例外" />}
+          {plan.price_exception_accepted && <Chip size="small" color="warning" variant="outlined" label="部分價格未知" />}
           {plan.result_version !== null && <Chip size="small" label={`結果第 ${plan.result_version} 版`} />}
         </Box>
         {plan.fallback_message && <Alert severity="info">{plan.fallback_message}</Alert>}
@@ -238,6 +244,7 @@ function PlanCard({ plan }: { plan: MealPlanDetail }) {
             <Stat label="菜數" value={plan.dishes.length} unit="道" />
           </StatRow>
         )}
+        {plan.nutrition && <MacroBar nutrition={plan.nutrition} />}
         <Stack spacing={2} divider={<Box sx={{ borderTop: `1px solid ${tokens.line}` }} />}>
           {plan.dishes.map((d) => (
             <Box key={d.standard_dish_id}>
@@ -342,7 +349,7 @@ export default function MealHistoryPage() {
             {plans.data && plans.data.length === 0 && (
               <Typography variant="body2" color="text.secondary">{date} 沒有已採用餐食紀錄。</Typography>
             )}
-            {plans.data?.map((p) => <PlanCard key={p.id} plan={p} />)}
+            <Stack spacing={2} className="rise-in">{plans.data?.map((p) => <PlanCard key={p.id} plan={p} />)}</Stack>
           </Stack>
         </>
       )}

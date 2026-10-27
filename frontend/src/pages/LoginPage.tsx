@@ -7,7 +7,8 @@ import { useNavigate } from 'react-router'
 import { z } from 'zod'
 import { api, errorMessage } from '../api/client'
 import type { Me } from '../api/types'
-import { BrandMark } from '../components/ui'
+import { BrandMark, IconTile } from '../components/ui'
+import { MEAL_VISUALS, TONES } from '../components/visuals'
 import { tokens } from '../theme'
 
 const FEATURES = [
@@ -68,6 +69,34 @@ export default function LoginPage() {
               </Box>
             ))}
           </Stack>
+        </Box>
+        {/* 範例菜單卡：讓第一次來的人看到會得到什麼（靜態示意，非真實資料） */}
+        <Box aria-label="範例：系統產生的晚餐菜單" role="img" sx={{
+          maxWidth: 380, bgcolor: tokens.paper, border: `1px solid ${tokens.line}`, borderRadius: 2, p: 2.5,
+          boxShadow: '0 12px 32px rgba(63,58,52,0.08)', transform: 'rotate(-1.2deg)',
+        }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+            <IconTile icon={MEAL_VISUALS.dinner.icon} tone={MEAL_VISUALS.dinner.tone} size={36} />
+            <Box sx={{ flexGrow: 1 }}>
+              <Typography sx={{ fontFamily: tokens.serif, letterSpacing: '0.08em' }}>今晚的菜單</Typography>
+              <Typography variant="caption">範例・全家 3 人</Typography>
+            </Box>
+          </Box>
+          {['番茄炒蛋', '蒜炒青江菜', '味噌豆腐湯'].map((name, i) => (
+            <Box key={name} sx={{ display: 'flex', gap: 1.5, alignItems: 'baseline', mt: 1.25 }}>
+              <Typography sx={{ fontFamily: tokens.serif, color: tokens.brick, fontSize: '0.85rem', width: 18 }}>{String(i + 1).padStart(2, '0')}</Typography>
+              <Typography variant="body2">{name}</Typography>
+            </Box>
+          ))}
+          <Box sx={{ display: 'flex', height: 6, borderRadius: 3, overflow: 'hidden', gap: '2px', mt: 2 }}>
+            {([['amber', 55], ['indigo', 17], ['matcha', 28]] as const).map(([tone, w]) => (
+              <Box key={tone} sx={{ width: `${w}%`, bgcolor: TONES[tone].fg, opacity: 0.8 }} />
+            ))}
+          </Box>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 1 }}>
+            <Typography variant="caption">熱量達成 98%</Typography>
+            <Typography variant="caption">成本 NT$186／預算 300</Typography>
+          </Box>
         </Box>
         <Typography variant="caption" sx={{ color: tokens.inkMuted }}>營養資料：衛福部食藥署食品營養成分資料庫</Typography>
       </Box>

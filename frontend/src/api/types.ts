@@ -436,7 +436,8 @@ export type MealResult = {
   previous_day: {
     previous_date: string | null
     has_records: boolean
-    excluded_dishes: { standard_dish_id: string; dish_name: string; aliases: string[] }[]
+    /** from：previous_day＝昨日；breakfast／lunch／dinner＝同一天已採用的那一餐（舊結果沒有此欄） */
+    excluded_dishes: { standard_dish_id: string; dish_name: string; aliases: string[]; from?: string }[]
     specified_repeats: string[]
   }
   knowledge_retry?: { from_result_version: number; retried_at: string } | null

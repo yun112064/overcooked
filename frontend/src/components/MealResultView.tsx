@@ -3,7 +3,7 @@ import {
   Alert, Box, Button, Chip, Link, Stack, Table, TableBody, TableCell, TableHead, TableRow, Typography,
 } from '@mui/material'
 import { amount } from '../api/nutrition'
-import PersonNutrition from './PersonNutrition'
+import PersonNutrition, { MacroBar } from './PersonNutrition'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useEffect, useRef } from 'react'
 import { Link as RouterLink } from 'react-router'
@@ -41,6 +41,8 @@ const MISSING_PRICE_REASONS: Record<string, string> = {
 const missingReason = (code: string | null) => (code && MISSING_PRICE_REASONS[code]) ?? '賣場找不到相符的商品'
 const shortTime = (iso: string) =>
   new Date(iso).toLocaleString('zh-TW', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false })
+
+const EXCLUDED_FROM: Record<string, string> = { previous_day: '昨天', breakfast: '今天早餐', lunch: '今天午餐', dinner: '今天晚餐' }
 
 const STAPLE_REASONS = new Set([...STAPLE_NO_DATA, 'staple_not_supported'])
 const ACTIVE = new Set(['queued', 'running'])
@@ -132,7 +134,9 @@ export default function MealResultView({ requestId, mealDate, onChanged }: Props
   const r = result.data
   if (!r) return <Typography color="text.secondary">讀取結果中…</Typography>
   const el = r.eligibility
-  const pricePending = el.pending_decisions.some((d) => d.kind === 'accept_missing_price')
+  // 缺價不擋採用（2026-10-26）：只提示哪些食材查無價格，可重新查價
+  const pricePending = r.prices.budget_status === 'PRICE_INCOMPLETE'
+  const missingPriceNames = r.prices.items.filter((i) => i.price_status === 'unknown').map((i) => i.name)
   const confirmed = r.request_status === 'confirmed'
   const priceRetry = r.retries?.price ?? null
   const knowledgeRetry = r.retries?.knowledge ?? null
@@ -187,6 +191,7 @@ export default function MealResultView({ requestId, mealDate, onChanged }: Props
             tone={cost === null || budget === null ? 'default' : cost <= budget ? 'good' : 'bad'} />
           <Stat label="菜數" value={r.dishes.length} unit="道" note={r.staple ? `主食：${r.staple.label}` : undefined} />
         </StatRow>
+        <Box sx={{ mt: 3 }}><MacroBar nutrition={r.nutrition} /></Box>
         <Box sx={{ mt: 3, pt: 2.5, borderTop: `1px solid ${tokens.line}`, display: 'flex', gap: 2, alignItems: 'center', flexWrap: 'wrap' }}>
           {confirmed ? (
             <>
@@ -202,7 +207,7 @@ export default function MealResultView({ requestId, mealDate, onChanged }: Props
             <>
               <Typography variant="body2" sx={{ flexGrow: 1, color: el.adoptable ? '#3E5539' : tokens.inkSoft }}>
                 {el.adoptable
-                  ? `符合採用條件${el.price_exception_accepted ? '（已接受缺價例外，預算無法完整驗證）' : ''}。`
+                  ? `符合採用條件${el.price_exception_accepted ? '（部分價格未知，成本只計已知部分）' : ''}。`
                   : '目前還不能採用，原因見下方。'}
               </Typography>
               {el.adoptable && (
@@ -255,9 +260,16 @@ export default function MealResultView({ requestId, mealDate, onChanged }: Props
           </Stack>
         </Alert>
       )}
+      {pricePending && !confirmed && !priceRetrying && (
+        <Alert severity="info" action={
+          <Button size="small" color="inherit" disabled={retry.isPending} onClick={() => retry.mutate(r)}>重新查價</Button>
+        }>
+          {missingPriceNames.join('、')} 查無價格，成本只計已知部分；不影響採用，也可以重新查價。
+        </Alert>
+      )}
       {priceRetrying && <Alert severity="info">正在向價格來源查詢缺價食材（低頻率查詢，可能需要幾分鐘）；完成後會出現新版本。</Alert>}
       {priceRetry?.status === 'failed' && (
-        <Alert severity="warning">上次重新查價失敗：{priceRetry.error?.message ?? '原因未知'}。原結果不變，可再試或接受缺價例外。</Alert>
+        <Alert severity="warning">上次重新查價沒有完成：{priceRetry.error?.message ?? '原因未知'}。原結果不變，可以直接採用或稍後再試。</Alert>
       )}
       {(decide.isError || retry.isError) && <Alert severity="error">{errorMessage(decide.error ?? retry.error)}</Alert>}
       {dayConflict && (
@@ -393,25 +405,25 @@ export default function MealResultView({ requestId, mealDate, onChanged }: Props
           </Box>
         )}
         {computed && pricePending && (
-          <Typography variant="caption" component="p" sx={{ textAlign: 'right', mt: 0.5 }}>部分價格未知，預算無法完整驗證</Typography>
+          <Typography variant="caption" component="p" sx={{ textAlign: 'right', mt: 0.5 }}>部分價格未知，成本只計已知部分</Typography>
         )}
       </Section>
 
-      <Section title="昨日菜色比對">
+      <Section title="避免重複的菜">
         <Stack spacing={1.5}>
           {!r.previous_day.has_records ? (
-            <Typography variant="body2">{r.previous_day.previous_date} 沒有已採用餐食紀錄，未排除任何菜。</Typography>
+            <Typography variant="body2">昨天（{r.previous_day.previous_date}）與今天其他餐都沒有已採用紀錄，未排除任何菜。</Typography>
           ) : (
             <Typography variant="body2">
-              已比對 {r.previous_day.previous_date} 的已採用餐食紀錄；
+              已比對昨天（{r.previous_day.previous_date}）與今天其他餐的已採用紀錄；
               {r.previous_day.excluded_dishes.length > 0
-                ? `已排除：${r.previous_day.excluded_dishes.map((d) => d.dish_name).join('、')}。`
+                ? `已排除：${r.previous_day.excluded_dishes.map((d) => `${d.dish_name}（${EXCLUDED_FROM[d.from ?? 'previous_day'] ?? '昨天'}）`).join('、')}。`
                 : '沒有需要排除的菜。'}
             </Typography>
           )}
           {r.previous_day.specified_repeats.length > 0 && (
             <Alert severity="info">
-              {r.previous_day.specified_repeats.join('、')} 與昨日重複，因為是你指定的菜所以保留；其他限制（過敏、營養等）仍照常檢查。
+              {r.previous_day.specified_repeats.join('、')} 與昨天或今天其他餐重複，因為是你指定的菜所以保留；其他限制（過敏、營養等）仍照常檢查。
             </Alert>
           )}
         </Stack>
