@@ -128,6 +128,20 @@ def test_approved_retention_must_match_actual_cooking_conditions(tmp_path):
     assert result.missing
 
 
+def test_cooked_weight_cannot_bypass_raw_sample_retention():
+    catalog = Path(__file__).resolve().parents[2] / "nutrition_model/data/ingredient_master.json"
+    evidence = CookingEvidence("evidence", "A0100101", None, yield_factor="0.5",  # type: ignore
+        source="test", source_version="1", conditions={"juices_consumed": True})
+    line = IngredientQuantity("line", "food", "A0100101", D("100"), "cooked", True, D("1"),
+                              evidence=evidence, cooking_context={"juices_consumed": True})
+    policy = NutritionPolicy(catalog, {"food": "A0100101"}, ("energy_kcal", "protein_g"),
+                             {"evidence": evidence})
+    result = calculate_nutrition(RecipeCandidate("ai_generated_menu", (line,)), policy=policy)
+    assert result.totals["energy_kcal"] is None
+    assert result.totals["protein_g"] is None
+    assert result.missing
+
+
 def test_string_false_cannot_mark_raw_food_as_directly_eaten():
     catalog = Path(__file__).resolve().parents[2] / "nutrition_model/data/ingredient_master.json"
     policy = NutritionPolicy(catalog, {"food": "A0100101"}, ("energy_kcal", "protein_g"))

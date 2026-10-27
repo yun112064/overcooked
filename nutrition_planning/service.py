@@ -106,6 +106,7 @@ def _approved_evidence(line: IngredientQuantity, policy: NutritionPolicy) -> Coo
     approved = policy.approved_evidence.get(ev.evidence_id)
     if (approved is None or approved.evidence_id != ev.evidence_id
             or approved.sample_id != line.sample_id or approved.cooking_method != line.cooking_method
+            or not isinstance(approved.cooking_method, str) or not approved.cooking_method.strip()
             or not approved.source or not approved.source_version or not approved.conditions
             or approved.conditions != line.cooking_context
             or any(not isinstance(key, str) or not key or type(value) not in (str, bool)
@@ -172,7 +173,8 @@ def calculate_nutrition(recipe: RecipeCandidate, *, policy: NutritionPolicy) -> 
             if ev and ev.yield_factor is not None and exact(ev.yield_factor) > 0:
                 raw_weight = cooked_weight / exact(ev.yield_factor)
         valid_state = state in ("raw", "cooked")
-        is_direct = line.consumed_as_is and line.cooking_method is None
+        is_direct = (line.consumed_as_is and line.cooking_method is None
+                     and not (state == "raw" and line.weight_basis == "cooked"))
         if state == "cooked":
             usable_weight = cooked_weight
             valid_cooking = is_direct or (ev is not None and bool(line.cooking_method))
