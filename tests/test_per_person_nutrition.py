@@ -38,16 +38,26 @@ class DailyReferenceTests(unittest.TestCase):
 
 
 class PerPersonTests(unittest.TestCase):
-    def test_meal_is_split_by_portion_and_daily_targets_come_from_t03(self):
+    def test_meal_is_split_by_each_members_meal_target_not_by_portion(self):
+        # 當餐目標：a＝2500×0.4×1.3＝1300 kcal，b＝1500×0.4×0.7＝420 kcal → a 分到 1300/1720
         rows = per_person(payload([item("a", "dining", "1.3", "0.4", 2500, 80), item("b", "dining", "0.7", "0.4", 1500, 50)]),
                           NUTRITION, {"a": "爸爸"})
         a, b = rows
         self.assertEqual((a["name"], b["name"]), ("爸爸", None))  # 成員已刪除時名稱為 None
-        self.assertEqual(Decimal(a["intake"]["energy_kcal"]), Decimal("1040"))  # 1600 × 1.3 / 2
-        self.assertEqual(Decimal(b["intake"]["protein_g"]), Decimal("21"))
+        self.assertAlmostEqual(float(a["intake"]["energy_kcal"]), 1600 * 1300 / 1720)
+        self.assertAlmostEqual(float(b["intake"]["protein_g"]), 60 * 420 / 1720)
         self.assertEqual(Decimal(a["daily"]["energy_kcal"]["value"]), 2500)
         self.assertEqual(Decimal(b["daily"]["protein_g"]["value"]), 50)
-        self.assertEqual(Decimal(a["meal_ratio"]), Decimal("0.4"))
+        # 這一餐應占每日的比例＝餐別比例 × n
+        self.assertEqual((Decimal(a["meal_ratio"]), Decimal(b["meal_ratio"])), (Decimal("0.52"), Decimal("0.28")))
+
+    def test_child_with_low_need_is_not_overfed_by_portion(self):
+        # 整餐剛好等於目標合計時，每個人都剛好吃到自己的當餐目標（不因 n 相同而平分）
+        rows = per_person(payload([item("adult", "dining", "1", "0.4", 2400, 70), item("kid", "dining", "1", "0.4", 1200, 40)]),
+                          {**NUTRITION, "energy_kcal": "1440"}, {})
+        adult, kid = rows
+        self.assertAlmostEqual(float(adult["intake"]["energy_kcal"]), 960)  # 2400 × 40%
+        self.assertAlmostEqual(float(kid["intake"]["energy_kcal"]), 480)    # 1200 × 40%
 
     def test_unknown_nutrient_stays_unknown_with_known_part_scaled(self):
         [a, _] = per_person(payload([item("a", "dining", "1", "0.4", 2000, 60), item("b", "dining", "1", "0.4", 2000, 60)]),

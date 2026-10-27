@@ -198,6 +198,28 @@ class RetrievalScenarioTests(unittest.TestCase):
         self.assertEqual(len(ctx["specified_exceptions"]), 1)
         self.assertEqual(result.to_dict()["previous_day"], ctx)
 
+    def record(self, day, meal_type, names):
+        from app.services import meal_history
+        with self.factory() as db, db.begin():
+            meal_history.record_adopted(db, self.home.id, day, meal_type, mode="database_menu",
+                                        dishes=[dish(n) for n in names])
+
+    def test_same_day_other_meal_is_excluded_too(self):
+        # 2026-10-26：同一天午餐已採用番茄炒蛋，規劃當天晚餐就不再出現
+        self.record(date(2026, 8, 20), "lunch", ["番茄炒蛋"])
+        result = self.retrieve({"dish_count": 2})
+        self.assertNotIn("R01", {d["recipe_id"] for d in result.selected})
+        [excluded] = result.previous_day["excluded_dishes"]
+        self.assertEqual((excluded["dish_name"], excluded["from"]), ("番茄炒蛋", "lunch"))
+        self.assertEqual(result.previous_day["meal_type"], "dinner")
+
+    def test_replanning_the_same_meal_is_not_a_repeat(self):
+        # 同一天晚餐已採用過，再規劃晚餐不算重複（同餐別不排除）
+        self.record(date(2026, 8, 20), "dinner", ["番茄炒蛋"])
+        result = self.retrieve({"dish_count": 2})
+        self.assertEqual(result.previous_day["excluded_dishes"], [])
+        self.assertIn("R01", {d["recipe_id"] for d in result.selected})
+
     def test_no_feasible_result_is_fallback_with_context(self):
         self.adopt(self.home, [dish("番茄炒蛋")])
         result = self.retrieve({"dish_count": 2, "specified_dishes": ["麻婆豆腐"]})
@@ -431,3 +453,71 @@ def truncate_history():
 
 if __name__ == "__main__":
     unittest.main()
+
+
+
+SAME_VEGETABLE_RECIPES = [
+    ("R01", "番茄炒蛋", [], [TOMATO, EGG], ["炒"], True),
+    ("R02", "清炒高麗菜", [], [CABBAGE, GARLIC], ["炒"], True),
+    ("R03", "蒜香煎蛋", [], [EGG, GARLIC], ["煎"], True),
+    ("R04", "紅蘿蔔炒蛋", [], [CARROT, EGG], ["炒"], True),
+    ("R05", "高麗菜炒蛋", [], [CABBAGE, EGG], ["炒"], True),
+    ("R06", "燙高麗菜", [], [CABBAGE], ["燙"], True),
+]
+# 主菜蔬以 TFDA 樣本判斷：用對得到樣本的實際名稱（合成資料預設名稱是 FOOD 編號）
+SAME_VEGETABLE_NAMES = {TOMATO: "番茄", EGG: "雞蛋", CABBAGE: "高麗菜", GARLIC: "大蒜", CARROT: "胡蘿蔔"}
+
+
+@requires_db
+class SameVegetableTests(unittest.TestCase):
+    """2026-10-26：同一份菜單不出現兩道以同一種蔬菜為主的菜（辛香料不算主菜蔬；指定菜除外）。"""
+
+    @classmethod
+    def setUpClass(cls):
+        migrate_fresh()
+
+    def setUp(self):
+        from sqlalchemy import text
+        from app.db.models import Household
+        fix_tie_break_order(self)
+        truncate_all()
+        seed_foods()
+        self.factory = session_factory()
+        seed_recipes(self.factory, SAME_VEGETABLE_RECIPES)
+        with self.factory() as db, db.begin():
+            for food_id, name in SAME_VEGETABLE_NAMES.items():
+                db.execute(text("UPDATE recipe_ingredients SET canonical_name = :n WHERE food_id = :f"),
+                           {"n": name, "f": food_id})
+            self.home = Household(name="本家")
+            db.add(self.home)
+
+    def retrieve(self, fields, excluded=()):
+        from app.services.meal_request import MealRequestDraft
+        from app.services.recipe_retrieval import retrieve_database_menu
+        draft = MealRequestDraft(meal_date=date(2026, 8, 20), meal_type="dinner", **fields)
+        with self.factory() as db:
+            return retrieve_database_menu(db, self.home.id, draft, excluded_food_ids=list(excluded))
+
+    def test_two_dishes_of_the_same_vegetable_never_share_a_menu(self):
+        result = self.retrieve({"dish_count": 4})
+        self.assertEqual(result.status, "database_menu", result.reason)
+        for menu in result.alternatives:
+            cabbage = {d["recipe_id"] for d in menu} & {"R02", "R05", "R06"}
+            self.assertLessEqual(len(cabbage), 1, menu)
+        self.assertEqual([d["recipe_id"] for d in result.selected], ["R01", "R02", "R03", "R04"])
+
+    def test_garlic_is_not_a_main_vegetable(self):
+        # 清炒高麗菜與蒜香煎蛋都有大蒜，但大蒜是辛香料，不算重複
+        result = self.retrieve({"dish_count": 2}, excluded=[TOMATO, CARROT])
+        self.assertEqual([d["recipe_id"] for d in result.selected], ["R02", "R03"])
+
+    def test_user_specified_dishes_may_repeat_a_vegetable(self):
+        result = self.retrieve({"dish_count": 3, "specified_dishes": ["清炒高麗菜", "高麗菜炒蛋"]})
+        self.assertEqual(result.status, "database_menu", result.reason)
+        ids = {d["recipe_id"] for d in result.selected}
+        self.assertTrue({"R02", "R05"} <= ids)
+        self.assertNotIn("R06", ids)  # 資料庫補的菜仍不能再用高麗菜
+
+    def test_only_same_vegetable_combinations_fall_back_with_a_reason(self):
+        result = self.retrieve({"dish_count": 2, "specified_dishes": ["高麗菜炒蛋"]}, excluded=[TOMATO, CARROT, GARLIC])
+        self.assertEqual((result.status, result.reason), ("no_feasible_database_menu", "DUPLICATE_MAIN_VEGETABLE"))

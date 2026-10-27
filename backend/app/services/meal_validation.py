@@ -3,14 +3,14 @@
 | 情況 | 可採用 | 可做的決定 |
 |---|---|---|
 | 必要條件完整、成本不超預算、熱量與蛋白質通過 | 是 | — |
-| 缺價格（已知成本未超預算，且其他條件都通過才詢問） | 使用者明確接受缺價例外後可 | accept_missing_price |
+| 缺價格（已知成本未超預算） | 是（自動標示「部分價格未知，預算無法完整驗證」；2026-10-26 使用者決定不再要求確認） | — |
 | 已知成本已超預算（不論是否缺價） | 否 | — |
 | 缺必要營養（熱量或蛋白質） | 否（補齊重驗前都不可） | continue_missing_nutrition（僅確認繼續查看） |
 | ±10% 不符、基準無解、食材無法驗證 | 否 | — |
 | 禁忌、指定菜、昨日未指定菜違規 | 否 | — |
 | 問卷已改版 | 否 | — |
 
-決定只針對單一結果版本；接受缺價例外時保存當時的缺價食材集合，集合不同即不算數。
+決定只針對單一結果版本。舊結果若已有 accept_missing_price 紀錄仍保留供追溯，但缺價本身已不擋採用。
 任何決定都不放寬禁忌、指定菜、±10% 或昨日去重。最終採用由 T16 以同一函式重新判定。
 """
 
@@ -25,7 +25,7 @@ MESSAGES = {
     "NUTRITION_OUT_OF_RANGE": "熱量或蛋白質超出目標 ±10%，可查看差距但不可採用。",
     "NO_FEASIBLE_BASELINE": "無法把基準配方調整到目標範圍內，不可採用。",
     "BUDGET_EXCEEDED": "已知食材成本已超過預算，不可採用（缺價例外也不能放寬）。",
-    "PRICE_INCOMPLETE": "部分需補買食材查無價格，預算無法完整驗證；需明確接受缺價例外後才可採用。",
+    "PRICE_INCOMPLETE": "價格尚未計算，預算無法驗證；營養計算完成後才可採用。",
     "VERSION_CONFLICT": "問卷已在此結果產生後修改，請重新生成後再採用。",
 }
 
@@ -65,18 +65,8 @@ def evaluate(payload: dict, *, decisions: list[dict], current_request_version: i
         blocks.append(_block("BUDGET_EXCEEDED", known_cost_total=cost.get("known_cost_total"),
                              budget=cost.get("budget")))
     elif cost.get("budget_status") == "PRICE_INCOMPLETE":
-        missing = missing_price_food_ids(payload)
-        decision = recorded.get(ACCEPT_MISSING_PRICE)
-        if decision is not None and sorted(decision.get("missing_food_ids") or []) == missing:
-            accepted = True
-        else:
-            other_blocks = bool(blocks)
-            blocks.append(_block("PRICE_INCOMPLETE", missing_food_ids=missing))
-            if other_blocks:
-                return _out(blocks, pending, accepted)  # 其他條件已不通過：接受缺價也無法採用，不詢問
-            pending.append({"kind": ACCEPT_MISSING_PRICE, "missing_food_ids": missing,
-                            "known_cost_total": cost.get("known_cost_total"),
-                            "message": "部分食材查無價格：可重試查價，或接受缺價例外繼續（標示預算無法完整驗證）。"})
+        # 缺價不擋採用：自動標示預算無法完整驗證（price_exception_accepted），畫面列出查無價格的食材
+        accepted = True
     return _out(blocks, pending, accepted)
 
 

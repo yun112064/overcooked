@@ -26,7 +26,7 @@ from app.services import idempotency, meal_history, meal_results, meal_validatio
 from app.services.generation import MODE_LABELS
 
 SNAPSHOT_VERSION = "meal_plan_snapshot/v1"
-ADOPTION_RULE_VERSION = "t16-adoption/v1"
+ADOPTION_RULE_VERSION = "t16-adoption/v2"  # v2（2026-10-26）：缺價不再需要確認即可採用
 RECORD_LABEL = "已採用餐食紀錄"
 MEAL_TYPE_ORDER = {"breakfast": 0, "lunch": 1, "dinner": 2}
 
@@ -62,7 +62,8 @@ def _price_exception(db: Session, result: GenerationResult, evaluation: dict, de
     if accepted is None and decision_id is not None:
         raise ApiError(422, "INVALID_INPUT", "此結果沒有可用的缺價例外接受紀錄。",
                        {"reason": "PRICE_EXCEPTION_NOT_APPLICABLE"})
-    if accepted is not None and str(accepted.id) != str(decision_id):
+    # 缺價已不需確認：沒帶接受紀錄也可採用；有帶就必須是這個結果的那一筆
+    if accepted is not None and decision_id is not None and str(accepted.id) != str(decision_id):
         raise ApiError(422, "INVALID_INPUT", "此結果缺少部分價格，採用時須確認先前接受的缺價例外。",
                        {"reason": "PRICE_EXCEPTION_NOT_CONFIRMED", "missing_food_ids":
                         (accepted.details or {}).get("missing_food_ids")})
@@ -158,7 +159,7 @@ def adopt(db: Session, *, household_id, user_id, meal_request_id, result_version
     accepted = _price_exception(db, result, evaluation, price_exception_decision_id)
     recheck = meal_history.recheck_previous_day(db, result.payload["previous_day"], result.payload["dishes"])
     if recheck["status"] == "conflict":
-        raise ApiError(409, meal_history.CONFLICT_CODE, "生成後前一日的已採用紀錄有變動，此菜單與昨日菜重複，請重新生成。",
+        raise ApiError(409, meal_history.CONFLICT_CODE, "生成後昨日或同一天其他餐的已採用紀錄有變動，此菜單有重複的菜，請重新生成。",
                        {"conflicting_dishes": [d["dish_name"] for d in recheck["conflicting_dishes"]],
                         "previous_date": recheck["context"]["previous_date"]})
 

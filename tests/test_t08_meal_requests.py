@@ -152,13 +152,14 @@ class T08ApiTests(unittest.TestCase):
         ], meal_date="2026-08-20"))
         preview = created["targets_preview"]
         self.assertEqual(preview["status"], "available", preview)
-        self.assertEqual(preview["rule_version"], "hpa-dri8-mvp-0.3.0")
+        self.assertEqual(preview["rule_version"], "hpa-dri8-mvp-0.4.0")
         ratios = {(i["kind"], i["meal"]): i["meal_ratio"] for i in preview["items"]}
         self.assertEqual(ratios, {("dining", "dinner"): "0.4", ("bento", "lunch"): "0.3"})
         self.assertEqual(len(preview["items"]), 3)
         self.assertEqual(preview["total_n"], "3.3")
-        # 成員 A：77 g/day 蛋白質；晚餐 0.4、午餐便當 0.3，各乘 1.3；成員 B：28×1.1×0.4×0.7
-        expected_protein = 77 * 0.4 * 1.3 + 77 * 0.3 * 1.3 + 28 * 1.1 * 0.4 * 0.7
+        # 成員 A（成人）：77 g/day 蛋白質；晚餐 0.4、午餐便當 0.3，各乘 1.3
+        # 成員 B（7–9 歲）：0.4.0 起查國健署分齡表 40 g/day（不再套成人 1.1 g/kg）× 0.4 × 0.7
+        expected_protein = 77 * 0.4 * 1.3 + 77 * 0.3 * 1.3 + 40 * 0.4 * 0.7
         self.assertAlmostEqual(float(preview["target"]["protein_g"]), expected_protein, places=9)
         self.assertFalse(preview["approved_for_adoption"])
 

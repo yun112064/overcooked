@@ -10,6 +10,7 @@
 資料庫故障拋出 RecipeRetrievalError，不當作查無結果。
 
 已有食材與口味偏好只影響排序；預算與營養由 T12／T13／T15 計算驗證。
+同一份菜單裡，兩道非指定菜不能以同一種蔬菜為主（2026-10-26 使用者決定，例如「清炒油菜」配「蒜香炒油菜」）。
 """
 import hashlib
 import itertools
@@ -34,6 +35,14 @@ STAPLE_CONFLICT = "specified_dish_staple_conflict"
 MAX_COMBINATIONS = 20
 # 食譜分類（recipes.category）；決策 #22 的菜色結構
 MAIN, STAPLE, SOUP, DESSERT = "主菜", "主食", "湯", "點心"
+# TFDA 樣本編號首字母：E 蔬菜、F 藻類、G 菇類 → 視為「蔬菜」判斷主菜蔬
+VEGETABLE_SAMPLE_PREFIXES = ("E", "F", "G")
+# 爆香／配色用的辛香料不算一道菜的主菜蔬（洋蔥除外，常是主料）
+AROMATIC_KEYWORDS = ("蒜", "蔥", "薑", "辣椒", "香菜", "九層塔")
+
+
+def _aromatic(name: str) -> bool:
+    return "洋蔥" not in name and any(k in name for k in AROMATIC_KEYWORDS)
 
 
 class RecipeRetrievalError(Exception):
@@ -91,17 +100,71 @@ def _load_recipes(db: Session) -> list[dict]:
         .order_by(Recipe.recipe_id)
     ).all()
     foods: dict[str, set[str]] = {}
-    for recipe_id, food_id in db.execute(
-        select(RecipeIngredient.recipe_id, RecipeIngredient.food_id)
+    lines: dict[str, list] = {}
+    for line in db.execute(
+        select(RecipeIngredient.recipe_id, RecipeIngredient.recipe_ingredient_id, RecipeIngredient.food_id,
+               RecipeIngredient.canonical_name, RecipeIngredient.weight_g, RecipeIngredient.source_weight_g)
         .join(Recipe, Recipe.recipe_id == RecipeIngredient.recipe_id)
         .where(Recipe.is_eligible.is_(True))
     ):
-        foods.setdefault(recipe_id, set()).add(food_id)
+        foods.setdefault(line.recipe_id, set()).add(line.food_id)
+        lines.setdefault(line.recipe_id, []).append(line)
+    main_vegetable = _main_vegetables(db, lines)
     return [{"recipe_id": r.recipe_id, "standard_dish_id": r.standard_dish_id, "recipe_name": r.recipe_name,
              "category": r.category,
              "aliases": [a for a in (r.name_aliases or []) if isinstance(a, str) and a.strip()],
              "tags": [t for t in (r.category, r.cuisine, *(r.cooking_methods or [])) if isinstance(t, str) and t],
-             "food_ids": sorted(foods.get(r.recipe_id, set()))} for r in rows]
+             "food_ids": sorted(foods.get(r.recipe_id, set())),
+             "main_vegetable": main_vegetable.get(r.recipe_id)} for r in rows]
+
+
+def _main_vegetables(db: Session, lines: dict[str, list]) -> dict[str, str]:
+    """每道食譜的主菜蔬：蔬菜／菇／藻類食材（不含辛香料）中克數最大者，以 TFDA 樣本編號表示（同種異名視為同一種）。
+    同克數取食譜中較前面的食材。
+
+    克數依工作簿並套用 config/recipe_weight_corrections.json；沒有蔬菜或無法對照的食譜沒有主菜蔬。
+    """
+    from app.services import tfda_mapping
+    from app.services.meal_calculation import weight_corrections
+
+    resolver = tfda_mapping.load_resolver(db)
+    _, fixed = weight_corrections()
+    samples: dict[tuple, tuple | None] = {}
+    out = {}
+    for recipe_id, rows in lines.items():
+        best = None
+        for row in sorted(rows, key=lambda r: r.recipe_ingredient_id):
+            grams = fixed.get(row.recipe_ingredient_id, row.weight_g if row.weight_g is not None else row.source_weight_g)
+            if not grams:
+                continue
+            key = (row.food_id, row.canonical_name)
+            if key not in samples:
+                res = resolver.resolve(row.food_id, row.canonical_name)
+                samples[key] = (res.sample_id, res.tfda_name) if res else None
+            if samples[key] is None:
+                continue
+            sample, tfda_name = samples[key]
+            # 辛香料以食譜名稱或對到的 TFDA 名稱判斷（食譜名稱可能是別名）
+            if _aromatic(row.canonical_name or "") or _aromatic(tfda_name or ""):
+                continue
+            if sample.startswith(VEGETABLE_SAMPLE_PREFIXES) and (best is None or grams > best[0]):
+                best = (grams, sample)
+        if best:
+            out[recipe_id] = best[1]
+    return out
+
+
+def _distinct_vegetables(menu: list[dict], vegetable_of: dict[str, str | None]) -> bool:
+    """非指定菜的主菜蔬不能與菜單中其他菜重複；使用者自己指定的菜彼此重複則尊重。"""
+    seen: set[str] = set()
+    for dish in sorted(menu, key=lambda d: not d["specified"]):  # 指定菜先登記
+        veg = vegetable_of.get(dish["recipe_id"])
+        if veg is None:
+            continue
+        if veg in seen and not dish["specified"]:
+            return False
+        seen.add(veg)
+    return True
 
 
 def _group(recipes: list[dict]) -> list[_Dish]:
@@ -193,7 +256,8 @@ def _retrieve(db: Session, household_id, draft: MealRequestDraft, excluded: set[
     dishes = _group(_load_recipes(db))
     found, missing, ambiguous = _resolve_specified(dishes, draft.specified_dishes)
     context = meal_history.previous_day_context(
-        db, household_id, draft.meal_date, specified_dish_ids=[d.standard_dish_id for d in found.values()])
+        db, household_id, draft.meal_date, specified_dish_ids=[d.standard_dish_id for d in found.values()],
+        meal_type=draft.meal_type)
 
     if ambiguous:
         return RetrievalResult(UNRESOLVED, reason="SPECIFIED_DISH_AMBIGUOUS",
@@ -275,12 +339,19 @@ def _retrieve(db: Session, household_id, draft: MealRequestDraft, excluded: set[
                                         "main_dishes": sum(o[0]["category"] == MAIN for o, _ in pool)},
                                previous_day=context)
 
+    vegetable_of = {r["recipe_id"]: r["main_vegetable"] for d in dishes for r in d.recipes}
+
     def combinations():
         for fixed in itertools.product(*specified):
             for picked in _structured_picks([options[0]["category"] for options, _ in pool],
                                             needed, need_main, soup_room):
-                yield [*fixed, *(_summary(pool[i][0][0], pool[i][1], False) for i in picked)]
+                menu = [*fixed, *(_summary(pool[i][0][0], pool[i][1], False) for i in picked)]
+                if _distinct_vegetables(menu, vegetable_of):
+                    yield menu
 
     alternatives = list(itertools.islice(combinations(), MAX_COMBINATIONS))
+    if not alternatives:
+        return RetrievalResult(NO_FEASIBLE, reason="DUPLICATE_MAIN_VEGETABLE",
+                               details={"dish_count": draft.dish_count}, previous_day=context)
     return RetrievalResult(DATABASE_MENU, selected=alternatives[0], candidates=candidates, previous_day=context,
                            alternatives=alternatives)

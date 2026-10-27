@@ -23,7 +23,7 @@ class Settings(BaseSettings):
     ingredient_synonyms_path: Path = PROJECT_ROOT / "config/ingredient_synonyms.json"
 
     nutrition_rules_path: Path = (
-        PROJECT_ROOT / "nutrition_target/rules/hpa-dri8-mvp-0.3.0.json"
+        PROJECT_ROOT / "nutrition_target/rules/hpa-dri8-mvp-0.4.0.json"
     )
 
     # T10 外部服務費用：每月總上限包含主機、模型、備份等全部服務

@@ -232,9 +232,10 @@ class KnowledgeTests(ResultTestCase):
 
 
 class MissingPriceDecisionTests(ResultTestCase):
-    def test_missing_price_awaits_decision_then_explicit_acceptance_makes_it_adoptable(self):
+    def test_missing_price_is_adoptable_without_a_decision(self):
+        # 2026-10-26 使用者決定：缺價不擋採用、不需確認；畫面照樣列出查無價格的食材與已知部分
         self.generate(prices=(TOMATO, EGG, CABBAGE))
-        self.assertEqual(self.status(), "awaiting_decision")
+        self.assertEqual(self.status(), "result_ready")
         view = self.result()
         prices = view["prices"]
         garlic = next(i for i in prices["items"] if i["food_id"] == GARLIC)
@@ -244,26 +245,12 @@ class MissingPriceDecisionTests(ResultTestCase):
         self.assertEqual((money(prices["known_purchase_total"]), money(prices["known_cost_total"])),
                          (Decimal(90), Decimal(15)))
         eligibility = view["eligibility"]
-        self.assertFalse(eligibility["adoptable"])
-        [pending] = eligibility["pending_decisions"]
-        self.assertEqual((pending["kind"], pending["missing_food_ids"]), ("accept_missing_price", [GARLIC]))
-
+        self.assertTrue(eligibility["adoptable"])
+        self.assertTrue(eligibility["price_exception_accepted"])
+        self.assertEqual((eligibility["blocks"], eligibility["pending_decisions"]), ([], []))
+        # 已不需要接受缺價：送出決定會被拒絕
         res = self.decide("accept_missing_price")
-        self.assertEqual(res.status_code, 201, res.text)
-        decision = res.json()["decision"]
-        self.assertEqual((decision["kind"], decision["result_version"], decision["missing_food_ids"]),
-                         ("accept_missing_price", 1, [GARLIC]))
-        self.assertEqual(self.status(), "result_ready")
-        view = self.result()
-        self.assertTrue(view["eligibility"]["adoptable"])
-        self.assertTrue(view["eligibility"]["price_exception_accepted"])
-        self.assertEqual([d["kind"] for d in view["eligibility"]["decisions"]], ["accept_missing_price"])
-
-        # 冪等：同鍵同命令回同一筆；同鍵不同命令拒絕
-        again = self.decide("accept_missing_price")
-        self.assertEqual((again.status_code, again.json()["decision"]["id"]), (200, decision["id"]))
-        clash = self.decide("continue_missing_nutrition")
-        self.assertEqual((clash.status_code, clash.json()["error"]["code"]), (409, "IDEMPOTENCY_CONFLICT"))
+        self.assertEqual((res.status_code, res.json()["error"]["details"]["reason"]), (422, "DECISION_NOT_APPLICABLE"))
 
     def test_known_cost_over_budget_cannot_be_accepted(self):
         self.generate(prices=(TOMATO, EGG, CABBAGE), budget="10")
@@ -308,9 +295,9 @@ class MissingPriceDecisionTests(ResultTestCase):
         self.assertEqual(res.status_code, 202, res.text)
         job = res.json()["job"]
         self.assertEqual((job["kind"], job["status"], job["source_result_version"]), ("price_retry", "queued", 1))
-        # 查價中可辨識；問卷狀態不變、原結果仍可查看與決定
+        # 查價中可辨識；問卷狀態不變、原結果仍可查看與採用
         self.assertEqual(self.result()["retries"]["price"]["status"], "queued")
-        self.assertEqual(self.status(), "awaiting_decision")
+        self.assertEqual(self.status(), "result_ready")
         again = self.retry_prices()  # 同鍵重送：同一工作
         self.assertEqual((again.status_code, again.json()["job"]["id"]), (200, job["id"]))
         lookup = self.lookup(GARLIC)
@@ -330,16 +317,16 @@ class MissingPriceDecisionTests(ResultTestCase):
                          ("succeeded", 2))
         self.assertIn("retry_missing_price", [d["kind"] for d in original["eligibility"]["decisions"]])
 
-    def test_price_retry_still_missing_needs_a_fresh_acceptance(self):
+    def test_price_retry_still_missing_stays_adoptable(self):
         from app.services.result_retry import make_price_retry_handler
         self.generate(prices=(TOMATO, EGG, CABBAGE))
-        self.assertEqual(self.decide("accept_missing_price").status_code, 201)
         self.assertEqual(self.retry_prices().status_code, 202)
         self.run_retry("price_retry", make_price_retry_handler(price_lookup=self.lookup()))
-        self.assertEqual(self.status(), "awaiting_decision")
+        self.assertEqual(self.status(), "result_ready")
         retried = self.result(2)
-        self.assertFalse(retried["eligibility"]["adoptable"])
-        self.assertEqual([d["kind"] for d in retried["eligibility"]["pending_decisions"]], ["accept_missing_price"])
+        self.assertTrue(retried["eligibility"]["adoptable"])
+        self.assertTrue(retried["eligibility"]["price_exception_accepted"])
+        self.assertEqual(retried["eligibility"]["pending_decisions"], [])
 
     def test_failed_lookup_is_visible_and_keeps_the_original_result(self):
         from app.services.result_retry import make_price_retry_handler
@@ -351,7 +338,7 @@ class MissingPriceDecisionTests(ResultTestCase):
         view = self.result()
         self.assertEqual((view["retries"]["price"]["status"], view["retries"]["price"]["error"]["code"]),
                          ("failed", "PRICE_LOOKUP_FAILED"))
-        self.assertEqual(self.status(), "awaiting_decision")
+        self.assertEqual(self.status(), "result_ready")
         self.assertEqual(len(self.results()), 1)
         # 失敗後可用新的識別碼再試
         self.assertEqual(self.retry_prices(key="retry-00000002").status_code, 202)

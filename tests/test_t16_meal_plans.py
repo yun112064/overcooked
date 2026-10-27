@@ -219,25 +219,19 @@ class EligibilityTests(PlanTestCase):
         self.assertIn("NUTRITION_OUT_OF_RANGE", [b["code"] for b in res.json()["error"]["details"]["blocks"]])
         self.assertEqual(self.plans_on("2026-08-20"), [])
 
-    def test_missing_price_needs_acceptance_record_and_saves_the_exception_flag(self):
+    def test_missing_price_is_adopted_directly_and_saves_the_exception_flag(self):
+        # 2026-10-26 使用者決定：缺價不需接受紀錄即可採用；快照照樣標示缺價食材與預算無法完整驗證
         self.generate(prices=(TOMATO, EGG, CABBAGE))
         res = self.adopt()
-        self.assertEqual((res.status_code, res.json()["error"]["code"]), (422, "PRICE_INCOMPLETE"))
-        decision = self.decide("accept_missing_price").json()["decision"]
-        # 已接受，但採用時沒有指名接受紀錄：拒絕
-        res = self.adopt(key="adopt-00000002")
-        self.assertEqual((res.status_code, res.json()["error"]["details"]["reason"]),
-                         (422, "PRICE_EXCEPTION_NOT_CONFIRMED"))
-        res = self.adopt(key="adopt-00000003", price_exception_decision_id=decision["id"])
         self.assertEqual(res.status_code, 201, res.text)
         detail = self.plan(res.json()["meal_plan"]["id"])
         self.assertTrue(detail["price_exception_accepted"])
         self.assertEqual(detail["missing"]["price_food_ids"], [GARLIC])
         self.assertTrue(detail["missing"]["price_exception_accepted"])
-        self.assertEqual((detail["price_exception"]["decision_id"], detail["price_exception"]["missing_food_ids"]),
-                         (decision["id"], [GARLIC]))
+        self.assertIsNone(detail["price_exception"])  # 沒有接受紀錄
         self.assertIsNone(detail["prices"]["cost_total"])
         self.assertEqual(money(detail["prices"]["known_cost_total"]), Decimal(15))
+        self.assertEqual(detail["versions"]["adoption_rule_version"], "t16-adoption/v2")
 
     def test_price_exception_reference_on_a_complete_result_is_rejected(self):
         self.generate()
@@ -369,7 +363,11 @@ class HistoryChainTests(PlanTestCase):
         self.assertIn("三杯雞", self.names(lunch))
         self.assertFalse({"培根炒高麗菜", "高麗菜炒培根"} & set(self.names(lunch)))
         self.assertEqual(lunch["previous_day"]["specified_repeats"], ["三杯雞"])
-        self.assertEqual([d["dish_name"] for d in lunch["previous_day"]["excluded_dishes"]], ["培根炒高麗菜"])
+        # 2026-10-26 起同一天其他餐也排除：8/20 晚餐已採用的兩道菜不會出現在 8/20 午餐
+        excluded = lunch["previous_day"]["excluded_dishes"]
+        self.assertEqual([(d["dish_name"], d["from"]) for d in excluded],
+                         [("培根炒高麗菜", "previous_day"), ("番茄炒蛋", "dinner"), ("清炒高麗菜", "dinner")])
+        self.assertFalse({"番茄炒蛋", "清炒高麗菜"} & set(self.names(lunch)))
         self.assertEqual(self.adopt(key=new_key()).status_code, 201)
 
         # 兩個日期都可回看（各餐別依早午晚排序），日期清單含兩日

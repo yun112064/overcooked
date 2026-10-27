@@ -26,7 +26,8 @@ FALLBACK_MESSAGES = {
     "NO_MATCHING_RECIPES": "食譜資料庫沒有符合條件的組合，已自動改由 AI 生成。",
     "SPECIFIED_DISH_NOT_IN_DATABASE": "指定的菜不在食譜資料庫，已自動改由 AI 生成。",
     "DATABASE_MENU_NUTRITION_INFEASIBLE": "資料庫的候選菜單都無法在可調範圍內符合熱量與蛋白質目標，已自動改由 AI 生成。",
-    "ALL_EXCLUDED_BY_PREVIOUS_DAY": "排除昨日已採用的菜後資料庫沒有可行組合，已自動改由 AI 生成（仍避開昨日菜）。",
+    "ALL_EXCLUDED_BY_PREVIOUS_DAY": "排除昨日與同一天其他餐已採用的菜後資料庫沒有可行組合，已自動改由 AI 生成（仍避開這些菜）。",
+    "DUPLICATE_MAIN_VEGETABLE": "資料庫的組合都有兩道菜用同一種蔬菜，已自動改由 AI 生成。",
 }
 
 
@@ -309,7 +310,7 @@ def previous_day_check(db: Session, payload: dict) -> dict:
     if check["status"] == "conflict":
         out.update(code=check["code"], conflicting_dishes=[d["dish_name"] for d in check["conflicting_dishes"]],
                    previous_date=check["context"]["previous_date"],
-                   message="生成後前一日的已採用紀錄有變動，此菜單與昨日菜重複，不能採用；請重新生成。")
+                   message="生成後昨日或同一天其他餐的已採用紀錄有變動，此菜單有重複的菜，不能採用；請重新生成。")
     return out
 
 

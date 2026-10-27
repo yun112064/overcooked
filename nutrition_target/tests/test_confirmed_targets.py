@@ -192,3 +192,61 @@ class ConfirmedTargetTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+RULE_V4 = RULE_ROOT / "hpa-dri8-mvp-0.4.0.json"
+
+
+class MinorReferenceTableTests(unittest.TestCase):
+    """0.4.0：未滿 19 歲改查國健署 DRIs 第八版分齡表；19 歲以上與 0.3.0 完全相同。"""
+
+    def setUp(self):
+        self.service = NutritionTargetService(RULE_V4)
+        self.v3 = NutritionTargetService(RULE)
+
+    def daily(self, **kwargs):
+        result = self.service.daily_target(member(goal="general", **kwargs))
+        return (Decimal(result["daily_reference"]["energy_kcal"]), Decimal(result["daily_reference"]["protein_g"]), result)
+
+    def test_table_values_by_age_sex_and_activity(self):
+        # 總表數值（大卡；蛋白質公克）：1–15 歲只有稍低／適度兩級
+        cases = [
+            (dict(age_years=2, equation_sex="M", weight_kg="13", activity_category="low_active"), 1150, 20),
+            (dict(age_years=5, equation_sex="F", weight_kg="19", activity_category="active"), 1650, 30),
+            (dict(age_years=8, equation_sex="M", weight_kg="28", activity_category="sedentary"), 1800, 40),
+            (dict(age_years=11, equation_sex="F", weight_kg="32.8", activity_category="active"), 2250, 50),
+            (dict(age_years=11, equation_sex="F", weight_kg="32.8", activity_category="highly_active"), 2250, 50),
+            (dict(age_years=14, equation_sex="M", weight_kg="55", activity_category="active"), 2800, 70),
+            (dict(age_years=17, equation_sex="M", weight_kg="60.5", activity_category="highly_active"), 3350, 75),
+            (dict(age_years=18, equation_sex="F", weight_kg="51", activity_category="sedentary"), 1650, 55),
+        ]
+        for data, energy, protein in cases:
+            with self.subTest(**data):
+                e, p, result = self.daily(**data)
+                self.assertEqual((e, p), (Decimal(energy), Decimal(protein)))
+                self.assertEqual(result["protein_rule_id"], "hpa-dri8-minor-table")
+                self.assertEqual(result["energy_equation_id"], "hpa-dri8-minor-table")
+
+    def test_infant_uses_per_kg_reference(self):
+        e, p, result = self.daily(age_years=0, weight_kg="8")
+        self.assertEqual((e, p), (Decimal(720), Decimal("16.8")))  # 90 kcal／kg、2.1 g／kg（7–12 月）
+        self.assertEqual(result["minor_band"], "7-12 月")
+
+    def test_adults_are_unchanged_from_0_3_0(self):
+        for data in (member(), member(goal="muscle_gain", activity_category="active"),
+                     member(age_years=19, weight_kg="65"), member(age_years=75, equation_sex="F", weight_kg="50")):
+            with self.subTest(data=data):
+                new, old = self.service.daily_target(data), self.v3.daily_target(data)
+                self.assertEqual(new["daily_reference"], old["daily_reference"])
+
+    def test_minor_meal_targets_follow_30_30_40(self):
+        kid = member(age_years=11, equation_sex="F", weight_kg="32.8", activity_category="active", goal="general")
+        for meal, ratio in (("breakfast", "0.3"), ("lunch", "0.3"), ("dinner", "0.4")):
+            with self.subTest(meal=meal):
+                result = self.service.meal_target(kid, meal)
+                self.assertEqual(Decimal(result["meal_reference"]["energy_kcal"]), Decimal(2250) * Decimal(ratio))
+
+    def test_minors_still_cannot_choose_adult_goals(self):
+        with self.assertRaises(TargetInputError) as ctx:
+            self.service.daily_target(member(age_years=15, goal="fat_loss"))
+        self.assertEqual(ctx.exception.reason, "GOAL_NOT_ALLOWED_FOR_AGE")

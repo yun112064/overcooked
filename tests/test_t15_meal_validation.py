@@ -36,27 +36,21 @@ class EligibilityTests(unittest.TestCase):
         self.assertTrue(result["adoptable"])
         self.assertEqual((codes(result), kinds(result)), ([], []))
 
-    def test_missing_price_needs_explicit_acceptance_then_is_adoptable_and_flagged(self):
+    def test_missing_price_is_adoptable_without_any_decision_and_is_flagged(self):
+        # 2026-10-26 使用者決定：缺價不擋採用、不需確認；自動標示預算無法完整驗證
         result = evaluate(payload(budget_status="PRICE_INCOMPLETE", missing=["FOOD001016"]), decisions=[],
                           current_request_version=1)
-        self.assertFalse(result["adoptable"])
-        self.assertEqual(codes(result), ["PRICE_INCOMPLETE"])
-        [pending] = result["pending_decisions"]
-        self.assertEqual((pending["kind"], pending["missing_food_ids"]), ("accept_missing_price", ["FOOD001016"]))
+        self.assertTrue(result["adoptable"])
+        self.assertTrue(result["price_exception_accepted"])
+        self.assertEqual((codes(result), kinds(result)), ([], []))
 
-        accepted = evaluate(payload(budget_status="PRICE_INCOMPLETE", missing=["FOOD001016"]),
-                            decisions=[{"kind": "accept_missing_price", "missing_food_ids": ["FOOD001016"]}],
-                            current_request_version=1)
-        self.assertTrue(accepted["adoptable"])
-        self.assertTrue(accepted["price_exception_accepted"])
-        self.assertEqual((codes(accepted), kinds(accepted)), ([], []))
-
-    def test_acceptance_for_a_different_missing_set_does_not_count(self):
+    def test_old_acceptance_records_are_harmless(self):
+        # 舊結果可能已有 accept_missing_price 紀錄（集合不同也一樣）：仍可採用、不再詢問
         result = evaluate(payload(budget_status="PRICE_INCOMPLETE", missing=["FOOD001016", "FOOD001566"]),
                           decisions=[{"kind": "accept_missing_price", "missing_food_ids": ["FOOD001016"]}],
                           current_request_version=1)
-        self.assertFalse(result["adoptable"])
-        self.assertEqual(kinds(result), ["accept_missing_price"])
+        self.assertTrue(result["adoptable"])
+        self.assertEqual(kinds(result), [])
 
     def test_known_cost_over_budget_is_never_adoptable_and_offers_no_exception(self):
         result = evaluate(payload(budget_status="BUDGET_EXCEEDED", missing=["FOOD001016"]),
@@ -91,12 +85,12 @@ class EligibilityTests(unittest.TestCase):
         self.assertFalse(result["adoptable"])
         self.assertEqual(codes(result), ["NUTRITION_OUT_OF_RANGE"])
 
-    def test_missing_price_is_not_asked_when_other_conditions_already_fail(self):
-        # R09：缺價例外只在「必要營養與其他條件通過」時才詢問；否則接受也無法採用
+    def test_missing_price_never_hides_other_blocks(self):
+        # 缺價本身不擋，但其他條件不通過時照樣不可採用
         result = evaluate(payload(calc_reasons=["NUTRITION_OUT_OF_RANGE"], budget_status="PRICE_INCOMPLETE",
                                   missing=["FOOD001016"]), decisions=[], current_request_version=1)
-        self.assertEqual(kinds(result), [])
-        self.assertEqual(codes(result), ["NUTRITION_OUT_OF_RANGE", "PRICE_INCOMPLETE"])
+        self.assertFalse(result["adoptable"])
+        self.assertEqual((codes(result), kinds(result)), (["NUTRITION_OUT_OF_RANGE"], []))
 
     def test_hard_constraint_failure_blocks(self):
         result = evaluate(payload(hard=False), decisions=[], current_request_version=1)

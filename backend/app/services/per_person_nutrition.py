@@ -1,6 +1,8 @@
 """每人這一餐吃到多少，對照每人每日建議攝取量（畫面用，不參與驗證與採用資格）。
 
-整餐是依食量 n 縮放而成，所以某成員吃到的量 = 整餐營養 × 該成員 n ÷ 全家總 n；同一人同時用餐與帶便當時合併。
+整餐份量＝全家當餐目標的合計，所以某成員應吃到的量＝整餐營養 × 該成員當餐目標 ÷ 全家當餐目標合計
+（當餐目標＝每日目標 × 餐別比例 × 食量 n，T03 scaled_target）；同一人同時用餐與帶便當時合併。
+不依 n 平分：兒童每日需求低、n 卻可能不小，平分會讓兒童分到超過自己目標的量。
 每日建議：熱量、蛋白質取自 T03 每人每日目標（結果快照的 targets.items：scaled_target ÷ (meal_ratio × n)，
 與 T03 daily_reference 相同）；其餘 5 項依 config/daily_reference_nutrients.json 由該成員每日熱量推算。
 """
@@ -69,19 +71,23 @@ def per_person(payload: dict, nutrition: dict, member_names: dict[str, str | Non
         per_day = Decimal(str(item["meal_ratio"])) * n
         person = people.setdefault(member_id, {
             "member_id": member_id, "name": member_names.get(member_id), "kinds": [], "n": Decimal(0),
-            "meal_ratio": Decimal(0),
+            "meal_ratio": Decimal(0), "target_energy": Decimal(0),
             "daily_energy": Decimal(str(scaled["energy_kcal"])) / per_day,
             "daily_protein": Decimal(str(scaled["protein_g"])) / per_day,
         })
         person["n"] += n
-        # 用餐＋便當是兩餐：建議占比相加（例如晚餐 40%＋午餐便當 30%）
-        person["meal_ratio"] += Decimal(str(item["meal_ratio"]))
+        person["target_energy"] += Decimal(str(scaled["energy_kcal"]))
+        # 這一餐應占每日的比例＝餐別比例 × 食量 n；用餐＋便當是兩餐，相加（例如晚餐 40%＋午餐便當 30%）
+        person["meal_ratio"] += Decimal(str(item["meal_ratio"])) * n
         if item["kind"] not in person["kinds"]:
             person["kinds"].append(item["kind"])
 
+    total_target = sum((p["target_energy"] for p in people.values()), Decimal(0))
+    if not total_target:
+        return []
     out = []
     for p in people.values():
-        share = p["n"] / total_n
+        share = p["target_energy"] / total_target
         intake = {key: None if value is None else str(value * share) for key, value in whole.items()}
         partial = {key: str(known[key] * share) for key, value in whole.items()
                    if value is None and known.get(key) is not None}

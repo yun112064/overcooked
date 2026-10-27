@@ -205,9 +205,9 @@ class DatabaseMenuTests(GenerationTestCase):
         # 工作摘要指向結果版本；未呼叫任何付費服務
         self.assertEqual(job["result_version"], 1)
         self.assertEqual(self.reservations(), [])
-        # 未寫入價格快照 → 全部缺價，T15 起問卷等待使用者決定（result_ready 不代表可採用）
+        # 未寫入價格快照 → 全部缺價；2026-10-26 起缺價不需使用者決定，問卷直接是 result_ready
         self.assertEqual(self.client.get(f"/meal-requests/{self.request['id']}").json()["status"],
-                         "awaiting_decision")
+                         "result_ready")
 
 
 class AiFallbackTests(GenerationTestCase):
@@ -689,7 +689,7 @@ class ResultVersionTests(GenerationTestCase):
             summary = db.get(BackgroundJob, rows[1].job_id).result
         self.assertEqual(summary, {"generation_result_id": str(rows[1].id), "result_version": 2,
                                    "mode": "database_menu", "mode_label": "資料庫菜單", "fallback_reason": None,
-                                   "request_status": "awaiting_decision"})  # T15：營養通過、缺價待使用者決定
+                                   "request_status": "result_ready"})  # 營養通過、缺價不需決定
 
     def test_result_is_not_written_when_the_lease_was_lost(self):
         from app.services import jobs
