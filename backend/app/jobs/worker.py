@@ -5,6 +5,7 @@ JobContext 更新進度與發出付費呼叫。可同時啟動多個工作程序
 """
 import os
 import signal
+import traceback
 import socket
 import time
 import uuid
@@ -61,6 +62,28 @@ HANDLERS: dict[str, Callable[[JobContext], dict]] = {
 RETRY_MESSAGE = "暫時性錯誤，系統會自動重試一次。"
 
 
+def error_site(exc: BaseException) -> str:
+    """例外在專案程式碼中最內層的位置（相對路徑:函式:行號）；不含訊息內容。"""
+    frames = traceback.extract_tb(exc.__traceback__)
+    ours = [f for f in frames if "site-packages" not in f.filename and "/lib/python" not in f.filename.replace("\\", "/")]
+    frame = (ours or frames)[-1] if (ours or frames) else None
+    if frame is None:
+        return "unknown.py:unknown:0"
+    path = frame.filename.replace("\\", "/")
+    for marker in ("/backend/", "/app/"):
+        if marker in path:
+            path = path.split(marker, 1)[1]
+            break
+    return f"{path}:{frame.name}:{frame.lineno}"
+
+
+def log_unexpected(job, exc: BaseException) -> None:
+    """未預期錯誤寫入 process.jsonl：工作 ID、例外類別、發生位置（demo 曾因缺設定檔全數失敗卻無從查起）。"""
+    jobs.process_logger.error("job_unexpected_error", extra={
+        "event": "job_unexpected_error", "job_id": str(job.id),
+        "error_type": type(exc).__qualname__, "error_site": error_site(exc)})
+
+
 def run_once(factory: sessionmaker, owner: str, handlers: dict | None = None) -> BackgroundJob | None:
     handlers = handlers or HANDLERS
     job = jobs.claim(factory, owner)
@@ -91,7 +114,8 @@ def run_once(factory: sessionmaker, owner: str, handlers: dict | None = None) ->
     except TimeoutError:
         # 只在付費呼叫之外發生（付費呼叫的逾時會轉成 UncertainBilling）
         jobs.fail(factory, job.id, owner, code="SERVICE_TIMEOUT", message=RETRY_MESSAGE, retryable=True)
-    except Exception:
+    except Exception as exc:
+        log_unexpected(job, exc)
         jobs.fail(factory, job.id, owner, code="GENERATION_FAILED",
                   message="生成過程發生錯誤；問卷已保留，可重新送出。", retryable=False)
     else:

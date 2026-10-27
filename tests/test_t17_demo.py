@@ -128,3 +128,24 @@ class DemoComposeTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class BackendImageConfigTests(unittest.TestCase):
+    """後端映像要帶齊程式讀取的設定檔：曾逐檔 COPY 漏掉 nutrition_as_is_categories 等，demo 生成全部失敗。"""
+
+    ROOT = Path(__file__).resolve().parents[1]
+
+    def test_dockerfile_copies_the_whole_config_directory(self):
+        dockerfile = (self.ROOT / "backend/Dockerfile").read_text(encoding="utf-8")
+        self.assertIn("COPY config /app/config", dockerfile)
+
+    def test_every_config_file_the_code_reads_exists(self):
+        import re
+        names = set()
+        for path in list((self.ROOT / "backend/app").rglob("*.py")) + list((self.ROOT / "nutrition_model").rglob("*.py")):
+            text = path.read_text(encoding="utf-8")
+            names |= set(re.findall(r'config/([a-z_]+\.json)', text))
+            names |= set(re.findall(r'"config" / "([a-z_]+\.json)"', text))
+        self.assertTrue(names)
+        missing = sorted(n for n in names if not (self.ROOT / "config" / n).is_file())
+        self.assertEqual(missing, [])

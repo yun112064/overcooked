@@ -88,6 +88,8 @@ SAFE_LOG_EVENTS = {
     "job_claimed": ("process", "Background job claimed"),
     "job_succeeded": ("process", "Background job succeeded"),
     "job_failed": ("process", "Background job failed"),
+    # 未預期錯誤：只記例外類別與發生位置（檔案:函式:行號），不記訊息內容（可能含使用者資料）
+    "job_unexpected_error": ("process", "Background job raised an unexpected error"),
     "job_retry_scheduled": ("process", "Background job retry scheduled"),
     "job_recovered": ("scheduler", "Expired background job recovered"),
     "scheduler_started": ("scheduler", "Scheduler started"),
@@ -116,6 +118,8 @@ SAFE_OPTIONAL_FIELDS = {
     "job_id": re.compile(r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"),
     "trace_id": re.compile(r"^[0-9a-f]{16,32}$"),
     "error_code": re.compile(r"^[A-Z][A-Z_]{1,49}$"),
+    "error_type": re.compile(r"^[A-Za-z_][A-Za-z0-9_.]{0,99}$"),
+    "error_site": re.compile(r"^[A-Za-z0-9_./-]{1,120}\.py:[A-Za-z_<>][A-Za-z0-9_<>]{0,79}:[0-9]{1,6}$"),
 }
 
 

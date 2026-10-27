@@ -33,6 +33,22 @@ class FormatterFieldTests(unittest.TestCase):
         self.assertNotIn("job_id", data)
         self.assertNotIn("error_code", data)
 
+    def test_unexpected_error_fields_keep_only_type_and_code_location(self):
+        from app.core.logging_config import JsonFormatter
+
+        record = logging.LogRecord("p", logging.ERROR, "", 0, "x", (), None)
+        record.event = "job_unexpected_error"
+        record.error_type = "FileNotFoundError"
+        record.error_site = "app/services/meal_calculation.py:as_is_rules:732"
+        data = json.loads(JsonFormatter().format(record))
+        self.assertEqual((data["error_type"], data["error_site"]),
+                         ("FileNotFoundError", "app/services/meal_calculation.py:as_is_rules:732"))
+        record.error_type = "Error: 王小明 過敏"
+        record.error_site = "/home/user 名字/x.py"
+        data = json.loads(JsonFormatter().format(record))
+        self.assertNotIn("error_type", data)
+        self.assertNotIn("error_site", data)
+
 
 def failing(ctx):
     """不呼叫付費服務、直接失敗的處理函式（只測工作流程，不測生成內容）。"""
@@ -173,6 +189,25 @@ class T10Tests(unittest.TestCase):
         self.assertEqual(res.json()["error"]["code"], "RATE_LIMITED")
 
     # --- 工作程序 ---
+
+    def test_unexpected_error_is_logged_with_type_and_site_but_not_its_message(self):
+        # demo 曾因映像缺設定檔使生成全數失敗，日誌卻什麼都沒留下
+        from app.jobs.worker import run_once
+
+        def broken(ctx):
+            raise FileNotFoundError("/app/config/x.json 王小明的資料")
+
+        job_id = self.submit().json()["job"]["id"]
+        with self.assertLogs("process", level="ERROR") as logs:
+            run_once(self.factory, "worker-a", {"meal_generation": broken})
+        [record] = [r for r in logs.records if getattr(r, "event", None) == "job_unexpected_error"]
+        self.assertEqual((record.job_id, record.error_type), (job_id, "FileNotFoundError"))
+        self.assertRegex(record.error_site, r"test_t10_jobs\.py:broken:\d+$")
+        # 例外訊息（可能含使用者資料）不進日誌紀錄，也不出現在寫出的 JSON
+        from app.core.logging_config import JsonFormatter
+        self.assertNotIn("王小明", json.dumps(record.__dict__, default=str, ensure_ascii=False))
+        self.assertNotIn("王小明", JsonFormatter().format(record))
+        self.assertEqual(self.client.get(f"/jobs/{job_id}").json()["error"]["code"], "GENERATION_FAILED")
 
     def test_default_handler_without_model_service_fails_clearly_and_keeps_draft(self):
         # T14 取代原「尚未開放」占位：沒有可行資料庫菜單且未設定模型金鑰時明確失敗，不假裝產生菜單
