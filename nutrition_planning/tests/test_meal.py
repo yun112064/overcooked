@@ -163,3 +163,22 @@ def test_required_ingredient_can_have_zero_lower_bound_if_chosen_quantity_positi
     assert result.nutrition_passed
     assert result.final_recipe is not None
     assert result.final_recipe.ingredients[0].amount_g == F(100)
+
+
+def test_searches_other_quantities_when_required_item_initially_rounds_to_zero():
+    catalog = Path(__file__).resolve().parents[2] / "nutrition_model/data/ingredient_master.json"
+    policy = NutritionPolicy(catalog, {"food": "C1610101"}, ("energy_kcal", "protein_g"))
+    lines = (
+        IngredientQuantity("one", "food", "C1610101", D("80"), "cooked", True, D("10"),
+            adjustment_status="approved", adjustable_min_g=D("50"), adjustable_max_g=D("100"), original_servings=1),
+        IngredientQuantity("two", "food", "C1610101", D("10"), "cooked", True, D("30"),
+            adjustment_status="approved", adjustable_min_g=D("0"), adjustable_max_g=D("30"), original_servings=1),
+    )
+    recipe = RecipeCandidate("database_menu", lines, ("recipe",), "approved")
+    targets = targets_from_t03({"total_n": "1", "target": {"energy_kcal": "563.4", "protein_g": "18.27"},
+        "reference_exact": {"energy_kcal": {"numerator": "2817", "denominator": "5"},
+                            "protein_g": {"numerator": "1827", "denominator": "100"}}})
+    result = validate_meal(recipe, targets, policy=policy)
+    assert result.nutrition_passed
+    assert result.final_recipe is not None
+    assert tuple(line.amount_g for line in result.final_recipe.ingredients) == (F(60), F(30))

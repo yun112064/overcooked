@@ -421,7 +421,16 @@ def validate_meal(recipe: RecipeCandidate, targets: MealTargets, *, policy: Nutr
     try:
         final_recipe = scale_to_cooking_units(alignment.recipe, targets.total_n)
     except PlanningInputError:
-        return MealValidationResult(alignment.check, None, None, None, False, tuple(blockers), "missing_cooking_unit")
+        if recipe.mode == "database_menu":
+            alternative, reason = _search_cookable(alignment.recipe, targets.total_n, targets, policy)
+            if alternative is None:
+                return MealValidationResult(alignment.check, None, None, None, False, tuple(blockers), reason)
+            final_recipe = alternative
+        else:
+            missing_step = any(line.cooking_step_g is None or exact(line.cooking_step_g) <= 0
+                               for line in alignment.recipe.ingredients)
+            reason = "missing_cooking_unit" if missing_step else "required_ingredient_rounds_to_zero"
+            return MealValidationResult(alignment.check, None, None, None, False, tuple(blockers), reason)
     final = calculate_nutrition(final_recipe, policy=policy)
     final_check = check_tolerance(final, targets.target)
     if recipe.mode == "database_menu" and (not final_check.passed or not _reviewed_quantities_hold(
