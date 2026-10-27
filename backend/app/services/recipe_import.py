@@ -246,7 +246,7 @@ def _split_list(value: Any) -> list[str]:
 
 
 def normalize_name(value: str) -> str:
-    normalized = unicodedata.normalize("NFKC", value).lower()
+    normalized = unicodedata.normalize("NFKC", value).lower().translate(str.maketrans("蕃臺葱麪", "番台蔥麵"))
     return "".join(character for character in normalized if character.isalnum())
 
 
