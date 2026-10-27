@@ -1,4 +1,5 @@
 import json
+from dataclasses import replace
 from pathlib import Path
 from decimal import Decimal as D
 from fractions import Fraction as F
@@ -20,7 +21,7 @@ def test_five_portions_scale_without_changing_the_target(tmp_path, n, energy, pr
         "source": {"provider": "TFDA", "source_id": "s", "source_version": "test"}}]))
     policy = NutritionPolicy(catalog, {"food": "s"}, ("energy_kcal", "protein_g"))
     recipe = RecipeCandidate("ai_generated_menu", (IngredientQuantity(
-        "line", "food", "s", D("100"), "cooked", True, D("1")),))
+        "line", "food", "s", D("100"), "cooked", True, D("1"), original_servings=1),))
     targets = targets_from_t03({"total_n": n, "target": {"energy_kcal": energy, "protein_g": protein},
         "reference_exact": {"energy_kcal": {"numerator": "600", "denominator": "1"},
                             "protein_g": {"numerator": "30", "denominator": "1"}}})
@@ -73,19 +74,66 @@ def test_raw_sample_requires_reviewed_retention_and_calculates_oil_too(tmp_path)
         {"ingredient_id": "oil", "state": "raw", "nutrition_per_100g": {"energy_kcal": 900, "protein_g": 0},
          "source": {"provider": "TFDA", "source_id": "oil", "source_version": "test"}},
     ]))
-    ev = CookingEvidence("evidence-1", "raw", "steam", retention={"energy_kcal": "0.9", "protein_g": "0.8"})
+    ev = CookingEvidence("evidence-1", "raw", "steam", retention={"energy_kcal": "0.9", "protein_g": "0.8"},
+                         source="synthetic-review", source_version="test-v1")
     food = IngredientQuantity("food", "food-id", "raw", D("100"), "raw", False, D("1"), "steam", ev)
     oil = IngredientQuantity("oil", "oil-id", "oil", D("10"), "raw", True, D("1"))
     recipe = RecipeCandidate("ai_generated_menu", (food, oil))
     policy = NutritionPolicy(catalog, {"food-id": "raw", "oil-id": "oil"},
-                             ("energy_kcal", "protein_g"), frozenset({"evidence-1"}))
+                             ("energy_kcal", "protein_g"), {"evidence-1": ev})
     result = calculate_nutrition(recipe, policy=policy)
     assert result.totals == {"energy_kcal": F(270), "protein_g": F(16)}
     assert len(result.sources) == 2
+    snapshot = result.sources[0]["cooking_evidence"]
+    assert isinstance(snapshot, dict)
+    assert snapshot["retention"]["protein_g"] == "0.8"
+    assert snapshot["source_version"] == "test-v1"
     not_approved = calculate_nutrition(recipe, policy=NutritionPolicy(
         catalog, policy.sample_mappings, policy.required_nutrients))
     assert not_approved.totals["protein_g"] is None
     assert not_approved.missing
+
+
+def test_candidate_cannot_change_an_approved_evidence_coefficient(tmp_path):
+    catalog = tmp_path / "catalog.json"
+    catalog.write_text(json.dumps([{"ingredient_id": "raw", "state": "raw",
+        "nutrition_per_100g": {"energy_kcal": 200, "protein_g": 20},
+        "source": {"provider": "TFDA", "source_id": "raw", "source_version": "test"}}]))
+    approved = CookingEvidence("evidence-1", "raw", "steam",
+                               retention={"energy_kcal": "0.9", "protein_g": "0.8"},
+                               source="synthetic-review", source_version="test-v1")
+    forged = replace(approved, retention={"energy_kcal": "1", "protein_g": "1"})
+    line = IngredientQuantity("food", "food-id", "raw", D("100"), "raw", False, D("1"), "steam", forged)
+    recipe = RecipeCandidate("ai_generated_menu", (line,))
+    policy = NutritionPolicy(catalog, {"food-id": "raw"}, ("energy_kcal", "protein_g"),
+                             {"evidence-1": approved})
+    result = calculate_nutrition(recipe, policy=policy)
+    assert result.totals == {"energy_kcal": F(180), "protein_g": F(16)}
+
+
+def test_string_false_cannot_mark_raw_food_as_directly_eaten():
+    catalog = Path(__file__).resolve().parents[2] / "nutrition_model/data/ingredient_master.json"
+    policy = NutritionPolicy(catalog, {"food": "A0100101"}, ("energy_kcal", "protein_g"))
+    line = IngredientQuantity("line", "food", "A0100101", D("100"), "raw", "false", D("1"))  # type: ignore
+    result = calculate_nutrition(RecipeCandidate("ai_generated_menu", (line,)), policy=policy)
+    assert result.totals["protein_g"] is None
+    assert result.missing
+
+
+def test_missing_original_servings_cannot_be_assumed_to_be_one(tmp_path):
+    catalog = tmp_path / "catalog.json"
+    catalog.write_text(json.dumps([{"ingredient_id": "s", "state": "cooked",
+        "nutrition_per_100g": {"energy_kcal": 600, "protein_g": 30},
+        "source": {"provider": "TFDA", "source_id": "s", "source_version": "test"}}]))
+    policy = NutritionPolicy(catalog, {"food": "s"}, ("energy_kcal", "protein_g"))
+    recipe = RecipeCandidate("ai_generated_menu", (IngredientQuantity(
+        "line", "food", "s", D("100"), "cooked", True, D("1")),))
+    targets = targets_from_t03({"total_n": "1", "target": {"energy_kcal": "600", "protein_g": "30"},
+        "reference_exact": {"energy_kcal": {"numerator": "600", "denominator": "1"},
+                            "protein_g": {"numerator": "30", "denominator": "1"}}})
+    result = validate_meal(recipe, targets, policy=policy)
+    assert not result.nutrition_passed
+    assert result.reason == "missing_original_servings"
 
 
 def test_cooking_unit_rounding_requires_final_recalculation(tmp_path):
@@ -95,7 +143,7 @@ def test_cooking_unit_rounding_requires_final_recalculation(tmp_path):
         "source": {"provider": "TFDA", "source_id": "s", "source_version": "test"}}]))
     policy = NutritionPolicy(catalog, {"food": "s"}, ("energy_kcal", "protein_g"))
     recipe = RecipeCandidate("ai_generated_menu", (IngredientQuantity(
-        "line", "food", "s", D("100"), "cooked", True, D("40")),))
+        "line", "food", "s", D("100"), "cooked", True, D("40"), original_servings=1),))
     targets = targets_from_t03({"total_n": "1.3", "target": {"energy_kcal": "780", "protein_g": "39"},
         "reference_exact": {"energy_kcal": {"numerator": "600", "denominator": "1"},
                             "protein_g": {"numerator": "30", "denominator": "1"}}})
@@ -113,7 +161,7 @@ def test_final_rounding_outside_tolerance_is_not_accepted(tmp_path):
         "source": {"provider": "TFDA", "source_id": "s", "source_version": "test"}}]))
     policy = NutritionPolicy(catalog, {"food": "s"}, ("energy_kcal", "protein_g"))
     recipe = RecipeCandidate("ai_generated_menu", (IngredientQuantity(
-        "line", "food", "s", D("100"), "cooked", True, D("80")),))
+        "line", "food", "s", D("100"), "cooked", True, D("80"), original_servings=1),))
     targets = targets_from_t03({"total_n": "1.3", "target": {"energy_kcal": "780", "protein_g": "39"},
         "reference_exact": {"energy_kcal": {"numerator": "600", "denominator": "1"},
                             "protein_g": {"numerator": "30", "denominator": "1"}}})

@@ -2,8 +2,10 @@
 from __future__ import annotations
 
 import json
+from itertools import product
 from collections.abc import Mapping
-from dataclasses import dataclass, field, replace
+from copy import deepcopy
+from dataclasses import asdict, dataclass, field, replace
 from decimal import Decimal
 from fractions import Fraction
 from pathlib import Path
@@ -23,6 +25,8 @@ class CookingEvidence:
     edible_fraction: Number | None = None
     yield_factor: Number | None = None
     retention: Mapping[str, Number | None] = field(default_factory=dict)
+    source: str | None = None
+    source_version: str | None = None
 
 
 @dataclass(frozen=True)
@@ -40,7 +44,7 @@ class IngredientQuantity:
     adjustment_status: str = "not_reviewed"
     adjustable_min_g: Number | None = None
     adjustable_max_g: Number | None = None
-    original_servings: Number = 1
+    original_servings: Number | None = None
 
 
 @dataclass(frozen=True)
@@ -56,7 +60,7 @@ class NutritionPolicy:
     catalog_path: Path
     sample_mappings: Mapping[str, str]
     required_nutrients: tuple[str, ...]
-    approved_evidence_ids: frozenset[str] = frozenset()
+    approved_evidence: Mapping[str, CookingEvidence] = field(default_factory=dict)
     approved_for_adoption: bool = False
 
 
@@ -95,10 +99,14 @@ class MealValidationResult:
 
 def _approved_evidence(line: IngredientQuantity, policy: NutritionPolicy) -> CookingEvidence | None:
     ev = line.evidence
-    if (ev is None or ev.evidence_id not in policy.approved_evidence_ids
-            or ev.sample_id != line.sample_id or ev.cooking_method != line.cooking_method):
+    if ev is None:
         return None
-    return ev
+    approved = policy.approved_evidence.get(ev.evidence_id)
+    if (approved is None or approved.evidence_id != ev.evidence_id
+            or approved.sample_id != line.sample_id or approved.cooking_method != line.cooking_method
+            or not approved.source or not approved.source_version):
+        return None
+    return approved
 
 
 def calculate_nutrition(recipe: RecipeCandidate, *, policy: NutritionPolicy) -> NutritionEstimate:
@@ -120,6 +128,11 @@ def calculate_nutrition(recipe: RecipeCandidate, *, policy: NutritionPolicy) -> 
         if not line.line_id or line.line_id in seen:
             raise PlanningInputError("Ingredient line identifiers must be unique.")
         seen.add(line.line_id)
+        if type(line.consumed_as_is) is not bool or type(line.is_required) is not bool:
+            missing.append(f"{line.line_id}:invalid_boolean")
+            for key in totals:
+                totals[key] = None
+            continue
         amount = exact(line.amount_g)
         if amount < 0 or (line.is_required and amount == 0):
             raise PlanningInputError("Required ingredients must have positive amounts.")
@@ -160,10 +173,12 @@ def calculate_nutrition(recipe: RecipeCandidate, *, policy: NutritionPolicy) -> 
             usable_weight = raw_weight
             valid_cooking = is_direct or (ev is not None and bool(line.cooking_method))
         sources.append({"line_id": line.line_id, "food_id": line.food_id, "sample_id": line.sample_id,
-                        "source": record["source"], "sample_state": state,
+                        "source": deepcopy(record["source"]), "sample_state": state,
+                        "nutrition_per_100g": deepcopy(record.get("nutrition_per_100g", {})),
                         "purchase_weight_g": purchase_weight, "raw_edible_weight_g": raw_weight,
                         "cooked_edible_weight_g": cooked_weight,
-                        "evidence_id": ev.evidence_id if ev else None})
+                        "evidence_id": ev.evidence_id if ev else None,
+                        "cooking_evidence": asdict(ev) if ev else None})
         for key in totals:
             value = record.get("nutrition_per_100g", {}).get(key)
             retention: Fraction | None = Fraction(1) if state == "cooked" or is_direct else None
@@ -200,6 +215,11 @@ def check_tolerance(actual: NutritionEstimate, expected: Mapping[str, Fraction])
 def align_baseline(recipe: RecipeCandidate, targets: MealTargets, *, policy: NutritionPolicy) -> AlignmentResult:
     normalized = []
     for line in recipe.ingredients:
+        if line.original_servings is None:
+            missing = NutritionEstimate({k: None for k in policy.required_nutrients},
+                                        (f"{line.line_id}:missing_original_servings",), ())
+            return AlignmentResult(None, missing, check_tolerance(missing, targets.reference),
+                                   "missing_original_servings")
         servings = exact(line.original_servings)
         if servings <= 0:
             raise PlanningInputError("Original servings must be positive.")
@@ -214,6 +234,7 @@ def align_baseline(recipe: RecipeCandidate, targets: MealTargets, *, policy: Nut
         return AlignmentResult(None, estimate, check, "missing_nutrition_or_conversion")
     if recipe.mode == "database_menu" and (recipe.review_status != "approved" or not recipe.recipe_ids):
         return AlignmentResult(None, estimate, check, "recipe_not_reviewed")
+    reviewed_bounds: dict[str, tuple[Fraction, Fraction]] = {}
     if recipe.mode == "database_menu":
         for line in recipe.ingredients:
             if line.adjustment_status == "approved":
@@ -222,6 +243,7 @@ def align_baseline(recipe: RecipeCandidate, targets: MealTargets, *, policy: Nut
                 lower, upper, current = exact(line.adjustable_min_g), exact(line.adjustable_max_g), exact(line.amount_g)
                 if lower < 0 or lower > upper or not lower <= current <= upper or (line.is_required and lower == 0):
                     return AlignmentResult(None, estimate, check, "invalid_reviewed_range")
+                reviewed_bounds[line.line_id] = (lower, upper)
     if check.passed:
         return AlignmentResult(recipe, estimate, check)
     if recipe.mode == "database_menu":
@@ -230,11 +252,7 @@ def align_baseline(recipe: RecipeCandidate, targets: MealTargets, *, policy: Nut
         for line in recipe.ingredients:
             amount = exact(line.amount_g)
             if line.adjustment_status == "approved":
-                if line.adjustable_min_g is None or line.adjustable_max_g is None:
-                    return AlignmentResult(None, estimate, check, "missing_reviewed_range")
-                lower, upper = exact(line.adjustable_min_g), exact(line.adjustable_max_g)
-                if lower < 0 or lower > upper or not lower <= amount <= upper or (line.is_required and lower == 0):
-                    return AlignmentResult(None, estimate, check, "invalid_reviewed_range")
+                lower, upper = reviewed_bounds[line.line_id]
             else:
                 lower = upper = amount
             unit = replace(line, amount_g=Fraction(1))
@@ -324,6 +342,63 @@ def scale_to_cooking_units(baseline: RecipeCandidate, total_n: Fraction) -> Reci
     return replace(baseline, ingredients=tuple(rows))
 
 
+def _reviewed_quantities_hold(baseline: RecipeCandidate, final: RecipeCandidate, total_n: Fraction) -> bool:
+    for base, cooked in zip(baseline.ingredients, final.ingredients):
+        normalized = exact(cooked.amount_g) / total_n
+        if base.adjustment_status == "approved":
+            if base.adjustable_min_g is None or base.adjustable_max_g is None:
+                return False
+            if not exact(base.adjustable_min_g) <= normalized <= exact(base.adjustable_max_g):
+                return False
+        elif normalized != exact(base.amount_g):
+            return False
+    return True
+
+
+def _search_cookable(baseline: RecipeCandidate, total_n: Fraction, targets: MealTargets,
+                     policy: NutritionPolicy) -> tuple[RecipeCandidate | None, str]:
+    choices: list[list[Fraction]] = []
+    coefficients: list[tuple[Fraction, Fraction]] = []
+    combinations = 1
+    for line in baseline.ingredients:
+        if line.cooking_step_g is None or exact(line.cooking_step_g) <= 0:
+            return None, "missing_cooking_unit"
+        step = exact(line.cooking_step_g)
+        if line.adjustment_status == "approved":
+            if line.adjustable_min_g is None or line.adjustable_max_g is None:
+                return None, "missing_reviewed_range"
+            low = exact(line.adjustable_min_g) * total_n / step
+            high = exact(line.adjustable_max_g) * total_n / step
+            low_count = -(-low.numerator // low.denominator)
+            high_count = high.numerator // high.denominator
+            counts = range(max(1 if line.is_required else 0, low_count), high_count + 1)
+            if not counts:
+                return None, "no_feasible_cooking_units"
+            combinations *= len(counts)
+            if combinations > 4096:
+                return None, "cooking_unit_search_limit_reached"
+            preferred = exact(line.amount_g) * total_n
+            choices.append(sorted((count * step for count in counts), key=lambda value: abs(value - preferred)))
+        else:
+            scaled = exact(line.amount_g) * total_n
+            if (scaled / step).denominator != 1:
+                return None, "no_feasible_cooking_units"
+            choices.append([scaled])
+        one = calculate_nutrition(replace(baseline, ingredients=(replace(line, amount_g=1),)), policy=policy)
+        energy, protein = one.totals.get("energy_kcal"), one.totals.get("protein_g")
+        if one.missing or energy is None or protein is None:
+            return None, "missing_nutrition_or_conversion"
+        coefficients.append((energy, protein))
+    for quantities in product(*choices):
+        estimate = NutritionEstimate({"energy_kcal": sum((q * c[0] for q, c in zip(quantities, coefficients)), Fraction()),
+                                      "protein_g": sum((q * c[1] for q, c in zip(quantities, coefficients)), Fraction())}, (), ())
+        if check_tolerance(estimate, targets.target).passed:
+            candidate = replace(baseline, ingredients=tuple(replace(line, amount_g=amount)
+                                for line, amount in zip(baseline.ingredients, quantities)))
+            return candidate, ""
+    return None, "no_feasible_cooking_units"
+
+
 def validate_meal(recipe: RecipeCandidate, targets: MealTargets, *, policy: NutritionPolicy) -> MealValidationResult:
     alignment = align_baseline(recipe, targets, policy=policy)
     blockers: list[str] = []
@@ -339,5 +414,14 @@ def validate_meal(recipe: RecipeCandidate, targets: MealTargets, *, policy: Nutr
         return MealValidationResult(alignment.check, None, None, None, False, tuple(blockers), "missing_cooking_unit")
     final = calculate_nutrition(final_recipe, policy=policy)
     final_check = check_tolerance(final, targets.target)
+    if recipe.mode == "database_menu" and (not final_check.passed or not _reviewed_quantities_hold(
+            alignment.recipe, final_recipe, targets.total_n)):
+        alternative, reason = _search_cookable(alignment.recipe, targets.total_n, targets, policy)
+        if alternative is None:
+            return MealValidationResult(alignment.check, final_recipe, final, final_check, False,
+                                        tuple(blockers), reason)
+        final_recipe = alternative
+        final = calculate_nutrition(final_recipe, policy=policy)
+        final_check = check_tolerance(final, targets.target)
     return MealValidationResult(alignment.check, final_recipe, final, final_check, final_check.passed,
                                 tuple(blockers), None if final_check.passed else "final_nutrition_outside_tolerance_or_incomplete")
