@@ -75,8 +75,9 @@ def test_raw_sample_requires_reviewed_retention_and_calculates_oil_too(tmp_path)
          "source": {"provider": "TFDA", "source_id": "oil", "source_version": "test"}},
     ]))
     ev = CookingEvidence("evidence-1", "raw", "steam", retention={"energy_kcal": "0.9", "protein_g": "0.8"},
-                         source="synthetic-review", source_version="test-v1")
-    food = IngredientQuantity("food", "food-id", "raw", D("100"), "raw", False, D("1"), "steam", ev)
+                         source="synthetic-review", source_version="test-v1", conditions={"juices_consumed": True})
+    food = IngredientQuantity("food", "food-id", "raw", D("100"), "raw", False, D("1"), "steam", ev,
+                              cooking_context={"juices_consumed": True})
     oil = IngredientQuantity("oil", "oil-id", "oil", D("10"), "raw", True, D("1"))
     recipe = RecipeCandidate("ai_generated_menu", (food, oil))
     policy = NutritionPolicy(catalog, {"food-id": "raw", "oil-id": "oil"},
@@ -101,14 +102,30 @@ def test_candidate_cannot_change_an_approved_evidence_coefficient(tmp_path):
         "source": {"provider": "TFDA", "source_id": "raw", "source_version": "test"}}]))
     approved = CookingEvidence("evidence-1", "raw", "steam",
                                retention={"energy_kcal": "0.9", "protein_g": "0.8"},
-                               source="synthetic-review", source_version="test-v1")
+                               source="synthetic-review", source_version="test-v1", conditions={"juices_consumed": True})
     forged = replace(approved, retention={"energy_kcal": "1", "protein_g": "1"})
-    line = IngredientQuantity("food", "food-id", "raw", D("100"), "raw", False, D("1"), "steam", forged)
+    line = IngredientQuantity("food", "food-id", "raw", D("100"), "raw", False, D("1"), "steam", forged,
+                              cooking_context={"juices_consumed": True})
     recipe = RecipeCandidate("ai_generated_menu", (line,))
     policy = NutritionPolicy(catalog, {"food-id": "raw"}, ("energy_kcal", "protein_g"),
                              {"evidence-1": approved})
     result = calculate_nutrition(recipe, policy=policy)
     assert result.totals == {"energy_kcal": F(180), "protein_g": F(16)}
+
+
+def test_approved_retention_must_match_actual_cooking_conditions(tmp_path):
+    catalog = tmp_path / "catalog.json"
+    catalog.write_text(json.dumps([{"ingredient_id": "raw", "state": "raw",
+        "nutrition_per_100g": {"energy_kcal": 200, "protein_g": 20},
+        "source": {"provider": "TFDA", "source_id": "raw", "source_version": "test"}}]))
+    approved = CookingEvidence("evidence-1", "raw", "steam", retention={"energy_kcal": "0.9", "protein_g": "0.8"},
+        source="synthetic-review", source_version="test-v1", conditions={"juices_consumed": True})
+    line = IngredientQuantity("food", "food-id", "raw", D("100"), "raw", False, D("1"), "steam", approved,
+                              cooking_context={"juices_consumed": False})
+    policy = NutritionPolicy(catalog, {"food-id": "raw"}, ("energy_kcal", "protein_g"), {"evidence-1": approved})
+    result = calculate_nutrition(RecipeCandidate("ai_generated_menu", (line,)), policy=policy)
+    assert result.totals["protein_g"] is None
+    assert result.missing
 
 
 def test_string_false_cannot_mark_raw_food_as_directly_eaten():

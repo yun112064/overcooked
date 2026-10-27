@@ -148,3 +148,18 @@ def test_review_case_real_sesame_finds_a_cookable_quantity():
     assert result.nutrition_passed
     assert result.final_recipe is not None
     assert result.final_recipe.ingredients[0].amount_g == F(100)
+
+
+def test_required_ingredient_can_have_zero_lower_bound_if_chosen_quantity_positive():
+    catalog = Path(__file__).resolve().parents[2] / "nutrition_model/data/ingredient_master.json"
+    policy = NutritionPolicy(catalog, {"food": "C1610101"}, ("energy_kcal", "protein_g"))
+    line = IngredientQuantity("sesame", "food", "C1610101", D("80"), "cooked", True, D("20"),
+        adjustment_status="approved", adjustable_min_g=D("0"), adjustable_max_g=D("150"), original_servings=1)
+    recipe = RecipeCandidate("database_menu", (line,), ("recipe",), "approved")
+    targets = targets_from_t03({"total_n": "1", "target": {"energy_kcal": "626", "protein_g": "20.3"},
+        "reference_exact": {"energy_kcal": {"numerator": "626", "denominator": "1"},
+                            "protein_g": {"numerator": "203", "denominator": "10"}}})
+    result = validate_meal(recipe, targets, policy=policy)
+    assert result.nutrition_passed
+    assert result.final_recipe is not None
+    assert result.final_recipe.ingredients[0].amount_g == F(100)

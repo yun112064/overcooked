@@ -27,6 +27,7 @@ class CookingEvidence:
     retention: Mapping[str, Number | None] = field(default_factory=dict)
     source: str | None = None
     source_version: str | None = None
+    conditions: Mapping[str, str | bool] = field(default_factory=dict)
 
 
 @dataclass(frozen=True)
@@ -45,6 +46,7 @@ class IngredientQuantity:
     adjustable_min_g: Number | None = None
     adjustable_max_g: Number | None = None
     original_servings: Number | None = None
+    cooking_context: Mapping[str, str | bool] = field(default_factory=dict)
 
 
 @dataclass(frozen=True)
@@ -104,7 +106,12 @@ def _approved_evidence(line: IngredientQuantity, policy: NutritionPolicy) -> Coo
     approved = policy.approved_evidence.get(ev.evidence_id)
     if (approved is None or approved.evidence_id != ev.evidence_id
             or approved.sample_id != line.sample_id or approved.cooking_method != line.cooking_method
-            or not approved.source or not approved.source_version):
+            or not approved.source or not approved.source_version or not approved.conditions
+            or approved.conditions != line.cooking_context
+            or any(not isinstance(key, str) or not key or type(value) not in (str, bool)
+                   or (isinstance(value, str) and not value)
+                   or type(line.cooking_context.get(key)) is not type(value)
+                   for key, value in approved.conditions.items())):
         return None
     return approved
 
@@ -241,7 +248,7 @@ def align_baseline(recipe: RecipeCandidate, targets: MealTargets, *, policy: Nut
                 if line.adjustable_min_g is None or line.adjustable_max_g is None:
                     return AlignmentResult(None, estimate, check, "missing_reviewed_range")
                 lower, upper, current = exact(line.adjustable_min_g), exact(line.adjustable_max_g), exact(line.amount_g)
-                if lower < 0 or lower > upper or not lower <= current <= upper or (line.is_required and lower == 0):
+                if lower < 0 or lower > upper or not lower <= current <= upper:
                     return AlignmentResult(None, estimate, check, "invalid_reviewed_range")
                 reviewed_bounds[line.line_id] = (lower, upper)
     if check.passed:
@@ -276,7 +283,10 @@ def align_baseline(recipe: RecipeCandidate, targets: MealTargets, *, policy: Nut
             if not points:
                 break
         if points:
-            weights = points[0][2]
+            weights = tuple(sum((p[2][i] for p in points), Fraction()) / len(points)
+                            for i in range(len(recipe.ingredients)))
+            if any(line.is_required and weight == 0 for line, weight in zip(recipe.ingredients, weights)):
+                return AlignmentResult(None, estimate, check, "no_feasible_solution")
             adjusted = replace(recipe, ingredients=tuple(replace(line, amount_g=weight)
                                                        for line, weight in zip(recipe.ingredients, weights)))
             recalculated = calculate_nutrition(adjusted, policy=policy)
