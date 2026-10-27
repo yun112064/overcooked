@@ -12,6 +12,7 @@ from app.api.health import router as health_router
 from app.api.households import router as household_router
 from app.api.ingredients import router as ingredient_router
 from app.api.jobs import router as job_router
+from app.api.internal_knowledge import router as internal_knowledge_router
 from app.api.meal_requests import router as meal_request_router
 from app.api.members import router as member_router
 from app.api.recognitions import router as recognition_router
@@ -78,4 +79,5 @@ app.include_router(member_router)
 app.include_router(ingredient_router)
 app.include_router(meal_request_router)
 app.include_router(job_router)
+app.include_router(internal_knowledge_router)
 app.include_router(recognition_router)
