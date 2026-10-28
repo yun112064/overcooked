@@ -2,9 +2,16 @@
 
 每輪以短交易領取一個工作，在交易外執行處理函式；處理期間只透過
 JobContext 更新進度與發出付費呼叫。可同時啟動多個工作程序。
+
+每次嘗試有硬性時間上限（job_attempt_timeout_seconds）：計時器到時把工作標為逾時失敗、解鎖問卷，
+再直接結束程序，真正中止卡住的計算（Python 執行緒無法從外部停止）。所以 `python -m app.jobs.worker`
+是看守程序，實際工作在子程序（--child）執行，子程序結束後自動重啟（2026-10-28：選菜窮舉卡死工作者）。
 """
 import os
 import signal
+import subprocess
+import sys
+import threading
 import traceback
 import socket
 import time
@@ -84,11 +91,38 @@ def log_unexpected(job, exc: BaseException) -> None:
         "error_type": type(exc).__qualname__, "error_site": error_site(exc)})
 
 
-def run_once(factory: sessionmaker, owner: str, handlers: dict | None = None) -> BackgroundJob | None:
+# 嘗試逾時後子程序的結束碼：看守程序據此記錄並重啟
+EXIT_ATTEMPT_TIMEOUT = 75
+
+
+def _exit_after_timeout(job) -> None:
+    os._exit(EXIT_ATTEMPT_TIMEOUT)
+
+
+def run_once(factory: sessionmaker, owner: str, handlers: dict | None = None, *,
+             timeout: float | None = None, on_timeout: Callable = _exit_after_timeout) -> BackgroundJob | None:
+    """領取並執行一個工作。timeout 秒內未結束：標為逾時失敗後呼叫 on_timeout（預設結束程序）。"""
     handlers = handlers or HANDLERS
     job = jobs.claim(factory, owner)
     if job is None:
         return None
+    timer = None
+    if timeout:
+        def expire():
+            # 工作已完成、取消或被回收時 abort_attempt 回 False，不必中止
+            if jobs.abort_attempt(factory, job.id, owner):
+                on_timeout(job)
+        timer = threading.Timer(timeout, expire)
+        timer.daemon = True
+        timer.start()
+    try:
+        return _run(factory, owner, handlers, job)
+    finally:
+        if timer is not None:
+            timer.cancel()
+
+
+def _run(factory: sessionmaker, owner: str, handlers: dict, job: BackgroundJob) -> BackgroundJob:
     ctx = JobContext(factory, job, owner)
     handler = handlers.get(job.kind)
     try:
@@ -124,8 +158,22 @@ def run_once(factory: sessionmaker, owner: str, handlers: dict | None = None) ->
     return job
 
 
-def main() -> None:
+def _exit_when_supervisor_dies() -> None:
+    """看守程序以 stdin 管線連著子程序：管線關閉（看守程序結束，含 Windows 上被強制結束）就跟著結束，
+    不留下沒人管的工作程序。"""
+    def watch():
+        try:
+            sys.stdin.buffer.read()
+        except (OSError, ValueError):
+            pass
+        os._exit(0)
+    threading.Thread(target=watch, daemon=True).start()
+
+
+def child_main() -> None:
     from app.db.session import SessionLocal
+
+    _exit_when_supervisor_dies()
 
     owner = f"{socket.gethostname()}:{os.getpid()}:{uuid.uuid4().hex[:8]}"
     stopping = False
@@ -137,9 +185,31 @@ def main() -> None:
     signal.signal(signal.SIGTERM, stop)
     signal.signal(signal.SIGINT, stop)
     while not stopping:
-        if run_once(SessionLocal, owner) is None:
+        if run_once(SessionLocal, owner, timeout=settings.job_attempt_timeout_seconds) is None:
             time.sleep(settings.worker_poll_seconds)
 
 
+def main() -> None:
+    """看守程序：啟動工作子程序，子程序因嘗試逾時（或意外）結束時重啟；收到停止訊號時一併停止子程序。"""
+    stopping = False
+    child: subprocess.Popen | None = None
+
+    def stop(*_):
+        nonlocal stopping
+        stopping = True
+        if child is not None and child.poll() is None:
+            child.terminate()
+
+    signal.signal(signal.SIGTERM, stop)
+    signal.signal(signal.SIGINT, stop)
+    while not stopping:
+        child = subprocess.Popen([sys.executable, "-m", "app.jobs.worker", "--child"], stdin=subprocess.PIPE)
+        code = child.wait()
+        if stopping:
+            break
+        jobs.process_logger.warning("worker_child_exited", extra={"event": "worker_child_exited", "exit_code": code})
+        time.sleep(1)
+
+
 if __name__ == "__main__":
-    main()
+    child_main() if "--child" in sys.argv else main()

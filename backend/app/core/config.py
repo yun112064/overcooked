@@ -36,6 +36,10 @@ class Settings(BaseSettings):
     # 每戶每日最多送出的生成工作數
     generation_daily_limit: int = 20
     job_lease_seconds: int = 300
+    # 每次嘗試的硬性上限：到時中止並結束工作程序（由看守程序重啟）；需大於各外部呼叫逾時的總和
+    job_attempt_timeout_seconds: int = 300
+    # 排隊超過此秒數仍未開始即判逾時並解鎖問卷（工作程序忙碌或未啟動）
+    job_queue_timeout_seconds: int = 600
     job_retry_backoff_seconds: int = 30
     worker_poll_seconds: float = 2.0
     # 日誌清理預設由單一排程程序負責；API 程序內清理僅供未啟用排程時使用

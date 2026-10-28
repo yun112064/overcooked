@@ -274,18 +274,11 @@ def recover_expired(factory: sessionmaker) -> int:
             .with_for_update(skip_locked=True)
         ).all()
         for job in jobs:
-            in_flight = db.scalars(select(UsageReservation).where(
-                UsageReservation.job_id == job.id, UsageReservation.status == "reserved")).all()
-            for row in in_flight:
-                row.status = "uncertain"
-                row.note = "worker lease expired during paid call; reconcile with provider usage"
+            in_flight = _mark_in_flight_uncertain(db, job, "worker lease expired during paid call")
             job.lease_owner = job.lease_expires_at = None
             job.updated_at = _now()
             if in_flight:
-                job.status, job.stage = "failed", "needs_manual_retry"
-                job.error_code = "NEEDS_MANUAL_RETRY"
-                job.error_message = "外部呼叫結果不明，為避免重複計費不自動重送；問卷已保留，請確認後重新送出。"
-                job.finished_at = _now()
+                _fail_needs_manual_retry(job)
             elif job.attempts < job.max_attempts:
                 job.status, job.stage = "queued", "recovered"
                 job.available_at = _now()
@@ -298,6 +291,104 @@ def recover_expired(factory: sessionmaker) -> int:
             recovered += 1
             _log("job_recovered", job, job.error_code, logger=scheduler_logger)
     return recovered
+
+
+MANUAL_RETRY_MESSAGE = "外部呼叫結果不明，為避免重複計費不自動重送；問卷已保留，請確認後重新送出。"
+ATTEMPT_TIMEOUT = "ATTEMPT_TIMEOUT"
+QUEUE_TIMEOUT = "QUEUE_TIMEOUT"
+CANCELLED = "CANCELLED"
+
+
+def _mark_in_flight_uncertain(db: Session, job: BackgroundJob, note: str) -> bool:
+    """進行中的付費呼叫無法確定是否已計費：標為 uncertain 待對帳。回傳是否有這種呼叫。"""
+    in_flight = db.scalars(select(UsageReservation).where(
+        UsageReservation.job_id == job.id, UsageReservation.status == "reserved")).all()
+    for row in in_flight:
+        row.status = "uncertain"
+        row.note = f"{note}; reconcile with provider usage"
+    return bool(in_flight)
+
+
+def _fail_needs_manual_retry(job: BackgroundJob) -> None:
+    job.status, job.stage = "failed", "needs_manual_retry"
+    job.error_code, job.error_message = "NEEDS_MANUAL_RETRY", MANUAL_RETRY_MESSAGE
+    job.finished_at = _now()
+
+
+def _minutes(seconds: int) -> str:
+    return f"{seconds // 60} 分鐘" if seconds % 60 == 0 else f"{seconds} 秒"
+
+
+def abort_attempt(factory: sessionmaker, job_id, owner: str) -> bool:
+    """嘗試超過硬性上限（job_attempt_timeout_seconds）：直接失敗、不自動重試（重試只會讓使用者再等一輪），
+    問卷解鎖。仍持有租約才處理；回傳 False 代表工作已完成、取消或被回收，呼叫端不必中止程序。"""
+    with factory() as db, db.begin():
+        job = _owned(db, job_id, owner)
+        if job is None:
+            return False
+        job.lease_owner = job.lease_expires_at = None
+        job.updated_at = _now()
+        if _mark_in_flight_uncertain(db, job, "attempt timed out during paid call"):
+            _fail_needs_manual_retry(job)
+        else:
+            job.status, job.stage = "failed", "failed"
+            job.error_code = ATTEMPT_TIMEOUT
+            job.error_message = (f"生成超過 {_minutes(settings.job_attempt_timeout_seconds)}仍未完成，已中止；"
+                                 "問卷已保留，可調整後重新送出（例如減少菜數）。")
+            job.finished_at = _now()
+        _mirror(db, job)
+    _log("job_attempt_timeout", job, job.error_code)
+    return True
+
+
+def expire_queued(factory: sessionmaker) -> int:
+    """排隊超過 job_queue_timeout_seconds 仍未開始：判逾時失敗並解鎖問卷（排程器每分鐘執行）。"""
+    limit = settings.job_queue_timeout_seconds
+    expired = 0
+    with factory() as db, db.begin():
+        stale = db.scalars(
+            select(BackgroundJob)
+            .where(BackgroundJob.status == "queued", BackgroundJob.available_at < _now() - timedelta(seconds=limit))
+            .with_for_update(skip_locked=True)
+        ).all()
+        for job in stale:
+            job.status, job.stage = "failed", "failed"
+            job.error_code = QUEUE_TIMEOUT
+            job.error_message = (f"排隊超過 {_minutes(limit)}仍未開始（系統忙碌中）；問卷已保留，請稍後重新送出。")
+            job.finished_at = job.updated_at = _now()
+            _mirror(db, job)
+            expired += 1
+            _log("job_queue_timeout", job, QUEUE_TIMEOUT, logger=scheduler_logger)
+    return expired
+
+
+def cancel_generation(db: Session, meal_request: MealRequest) -> BackgroundJob | None:
+    """使用者取消排隊中或執行中的生成：工作改為已取消，問卷回到送出前的狀態（同版本已有結果就回到結果，
+    否則回草稿）。執行中的工作程序會在下一個階段發現租約已失效而停止，結果不會寫入。
+    呼叫端需先鎖定問卷並 commit。沒有進行中的工作回傳 None。"""
+    job = db.scalar(
+        select(BackgroundJob)
+        .where(BackgroundJob.meal_request_id == meal_request.id, BackgroundJob.kind == GENERATION,
+               BackgroundJob.status.in_(("queued", "running")))
+        .order_by(BackgroundJob.created_at.desc()).limit(1).with_for_update())
+    if job is None:
+        return None
+    job.status, job.stage = "failed", "cancelled"
+    job.error_code, job.error_message = CANCELLED, "已取消生成；問卷已保留，可修改後重新送出。"
+    job.lease_owner = job.lease_expires_at = None
+    job.finished_at = job.updated_at = _now()
+    previous = db.scalar(
+        select(BackgroundJob)
+        .where(BackgroundJob.meal_request_id == meal_request.id, BackgroundJob.kind == GENERATION,
+               BackgroundJob.status == "succeeded", BackgroundJob.input_version == job.input_version)
+        .order_by(BackgroundJob.finished_at.desc()).limit(1))
+    if previous is not None and isinstance(previous.result, dict):
+        meal_request.status = previous.result.get("request_status") or "result_ready"
+    else:
+        meal_request.status = "draft"
+    meal_request.updated_at = _now()
+    _log("job_cancelled", job, CANCELLED)
+    return job
 
 
 def public_view(job: BackgroundJob) -> dict:
@@ -318,4 +409,8 @@ def public_view(job: BackgroundJob) -> dict:
                            and "generation_result_id" in job.result else None),
         "created_at": job.created_at.isoformat(),
         "updated_at": job.updated_at.isoformat(),
+        # 前端顯示等待時間與自動中止上限（伺服器端計算，不依賴使用者裝置時鐘）
+        "waited_seconds": max(0, int((_now() - job.created_at).total_seconds())),
+        "timeout_seconds": {"queued": settings.job_queue_timeout_seconds,
+                            "running": settings.job_attempt_timeout_seconds}.get(job.status),
     }

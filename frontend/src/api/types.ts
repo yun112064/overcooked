@@ -115,6 +115,8 @@ export type MealRequest = {
     excluded_food_ids: string[]
     available_but_restricted: string[]
   }
+  /** 本餐預算下限（整數元）；菜數、成員未定或資料不足時為 null。預算低於它不能送出生成。 */
+  budget_floor: string | null
   targets_preview:
     | { status: 'incomplete' }
     | { status: 'unavailable'; reason?: string; message: string }
@@ -152,6 +154,10 @@ export type Job = {
   /** T15 結果重試工作（knowledge_retry／price_retry）的來源結果版本 */
   source_result_version?: number | null
   error: { code: string; message: string } | null
+  /** 送出後已等待的秒數（伺服器計算） */
+  waited_seconds?: number
+  /** 目前階段的自動中止上限秒數：排隊中＝排隊上限、執行中＝每次嘗試上限；已結束為 null */
+  timeout_seconds?: number | null
   /** T14：成功的生成工作附結果摘要；完整結果由 T15 結果頁讀取 */
   result_summary?: {
     generation_result_id: string

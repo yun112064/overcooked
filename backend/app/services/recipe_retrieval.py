@@ -203,10 +203,15 @@ def tie_break(household_id, meal_date, recipe_id: str) -> str:
     return hashlib.sha256(f"{household_id}|{meal_date}|{recipe_id}".encode()).hexdigest()
 
 
-def _structured_picks(categories: list[str | None], needed: int, need_main: bool, soup_room: int):
+def _structured_picks(categories: list[str | None], needed: int, need_main: bool, soup_room: int,
+                      vegetables: list[str | None] | None = None, taken: frozenset = frozenset(),
+                      budget: list[int] | None = None):
     """依排名順序（字典序）逐一產生符合菜色結構的索引組合，不先產生再丟棄。
 
-    以後綴計數剪枝：只走「剩下的菜仍湊得出合格組合」的分支，所以每個分支都會產出一組。
+    以後綴計數剪枝：只走「剩下的菜仍湊得出合格組合」的分支。給 vegetables 時，主菜蔬已在
+    taken（指定菜）或已選的菜中出現者直接跳過；這個條件無法用後綴計數保證，所以分支可能走不出
+    結果；budget（剩餘步數，可跨多次呼叫共用）用完時拋出 SearchExhausted，避免菜數多時窮舉爆炸
+    （2026-10-28：10 道菜卡死工作者）。
     """
     n = len(categories)
     mains, others = [0] * (n + 1), [0] * (n + 1)  # 後綴：主菜數、非湯菜數
@@ -221,22 +226,38 @@ def _structured_picks(categories: list[str | None], needed: int, need_main: bool
             return not main
         return others[start] + min(room, soups[start]) >= left and (not main or mains[start] > 0)
 
-    def walk(start: int, left: int, main: bool, room: int, prefix: tuple):
+    def walk(start: int, left: int, main: bool, room: int, prefix: tuple, used: frozenset):
         if left == 0:
             yield prefix
             return
         for i in range(start, n):
             if not feasible(i, left, main, room):
                 return  # 後綴只會越來越少，之後的起點也不可行
+            if budget is not None:
+                budget[0] -= 1
+                if budget[0] < 0:
+                    raise SearchExhausted
             cat = categories[i]
             if cat == SOUP and room == 0:
                 continue
+            veg = vegetables[i] if vegetables is not None else None
+            if veg is not None and veg in used:
+                continue
             nxt_main, nxt_room = main and cat != MAIN, room - (cat == SOUP)
             if feasible(i + 1, left - 1, nxt_main, nxt_room):
-                yield from walk(i + 1, left - 1, nxt_main, nxt_room, prefix + (i,))
+                yield from walk(i + 1, left - 1, nxt_main, nxt_room, prefix + (i,),
+                                used | {veg} if veg is not None else used)
 
     if feasible(0, needed, need_main, soup_room):
-        yield from walk(0, needed, need_main, soup_room, ())
+        yield from walk(0, needed, need_main, soup_room, (), frozenset(taken))
+
+
+class SearchExhausted(Exception):
+    """組合搜尋超過步數上限：停止搜尋，已產生的組合照用。"""
+
+
+# 一次查詢的組合搜尋最多嘗試的步數（所有指定菜做法共用；菜數多、主菜蔬重複多時避免窮舉）
+MAX_SEARCH_STEPS = 50_000
 
 
 def retrieve_database_menu(db: Session, household_id, draft: MealRequestDraft, *,
@@ -341,15 +362,29 @@ def _retrieve(db: Session, household_id, draft: MealRequestDraft, excluded: set[
 
     vegetable_of = {r["recipe_id"]: r["main_vegetable"] for d in dishes for r in d.recipes}
 
+    categories = [options[0]["category"] for options, _ in pool]
+    pool_vegetables = [vegetable_of.get(options[0]["recipe_id"]) for options, _ in pool]
+
+    budget = [MAX_SEARCH_STEPS]
+
     def combinations():
         for fixed in itertools.product(*specified):
-            for picked in _structured_picks([options[0]["category"] for options, _ in pool],
-                                            needed, need_main, soup_room):
+            # 指定菜的主菜蔬先登記；非指定菜在搜尋中就避開重複，不必先列出再丟棄
+            taken = frozenset(v for d in fixed if (v := vegetable_of.get(d["recipe_id"])) is not None)
+            for picked in _structured_picks(categories, needed, need_main, soup_room,
+                                            vegetables=pool_vegetables, taken=taken, budget=budget):
                 menu = [*fixed, *(_summary(pool[i][0][0], pool[i][1], False) for i in picked)]
                 if _distinct_vegetables(menu, vegetable_of):
                     yield menu
 
-    alternatives = list(itertools.islice(combinations(), MAX_COMBINATIONS))
+    alternatives = []
+    try:
+        for menu in combinations():
+            alternatives.append(menu)
+            if len(alternatives) == MAX_COMBINATIONS:
+                break
+    except SearchExhausted:
+        pass  # 已找到的組合照用；一組都沒有則轉 AI
     if not alternatives:
         return RetrievalResult(NO_FEASIBLE, reason="DUPLICATE_MAIN_VEGETABLE",
                                details={"dish_count": draft.dish_count}, previous_day=context)

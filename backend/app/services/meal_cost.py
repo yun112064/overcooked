@@ -189,22 +189,43 @@ def latest_quote(db: Session, food_id: str, *, now: datetime | None = None) -> P
     now = now or datetime.now(timezone.utc)
     successes = [PriceQuote.model_validate(p) for p in
                  db.execute(text(LATEST_SUCCESS_PER_PROVIDER_SQL), params).scalars().all()]
-    current = [q for q in successes if q.valid_until is None or q.valid_until >= now]
-    if successes and not current:
-        return max(successes, key=lambda q: q.queried_at)
-    successes = current
     if successes:
-        ranked = sorted(successes, key=lambda q: (q.package_unit != "g", _unit_price(q),
-                                                  q.retailer != PRIMARY_RETAILER))
-        chosen = ranked[0]
-        if len(ranked) == 1:
-            return chosen
-        others = ", ".join(f"{q.retailer} {q.price}/{q.package_quantity}{q.package_unit}" for q in ranked[1:])
-        reason = (f"cross-source: {chosen.retailer} {chosen.price}/{chosen.package_quantity}"
-                  f"{chosen.package_unit} has the lowest unit price for a complete package (vs {others})")
-        return chosen.model_copy(update={"selection_reasons": [*chosen.selection_reasons, reason]})
+        return _choose(successes, now)
     payload = db.execute(text(LATEST_ANY_SQL), params).scalars().first()
     return PriceQuote.model_validate(payload) if payload is not None else None
+
+
+def _choose(successes: list[PriceQuote], now: datetime) -> PriceQuote:
+    """各來源最新成功報價中選一筆（規則見 latest_quote）。"""
+    current = [q for q in successes if q.valid_until is None or q.valid_until >= now]
+    if not current:
+        return max(successes, key=lambda q: q.queried_at)
+    ranked = sorted(current, key=lambda q: (q.package_unit != "g", _unit_price(q), q.retailer != PRIMARY_RETAILER))
+    chosen = ranked[0]
+    if len(ranked) == 1:
+        return chosen
+    others = ", ".join(f"{q.retailer} {q.price}/{q.package_quantity}{q.package_unit}" for q in ranked[1:])
+    reason = (f"cross-source: {chosen.retailer} {chosen.price}/{chosen.package_quantity}"
+              f"{chosen.package_unit} has the lowest unit price for a complete package (vs {others})")
+    return chosen.model_copy(update={"selection_reasons": [*chosen.selection_reasons, reason]})
+
+
+# 批次版：所有 FOOD 編號各來源最新一筆成功快照（一次查詢）
+LATEST_SUCCESS_ALL_SQL = """
+    SELECT DISTINCT ON (food_id, provider) food_id, quote_payload
+    FROM price_quote_snapshots, jsonb_array_elements_text(quote_payload -> 'food_ids') AS food_id
+    WHERE status = 'success'
+    ORDER BY food_id, provider, queried_at DESC, id DESC
+"""
+
+
+def latest_success_quotes(db: Session, *, now: datetime) -> dict[str, PriceQuote]:
+    """每個 FOOD 編號依 latest_quote 規則選出的成功報價（一次查詢）；從未成功的食材不列。
+    給需要大量查價的估算用（預算下限）；成本計算仍逐項用 latest_quote（保留失敗原因）。"""
+    grouped: dict[str, list[PriceQuote]] = {}
+    for food_id, payload in db.execute(text(LATEST_SUCCESS_ALL_SQL)).all():
+        grouped.setdefault(food_id, []).append(PriceQuote.model_validate(payload))
+    return {food_id: _choose(quotes, now) for food_id, quotes in grouped.items()}
 
 
 def meal_cost_from_db(

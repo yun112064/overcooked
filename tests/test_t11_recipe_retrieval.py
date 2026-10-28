@@ -521,3 +521,34 @@ class SameVegetableTests(unittest.TestCase):
     def test_only_same_vegetable_combinations_fall_back_with_a_reason(self):
         result = self.retrieve({"dish_count": 2, "specified_dishes": ["高麗菜炒蛋"]}, excluded=[TOMATO, CARROT, GARLIC])
         self.assertEqual((result.status, result.reason), ("no_feasible_database_menu", "DUPLICATE_MAIN_VEGETABLE"))
+
+
+class StructuredPickSearchTests(unittest.TestCase):
+    """2026-10-28：10 道菜時「先列出組合再丟掉蔬菜重複者」會窮舉到卡死工作者。"""
+
+    def test_pruning_by_vegetable_matches_filtering_afterwards(self):
+        from app.services.recipe_retrieval import MAIN, SOUP, _structured_picks
+        categories = [MAIN, None, SOUP, None, MAIN, SOUP, None, None, MAIN, None]
+        vegetables = ["V1", "V1", None, "V2", "V2", "V3", None, "V1", "V4", "V3"]
+        taken = frozenset({"V4"})
+
+        def distinct(picked):
+            vegs = [vegetables[i] for i in picked if vegetables[i] is not None]
+            return len(vegs) == len(set(vegs)) and not taken.intersection(vegs)
+
+        for needed in range(1, 6):
+            expected = [p for p in _structured_picks(categories, needed, True, 1) if distinct(p)]
+            pruned = list(_structured_picks(categories, needed, True, 1, vegetables=vegetables, taken=taken))
+            self.assertEqual(pruned, expected, needed)
+            self.assertTrue(all(len(p) == needed for p in pruned))
+
+    def test_hopeless_search_stops_at_the_step_budget(self):
+        import time
+        from app.services.recipe_retrieval import MAIN, SearchExhausted, _structured_picks
+        # 300 道菜都以同一種蔬菜為主，要湊 10 道不重複：不可能，舊做法要窮舉 C(300,10) 組
+        categories = [MAIN] * 300
+        vegetables = ["V"] * 300
+        started = time.monotonic()
+        with self.assertRaises(SearchExhausted):
+            list(_structured_picks(categories, 10, True, 1, vegetables=vegetables, budget=[5_000]))
+        self.assertLess(time.monotonic() - started, 2)

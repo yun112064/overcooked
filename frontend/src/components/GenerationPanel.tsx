@@ -1,6 +1,6 @@
 import { Alert, Box, Button, Chip, LinearProgress, Stack, Typography } from '@mui/material'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { api, errorMessage } from '../api/client'
 import type { Job, MealRequest } from '../api/types'
 import MealResultView from './MealResultView'
@@ -20,6 +20,27 @@ const STAGE_LABELS: Record<string, string> = {
   result_ready: '已完成',
   failed: '失敗',
   needs_manual_retry: '需要確認後重新送出',
+  cancelled: '已取消',
+}
+
+function clock(seconds: number) {
+  return `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')}`
+}
+
+/** 已等待時間：以伺服器回傳的秒數為準（每次輪詢以 key 重建），兩次輪詢之間每秒自行累加。 */
+function Waited({ job }: { job: Job }) {
+  const [tick, setTick] = useState(0)
+  useEffect(() => {
+    const timer = setInterval(() => setTick((t) => t + 1), 1000)
+    return () => clearInterval(timer)
+  }, [])
+  const limit = job.timeout_seconds
+  return (
+    <Typography variant="caption" component="p" sx={{ mt: 0.5 }}>
+      已等待 {clock((job.waited_seconds ?? 0) + tick)}
+      {limit ? `（${job.status === 'queued' ? '排隊' : '這次嘗試'}超過 ${Math.round(limit / 60)} 分鐘會自動中止，問卷會保留）` : ''}
+    </Typography>
+  )
 }
 
 const ACTIVE = new Set(['queued', 'running'])
@@ -84,6 +105,16 @@ export default function GenerationPanel({ row, onChanged }: Props) {
       onChanged()
     },
   })
+  const cancel = useMutation({
+    mutationFn: async () =>
+      (await api.post<{ job: Job }>(`/meal-requests/${row.id}/cancel`)).data.job,
+    onSuccess: (job) => {
+      // 取消後重新送出是新的請求，要換一把冪等鍵
+      if (job.input_version !== null) keys.current.delete(job.input_version)
+      queryClient.setQueryData(['jobs', row.id], job)
+      onChanged()
+    },
+  })
   const job = latest.data
   const active = job && ACTIVE.has(job.status)
 
@@ -113,8 +144,9 @@ export default function GenerationPanel({ row, onChanged }: Props) {
             <Typography component="span" variant="caption" sx={{ ml: 1 }}>第 {job.attempts}／{job.max_attempts} 次嘗試</Typography>
           </Typography>
           {active && <LinearProgress sx={{ mt: 1 }} />}
+          {active && <Waited key={`${job.id}:${job.status}:${job.waited_seconds}`} job={job} />}
           {job.status === 'failed' && job.error && (
-            <Alert severity="error" sx={{ mt: 1 }}>
+            <Alert severity={job.error.code === 'CANCELLED' ? 'info' : 'error'} sx={{ mt: 1 }}>
               {job.error.message}
             </Alert>
           )}
@@ -127,12 +159,19 @@ export default function GenerationPanel({ row, onChanged }: Props) {
         </Box>
       )}
       {submit.isError && <Alert severity="error">{errorMessage(submit.error)}</Alert>}
+      {cancel.isError && <Alert severity="error">{errorMessage(cancel.error)}</Alert>}
       {hasResult && !active && <MealResultView requestId={row.id} mealDate={row.draft.meal_date} onChanged={onChanged} />}
       <Box>
         <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
           <Button variant="contained" size="large" disabled={!canSubmit || submit.isPending} onClick={() => submit.mutate(false)}>
             {job && lastJobForThisVersion && job.status === 'failed' ? '重新送出生成' : '送出生成'}
           </Button>
+          {active && (
+            <Button variant="outlined" color="inherit" size="large" disabled={cancel.isPending}
+              onClick={() => cancel.mutate()}>
+              取消生成
+            </Button>
+          )}
           {hasResult && !confirmed && (
             <Button variant="outlined" size="large" disabled={!row.complete || !!active || submit.isPending}
               onClick={() => submit.mutate(true)}>

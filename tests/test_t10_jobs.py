@@ -330,6 +330,116 @@ class T10Tests(unittest.TestCase):
         ledger = self.ledger()
         self.assertEqual((ledger.reserved_twd, ledger.spent_twd), (0, Decimal("0.1")))
 
+    # --- 逾時與取消（2026-10-28：選菜窮舉卡死工作者，問卷一直鎖在排隊中） ---
+
+    def run_with_timeout(self, handler, timeout=0.3):
+        """執行工作並在 timeout 秒後觸發逾時；回傳 on_timeout 被呼叫的次數（預設行為是結束程序，測試改記錄）。"""
+        from app.jobs.worker import run_once
+        fired = []
+        release = threading.Event()
+
+        def on_timeout(job):
+            fired.append(job.id)
+            release.set()
+
+        run_once(self.factory, "worker-slow", {"meal_generation": lambda ctx: handler(ctx, release)},
+                 timeout=timeout, on_timeout=on_timeout)
+        return fired
+
+    def test_attempt_over_the_hard_limit_is_aborted_and_unlocks_the_request(self):
+        job_id = self.submit().json()["job"]["id"]
+
+        def stuck(ctx, release):
+            release.wait(5)          # 模擬卡住的計算
+            ctx.stage("calculating")  # 逾時後租約已失效：拋出 LeaseLost，不寫結果
+            return {"late": True}
+
+        self.assertEqual(len(self.run_with_timeout(stuck)), 1)
+        row = self.job_row(job_id)
+        self.assertEqual((row.status, row.error_code, row.attempts), ("failed", "ATTEMPT_TIMEOUT", 1))
+        self.assertIsNone(row.result)
+        self.assertIn("已中止", row.error_message)
+        self.assertEqual(self.request_status(), "failed")
+        # 問卷解鎖：可以修改
+        edited = self.client.put(f"/meal-requests/{self.request['id']}",
+                                 json={"version": 1, "draft": {**draft(self.member_id), "dish_count": 1}})
+        self.assertEqual(edited.status_code, 200, edited.text)
+
+    def test_attempt_timeout_during_paid_call_requires_manual_retry(self):
+        from app.services import spend
+        job_id = self.submit().json()["job"]["id"]
+
+        def stuck_in_call(ctx, release):
+            spend.reserve(self.factory, call_key=f"{job_id}:1:menu", purpose="menu", provider="openai",
+                          model=MODEL, max_input_tokens=3000, max_output_tokens=1000, job_id=ctx.job.id)
+            release.wait(5)
+            raise TimeoutError
+
+        self.run_with_timeout(stuck_in_call)
+        row = self.job_row(job_id)
+        self.assertEqual((row.status, row.error_code), ("failed", "NEEDS_MANUAL_RETRY"))
+        from app.db.models import UsageReservation
+        with self.factory() as db:
+            self.assertEqual(db.scalar(select(UsageReservation)).status, "uncertain")
+
+    def test_job_finished_in_time_is_not_aborted(self):
+        import time
+        job_id = self.submit().json()["job"]["id"]
+        fired = self.run_with_timeout(lambda ctx, release: {"ok": True}, timeout=0.2)
+        time.sleep(0.4)
+        self.assertEqual(fired, [])
+        self.assertEqual(self.job_row(job_id).status, "succeeded")
+
+    def test_job_waiting_in_queue_too_long_times_out(self):
+        from app.services import jobs
+        stale_id = self.submit().json()["job"]["id"]
+        self.assertEqual(jobs.expire_queued(self.factory), 0)  # 剛排入：不動
+        with self.factory() as db, db.begin():
+            db.execute(text("UPDATE background_jobs SET available_at = now() - interval '11 minutes' WHERE id = :id"),
+                       {"id": stale_id})
+        self.assertEqual(jobs.expire_queued(self.factory), 1)
+        row = self.job_row(stale_id)
+        self.assertEqual((row.status, row.error_code), ("failed", "QUEUE_TIMEOUT"))
+        self.assertEqual(self.request_status(), "failed")
+
+    def test_cancel_queued_generation_returns_request_to_draft(self):
+        job_id = self.submit().json()["job"]["id"]
+        cancelled = self.client.post(f"/meal-requests/{self.request['id']}/cancel")
+        self.assertEqual(cancelled.status_code, 200, cancelled.text)
+        body = cancelled.json()
+        self.assertEqual((body["job"]["status"], body["job"]["error"]["code"]), ("failed", "CANCELLED"))
+        self.assertEqual(body["meal_request"]["status"], "draft")
+        self.assertEqual(self.job_row(job_id).stage, "cancelled")
+        # 沒有進行中的生成：不能再取消
+        self.assertEqual(self.client.post(f"/meal-requests/{self.request['id']}/cancel").status_code, 409)
+        # 取消後可用新的送出識別碼重新送出
+        self.assertEqual(self.submit(key="key-00000002").status_code, 202)
+
+    def test_cancelled_running_job_cannot_write_its_result(self):
+        from app.services import jobs
+        self.submit()
+        job = jobs.claim(self.factory, "worker-a")
+        self.assertEqual(self.client.post(f"/meal-requests/{self.request['id']}/cancel").status_code, 200)
+        self.assertFalse(jobs.set_stage(self.factory, job.id, "worker-a", "calculating"))
+        self.assertFalse(jobs.complete(self.factory, job.id, "worker-a", {"late": True}))
+        self.assertEqual(self.job_row(job.id).status, "failed")
+        self.assertEqual(self.request_status(), "draft")
+
+    def test_cancelling_a_regeneration_keeps_the_existing_result(self):
+        from app.jobs.worker import run_once
+        self.submit()
+        run_once(self.factory, "worker-a", {"meal_generation": lambda ctx: {"ok": True}})
+        self.assertEqual(self.request_status(), "result_ready")
+        self.submit(key="key-00000002")  # 重新生成
+        self.assertEqual(self.request_status(), "queued")
+        self.client.post(f"/meal-requests/{self.request['id']}/cancel")
+        self.assertEqual(self.request_status(), "result_ready")
+
+    def test_job_view_reports_waiting_time_and_limit(self):
+        job = self.submit().json()["job"]
+        self.assertGreaterEqual(job["waited_seconds"], 0)
+        self.assertEqual(job["timeout_seconds"], 600)
+
     def test_uncertain_paid_call_in_handler_is_not_retried(self):
         from app.jobs.worker import run_once
         attempts = []

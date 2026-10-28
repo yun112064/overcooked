@@ -9,6 +9,7 @@ from decimal import Decimal
 from typing import Literal
 
 from pydantic import BaseModel, Field, field_validator, model_validator
+from pydantic_core import PydanticCustomError
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -19,6 +20,32 @@ from nutrition_target import TargetInputError
 
 MealType = Literal["breakfast", "lunch", "dinner"]
 MAX_DISHES = 10
+
+
+# 「不知道」「都可以」這類回答不是菜名（2026-10-28 使用者要求擋下）。
+# 句中出現就擋：這些詞不會是菜名的一部分
+NON_DISH_PHRASES = (
+    "不知道", "不曉得", "不清楚", "不確定", "隨便", "隨意", "都可以", "都行", "都好", "皆可",
+    "無所謂", "沒意見", "沒想法", "你決定", "你選", "幫我選", "看著辦", "看你", "想不到", "不指定",
+    "不用指定", "沒有指定", "未指定", "亂打", "亂填",
+)
+# 去掉語助詞與標點後整句等於這些才擋：它們可能出現在真正的菜名裡（如「無骨雞排」「任意門」不算）
+NON_DISH_ANSWERS = {
+    "沒有", "沒", "無", "否", "不要", "不用", "不需要", "任意", "任何", "什麼", "啥", "都", "好", "可以", "嗯", "喔",
+    "測試", "idk", "none", "null", "na", "no", "any", "anything", "whatever", "random", "test", "asdf", "qwer",
+}
+_FILLER = set("我也都就吧啦啦耶欸誒喔哦呢啊阿嗯呀哈～~ ")
+
+
+def not_a_dish_name(text: str) -> str | None:
+    """不是菜名時回傳原因（給使用者看），是菜名回傳 None。"""
+    if not any(ch.isalpha() for ch in text):
+        return "不是菜名，請輸入菜名（不能只有數字或符號）。"
+    letters = "".join(ch for ch in text.lower() if ch.isalnum() or ch.isspace())
+    core = "".join(ch for ch in letters if ch not in _FILLER)
+    if any(p in core for p in NON_DISH_PHRASES) or core in NON_DISH_ANSWERS or not core:
+        return "不是菜名；沒有想吃的菜請留空，系統會自動配菜。"
+    return None
 
 
 class Participant(BaseModel):
@@ -58,6 +85,12 @@ class MealRequestDraft(BaseModel):
         cleaned = list(dict.fromkeys(v.strip() for v in values if v.strip()))
         if any(len(v) > 50 for v in cleaned):
             raise ValueError("指定菜色名稱最多 50 個字。")
+        # 亂輸入防護：「123」「不知道」「隨便」都不是菜名，放行會被當成資料庫沒有的菜交給 AI 硬做
+        for v in cleaned:
+            reason = not_a_dish_name(v)
+            if reason:
+                raise PydanticCustomError("dish_name_invalid", "指定菜色「{name}」{reason}",
+                                          {"name": v, "reason": reason})
         return cleaned
 
     @field_validator("available_ingredient_ids")
@@ -222,6 +255,26 @@ def restrictions(db: Session, draft: MealRequestDraft, members: dict) -> dict:
         # 家中有、但有人過敏或禁吃：提醒使用者，生成時仍會排除
         "available_but_restricted": [i for i in draft.available_ingredient_ids if i in excluded],
     }
+
+
+def budget_floor(db: Session, draft: MealRequestDraft, preview: dict) -> Decimal | None:
+    """本餐預算下限（budget_floor 模組）；菜數或目標未定時不估算。"""
+    from app.services import budget_floor as floor_service
+    from app.services import staples
+    if draft.dish_count is None or preview.get("status") != "available":
+        return None
+    return floor_service.minimum_budget(db, dish_count=draft.dish_count, total_n=Decimal(str(preview["total_n"])),
+                                        available_food_ids=draft.available_ingredient_ids,
+                                        has_staple=staples.resolve(draft.staple) is not None)
+
+
+def budget_issue(draft: MealRequestDraft, floor: Decimal | None) -> dict | None:
+    """預算低於估算的最低合理金額：列為待補項目，不能送出生成（2026-10-28 使用者決定）。"""
+    if draft.budget is None or floor is None or draft.budget >= floor:
+        return None
+    return _issue("budget", "BUDGET_TOO_LOW",
+                  f"預算 {draft.budget.normalize():f} 元低於這一餐估算的最低金額約 {floor:f} 元"
+                  f"（{draft.dish_count} 道菜），請調高預算後再送出。")
 
 
 def target_preview(draft: MealRequestDraft, members: dict) -> dict:

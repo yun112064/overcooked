@@ -48,6 +48,9 @@ def build_scheduler(factory) -> BlockingScheduler:
     scheduler = BlockingScheduler(timezone="Asia/Taipei")
     scheduler.add_job(lambda: jobs.recover_expired(factory), "interval", seconds=60,
                       id="recover_expired_jobs", max_instances=1, coalesce=True)
+    # 排隊過久的工作判逾時並解鎖問卷
+    scheduler.add_job(lambda: jobs.expire_queued(factory), "interval", seconds=60,
+                      id="expire_queued_jobs", max_instances=1, coalesce=True)
     apply = os.getenv("LOG_CLEANUP_APPLY", "false").lower() == "true"
     scheduler.add_job(lambda: cleanup(apply=apply), "cron", hour=3, minute=30,
                       id="log_cleanup", max_instances=1, coalesce=True)
@@ -89,6 +92,7 @@ def main() -> None:
     scheduler_logger.info("Scheduler started", extra={"event": "scheduler_started", "source": "scheduler"})
     # 啟動時先回收一次，處理上次停機留下的工作
     jobs.recover_expired(SessionLocal)
+    jobs.expire_queued(SessionLocal)
     try:
         build_scheduler(SessionLocal).start()
     finally:

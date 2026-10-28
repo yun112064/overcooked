@@ -45,7 +45,10 @@ const schema = z.object({
   staple: z.string().max(30, '最多 30 個字'),
   dish_count: z.string(),
   taste_preferences: z.string().max(200, '最多 200 個字'),
-  specified_dishes: z.array(z.string().trim().min(1).max(50, '每道菜名最多 50 個字')).max(10, '最多指定 10 道'),
+  specified_dishes: z.array(z.string().trim().min(1).max(50, '每道菜名最多 50 個字')
+    // 與後端相同：只有數字或符號不是菜名
+    .refine((v) => /\p{L}/u.test(v), { error: (iss) => `「${String(iss.input)}」不是菜名，請輸入菜名（不能只有數字或符號）` }))
+    .max(10, '最多指定 10 道'),
   participants: z.record(z.string(), participantSchema),
   available: z.array(z.object({ ingredient_id: z.string(), name: z.string().nullable() })),
 })
@@ -181,9 +184,15 @@ function Editor({ initial, members: memberList }: { initial: MealRequest; member
   })
 
   const dishCount = useWatch({ control, name: 'dish_count' })
+  // 預算低於估算下限（後端判斷）：只在欄位值還是已儲存的那個預算時標紅，改了就等下次儲存重新判斷
+  const budgetValue = useWatch({ control, name: 'budget' })
+  const budgetLow = server.issues.find((i) => i.field === 'budget' && i.reason === 'BUDGET_TOO_LOW')
   const specified = useWatch({ control, name: 'specified_dishes' })
 
   const conflict = save.isError && errorStatus(save.error) === 409
+  // 單一菜名的錯誤掛在陣列各項上；整體錯誤（數量、後端回報）掛在欄位本身
+  const dishError = errors.specified_dishes?.message
+    ?? (Array.isArray(errors.specified_dishes) ? errors.specified_dishes.find((e) => e?.message)?.message : undefined)
 
   return (
     <Stack spacing={3}>
@@ -214,7 +223,7 @@ function Editor({ initial, members: memberList }: { initial: MealRequest; member
         </Alert>
       )}
       {save.isError && !conflict && <Alert severity="error">{errorMessage(save.error)}</Alert>}
-      {locked && <Alert severity="info">此問卷正在生成中，完成前無法修改。</Alert>}
+      {locked && <Alert severity="info">此問卷正在生成中，完成前無法修改；等不及可在「確認」步驟取消生成。</Alert>}
       {adopted && <Alert severity="info">此問卷已採用，只能瀏覽；如需調整請建立新的問卷。</Alert>}
 
       <Paper variant="outlined" sx={{ p: { xs: 2.5, sm: 4 } }}>
@@ -229,7 +238,11 @@ function Editor({ initial, members: memberList }: { initial: MealRequest; member
               </TextField>
             )} />
             <FormTextField name="budget" control={control} label="預算（新台幣）" inputMode="decimal"
-              helperText="以需補買食材的比例成本判斷是否在預算內" />
+              error={!!budgetLow && Number(budgetValue) === Number(server.draft.budget)}
+              helperText={budgetLow && Number(budgetValue) === Number(server.draft.budget) ? budgetLow.message
+                : server.budget_floor
+                  ? `這一餐估算最低約 ${server.budget_floor} 元（依菜數與用餐人數）；低於此金額不能送出生成`
+                  : '以需補買食材的比例成本判斷是否在預算內；選好菜數與成員後會顯示最低金額'} />
             <Controller name="staple" control={control} render={({ field }) => {
               // 決策 #52：只能從後端清單選（不可自由輸入）；舊草稿的清單外文字顯示為待改選
               if (!staples.data) {
@@ -305,8 +318,8 @@ function Editor({ initial, members: memberList }: { initial: MealRequest; member
               <Autocomplete multiple freeSolo options={[]} value={field.value}
                 onChange={(_, v) => field.onChange(v.map((s) => String(s).trim()).filter(Boolean))}
                 renderInput={(params) => (
-                  <TextField {...params} label="指定菜色" error={!!errors.specified_dishes}
-                    helperText={errors.specified_dishes?.message
+                  <TextField {...params} label="指定菜色" error={!!dishError}
+                    helperText={dishError
                       ?? `輸入菜名後按 Enter；指定菜一定會出現在菜單中${dishCount ? `（已指定 ${specified?.length ?? 0}／${dishCount} 道）` : ''}`} />
                 )} />
             )} />

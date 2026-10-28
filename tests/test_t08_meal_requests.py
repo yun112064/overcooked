@@ -228,6 +228,20 @@ class T08ApiTests(unittest.TestCase):
         # 不偷偷刪除或替換指定菜
         self.assertEqual(over["draft"]["specified_dishes"], ["三杯雞", "番茄炒蛋"])
 
+    def test_specified_dish_must_be_a_name_not_symbols(self):
+        for junk in ("123", "!!!", "＠＃＄", "  ...  ", "不知道", "我也不知道耶", "隨便啦", "都可以", "沒有", "無",
+                     "你決定吧", "idk", "N/A", "測試"):
+            bad = self.client.post("/meal-requests", json=full_draft([{"member_id": self.a["id"]}],
+                                                                   specified_dishes=["三杯雞", junk]))
+            self.assertEqual(bad.status_code, 422, junk)
+            [field] = bad.json()["error"]["details"]["fields"]
+            self.assertEqual(field["field"], "specified_dishes")
+            self.assertIn("不是菜名", field["message"])
+        # 含「無」「沒有」「任意」的真菜名不能誤擋
+        real = ["3杯雞", "Pasta", "無骨雞排", "沒有肉的炒青菜", "任意門"]
+        ok = self.create(full_draft([{"member_id": self.a["id"]}], dish_count=5, specified_dishes=real))
+        self.assertEqual(ok["draft"]["specified_dishes"], real)
+
     def test_duplicate_or_foreign_members_are_rejected(self):
         dup = self.client.post("/meal-requests", json=full_draft(
             [{"member_id": self.a["id"]}, {"member_id": self.a["id"], "bento": True}]))

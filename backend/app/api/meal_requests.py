@@ -26,10 +26,21 @@ def _members(db: Session, household_id) -> dict:
     return {m.id: m for m in db.scalars(select(Member).where(Member.household_id == household_id))}
 
 
+def _check(db: Session, draft: service.MealRequestDraft, members: dict) -> tuple[list[dict], dict, object]:
+    """待補項目（含預算下限）、目標預覽與預算下限；問卷讀取與送出共用同一套判斷。"""
+    issues = service.completeness(draft, members)
+    preview = service.target_preview(draft, members)
+    floor = service.budget_floor(db, draft, preview)
+    low = service.budget_issue(draft, floor)
+    if low:
+        issues.append(low)
+    return issues, preview, floor
+
+
 def _out(db: Session, row: MealRequest) -> dict:
     draft = service.load(row.payload)
     members = _members(db, row.household_id)
-    issues = service.completeness(draft, members)
+    issues, preview, floor = _check(db, draft, members)
     return {
         "id": str(row.id),
         "status": row.status,
@@ -39,7 +50,8 @@ def _out(db: Session, row: MealRequest) -> dict:
         "available_ingredients": ingredients.describe(db, draft.available_ingredient_ids),
         "items": service.items(draft),
         "restrictions": service.restrictions(db, draft, members),
-        "targets_preview": service.target_preview(draft, members),
+        "targets_preview": preview,
+        "budget_floor": f"{floor:f}" if floor is not None else None,
         "issues": issues,
         "complete": not issues,
     }
@@ -166,9 +178,21 @@ def submit_request(request_id: uuid.UUID, body: SubmitBody,
                    household_id=Depends(current_household_id), db: Session = Depends(get_db)):
     """送出生成：相同 Idempotency-Key 與相同問卷版本回傳同一工作，不重複建立或扣額度。"""
     row = get_owned_request(db, household_id, request_id, lock=True)
-    complete = not service.completeness(service.load(row.payload), _members(db, household_id))
+    complete = not _check(db, service.load(row.payload), _members(db, household_id))[0]
     job, created = job_service.submit_generation(
         db, household_id=household_id, meal_request=row, version=body.version,
         idempotency_key=idempotency_key, complete=complete)
     db.commit()
     return {"job": job_service.public_view(job), "created": created}
+
+
+@router.post("/{request_id}/cancel")
+def cancel_generation(request_id: uuid.UUID, household_id=Depends(current_household_id),
+                      db: Session = Depends(get_db)):
+    """取消排隊中或執行中的生成；問卷回到送出前的狀態，可再修改或重新送出。"""
+    row = get_owned_request(db, household_id, request_id, lock=True)
+    job = job_service.cancel_generation(db, row)
+    if job is None:
+        raise ApiError(409, "VERSION_CONFLICT", "這份問卷目前沒有進行中的生成。", {"reason": "NOTHING_TO_CANCEL"})
+    db.commit()
+    return {"job": job_service.public_view(job), "meal_request": _out(db, row)}

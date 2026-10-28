@@ -342,9 +342,16 @@ class CrossSourceQuoteTests(unittest.TestCase):
 
     def latest(self, food_id="FOOD000867"):
         from sqlalchemy.orm import Session
-        from app.services.meal_cost import latest_quote
+        from app.services.meal_cost import latest_quote, latest_success_quotes
         with Session(self.engine) as db:
-            return latest_quote(db, food_id)
+            single = latest_quote(db, food_id)
+            # 預算下限用的批次查價必須選出同一筆（從未成功的食材批次版不列）
+            batch = latest_success_quotes(db, now=datetime.now(timezone.utc)).get(food_id)
+            if single is not None and single.price is not None:
+                self.assertEqual(batch.model_dump(), single.model_dump())
+            else:
+                self.assertIsNone(batch)
+            return single
 
     def uni_quote(self, price, qty, **extra):
         from test_t13_meal_cost import quote
