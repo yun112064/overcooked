@@ -17,9 +17,20 @@ export function HighSodiumTag({ high, sodium }: { high?: boolean; sodium?: strin
   )
 }
 
-/** 後端已取整的畫面用量（克到 1 g、其他單位到整數）；沒有數量時顯示原文 */
+const FRACTIONS: Record<number, string> = { 0.25: '¼', 0.5: '½', 0.75: '¾' }
+
+/** 調味料的量匙用量取到 ¼（如 1.5 → 1½、0.25 → ¼）；其他數量原樣 */
+function amount(value: string) {
+  const n = Number(value)
+  const whole = Math.floor(n)
+  const frac = FRACTIONS[Math.round((n - whole) * 100) / 100]
+  if (!frac) return String(n)
+  return whole > 0 ? `${whole}${frac}` : frac
+}
+
+/** 後端已取整的畫面用量（克到 1 g、調味料為小匙／大匙、其他單位到整數）；沒有數量時顯示原文（如「少許」） */
 function shown(i: Ingredient) {
-  if (i.display_amount != null && i.display_unit) return `${Number(i.display_amount)} ${i.display_unit}`
+  if (i.display_amount != null && i.display_unit) return `${amount(i.display_amount)} ${i.display_unit}`
   if (i.display_text) return i.display_text
   return i.display_grams == null ? '無法換算' : `${Math.round(Number(i.display_grams))} g`
 }

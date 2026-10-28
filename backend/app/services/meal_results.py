@@ -18,7 +18,7 @@ from sqlalchemy.orm import Session
 
 from app.api.errors import ApiError, idempotency_conflict, version_conflict
 from app.db.models import GenerationResult, MealRequest, MealResultDecision, Member
-from app.services import idempotency, jobs, meal_history, meal_validation, per_person_nutrition
+from app.services import idempotency, jobs, meal_history, meal_validation, per_person_nutrition, seasonings
 from app.services.meal_calculation import display_count
 
 
@@ -72,16 +72,25 @@ def _display_amount(amount, unit):
     return display_count(Decimal(str(amount)))
 
 
-def _ingredient(r: dict) -> dict:
-    """整餐用量；display_* 為畫面取整（克到 1 g、其他單位到整數，無換算照原文）。group 為食材分組（#41）。"""
+def _shown(r: dict) -> dict:
+    """畫面用量：調味料換成小匙／大匙（seasonings.spoon_display，舊結果讀取時也套用）；
+    其餘克到 1 g、其他單位到整數，無換算照原文。只影響顯示，計算一律用 whole_meal_grams。"""
     unit = r.get("display_unit", "g" if r.get("display_grams") is not None else None)
+    if r.get("role") != "staple":
+        spoon = seasonings.spoon_display(r["food_id"], r.get("whole_meal_grams"), unit)
+        if spoon is not None:
+            return spoon
+    return {"display_amount": _display_amount(r.get("display_amount", r.get("display_grams")), unit),
+            "display_unit": unit, "display_text": r.get("display_text")}
+
+
+def _ingredient(r: dict) -> dict:
+    """整餐用量；display_* 為畫面用量（見 _shown）。group 為食材分組（#41）。"""
     return {"food_id": r["food_id"], "name": r["name"], "group": r.get("group"),
             "weight_basis": r.get("weight_basis"),
             "weight_basis_source": r.get("weight_basis_source"),
             "whole_meal_grams": r.get("whole_meal_grams"), "display_grams": r.get("display_grams"),
-            "display_amount": _display_amount(r.get("display_amount", r.get("display_grams")), unit),
-            "display_unit": unit,
-            "display_text": r.get("display_text"),
+            **_shown(r),
             # decisions #19：克數或烹調係數來自 LLM 推估時標示；estimates 保留模型、版本與覆核狀態供追溯
             "llm_estimated": bool(r.get("llm_estimated")),
             "estimate_label": LLM_ESTIMATE_LABEL if r.get("llm_estimated") else None,

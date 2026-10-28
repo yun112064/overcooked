@@ -271,7 +271,7 @@ export type ResultIngredient = {
   display_grams: string | null
   /** decisions #41：食譜原文的食材分組（如「調味」「醃料」）；沒有分組為 null */
   group?: string | null
-  /** 畫面用量：克到 1 g；其他單位（匙、顆…）取整數、最少 1（decisions #43），都沒有時顯示原文 */
+  /** 畫面用量：克到 1 g；調味料換成小匙／大匙／量杯（取到 ¼，太少為「少許」）；其他單位（顆…）取整數、最少 1（decisions #43），都沒有時顯示原文 */
   display_amount?: string | null
   display_unit?: string | null
   display_text?: string | null

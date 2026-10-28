@@ -164,6 +164,40 @@ class ResultViewTests(ResultTestCase):
                          [(Decimal(1), "大匙"), (Decimal(5), "顆"), (Decimal(191), "g")])
         self.assertEqual(dish["steps_display"], ["打蛋"])
 
+    def test_seasonings_are_shown_in_spoons_from_whole_meal_grams(self):
+        # 調味料畫面用量由整餐克數換成量匙（原單位 g、ml、大匙都一樣）；克數欄位不變，計數單位與整顆香料照舊
+        from app.services import meal_results
+        payload = {"dishes": [{"standard_dish_id": "s1", "dish_name": "滷肉", "source": "database",
+                               "recipe_id": "R1", "steps": []}],
+                   "calculation": {"ingredients": [
+                       {"food_id": "FOOD000691", "name": "食鹽", "dish_id": "R1", "whole_meal_grams": "3.6",
+                        "display_amount": "4", "display_unit": "g"},
+                       {"food_id": "FOOD001541", "name": "醬油", "dish_id": "R1", "whole_meal_grams": "27",
+                        "display_amount": "1", "display_unit": "大匙"},
+                       {"food_id": "FOOD000693", "name": "香油", "dish_id": "R1", "whole_meal_grams": "0.4",
+                        "display_amount": "1", "display_unit": "ml"},
+                       {"food_id": "FOOD000007", "name": "八角", "dish_id": "R1", "whole_meal_grams": "2",
+                        "display_amount": "2", "display_unit": "顆"},
+                       {"food_id": "FOOD000289", "name": "白胡椒粉", "dish_id": "R1", "whole_meal_grams": "2",
+                        "display_amount": "1", "display_unit": "粒"}]}}
+        [dish] = meal_results._dishes(payload)
+        shown = [(i["display_amount"] and Decimal(i["display_amount"]), i["display_unit"], i["display_text"])
+                 for i in dish["ingredients"]]
+        self.assertEqual(shown, [(Decimal("0.75"), "小匙", None), (Decimal("1.5"), "大匙", None),
+                                 (None, None, "少許"), (Decimal(2), "顆", None), (Decimal(1), "粒", None)])
+        self.assertEqual(dish["ingredients"][1]["whole_meal_grams"], "27")
+
+    def test_spoon_steps_round_up_to_the_next_measure(self):
+        from app.services.seasonings import spoon_display
+        salt = lambda grams: spoon_display("FOOD000691", grams, "g")  # 5 g／小匙
+        self.assertEqual(salt(Decimal("0.5"))["display_text"], "少許")
+        self.assertEqual((salt(Decimal("14.6"))["display_amount"], salt(Decimal("14.6"))["display_unit"]),
+                         (Decimal(1), "大匙"))
+        self.assertEqual((salt(Decimal(238))["display_amount"], salt(Decimal(238))["display_unit"]),
+                         (Decimal(1), "量杯"))
+        self.assertIsNone(spoon_display("FOOD000691", None, "g"))
+        self.assertIsNone(spoon_display("NOT_A_SEASONING", Decimal(5), "g"))
+
     def test_results_are_household_scoped(self):
         self.generate()
         other = db_support.make_client()
