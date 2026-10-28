@@ -178,13 +178,26 @@ export type PersonNutrition = {
   /** 成員已刪除時為 null */
   name: string | null
   kinds: ('dining' | 'bento')[]
+  /** 是否在家吃這一餐；舊結果沒有此欄（用餐與便當合併計算） */
+  dining?: boolean
+  /** 以下為當餐用餐的份（不含便當） */
   n: string
   share: string
-  /** 這一餐（用餐＋便當合計）占每日建議的比例，例如晚餐 0.4 */
+  /** 這一餐占每日建議的比例，例如晚餐 0.4 */
   meal_ratio: string
   intake: Record<string, string | null>
   known_partial: Record<string, string>
+  /** 便當（隔天午餐）另列，不計入這一餐 */
+  bento?: PersonPortion & { meal: MealType } | null
   daily: Record<string, DailyReference>
+}
+
+export type PersonPortion = {
+  n: string
+  share: string
+  meal_ratio: string
+  intake: Record<string, string | null>
+  known_partial: Record<string, string>
 }
 
 export type DecisionKind = 'accept_missing_price' | 'continue_missing_nutrition'

@@ -1,7 +1,7 @@
 import { Box, Button, Chip, Link, Stack, Tooltip, Typography } from '@mui/material'
 import { useState } from 'react'
 import { NUTRIENTS, type Nutrition } from '../api/nutrition'
-import type { DailyReference, PersonNutrition as Person } from '../api/types'
+import { MEAL_LABELS, type DailyReference, type PersonNutrition as Person, type PersonPortion } from '../api/types'
 import { tokens } from '../theme'
 import NutritionTable from './NutritionTable'
 import { IconTile } from './ui'
@@ -49,11 +49,91 @@ function Bar({ ratio, mealRatio, kind }: { ratio: number; mealRatio: number; kin
   )
 }
 
+/** 這一份占每日熱量的比例（與建議比例並列）。 */
+function EnergyLine({ portion, daily, label }: { portion: PersonPortion; daily: Person['daily']; label: string }) {
+  const mealRatio = Number(portion.meal_ratio)
+  const energy = portion.intake.energy_kcal != null ? Number(portion.intake.energy_kcal) : null
+  const energyDaily = daily.energy_kcal?.value ? Number(daily.energy_kcal.value) : null
+  if (energy === null || !energyDaily) return null
+  const energyShare = energy / energyDaily
+  return (
+    <Typography variant="body2" sx={{ color: Math.abs(energyShare - mealRatio) <= mealRatio * 0.1 ? '#3E5539' : tokens.inkSoft }}>
+      {label}約占每日熱量 <b>{Math.round(energyShare * 100)}%</b>
+      <Typography component="span" variant="caption" sx={{ ml: 1 }}>建議約 {Math.round(mealRatio * 100)}%</Typography>
+    </Typography>
+  )
+}
+
+/** 七項營養素：攝取量、每日建議與占比長條。 */
+function NutrientRows({ portion, daily }: { portion: PersonPortion; daily: Person['daily'] }) {
+  const mealRatio = Number(portion.meal_ratio)
+  return (
+    <Box component="dl" sx={{ m: 0, display: 'grid', gridTemplateColumns: 'minmax(96px, auto) 1fr', columnGap: 1.5, rowGap: 1.5, alignItems: 'start' }}>
+      {NUTRIENTS.map(({ key, label, unit }) => {
+        const raw = portion.intake[key]
+        const value = raw !== null && raw !== undefined ? Number(raw) : null
+        const ref = reference(daily[key], unit)
+        const partial = portion.known_partial[key]
+        return (
+          <Box key={key} sx={{ display: 'contents' }}>
+            <Typography component="dt" variant="body2" sx={{ fontWeight: key === 'energy_kcal' || key === 'protein_g' ? 500 : 400,
+              display: 'flex', alignItems: 'center', gap: 1 }}>
+              <IconTile icon={NUTRIENT_VISUALS[key].icon} tone={NUTRIENT_VISUALS[key].tone} size={24} />
+              {label}
+            </Typography>
+            <Box component="dd" sx={{ m: 0, minWidth: 0 }}>
+              <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 1, flexWrap: 'wrap' }}>
+                <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                  {value !== null ? `${fmt(value, unit)} ${unit}` : '未知'}
+                </Typography>
+                {value === null && partial !== undefined && (
+                  <Typography variant="caption">已知 {fmt(Number(partial), unit)} {unit}</Typography>
+                )}
+                {ref && (
+                  <Tooltip title={[daily[key]?.label, daily[key]?.caveat].filter(Boolean).join('；')}>
+                    <Typography variant="caption" sx={{ ml: 'auto', cursor: 'help' }}>
+                      每日 {ref.text}{value !== null && `・${percentText(value, ref)}`}
+                    </Typography>
+                  </Tooltip>
+                )}
+              </Box>
+              {ref && value !== null && daily[key] && (
+                <Box sx={{ mt: 0.75 }}><Bar ratio={value / ref.base} mealRatio={mealRatio} kind={daily[key].kind} /></Box>
+              )}
+            </Box>
+          </Box>
+        )
+      })}
+    </Box>
+  )
+}
+
+/** 便當另列（隔天午餐），預設收合；只帶便當不在家吃時直接展開。 */
+function BentoSection({ person, open: initiallyOpen }: { person: Person; open: boolean }) {
+  const [open, setOpen] = useState(initiallyOpen)
+  const bento = person.bento
+  if (!bento) return null
+  const meal = MEAL_LABELS[bento.meal] ?? '午餐'
+  return (
+    <Box sx={{ mt: initiallyOpen ? 0 : 2, pt: initiallyOpen ? 0 : 2, borderTop: initiallyOpen ? 'none' : `1px dashed ${tokens.line}` }}>
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap', mb: open ? 1.5 : 0 }}>
+        <Chip size="small" label={`便當・${meal}`} variant="outlined" />
+        <Typography variant="caption">食量 {Number(bento.n)}n・不計入這一餐</Typography>
+        {!initiallyOpen && (
+          <Button size="small" color="inherit" onClick={() => setOpen((v) => !v)} sx={{ ml: 'auto', color: tokens.inkSoft }}>
+            {open ? '收起' : '查看便當營養'}
+          </Button>
+        )}
+      </Box>
+      <Box sx={{ mt: open ? 0 : 0.75 }}><EnergyLine portion={bento} daily={person.daily} label={`便當（${meal}）`} /></Box>
+      {open && <Box sx={{ mt: 1.5 }}><NutrientRows portion={bento} daily={person.daily} /></Box>}
+    </Box>
+  )
+}
+
 function PersonCard({ person }: { person: Person }) {
-  const mealRatio = Number(person.meal_ratio)
-  const energy = person.intake.energy_kcal !== null ? Number(person.intake.energy_kcal) : null
-  const energyDaily = person.daily.energy_kcal?.value ? Number(person.daily.energy_kcal.value) : null
-  const energyShare = energy !== null && energyDaily ? energy / energyDaily : null
+  // 舊結果沒有 dining 欄：用餐與便當當時已合併計算，照舊顯示
+  const dining = person.dining ?? true
   return (
     <Box sx={{ border: `1px solid ${tokens.line}`, borderRadius: 1, bgcolor: '#FFFDF9', p: { xs: 2, sm: 2.5 } }}>
       <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 1, flexWrap: 'wrap', mb: 0.5 }}>
@@ -61,52 +141,20 @@ function PersonCard({ person }: { person: Person }) {
           {person.name ?? '已刪除成員'}
         </Typography>
         {person.kinds.map((k) => <Chip key={k} size="small" label={KIND_LABELS[k]} />)}
-        <Typography variant="caption">食量 {Number(person.n)}n</Typography>
+        {dining && <Typography variant="caption">食量 {Number(person.n)}n</Typography>}
       </Box>
-      {energyShare !== null && (
-        <Typography variant="body2" sx={{ mb: 2, color: Math.abs(energyShare - mealRatio) <= mealRatio * 0.1 ? '#3E5539' : tokens.inkSoft }}>
-          這一餐約占每日熱量 <b>{Math.round(energyShare * 100)}%</b>
-          <Typography component="span" variant="caption" sx={{ ml: 1 }}>建議約 {Math.round(mealRatio * 100)}%</Typography>
-        </Typography>
+      {dining ? (
+        <>
+          <Box sx={{ mb: 2 }}><EnergyLine portion={person} daily={person.daily} label="這一餐" /></Box>
+          <NutrientRows portion={person} daily={person.daily} />
+          <BentoSection person={person} open={false} />
+        </>
+      ) : (
+        <>
+          <Typography variant="body2" sx={{ mb: 1.5, color: tokens.inkSoft }}>這一餐不在家吃，只帶便當。</Typography>
+          <BentoSection person={person} open />
+        </>
       )}
-      <Box component="dl" sx={{ m: 0, display: 'grid', gridTemplateColumns: 'minmax(96px, auto) 1fr', columnGap: 1.5, rowGap: 1.5, alignItems: 'start' }}>
-        {NUTRIENTS.map(({ key, label, unit }) => {
-          const raw = person.intake[key]
-          const value = raw !== null && raw !== undefined ? Number(raw) : null
-          const daily = person.daily[key]
-          const ref = reference(daily, unit)
-          const partial = person.known_partial[key]
-          return (
-            <Box key={key} sx={{ display: 'contents' }}>
-              <Typography component="dt" variant="body2" sx={{ fontWeight: key === 'energy_kcal' || key === 'protein_g' ? 500 : 400,
-                display: 'flex', alignItems: 'center', gap: 1 }}>
-                <IconTile icon={NUTRIENT_VISUALS[key].icon} tone={NUTRIENT_VISUALS[key].tone} size={24} />
-                {label}
-              </Typography>
-              <Box component="dd" sx={{ m: 0, minWidth: 0 }}>
-                <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 1, flexWrap: 'wrap' }}>
-                  <Typography variant="body2" sx={{ fontWeight: 500 }}>
-                    {value !== null ? `${fmt(value, unit)} ${unit}` : '未知'}
-                  </Typography>
-                  {value === null && partial !== undefined && (
-                    <Typography variant="caption">已知 {fmt(Number(partial), unit)} {unit}</Typography>
-                  )}
-                  {ref && (
-                    <Tooltip title={[daily?.label, daily?.caveat].filter(Boolean).join('；')}>
-                      <Typography variant="caption" sx={{ ml: 'auto', cursor: 'help' }}>
-                        每日 {ref.text}{value !== null && `・${percentText(value, ref)}`}
-                      </Typography>
-                    </Tooltip>
-                  )}
-                </Box>
-                {ref && value !== null && daily && (
-                  <Box sx={{ mt: 0.75 }}><Bar ratio={value / ref.base} mealRatio={mealRatio} kind={daily.kind} /></Box>
-                )}
-              </Box>
-            </Box>
-          )
-        })}
-      </Box>
     </Box>
   )
 }
@@ -170,7 +218,7 @@ export default function PersonNutrition({ nutrition }: { nutrition: Nutrition })
         {people.map((p) => <PersonCard key={p.member_id} person={p} />)}
       </Box>
       <Typography variant="caption" component="p">
-        每人應吃的量依各自的當餐目標分配整餐（盛菜時大人、小孩份量不同）；長條上的刻度是這一餐建議占每日的比例
+        每人應吃的量依各自的當餐目標分配整餐（盛菜時大人、小孩份量不同）；帶便當的份另外列出，不計入這一餐；長條上的刻度是這一餐建議占每日的比例
         （早餐 30%、午餐 30%、晚餐 40%，再乘上食量 n）。熱量與蛋白質的每日建議：成人依國健署公式，未滿 19 歲依國健署分齡表；
         其餘依{src ? <Link href={src.url} target="_blank" rel="noreferrer">{src.publisher}建議</Link> : '國健署建議'}由每日熱量推算；
         糖為 TFDA 總糖，對照的是添加糖上限，僅供參考。

@@ -65,13 +65,32 @@ class PerPersonTests(unittest.TestCase):
         self.assertIsNone(a["intake"]["sodium_mg"])
         self.assertEqual(Decimal(a["known_partial"]["sodium_mg"]), 450)
 
-    def test_dining_and_bento_of_one_member_are_merged(self):
+    def test_bento_is_listed_separately_not_added_to_this_meal(self):
+        # 2026-10-28：帶便當不讓當餐營養變成兩倍；整餐依當餐目標分給「媽媽用餐」「媽媽便當」「b 用餐」
         rows = per_person(payload([item("a", "dining", "1", "0.4", 2000, 60),
-                                   item("a", "bento", "1", "0.3", 2000, 60, meal="lunch")]), NUTRITION, {"a": "媽媽"})
-        [a] = rows
-        self.assertEqual(a["kinds"], ["dining", "bento"])
-        self.assertEqual((Decimal(a["n"]), Decimal(a["meal_ratio"])), (2, Decimal("0.7")))
-        self.assertEqual(Decimal(a["intake"]["energy_kcal"]), 1600)
+                                   item("a", "bento", "1", "0.3", 2000, 60, meal="lunch"),
+                                   item("b", "dining", "1", "0.4", 2000, 60)]), NUTRITION, {"a": "媽媽"})
+        a, b = rows
+        self.assertEqual((a["kinds"], a["dining"]), (["dining", "bento"], True))
+        # 目標：用餐 800、便當 600、b 800 → 合計 2200
+        self.assertEqual((Decimal(a["n"]), Decimal(a["meal_ratio"])), (1, Decimal("0.4")))
+        self.assertAlmostEqual(float(a["intake"]["energy_kcal"]), 1600 * 800 / 2200)
+        self.assertEqual(a["bento"]["meal"], "lunch")
+        self.assertEqual(Decimal(a["bento"]["meal_ratio"]), Decimal("0.3"))
+        self.assertAlmostEqual(float(a["bento"]["intake"]["energy_kcal"]), 1600 * 600 / 2200)
+        self.assertAlmostEqual(float(a["bento"]["known_partial"]["sodium_mg"]), 900 * 600 / 2200)
+        self.assertIsNone(b["bento"])
+        self.assertAlmostEqual(float(a["intake"]["energy_kcal"]) + float(a["bento"]["intake"]["energy_kcal"])
+                               + float(b["intake"]["energy_kcal"]), 1600)  # 整餐全部分完
+        self.assertEqual(Decimal(a["daily"]["energy_kcal"]["value"]), 2000)
+
+    def test_bento_only_member_has_no_intake_for_this_meal(self):
+        [a, _] = per_person(payload([item("a", "bento", "1", "0.3", 2000, 60, meal="lunch"),
+                                     item("b", "dining", "1", "0.4", 2000, 60)]), NUTRITION, {})
+        self.assertFalse(a["dining"])
+        self.assertEqual(Decimal(a["meal_ratio"]), 0)
+        self.assertIsNone(a["intake"]["energy_kcal"])
+        self.assertAlmostEqual(float(a["bento"]["intake"]["energy_kcal"]), 1600 * 600 / 1400)
         self.assertEqual(Decimal(a["daily"]["energy_kcal"]["value"]), 2000)
 
     def test_missing_targets_return_no_rows(self):
