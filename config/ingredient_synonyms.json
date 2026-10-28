@@ -1,5 +1,5 @@
 {
-  "note": "同義食材對照（不修改 Excel／資料庫）。依據為 recipe_dataset_1017.xlsx 的 ingredient_aliases：某食材的別名剛好是另一筆標準名稱。過敏／禁吃一律套用（含 pending_confirmation，寧可多排除）；家中已有與查價只套用 status=confirmed 的組。隊友確認後把 status 改為 confirmed，或改為 rejected 表示不是同一種食材。",
+  "note": "同義食材對照（不修改 Excel／資料庫）。依據為 recipe_dataset_1027.xlsx 的 ingredient_aliases：某食材的別名剛好是另一筆標準名稱。過敏／禁吃一律套用（含 pending_confirmation，寧可多排除）；家中已有與查價只套用 status=confirmed 的組。隊友確認後把 status 改為 confirmed，或改為 rejected 表示不是同一種食材。",
   "source_workbook_sha256": "6bcaca41549572e39bd0fc40d0d216663df6438ae8be50079f92d81aa32c7304",
   "drafted_on": "2026-10-19",
   "groups": [

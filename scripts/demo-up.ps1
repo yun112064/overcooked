@@ -69,7 +69,7 @@ if ($LASTEXITCODE -ne 0) { Fail 'alembic upgrade 失敗。' }
 
 if ((Sql meal_planner 'SELECT count(*) FROM recipes') -eq '0') {
     Step '第一次：從工作簿匯入食譜（約一分鐘）'
-    Dc run --rm tools python scripts/import_recipes.py --excel data/recipe_dataset_1017.xlsx `
+    Dc run --rm tools python scripts/import_recipes.py --excel data/recipe_dataset_1027.xlsx `
         --reviews config/recipe_reviews.json --sources config/recipe_sources.json --report /tmp/import-report.json | Out-Null
     if ($LASTEXITCODE -ne 0) { Fail '食譜匯入失敗。' }
 }

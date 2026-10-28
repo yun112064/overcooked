@@ -402,7 +402,7 @@ class BatchEstimationTests(unittest.TestCase):
         # decisions #20：以真實工作簿的形狀（每種非 g 單位各取一列，weight_g 皆有值）匯入，單位缺口為 0
         from openpyxl import load_workbook
         from app.core.config import PROJECT_ROOT
-        rows = load_workbook(PROJECT_ROOT / "data/recipe_dataset_1017.xlsx", read_only=True,
+        rows = load_workbook(PROJECT_ROOT / "data/recipe_dataset_1027.xlsx", read_only=True,
                              data_only=True)["recipe_ingredients"].iter_rows(values_only=True)
         header = list(next(rows))
         col = {name: header.index(name) for name in ("raw_text", "amount", "unit", "weight_g")}

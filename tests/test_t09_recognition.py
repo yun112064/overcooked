@@ -73,7 +73,7 @@ class SelectionTests(unittest.TestCase):
         ids = [v["ingredient_id"] for v in data["labels"].values() if "ingredient_id" in v]
         self.assertTrue(all(re.fullmatch(r"FOOD\d{6}", i) for i in ids), ids)
         self.assertEqual(len(ids), len(set(ids)))
-        workbook = PROJECT_ROOT / "data/recipe_dataset_1017.xlsx"
+        workbook = PROJECT_ROOT / "data/recipe_dataset_1027.xlsx"
         if workbook.is_file():  # 原始工作簿不進 Git；本機有時核對編號確實存在於標準食材字典
             from openpyxl import load_workbook
             book = load_workbook(workbook, read_only=True, data_only=True)

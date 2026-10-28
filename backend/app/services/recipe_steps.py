@@ -18,6 +18,8 @@ _LEADING_MARKER = re.compile(r"^\s*(?:\[([^\]]*)\]|【([^】]*)】|[(（]([^)）
 _BRACKET_REF = r"\[([^\[\]]+)\]|【([^【】]+)】"
 # 可不加括號直接展開的分組（調味、醃料、配料、醬汁／醬料／沾醬類）
 _BARE_ELIGIBLE = re.compile(r"調味|醃|配料|醬")
+# 1027 版工作簿的步驟原文自帶「步驟一：」；畫面以有序清單編號，顯示時去掉避免重複
+_STEP_PREFIX = re.compile(r"^\s*步驟\s*[0-9一二三四五六七八九十百零〇]+\s*[：:、.．]\s*")
 
 
 def _normalize(label: str) -> str:
@@ -62,8 +64,8 @@ def _bare_tokens(groups: dict[str, list[str]]) -> dict[str, str]:
 
 
 def expand_steps(steps: Iterable[str], raw_texts: Iterable[str | None]) -> list[str]:
-    """回傳展開後的顯示文字（新串列；不修改傳入的原文）。沒有分組的食譜原樣回傳。"""
-    steps = list(steps)
+    """回傳展開後的顯示文字（新串列；不修改傳入的原文）。沒有分組的食譜只去掉「步驟N：」前綴。"""
+    steps = [_STEP_PREFIX.sub("", step) for step in steps]
     groups = recipe_groups(raw_texts)
     if not groups:
         return steps

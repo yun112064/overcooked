@@ -1,7 +1,7 @@
 {
   "labels_version": "food41-39cls-20261015-food-ids",
   "model_reference": "inference/model_manifest.json（YOLO26s，Food41 39 類，OpenCV 中值濾波降噪前處理）",
-  "note": "YOLO 類別名稱 → 畫面顯示的中文名稱與標準食材 ID（FOOD 編號，來源：recipe_dataset_1017.xlsx 的「標準食材整合」）。中文名稱依類別英文名整理，須由 T05 負責人確認。只有能一對一對應單一 FOOD 項目時才填 ingredient_id；字典或別名有衝突（牛番茄、青花菜、大蒜）、品種不明（Cucumber、lettuce）的類別留空，使用者確認時再從字典選擇。模型品質仍依 AC22 獨立驗收，此表不代表模型已通過。",
+  "note": "YOLO 類別名稱 → 畫面顯示的中文名稱與標準食材 ID（FOOD 編號，來源：recipe_dataset_1027.xlsx 的「標準食材整合」）。中文名稱依類別英文名整理，須由 T05 負責人確認。只有能一對一對應單一 FOOD 項目時才填 ingredient_id；字典或別名有衝突（牛番茄、青花菜、大蒜）、品種不明（Cucumber、lettuce）的類別留空，使用者確認時再從字典選擇。模型品質仍依 AC22 獨立驗收，此表不代表模型已通過。",
   "labels": {
     "Beef-tomato": {
       "name": "牛番茄"

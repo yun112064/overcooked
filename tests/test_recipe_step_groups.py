@@ -39,6 +39,12 @@ class ExpandStepsTests(unittest.TestCase):
         self.assertEqual(shown[1], "接著下所有調味（沙茶醬、醬油、糖or味琳）與配料（蒜）快炒即可")
         self.assertEqual(shown[2], R0118_STEPS[2])  # 沒有代稱的步驟不動
 
+    def test_step_number_prefix_is_removed_for_display(self):
+        # 1027 版原文自帶「步驟一：」，畫面已用有序清單編號
+        self.assertEqual(expand_steps(["步驟一：熱鍋下油。", "步驟十二: 盛盤"], ["空心菜 1把"]), ["熱鍋下油。", "盛盤"])
+        self.assertEqual(expand_steps(["步驟二：下所有[調味]快炒"], ["[調味]醬油 1匙"]), ["下所有調味（醬油）快炒"])
+        self.assertEqual(expand_steps(["依步驟一調好醬汁"], []), ["依步驟一調好醬汁"])  # 句中的「步驟」不動
+
     def test_original_list_is_not_modified(self):
         steps = list(R0118_STEPS)
         expand_steps(steps, R0118_RAW)

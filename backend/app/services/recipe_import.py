@@ -78,6 +78,8 @@ REQUIRED_COLUMNS = {
 # 選用工作表：全系統共用的標準食材字典（Food_ID ↔ 標準名稱）
 CATALOG_SHEET = "標準食材整合"
 CATALOG_COLUMNS = {"合併標準食材名稱", "Food_ID"}
+# 工作簿改版後的欄名 → 程式使用的欄名（1027 版把 instruction_clean 改名為 instruction）
+COLUMN_ALIASES = {("recipe_steps", "instruction"): "instruction_clean"}
 
 QUALITATIVE_WORDS = (
     "適量",
@@ -299,8 +301,14 @@ def _sheet_records(workbook: Any, sheet_name: str) -> list[dict[str, Any]]:
         raise WorkbookValidationError(f"Worksheet is empty: {sheet_name}") from exc
 
     headers = [_text(value) for value in header_row]
+    # Excel 編輯後常留下尾端的空白欄：表頭與內容都空才忽略，中間的空白表頭仍視為錯誤
+    width = len(headers)
+    while width and headers[width - 1] is None:
+        width -= 1
+    headers = headers[:width]
     if any(header is None for header in headers):
         raise WorkbookValidationError(f"Worksheet has blank header: {sheet_name}")
+    headers = [COLUMN_ALIASES.get((sheet_name, header), header) for header in headers]
     missing = REQUIRED_COLUMNS[sheet_name] - set(headers)
     if missing:
         raise WorkbookValidationError(
@@ -311,6 +319,8 @@ def _sheet_records(workbook: Any, sheet_name: str) -> list[dict[str, Any]]:
     for row_number, values in enumerate(rows, start=2):
         if all(value is None or value == "" for value in values):
             continue
+        if any(value not in (None, "") for value in values[width:]):
+            raise WorkbookValidationError(f"Worksheet {sheet_name} row {row_number} has data in an unnamed column")
         record = {str(header): value for header, value in zip(headers, values)}
         record["__row__"] = row_number
         records.append(record)

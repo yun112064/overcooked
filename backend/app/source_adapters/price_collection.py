@@ -397,7 +397,7 @@ class PriceCollectionService:
             canonical_name=ingredient.canonical_name,
             food_ids=ingredient.food_ids,
             source="recipe workbook Food_ID mapping",
-            source_url="data/recipe_dataset_1017.xlsx#recipe_ingredients",
+            source_url="data/recipe_dataset_1027.xlsx#recipe_ingredients",
             queried_at=datetime.now(timezone.utc),
             status=QuoteStatus.NOT_FOUND,
             missing_reason=ingredient.mapping_missing_reason,

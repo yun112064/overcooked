@@ -1,7 +1,7 @@
 {
   "version": "weights-2026-10-24",
   "decided_on": "2026-10-24",
-  "note": "工作簿（recipe_dataset_1017.xlsx）換算錯誤的人工修正：改的是實際用量，營養、缺料清單與價格都依修正後克數計算（weight_source=corrected）。recipes 修正份數，ingredients 修正整份食譜的克數（不是每份）。每筆附理由；新增前請逐道讀食材原文與步驟確認。只是「沒有全部吃下去」的情況請改用 recipe_intake_adjustments.json。",
+  "note": "工作簿（recipe_dataset_1027.xlsx）換算錯誤的人工修正：改的是實際用量，營養、缺料清單與價格都依修正後克數計算（weight_source=corrected）。recipes 修正份數，ingredients 修正整份食譜的克數（不是每份）。每筆附理由；新增前請逐道讀食材原文與步驟確認。只是「沒有全部吃下去」的情況請改用 recipe_intake_adjustments.json。",
   "conventions": {
     "garlic_clove_g": {
       "value": "5",

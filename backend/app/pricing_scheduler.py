@@ -67,7 +67,7 @@ class SchedulerSettings:
             workbook_path=Path(
                 os.getenv(
                     "PRICE_WORKBOOK_PATH",
-                    "data/recipe_dataset_1017.xlsx",
+                    "data/recipe_dataset_1027.xlsx",
                 )
             ),
             delay_seconds=float(

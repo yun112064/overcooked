@@ -211,7 +211,7 @@ class CategoryOverrideTests(unittest.TestCase):
     def test_every_override_changes_the_category_of_a_real_workbook_recipe(self):
         from openpyxl import load_workbook
         from app.services.recipe_import import load_category_overrides
-        wb = load_workbook(REPO / "data" / "recipe_dataset_1017.xlsx", read_only=True, data_only=True)
+        wb = load_workbook(REPO / "data" / "recipe_dataset_1027.xlsx", read_only=True, data_only=True)
         try:
             rows = wb["recipes"].iter_rows(values_only=True)
             header = list(next(rows))
@@ -361,6 +361,47 @@ class ImportTests(unittest.TestCase):
         with session_factory()() as session:
             numbers = dict(session.execute(select(RecipeStep.step_id, RecipeStep.step_no)).all())
         self.assertEqual(numbers, {"R001-S1": 2, "R001-S2": 1})
+
+
+class WorkbookRevisionTests(unittest.TestCase):
+    """1027 版工作簿：步驟欄改名為 instruction、recipes 表尾端多出空白欄。"""
+
+    def revise(self, path, extra_value=None):
+        from openpyxl import load_workbook
+        wb = load_workbook(path)
+        wb["recipe_steps"]["D1"] = "instruction"
+        recipes = wb["recipes"]
+        width = recipes.max_column
+        for col in range(width + 1, width + 4):
+            recipes.cell(row=1, column=col, value="")
+        if extra_value is not None:
+            recipes.cell(row=2, column=width + 2, value=extra_value)
+        wb.save(path)
+        return path
+
+    def test_renamed_step_column_and_trailing_blank_columns_are_accepted(self):
+        from app.services.recipe_import import parse_recipe_workbook
+        with tempfile.TemporaryDirectory() as folder:
+            path = self.revise(build(Path(folder) / "book.xlsx", [recipe("R001", "清炒高麗菜", steps=("步驟一：熱鍋",))]))
+            bundle = parse_recipe_workbook(path)
+        self.assertEqual([s["instruction_clean"] for s in bundle.recipe_steps], ["步驟一：熱鍋"])  # 原文不改
+
+    def test_data_in_an_unnamed_column_is_rejected(self):
+        from app.services.recipe_import import WorkbookValidationError, parse_recipe_workbook
+        with tempfile.TemporaryDirectory() as folder:
+            path = self.revise(build(Path(folder) / "book.xlsx", [recipe("R001", "清炒高麗菜")]), extra_value="備註")
+            with self.assertRaisesRegex(WorkbookValidationError, "unnamed column"):
+                parse_recipe_workbook(path)
+
+    def test_real_1027_workbook_parses_with_the_review_record(self):
+        from app.services.recipe_import import load_review_record, load_source_rights, parse_recipe_workbook
+        bundle = parse_recipe_workbook(REPO / "data" / "recipe_dataset_1027.xlsx",
+                                       load_source_rights(REPO / "config" / "recipe_sources.json"),
+                                       load_review_record(REPO / "config" / "recipe_reviews.json"))
+        self.assertEqual(len(bundle.recipes), 293)
+        self.assertEqual(len(bundle.recipe_steps), 1471)
+        self.assertTrue(all(s["review_status"] == "approved" for s in bundle.recipe_steps))
+        self.assertTrue(all(r["review_status"] == "approved" for r in bundle.recipes))
 
 
 if __name__ == "__main__":

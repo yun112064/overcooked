@@ -53,10 +53,10 @@ services:
   scheduler:
     image: overcooked-demo-backend
     environment:
-      PRICE_WORKBOOK_PATH: /app/workbook/recipe_dataset_1017.xlsx
+      PRICE_WORKBOOK_PATH: /app/workbook/recipe_dataset_1027.xlsx
     volumes: !override
       - demo_data:/app/data
-      - ./data/recipe_dataset_1017.xlsx:/app/workbook/recipe_dataset_1017.xlsx:ro
+      - ./data/recipe_dataset_1027.xlsx:/app/workbook/recipe_dataset_1027.xlsx:ro
 
   frontend:
     container_name: overcooked-demo-frontend

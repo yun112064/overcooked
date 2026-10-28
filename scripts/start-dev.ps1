@@ -148,7 +148,7 @@ if ($LASTEXITCODE -ne 0) { Fail 'alembic upgrade 失敗。' }
 
 $count = docker exec $Db psql -U postgres -d $DbName -tAc 'SELECT count(*) FROM recipes'
 if ("$count".Trim() -eq '0') {
-    $Workbook = Resolve-FromRoot (Cfg 'RECIPE_WORKBOOK' 'data/recipe_dataset_1017.xlsx')
+    $Workbook = Resolve-FromRoot (Cfg 'RECIPE_WORKBOOK' 'data/recipe_dataset_1027.xlsx')
     if (Test-Path $Workbook) {
         Step '資料庫沒有食譜，從工作簿匯入（約一分鐘）'
         & $Py scripts/import_recipes.py --excel $Workbook --reviews config/recipe_reviews.json `

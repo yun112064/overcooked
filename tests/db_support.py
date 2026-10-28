@@ -48,7 +48,7 @@ def truncate_all() -> None:
             conn.execute(text("TRUNCATE " + ", ".join(f'"{t}"' for t in tables) + " CASCADE"))
 
 
-# 測試用的 FOOD 字典子集（編號取自 recipe_dataset_1017.xlsx 的「標準食材整合」）
+# 測試用的 FOOD 字典子集（編號取自 recipe_dataset_1027.xlsx 的「標準食材整合」）
 FOODS = {
     "FOOD001541": ("醬油", ["豆油"]),
     "FOOD001542": ("醬油膏", []),

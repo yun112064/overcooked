@@ -25,7 +25,7 @@
   KNOWLEDGE_DATABASE_URL       團隊電腦知識庫（必填）
   KNOWLEDGE_AUTHORIZATION_REF  健康醫療網書面授權證據的存放位置（crawl 必填；見 docs/knowledge-source-healthnews.md）
   KNOWLEDGE_CRAWLER_USER_AGENT 選填，覆寫預設 User-Agent
-  KNOWLEDGE_FOOD_WORKBOOK      選填，FOOD 字典來源工作簿（預設 data/recipe_dataset_1017.xlsx）
+  KNOWLEDGE_FOOD_WORKBOOK      選填，FOOD 字典來源工作簿（預設 data/recipe_dataset_1027.xlsx）
   CLOUD_INTERNAL_URL           雲端內部 API（例如 https://cloud-internal.<網域>）：classify、index build、crawl --queued、
                                status 的佇列數
   CLOUD_INTERNAL_TOKEN         與雲端 INTERNAL_API_TOKEN 相同
@@ -65,7 +65,7 @@ def load_food_matcher(workbook: str | Path | None = None, synonyms: str | Path |
     from app.services.recipe_import import parse_recipe_workbook
     from knowledge_rag.healthnews import FoodMatcher
     bundle = parse_recipe_workbook(workbook or os.environ.get("KNOWLEDGE_FOOD_WORKBOOK")
-                                   or ROOT / "data" / "recipe_dataset_1017.xlsx")
+                                   or ROOT / "data" / "recipe_dataset_1027.xlsx")
     rows = [(r["food_id"], r["canonical_name"], r["aliases"], r["ambiguous_aliases"])
             for r in bundle.ingredient_aliases]
     path = Path(synonyms or ROOT / "config" / "ingredient_synonyms.json")
