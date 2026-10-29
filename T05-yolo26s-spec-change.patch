@@ -1,0 +1,87 @@
+From 4476a1dbd1f4a6a6fdd43164c2cd5e40f46ddb5d Mon Sep 17 00:00:00 2001
+From: wu1027 <218338072+wu1027@users.noreply.github.com>
+Date: Thu, 29 Oct 2026 08:34:53 +0000
+Subject: [PATCH] =?UTF-8?q?docs(T05):=20=E8=A8=98=E9=8C=84=E9=83=A8?=
+ =?UTF-8?q?=E7=BD=B2=E6=A8=A1=E5=9E=8B=E6=94=B9=E7=82=BA=20YOLO26s=20?=
+ =?UTF-8?q?=E7=9A=84=E8=A6=8F=E6=A0=BC=E8=AE=8A=E6=9B=B4?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_0172FF2TAb61rEixgi2DWQtP
+---
+ architecture.md                     |  2 +-
+ requirements.md                     |  2 +-
+ spec.md                             |  2 +-
+ tickets/05-yolo-model-evaluation.md | 15 ++++++++++++++-
+ 4 files changed, 17 insertions(+), 4 deletions(-)
+
+diff --git a/architecture.md b/architecture.md
+index b0fa0d8..30b674b 100644
+--- a/architecture.md
++++ b/architecture.md
+@@ -47,7 +47,7 @@ docs/work/family-meal-planner/ 正式 Spec、Tickets 與完成後的報告
+ - 雲端 Docker Compose／Caddy 提供 HTTPS、React、FastAPI、結構化食譜庫與家庭已採用歷史；團隊電腦提供 YOLO 與營養知識 RAG（知識庫及向量索引）。兩端以身份驗證及加密服務介面連接，資料庫不公開；OpenAI 仍在雲端，單一排程程序負責資料更新。
+ - 前端採 React＋TypeScript＋Vite，沿用 MUI、React Router、React Hook Form、Zod、TanStack Query、Axios。Recharts 僅用於範圍內的營養／費用呈現，不因此新增每日攝取或價格趨勢功能。
+ - FastAPI Route 處理身份、輸入與輸出；餐食服務負責流程狀態與驗證；計算模組不依賴雲端模型回傳的價格或營養數值。
+-- YOLOv8n／v8m 在相同資料比較；線上推論由團隊電腦提供，需驗證該電腦的資源及雲端至本機的端到端延遲。訓練與線上推論執行責任分開，不預設 v8m 必較佳。每次只將最高信心蔬菜名稱回填可編輯文字框，內部偵測資訊保留作評估，不顯示多候選清單。
++- 部署模型為 YOLO26s（2026-10-29 由原 YOLOv8n／v8m 比較變更，理由見 T05 規格變更紀錄）；線上推論由團隊電腦提供，需驗證該電腦的資源及雲端至本機的端到端延遲。訓練與線上推論執行責任分開，不預設 v8m 必較佳。每次只將最高信心蔬菜名稱回填可編輯文字框，內部偵測資訊保留作評估，不顯示多候選清單。
+ - 團隊電腦離線影響 YOLO 與營養知識 RAG，顯示不可用並保留輸入重試，辨識可手動補充；知識服務故障不能假裝查無知識。雲端結構化食譜查詢、登入、草稿與歷史仍可用。
+ - 雲端主機廠商與規格依採購時報價及負載測試固定；DigitalOcean 2 vCPU／4 GiB、USD 24／月僅是已查到報價的候選。未通過五人負載測試不能宣稱此規格足夠。任何升級都不得突破月費上限。
+ - 資料庫不直接公開到外網；由 API 驗證家庭範圍後存取。Caddy 為公開入口。
+diff --git a/requirements.md b/requirements.md
+index 8142112..7005c04 100644
+--- a/requirements.md
++++ b/requirements.md
+@@ -105,7 +105,7 @@
+ 
+ - 前端：React、TypeScript、MUI、MUI Stepper、React Router、React Hook Form、Zod、TanStack Query、Axios、Recharts、檔案／拍照輸入。
+ - 應用服務：FastAPI、Pydantic、OpenAPI、HttpOnly Cookie、Argon2、UploadFile、Pillow、Python 版本化營養規則、Decimal 成本計算、交易與冪等控制。
+-- 影像：YOLOv8n 先建立基準，以相同資料比較 YOLOv8m，使用 Ultralytics／PyTorch，依準確率與速度決定部署模型。
++- 影像：使用 Ultralytics／PyTorch，部署模型為 YOLO26s（2026-10-29 變更，原為 YOLOv8n／v8m 比較；依準確率與速度決定，理由見 T05 規格變更紀錄）。
+ - 生成：OpenAI Responses API／Structured Outputs；食譜由雲端 PostgreSQL 結構化查詢，營養知識才用團隊電腦 PostgreSQL＋pgvector 與 OpenAI 向量化，來源及版本經接入驗證固定。
+ - 外部資料：國健署 DRIs、TFDA 食品營養資料；農業部行情與合法零售資料分開使用，不把批發行情當包裝售價。
+ - 排程與連線：APScheduler、httpx。
+diff --git a/spec.md b/spec.md
+index d6e9953..32e8f3d 100644
+--- a/spec.md
++++ b/spec.md
+@@ -268,7 +268,7 @@ P_reference = P_target / N
+ 
+ - 前端 React＋TypeScript＋Vite、MUI／Stepper、Router、React Hook Form、Zod、TanStack Query、Axios；Recharts 僅用於本範圍內呈現。
+ - 後端 FastAPI、Pydantic、OpenAPI、Argon2、Pillow、Python 版本化規則、Decimal；PostgreSQL、SQLAlchemy、Alembic、pgvector。
+-- YOLOv8n 先建基準，再以同一資料比較 v8m。權重、類別、前後處理與模型指標一同固定，不混用不同版本結果。
++- 部署模型固定為 YOLO26s（2026-10-29 規格變更，取代原「YOLOv8n 先建基準，再以同一資料比較 v8m」；理由見 `tickets/05-yolo-model-evaluation.md` 規格變更紀錄）。權重、類別、前後處理與模型指標一同固定，不混用不同版本結果。
+ - OpenAI Responses API＋Structured Outputs；候選向量模型 `text-embedding-3-small`、候選生成模型 `gpt-5-mini`，依來源紀錄中的證據及接入測試固定版本。
+ - Docker Compose＋Caddy 提供雲端網站、業務 API、結構化食譜與家庭歷史；團隊電腦提供 YOLO 及營養知識 RAG。兩端服務連線需驗證及加密，不公開資料庫。負載含兩端與跨網路延遲；雲端與本機資料分別備份，知識索引可由來源快照重建。
+ - Code Root：開發機 `D:/AIPE04期末專題`，雲端 `/opt/meal-planner/code`。
+diff --git a/tickets/05-yolo-model-evaluation.md b/tickets/05-yolo-model-evaluation.md
+index 1c95178..cb8a7b1 100644
+--- a/tickets/05-yolo-model-evaluation.md
++++ b/tickets/05-yolo-model-evaluation.md
+@@ -11,7 +11,20 @@
+ 
+ ## 驗收條件
+ 
+-- 以相同資料比較 YOLOv8n 與 v8m，依來源分開訓練／驗證／保留測試，防止相近照片跨集合；記錄資料來源及權重版本。
++- 部署模型固定為 YOLO26s（2026-10-29 規格變更，見下方「規格變更紀錄」），不再要求 YOLOv8n／v8m 比較；依來源分開訓練／驗證／保留測試，防止相同或相近照片跨集合；記錄資料來源及權重版本。
+ - 獨立測試集主要類別 macro precision／recall 各至少 80%，採 IoU≥0.5 一對一配對；另報 mAP50、mAP50–95、各類樣本數及延遲，不計人工修正。
+ - 內部保留類別、位置、信心及版本供模型評估；對使用者取最高信心蔬菜名稱填入文字框，不輸出重量。AC22 評估仍用偵測結果，不能用文字框修正後答案計分。團隊電腦推論及跨節點容量留待 Ticket 18 驗證。
+ 
++
++## 規格變更紀錄
++
++### 2026-10-29｜部署模型由「YOLOv8n／v8m 比較」改為固定 YOLO26s
++
++- 決定：組內決定 T05 以 YOLO26s（Food41 39 類、OpenCV denoise 前處理 `cv2.medianBlur(image, 3)`）作為部署模型，取消原規格「以相同資料比較 YOLOv8n 與 v8m」的要求，不補跑 v8m。
++- 理由：
++  - 已訓練的架構中，YOLO26s 的獨立 test 指標最高：denoise 版 mAP50–95 63.39%、mAP50 82.98%、P 77.79%、R 76.99%，RTX 4060 單張 5.45 ms（591 張 test）。對照 YOLOv8n 去噪 mAP50–95 58.55%、YOLO11s 去噪 60.50%（535 張共同 test）。兩份 test 不同，只作為選型參考，不作為驗收證據。
++  - 在 YOLO26s 的 8 種單一前處理中，denoise 的 mAP50–95 最高。10/18 的組合前處理實驗依 validation 選出 white_balance_denoise，但它的 test 成績（mAP50–95 61.86%）低於 denoise，因此不換。
++  - 原規格本來就寫明「不預設 v8m 必較佳」，選型依準確率與速度決定。v8m 只有訓練腳本，沒有訓練紀錄；在期末時程內優先把算力用在重切 test 與重訓 26s。
++- 不變的部分：AC22 門檻與計算方式（主要類別 macro P／R 各 ≥80%、IoU≥0.5 一對一配對，另報 mAP50、mAP50–95、各類樣本數與延遲）維持不變；G05 仍需固定模型版本、類別、門檻與測試集證據。
++- 已知問題（尚未解決）：既有 591 張 test 中有 9 張與 train／valid 內容完全相同，現有分數含資料洩漏風險，不能作為 AC22 驗收證據。須依來源與重複群組重切 test、固定清單後重訓並重新評估 YOLO26s。
++- 證據：T05 證據包 `T05_model_evidence.zip`（訓練腳本、各 run 的 args.yaml／results.csv、`yolo26s_opencv_full_20261017/comparison/scores.json`、`yolo26s_combinations_20261018/comparison/selected_test.json`、`audit/split_audit.json`）；部署 manifest 為 `inference/model_manifest.json`。
+-- 
+2.43.0
+
