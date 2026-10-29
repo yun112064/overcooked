@@ -1,0 +1,4 @@
+# YOLO inference service; scripts/start-dev.ps1 installs this into .venv-yolo automatically.
+# Keep ASCII only: pip reads this file with the system code page (cp950 on zh-TW Windows).
+# Same version as the training environment; torch from PyPI on Windows is the CPU build.
+ultralytics==8.4.170

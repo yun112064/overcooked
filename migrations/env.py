@@ -13,6 +13,18 @@ from alembic import context
 BACKEND_ROOT = Path(__file__).resolve().parents[1] / "backend"
 sys.path.insert(0, str(BACKEND_ROOT))
 from app.core.config import settings
+from app.db.base import Base
+import app.db.models  # noqa: F401,E402  T07–T10
+import app.models  # noqa: F401,E402  T01
+
+# T02 以 SQL 直接存取、沒有 ORM 模型；這些表只由遷移管理，比對模型時略過
+MIGRATION_ONLY_TABLES = {"price_collection_runs", "price_quote_snapshots", "retailer_product_mappings"}
+
+
+def include_object(obj, name, type_, reflected, compare_to):
+    table = obj if type_ == "table" else getattr(obj, "table", None)
+    table_name = name if type_ == "table" else getattr(table, "name", None)
+    return table_name not in MIGRATION_ONLY_TABLES
 
 
 
@@ -21,21 +33,23 @@ from app.core.config import settings
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
 config = context.config
+# 測試可由 config.attributes 指定獨立資料庫，避免寫到正式資料庫
 config.set_main_option(
     "sqlalchemy.url",
-    settings.database_url,
+    config.attributes.get("database_url") or settings.database_url,
 )
 
 # Interpret the config file for Python logging.
 # This line sets up loggers basically.
-if config.config_file_name is not None:
-    fileConfig(config.config_file_name)
+# 程式內呼叫（測試）時不重設應用程式的 logger
+if config.config_file_name is not None and config.attributes.get("configure_logger", True):
+    fileConfig(config.config_file_name, disable_existing_loggers=False)
 
 # add your model's MetaData object here
 # for 'autogenerate' support
 # from myapp import mymodel
 # target_metadata = mymodel.Base.metadata
-target_metadata = None
+target_metadata = Base.metadata
 
 
 
@@ -84,7 +98,8 @@ def run_migrations_online() -> None:
 
     with connectable.connect() as connection:
         context.configure(
-            connection=connection, target_metadata=target_metadata
+            connection=connection, target_metadata=target_metadata,
+            include_object=include_object,
         )
 
         with context.begin_transaction():
