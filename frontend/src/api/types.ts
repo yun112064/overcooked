@@ -363,6 +363,14 @@ export type MealResult = {
   mode_label: string
   fallback_reason: string | null
   fallback_message: string | null
+  /** 減鹹（2026-10-29）：鹹味調味料依同一比例減量，讓每份鈉盡量落在這一餐額度內；null 為不需減鹹 */
+  sodium_adjustment?: {
+    sodium_per_n_before: string
+    sodium_per_n_after: string
+    budget_per_n: string
+    seasoning_ratio: string
+    within_budget: boolean
+  } | null
   dishes: {
     standard_dish_id: string
     dish_name: string

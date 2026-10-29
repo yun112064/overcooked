@@ -37,8 +37,9 @@ def seed_prices(*food_ids, price="30", qty="300"):
 
 
 class ResultTestCase(GenerationTestCase):
-    def generate(self, *, prices=ALL, responder=None, calculator=None, knowledge=None, **fields):
-        """calculator 可為函式工廠（無參數），在建立問卷後才呼叫，讓它能讀本餐目標。"""
+    def generate(self, *, prices=ALL, responder=None, calculator=None, knowledge=None, runs=1, **fields):
+        """calculator 可為函式工廠（無參數），在建立問卷後才呼叫，讓它能讀本餐目標。
+        runs：工作執行次數（AI 菜單不可採用時第一次會退回重試，最後一次才保留結果）。"""
         if prices:
             seed_prices(*prices)
         self.create_request(**{"dish_count": 2, **fields})
@@ -46,8 +47,9 @@ class ResultTestCase(GenerationTestCase):
             calculator = calculator()
         job_id = self.submit()
         from knowledge_support import FakeEmbedder
-        self.run_job(responder, knowledge=knowledge, embedder=FakeEmbedder() if knowledge else None,
-                     calculator=calculator)
+        for _ in range(runs):
+            self.run_job(responder, knowledge=knowledge, embedder=FakeEmbedder() if knowledge else None,
+                         calculator=calculator)
         return self.job(job_id)
 
     def result(self, version=1):
@@ -287,7 +289,11 @@ class MissingPriceDecisionTests(ResultTestCase):
         self.assertEqual((res.status_code, res.json()["error"]["details"]["reason"]), (422, "DECISION_NOT_APPLICABLE"))
 
     def test_known_cost_over_budget_cannot_be_accepted(self):
-        self.generate(prices=(TOMATO, EGG, CABBAGE), budget="10")
+        # 成本控制：不可採用的 AI 菜單第一次會重試；最後一次仍超出預算才保留結果（可查看、不可採用）
+        self.clear_recipes()
+        job = self.generate(prices=(TOMATO, EGG, CABBAGE), budget="10", runs=2,
+                            responder=FakeResponder(AI_MENU, AI_MENU))
+        self.assertEqual(job["attempts"], 2)
         self.assertEqual(self.status(), "result_ready")
         view = self.result()
         self.assertFalse(view["eligibility"]["adoptable"])
@@ -505,11 +511,11 @@ class MissingNutritionDecisionTests(ResultTestCase):
     def test_out_of_range_offers_no_decision(self):
         def doubled():
             energy, protein = self.reference()
-            # 五倍 → 整道縮到最小倍率 0.4（決策 #48）仍超出 ±10%
-            return per_gram_calculator(energy / 40, protein / 40)
+            # 蛋白質五倍、熱量剛好 → 資料庫組合整道縮放（決策 #48）與 AI 份量校正（只依熱量）都無法讓蛋白質回到 ±10%
+            return per_gram_calculator(energy / 200, protein / 40)
         doubled.factory = True
-        # 資料庫候選組合全部不可行 → 自動 AI 回退；AI 菜同樣超出 ±10%
-        self.generate(calculator=doubled, responder=FakeResponder(AI_MENU))
+        # 資料庫候選組合全部不可行 → 自動 AI 回退；AI 菜蛋白質同樣超出 ±10%
+        self.generate(calculator=doubled, responder=FakeResponder(AI_MENU, AI_MENU), runs=2)
         self.assertEqual(self.status(), "result_ready")
         view = self.result()
         self.assertFalse(view["eligibility"]["adoptable"])

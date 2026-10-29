@@ -241,7 +241,7 @@ class AiFallbackTests(GenerationTestCase):
         self.assertEqual(payload["calculation"]["mode"], "ai")
         self.assertTrue(payload["calculation"]["adoptable"])
         self.assertEqual(payload["evidence"]["menu_model"], MODEL)
-        self.assertEqual(payload["evidence"]["menu_prompt_version"], "t14-menu-prompt-v3")
+        self.assertEqual(payload["evidence"]["menu_prompt_version"], "t14-menu-prompt-v6")
         # Structured Outputs：送出 strict schema；問卷文字只在 input
         [call] = responder.calls
         self.assertEqual(call["model"], MODEL)
@@ -307,9 +307,13 @@ class AiFallbackTests(GenerationTestCase):
         self.assertEqual(row.fallback_reason, "SPECIFIED_DISH_NOT_IN_DATABASE")
         self.assertEqual([d["specified"] for d in row.payload["dishes"]], [True, False])
         self.assertEqual(row.payload["evidence"]["attempt"], 2)
-        # 營養不符只讓結果不可採用（後端 T12 判定），不是無效候選、不再重送
-        self.assertFalse(row.payload["calculation"]["adoptable"])
-        self.assertIn("NO_FEASIBLE_BASELINE", {r["code"] for r in row.payload["calculation"]["block_reasons"]})
+        # 份量校正：兩道合計 900 g／n、參考值對應 200 g → 各菜依同一倍率縮小（食材比例不變）後可採用，不再重送
+        scale = row.payload["evidence"]["ai_portion_scale"]
+        self.assertAlmostEqual(float(scale["factor"]), 200 / 900, places=3)
+        self.assertTrue(row.payload["calculation"]["adoptable"])
+        garlic, soy, egg = (Decimal(i["grams_per_n"]) for i in row.payload["dishes"][0]["ingredients"])
+        self.assertEqual((round(garlic / soy, 2), soy), (Decimal(2), egg))
+        self.assertAlmostEqual(float(garlic), 300 * 200 / 900, places=1)
         # 兩次嘗試各一筆已結算的預留，呼叫鍵不同
         rows = self.reservations()
         self.assertEqual([r.status for r in rows], ["settled", "settled"])
@@ -414,6 +418,49 @@ class AiFallbackTests(GenerationTestCase):
 class AllowedIngredientTests(GenerationTestCase):
     """決策 #37：AI 只能用合法食材清單中的名稱；同名多個 FOOD 時選合格食譜最常用者並留紀錄。"""
 
+    def test_ai_portions_are_scaled_to_the_meal_reference(self):
+        # 模型把每道菜都配成一整餐（每 1n 共 600 g，參考值對應 200 g）→ 依同一倍率縮到 1/3，比例不變
+        self.clear_recipes()
+        self.create_request(dish_count=2)
+        job_id = self.submit()
+        responder = FakeResponder(menu(ai_dish("番茄蛋花湯", [(TOMATO, 150), (EGG, 150)], method="煮"),
+                                       ai_dish("蒜香高麗菜", [(CABBAGE, 200), (GARLIC, 100)])))
+        self.run_job(responder)
+        self.assertEqual(self.job(job_id)["status"], "succeeded")
+        [row] = self.results()
+        self.assertAlmostEqual(float(row.payload["evidence"]["ai_portion_scale"]["factor"]), 1 / 3, places=3)
+        grams = [[Decimal(i["grams_per_n"]) for i in d["ingredients"]] for d in row.payload["dishes"]]
+        self.assertEqual(grams, [[Decimal(50), Decimal(50)], [Decimal("66.67"), Decimal("33.33")]])
+        self.assertTrue(row.payload["calculation"]["adoptable"])
+        # 提示詞：參考值是全部菜加總，另給每道菜的分攤參考
+        [call] = responder.calls
+        sent = json.loads(call["input_text"])
+        self.assertEqual({k: Decimal(v) / 2 for k, v in sent["per_n_reference"].items()},
+                         {k: Decimal(v) for k, v in sent["per_dish_reference"].items()})
+        self.assertIn("per_dish_reference", call["instructions"])
+
+    def test_portions_close_to_the_reference_are_left_alone(self):
+        self.clear_recipes()
+        self.create_request(dish_count=2)
+        self.submit()
+        self.run_job(FakeResponder(menu(ai_dish("番茄蛋花湯", [(TOMATO, 50), (EGG, 50)], method="煮"),
+                                        ai_dish("蒜香高麗菜", [(CABBAGE, 50), (GARLIC, 50)]))))
+        [row] = self.results()
+        self.assertIsNone(row.payload["evidence"]["ai_portion_scale"])
+        self.assertEqual([i["grams_per_n"] for d in row.payload["dishes"] for i in d["ingredients"]],
+                         ["50.0", "50.0", "50.0", "50.0"])
+
+    def test_absurd_ai_portions_are_rejected_and_retried(self):
+        # 每 1n 共 2400 g，要縮到 1/12 → 超出可校正範圍，視為無效候選重送
+        self.clear_recipes()
+        self.create_request(dish_count=2)
+        job_id = self.submit()
+        self.run_job(FakeResponder(menu(ai_dish("番茄蛋花湯", [(TOMATO, 600), (EGG, 600)], method="煮"),
+                                        ai_dish("蒜香高麗菜", [(CABBAGE, 600), (GARLIC, 600)]))))
+        job = self.job(job_id)
+        self.assertEqual((job["status"], job["error"]["code"]), ("queued", "GENERATION_FAILED"))
+        self.assertIn("PORTION_OUT_OF_RANGE", job["error"]["message"])
+
     def test_menu_input_lists_allowed_ingredient_names_and_prompt_requires_them(self):
         self.clear_recipes()
         from sqlalchemy import text
@@ -435,7 +482,7 @@ class AllowedIngredientTests(GenerationTestCase):
         self.assertEqual(sent["allowed_ingredients"], sorted(["高麗菜", "大蒜", "九層塔", "雞蛋", "胡蘿蔔"]))
         self.assertIn("allowed_ingredients", call["instructions"])
         [row] = self.results()
-        self.assertEqual(row.payload["evidence"]["menu_prompt_version"], "t14-menu-prompt-v3")
+        self.assertEqual(row.payload["evidence"]["menu_prompt_version"], "t14-menu-prompt-v6")
 
     def test_name_matching_several_foods_picks_the_most_used_and_records_why(self):
         # 番茄（R01、R08 使用）與蕃茄（無食譜使用）依異體字規則同名；模型沒給編號 → 選番茄 FOOD001016
@@ -792,6 +839,87 @@ class DatabaseCandidateTests(GenerationTestCase):
         energy, protein = self.reference()
         return per_food_calculator(energy / 200, protein / 200, factors)
 
+    def test_over_budget_combinations_are_skipped_and_ai_plans_within_budget(self):
+        # 成本控制：營養可採用但超出預算的資料庫組合不採用；全部超出 → AI 帶預算配菜（AI 結果在預算內即可採用）
+        self.create_request(dish_count=2)
+        job_id = self.submit()
+        responder = FakeResponder(menu(ai_dish("番茄蛋花湯", [(TOMATO, 50), (EGG, 50)], method="煮"),
+                                       ai_dish("蒜香高麗菜", [(CABBAGE, 50), (GARLIC, 50)])))
+
+        def cost(ctx, draft, calc, staple_lines, now):
+            return {"budget_status": "BUDGET_EXCEEDED" if calc["mode"] == "database" else "OK"}
+        with patch("app.services.generation._cost_view", side_effect=cost):
+            self.run_job(responder)
+        self.assertEqual(self.job(job_id)["status"], "succeeded")
+        [row] = self.results()
+        self.assertEqual((row.mode, row.fallback_reason), ("ai_generated_menu", "DATABASE_MENU_OVER_BUDGET"))
+        self.assertTrue(all("BUDGET_EXCEEDED" in t["block_codes"] for t in row.payload["fallback_details"]["tried"]
+                            if "block_codes" in t))
+        sent = json.loads(responder.calls[0]["input_text"])
+        self.assertEqual((Decimal(sent["budget"]), sent["budget_per_n"]), (Decimal(300), str((Decimal(300) / Decimal(
+            self.client.get(f"/meal-requests/{self.request['id']}").json()["targets_preview"]["total_n"]))
+            .quantize(Decimal("0.1")))))
+
+    def test_unadoptable_ai_menu_is_retried_once_then_kept(self):
+        # AI 菜熱量／蛋白質比例固定（單一組）且整道縮放救不回 → 第一次退回重送，第二次保留供查看
+        self.clear_recipes()
+        self.create_request(dish_count=2)
+        job_id = self.submit()
+        bad = menu(ai_dish("番茄蛋花湯", [(TOMATO, 50), (EGG, 50)], method="煮"),
+                   ai_dish("蒜香高麗菜", [(CABBAGE, 50), (GARLIC, 50)]))
+        energy, protein = self.reference()
+        calculator = per_gram_calculator(energy / 200, protein * 5 / 200)  # 蛋白質永遠是熱量對齊後的 5 倍
+        responder = FakeResponder(bad, bad)
+        self.run_job(responder, calculator=calculator)
+        job = self.job(job_id)
+        self.assertEqual((job["status"], job["error"]["code"]), ("queued", "GENERATION_FAILED"))
+        self.assertIn("NUTRITION_OUT_OF_RANGE", job["error"]["message"])
+        self.run_job(responder, calculator=calculator)
+        self.assertEqual(self.job(job_id)["status"], "succeeded")
+        [row] = self.results()
+        self.assertFalse(row.payload["calculation"]["adoptable"])
+        self.assertEqual(len(responder.calls), 2)
+
+    def test_staple_is_trimmed_to_half_the_energy_within_its_range(self):
+        from app.services.generation import ai_staple_share
+        from app.services.meal_calculation import IngredientLine
+        calc = per_gram_calculator(Decimal("3.5"), Decimal("0.1"))  # 乾麵條約 3.5 kcal／g
+        noodle = IngredientLine(food_id="F_NOODLE", name="乾麵條", grams_per_n=Decimal(80), role="staple",
+                                adjustable_min=Decimal(50), adjustable_max=Decimal(120), adjustment_approved=True)
+        prompt = {"label": "麵", "grams_per_n": Decimal(80), "nutrients": {"energy_kcal": Decimal(280)}}
+        # 每份目標 400 kcal → 主食最多 200 kcal ≈ 57.1 g
+        [line], info = ai_staple_share([noodle], prompt, {"total_n": "2", "target": {"energy_kcal": "800",
+                                                                                       "protein_g": "30"}}, calc)
+        self.assertEqual((line.grams_per_n, info["nutrients"]["energy_kcal"]), (Decimal("57.1"), Decimal("199.85")))
+        # 目標更低時不低於可調下限 50 g；目標夠高時不動
+        [line], _ = ai_staple_share([noodle], prompt, {"total_n": "1", "target": {"energy_kcal": "300",
+                                                                                    "protein_g": "10"}}, calc)
+        self.assertEqual(line.grams_per_n, Decimal(50))
+        same, info = ai_staple_share([noodle], prompt, {"total_n": "1", "target": {"energy_kcal": "700",
+                                                                                     "protein_g": "25"}}, calc)
+        self.assertEqual((same, info), ([noodle], prompt))
+
+    def test_two_group_scale_hits_energy_and_protein_together(self):
+        from app.services.generation import ai_portion_scale, apply_ai_portion_scale
+        from app.services.meal_calculation import IngredientLine, IngredientNutrition
+        per_gram = {EGG: (Decimal("1.5"), Decimal("0.12")), CABBAGE: (Decimal("0.3"), Decimal("0.01"))}
+
+        def calc(rows):
+            return [IngredientNutrition({"energy_kcal": per_gram[ln.food_id][0] * g,
+                                         "protein_g": per_gram[ln.food_id][1] * g}, {}) for ln, g in rows]
+        lines = [IngredientLine(food_id=EGG, name="雞蛋", grams_per_n=Decimal(200), dish_id="D1"),
+                 IngredientLine(food_id=CABBAGE, name="高麗菜", grams_per_n=Decimal(300), dish_id="D2")]
+        targets = {"total_n": "1", "target": {"energy_kcal": "300", "protein_g": "20"}}
+        scale = ai_portion_scale(lines, None, targets, calc)
+        self.assertEqual((scale["method"], scale["protein_rich_food_ids"]), ("energy_protein", [EGG]))
+        dishes = [{"ingredients": [{"food_id": EGG, "name": "雞蛋", "grams_per_n": Decimal(200)}]},
+                  {"ingredients": [{"food_id": CABBAGE, "name": "高麗菜", "grams_per_n": Decimal(300)}]}]
+        scaled = apply_ai_portion_scale(dishes, lines, scale)
+        rows = calc([(ln, ln.grams_per_n) for ln in scaled])
+        self.assertAlmostEqual(float(sum(r.nutrients["energy_kcal"] for r in rows)), 300, delta=0.5)
+        self.assertAlmostEqual(float(sum(r.nutrients["protein_g"] for r in rows)), 20, delta=0.05)
+        self.assertEqual(dishes[0]["ingredients"][0]["grams_per_n"], scaled[0].grams_per_n)
+
     def test_next_combination_is_used_when_the_first_fails_nutrition(self):
         self.create_request(dish_count=2)
         job_id = self.submit()
@@ -822,7 +950,9 @@ class DatabaseCandidateTests(GenerationTestCase):
         self.assertEqual((row.mode, row.fallback_reason), ("ai_generated_menu", "DATABASE_MENU_NUTRITION_INFEASIBLE"))
         self.assertEqual(len(responder.calls), 1)
         self.assertGreater(len(row.payload["fallback_details"]["tried"]), 1)
-        self.assertFalse(row.payload["calculation"]["adoptable"])  # AI 結果仍可查看
+        # AI 菜熱量同樣 3 倍 → 份量校正縮到約 1/3 後可採用
+        self.assertAlmostEqual(float(row.payload["evidence"]["ai_portion_scale"]["factor"]), 1 / 3, places=3)
+        self.assertTrue(row.payload["calculation"]["adoptable"])
 
     def test_combinations_that_only_miss_data_are_never_the_result_and_fall_back_to_ai(self):
         """決策 #47：營養未知（缺資料）的資料庫組合永不作為結果；沒有可採用組合一律轉 AI，並記錄每組原因。"""
@@ -897,3 +1027,70 @@ class KnowledgeBudgetTests(GenerationTestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class SodiumControlTests(unittest.TestCase):
+    """2026-10-29 控制鈉：這一餐的鈉額度、鹹味調味料減量、份量校正不放大鹹味調味料。"""
+
+    SALT, SOY_SAUCE, NOODLE = "FOOD000691", "FOOD001541", "F_NOODLE"
+    PER_GRAM = {"FOOD000691": (0, 0, 393), "FOOD001541": (Decimal("0.6"), Decimal("0.07"), 56),
+                "F_NOODLE": (Decimal("3.5"), Decimal("0.1"), 5), "F_EGG": (Decimal("1.4"), Decimal("0.12"), Decimal("1.4")),
+                "F_VEG": (Decimal("0.25"), Decimal("0.01"), Decimal("0.2"))}
+
+    def calc(self, rows):
+        from app.services.meal_calculation import IngredientNutrition
+        out = []
+        for ln, g in rows:
+            e, p, na = self.PER_GRAM[ln.food_id]
+            out.append(IngredientNutrition({"energy_kcal": Decimal(e) * g, "protein_g": Decimal(p) * g,
+                                            "sodium_mg": Decimal(na) * g}, {}))
+        return out
+
+    def line(self, food_id, grams, **kw):
+        from app.services.meal_calculation import IngredientLine
+        return IngredientLine(food_id=food_id, name=food_id, grams_per_n=Decimal(grams), **kw)
+
+    def test_meal_budget_follows_meal_ratios(self):
+        from app.services.generation import meal_sodium_budget
+        items = [{"n": "1", "meal_ratio": "0.4"}, {"n": "1", "meal_ratio": "0.3"}]
+        self.assertEqual(meal_sodium_budget({"items": items}), Decimal(840))
+
+    def test_salty_seasonings_are_reduced_to_the_budget_but_not_below_half(self):
+        from app.services.generation import reduce_sodium
+        lines = [self.line(self.SALT, 2, amount_per_n=Decimal("0.4"), unit="小匙"), self.line("F_VEG", 100)]
+        staple = [self.line(self.NOODLE, 80, role="staple")]
+        # 鹽 786 + 菜 20 + 麵 400 = 1206 mg；額度 900 → 鹽要減到 (786 − 306)/786
+        reduced, info = reduce_sodium(lines, staple, Decimal(900), self.calc)
+        self.assertAlmostEqual(float(info["seasoning_ratio"]), (786 - 306) / 786, places=4)
+        self.assertTrue(info["within_budget"])
+        self.assertAlmostEqual(float(reduced[0].grams_per_n), 2 * (786 - 306) / 786, places=2)
+        self.assertAlmostEqual(float(reduced[0].amount_per_n), 0.4 * (786 - 306) / 786, places=2)
+        self.assertEqual(reduced[1], lines[1])
+        # 額度太低：最多減一半，仍超出時標示
+        reduced, info = reduce_sodium(lines, staple, Decimal(500), self.calc)
+        self.assertEqual((info["seasoning_ratio"], info["within_budget"]), (Decimal("0.5"), False))
+        self.assertEqual(reduced[0].grams_per_n, Decimal(1))
+        # 已在額度內不動
+        self.assertEqual(reduce_sodium(lines, staple, Decimal(2000), self.calc), (lines, None))
+
+    def test_portion_scale_never_enlarges_salty_seasonings(self):
+        from app.services.generation import ai_portion_scale, apply_ai_portion_scale
+        lines = [self.line("F_EGG", 50), self.line(self.SOY_SAUCE, 5), self.line("F_VEG", 100)]
+        # 菜太少（每份 ~98 kcal）→ 要放大；醬油維持原量，雞蛋與蔬菜依兩組倍率放大
+        targets = {"total_n": "1", "target": {"energy_kcal": "300", "protein_g": "20"}}
+        scale = ai_portion_scale(lines, None, targets, self.calc)
+        self.assertEqual((scale["seasoning_factor"], scale["seasoning_food_ids"]), (Decimal(1), [self.SOY_SAUCE]))
+        self.assertNotIn(self.SOY_SAUCE, scale.get("protein_rich_food_ids") or [])
+        dishes = [{"ingredients": [{"food_id": ln.food_id, "name": ln.name, "grams_per_n": ln.grams_per_n}
+                                   for ln in lines]}]
+        scaled = apply_ai_portion_scale(dishes, lines, scale)
+        self.assertEqual(scaled[1].grams_per_n, Decimal(5))
+        self.assertGreater(scaled[0].grams_per_n, Decimal(50))
+
+    def test_high_sodium_ingredients_are_listed_for_the_model(self):
+        from types import SimpleNamespace
+        from app.services.generation import high_sodium_names
+        self.PER_GRAM = {**self.PER_GRAM, "F_MEATBALL": (Decimal("2"), Decimal("0.12"), Decimal("5.8"))}
+        foods = SimpleNamespace(names={"F_MEATBALL": "貢丸", "F_VEG": "高麗菜", self.SALT: "食鹽"})
+        # 貢丸每 100 g 580 mg 列入；蔬菜 20 mg 不列；鹽是調味料，另有用量原則
+        self.assertEqual(high_sodium_names(foods, ["F_MEATBALL", "F_VEG", self.SALT], self.calc), ["貢丸"])

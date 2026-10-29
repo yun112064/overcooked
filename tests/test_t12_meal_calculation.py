@@ -223,6 +223,18 @@ class BoundaryTests(unittest.TestCase):
                 codes = [(r["code"], r.get("nutrient")) for r in result["block_reasons"]]
                 self.assertIn(("NUTRITION_OUT_OF_RANGE", nutrient), codes)
 
+    def test_protein_upper_bound_is_at_least_20_percent_of_energy(self):
+        # 2026-10-28：目標 600 kcal、蛋白質 15 g → 上限取 max(16.5, 600×20%÷4 = 30)；下限仍為 90%
+        targets = mc.compose_targets([mc.ParticipationBaseline("a", D("600"), D("15"), D("1"))])
+        for protein, ok in (("30", True), ("30.01", False), ("13.5", True), ("13.49", False)):
+            with self.subTest(protein=protein):
+                result = mc.calculate_meal(sugar_protein("150", protein), targets, mode="ai",
+                                           calculator=FakeCalculator())
+                self.assertEqual(result["adoptable"], ok)
+        bounds = mc.nutrient_bounds({"energy_kcal": Fraction(600), "protein_g": Fraction(15)})
+        self.assertEqual(bounds["protein_g"], (Fraction(27, 2), Fraction(30)))
+        self.assertEqual(bounds["energy_kcal"], (Fraction(540), Fraction(660)))
+
     def test_non_terminating_reference_is_compared_exactly(self):
         # 三人各 1n、基準合計 1000 kcal → 參考值 333.33…；0.9 倍 = 300 整
         targets = mc.compose_targets([

@@ -25,6 +25,20 @@ from app.services.recipe_steps import ingredient_group
 
 REQUIRED_NUTRIENTS = ("energy_kcal", "protein_g")
 LOWER, UPPER = Fraction(9, 10), Fraction(11, 10)
+# 2026-10-28 放寬蛋白質上限：蛋白質略高於目標不是營養問題，上限取「目標 ×1.1」與「每份目標熱量的 20%」
+# （國人膳食營養素參考攝取量 DRIs：蛋白質占熱量 10–20%）較高者；下限與熱量仍為 ±10%。
+PROTEIN_MAX_ENERGY_SHARE = Fraction(1, 5)
+KCAL_PER_G_PROTEIN = 4
+
+
+def nutrient_bounds(references: dict) -> dict:
+    """每個必要營養的 (下限, 上限)；references 為 energy_kcal／protein_g 參考值（Fraction）。"""
+    out = {k: (LOWER * references[k], UPPER * references[k]) for k in REQUIRED_NUTRIENTS}
+    energy, protein = references.get("energy_kcal"), references.get("protein_g")
+    if energy is not None and protein is not None:
+        out["protein_g"] = (LOWER * protein,
+                            max(UPPER * protein, Fraction(energy) * PROTEIN_MAX_ENERGY_SHARE / KCAL_PER_G_PROTEIN))
+    return out
 
 
 @dataclass(frozen=True)
@@ -138,8 +152,9 @@ Calculator = Callable[[list[tuple[IngredientLine, Decimal]]], list[IngredientNut
 MAX_GRID_POINTS = 200_000
 
 
-def _within(value: Fraction, reference: Fraction) -> bool:
-    return LOWER * reference <= value <= UPPER * reference
+def _within(value: Fraction, key: str, references: dict) -> bool:
+    lower, upper = nutrient_bounds(references)[key]
+    return lower <= value <= upper
 
 
 def _dec(value: Fraction) -> Decimal:
@@ -263,10 +278,10 @@ def _partial_view(target: dict, partial: dict, missing: dict) -> None:
 def _range_reasons(stage, totals, references):
     reasons = []
     for key in REQUIRED_NUTRIENTS:
-        if not _within(totals[key], references[key]):
+        if not _within(totals[key], key, references):
+            lower, upper = nutrient_bounds(references)[key]
             reasons.append({"code": "NUTRITION_OUT_OF_RANGE", "stage": stage, "nutrient": key,
-                            "value": _dec(totals[key]), "lower": _dec(LOWER * references[key]),
-                            "upper": _dec(UPPER * references[key])})
+                            "value": _dec(totals[key]), "lower": _dec(lower), "upper": _dec(upper)})
     return reasons
 
 
@@ -340,7 +355,8 @@ def _align(lines, grams, rows, references, mode):
     fixed = [float(sum((value[i][k] for i in range(len(lines)) if i not in grouped and i not in line_vars),
                        Fraction())) for k in keys]
     ref = [float(references[k]) for k in keys]
-    lower, upper = [float(LOWER) * r for r in ref], [float(UPPER) * r for r in ref]
+    bounds = nutrient_bounds(references)
+    lower, upper = [float(bounds[k][0]) for k in keys], [float(bounds[k][1]) for k in keys]
 
     dish_axis = _scale_values(settings)
     dish_axes = {d: list(dish_axis) for d in groups}
@@ -518,11 +534,11 @@ def _calculate_meal(lines: list[IngredientLine], targets: MealTargets, *, mode: 
         _unverified_final(result, lines, grams, n, calculator, final_targets)
         return result
 
-    if not all(_within(totals[k], references[k]) for k in REQUIRED_NUTRIENTS):
+    if not all(_within(totals[k], k, references) for k in REQUIRED_NUTRIENTS):
         # decisions #48：整道縮放＋主食（資料庫與 AI 模式皆可）；資料庫模式另含舊的逐列可調範圍
         for aligned, scales in _align(lines, grams, rows, references, mode):
             check_rows, check_totals, check_missing, check_partial = _evaluate(lines, aligned, calculator)
-            if all(check_totals[k] is not None and _within(check_totals[k], references[k])
+            if all(check_totals[k] is not None and _within(check_totals[k], k, references)
                    for k in REQUIRED_NUTRIENTS):
                 grams, rows, totals = aligned, check_rows, check_totals
                 _partial_view(result["baseline"], check_partial, check_missing)
@@ -594,7 +610,7 @@ def _range_suggestions(lines, grams, rows, totals, references, mode) -> list[dic
     """
     out = []
     for key in REQUIRED_NUTRIENTS:
-        lower, upper = LOWER * references[key], UPPER * references[key]
+        lower, upper = nutrient_bounds(references)[key]
         total = totals[key]
         if lower <= total <= upper:
             continue

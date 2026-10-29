@@ -221,6 +221,15 @@ export default function MealResultView({ requestId, mealDate, onChanged }: Props
         </Box>
       </Box>
 
+      {r.sodium_adjustment && Number(r.sodium_adjustment.seasoning_ratio) < 1 && (
+        <Alert severity="info">
+          為了讓鈉接近這一餐的建議量（每人份約 {Math.round(Number(r.sodium_adjustment.budget_per_n))} mg），
+          鹽、醬油等鹹味調味料已減為原本的 {Math.round(Number(r.sodium_adjustment.seasoning_ratio) * 100)}%
+          （每人份鈉約 {Math.round(Number(r.sodium_adjustment.sodium_per_n_before))} → {Math.round(Number(r.sodium_adjustment.sodium_per_n_after))} mg）。
+          {!r.sodium_adjustment.within_budget && '調味料減到一半仍超過建議量，主要來自食材或主食本身的鈉。'}
+        </Alert>
+      )}
+
       {highSodium.length > 0 && (
         <Alert severity="warning">
           <b>{highSodium.map((d) => d.dish_name).join('、')}</b> 鈉含量偏高：每人份就超過
@@ -309,7 +318,7 @@ export default function MealResultView({ requestId, mealDate, onChanged }: Props
                     : `${stapleProblem(r.staple.label, r.staple.unresolved_reason)}，不可採用`}
                 </Typography>
                 <Typography variant="caption">
-                  計入營養與 ±10% 驗證，不計入價格{r.staple.review_status === 'pending_review' ? '；份量設定待營養審核' : ''}
+                  計入營養驗證，不計入價格{r.staple.review_status === 'pending_review' ? '；份量設定待營養審核' : ''}
                 </Typography>
               </Box>
             </Box>

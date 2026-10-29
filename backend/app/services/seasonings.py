@@ -92,3 +92,18 @@ _SPOON_STEPS = (
     (Decimal(3), "小匙", Decimal(1), Decimal("0.5")),
     (Decimal(48), "大匙", Decimal(3), Decimal("0.5")),
 )
+
+
+# 鹹味調味料（鈉的主要來源）：減鹹與 AI 份量校正都以這些分類為準
+SALTY_CATEGORIES = frozenset({"鹽", "醬油類", "醬料", "調味粉"})
+
+
+@lru_cache(maxsize=4)
+def _salty(path: str) -> frozenset[str]:
+    return frozenset(fid for fid, item in _read(Path(path)).get("ingredients", {}).items()
+                     if item.get("category") in SALTY_CATEGORIES)
+
+
+def salty_food_ids(path: str | Path = SEASONINGS_PATH) -> frozenset[str]:
+    """鹽、醬油、醬料、雞粉等鹹味調味料的 FOOD 編號。"""
+    return _salty(str(path))

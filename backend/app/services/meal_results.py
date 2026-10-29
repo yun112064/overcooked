@@ -26,6 +26,8 @@ FALLBACK_MESSAGES = {
     "NO_MATCHING_RECIPES": "食譜資料庫沒有符合條件的組合，已自動改由 AI 生成。",
     "SPECIFIED_DISH_NOT_IN_DATABASE": "指定的菜不在食譜資料庫，已自動改由 AI 生成。",
     "DATABASE_MENU_NUTRITION_INFEASIBLE": "資料庫的候選菜單都無法在可調範圍內符合熱量與蛋白質目標，已自動改由 AI 生成。",
+    "DATABASE_MENU_OVER_BUDGET": "資料庫中符合營養目標的候選菜單都超出預算，已自動改由 AI 依預算生成。",
+    "DATABASE_MENU_NOT_ADOPTABLE": "資料庫的候選菜單缺少營養或份量資料，無法採用，已自動改由 AI 生成。",
     "ALL_EXCLUDED_BY_PREVIOUS_DAY": "排除昨日與同一天其他餐已採用的菜後資料庫沒有可行組合，已自動改由 AI 生成（仍避開這些菜）。",
     "DUPLICATE_MAIN_VEGETABLE": "資料庫的組合都有兩道菜用同一種蔬菜，已自動改由 AI 生成。",
 }
@@ -296,6 +298,8 @@ def view(db: Session, request: MealRequest, result: GenerationResult) -> dict:
         "derived_from_result_version": derived.result_version if derived else None,
         "created_at": result.created_at.isoformat(),
         "mode": result.mode, "mode_label": p["mode_label"], "fallback_reason": result.fallback_reason,
+        # 減鹹紀錄（2026-10-29）：鹹味調味料減量比例與前後每份鈉
+        "sodium_adjustment": p.get("sodium_adjustment"),
         "fallback_message": FALLBACK_MESSAGES.get(result.fallback_reason, "食譜資料庫沒有可行組合，已自動改由 AI 生成。")
         if result.fallback_reason else None,
         "dishes": _dishes(p), "staple": staple_view(p), "nutrition": nutrition_with_people(db, request.household_id, p), "prices": _prices(p),
