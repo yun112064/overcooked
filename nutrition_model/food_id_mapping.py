@@ -21,7 +21,9 @@ def _name(value):
 
 
 def _catalog(path):
-    raw = Path(path).read_bytes()
+    # Git may check out CRLF on Windows and LF on Linux. Pin the JSON content,
+    # not the platform-specific newline bytes.
+    raw = Path(path).read_bytes().replace(b'\r\n', b'\n')
     data = json.loads(raw)
     rows = {}
     for item in data:
