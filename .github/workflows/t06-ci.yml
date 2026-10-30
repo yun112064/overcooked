@@ -1,4 +1,4 @@
-name: T03, T04 and T06 Checks
+name: T03, T04, T06 and T07 Checks
 
 on:
   push:
@@ -56,9 +56,11 @@ jobs:
           PYTHONUTF8: "1"
         run: python -m unittest discover -s nutrition_model -p 'test_*.py' -v
 
-      - name: Run T06 and AC26 tests
+      - name: Run T06, T07 and AC26 tests
         env:
           PYTHONPATH: backend
+          # T07 API 測試以 Alembic 在此資料庫重建資料表
+          TEST_DATABASE_URL: postgresql+psycopg://postgres:ci_placeholder@localhost:5432/meal_planner
         run: python -m unittest discover -s tests -p 'test_*.py' -v
 
       - name: Apply Alembic migrations
@@ -82,6 +84,25 @@ jobs:
               ).scalar_one() == 1
           print("database and pgvector ready")
           EOF
+
+  inference-tests:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      # 只測前處理與 HTTP 契約；真實模型推論需團隊電腦上的權重與 Ultralytics
+      - name: Install dependencies
+        run: pip install numpy==2.5.4 opencv-python-headless==5.0.0.93
+
+      - name: Run inference service tests
+        run: python -m unittest discover -s inference -p 'test_*.py' -v
 
   frontend-build:
     runs-on: ubuntu-latest

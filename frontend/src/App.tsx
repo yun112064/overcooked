@@ -1,62 +1,127 @@
+import {
+  AppBar, Box, Button, CircularProgress, Container, CssBaseline, ThemeProvider, Toolbar, Typography, createTheme,
+} from '@mui/material'
+import { QueryClient, QueryClientProvider, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { Link, Navigate, Outlet, RouterProvider, createBrowserRouter, useNavigate } from 'react-router'
+import { api, errorStatus } from './api/client'
+import type { Me } from './api/types'
+import HouseholdPage from './pages/HouseholdPage'
+import LoginPage from './pages/LoginPage'
+import MealRequestEditor from './pages/MealRequestEditor'
+import MealRequestsPage from './pages/MealRequestsPage'
+import MembersPage from './pages/MembersPage'
 
+const theme = createTheme({ palette: { primary: { main: '#2e7d32' } } })
 
-import { useEffect, useState } from 'react'
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      // 未登入（401）不重試，直接導回登入頁
+      retry: (count, err) => errorStatus(err) !== 401 && errorStatus(err) !== 403 && count < 2,
+      refetchOnWindowFocus: false,
+    },
+  },
+})
 
-type HealthResponse = {
-  status: string
-  service: string
+function useMe() {
+  return useQuery({
+    queryKey: ['me'],
+    queryFn: async () => {
+      try {
+        return (await api.get<Me>('/auth/me')).data
+      } catch (err) {
+        if (errorStatus(err) === 401) return null
+        throw err
+      }
+    },
+  })
 }
 
-function App() {
-  const [health, setHealth] = useState<HealthResponse | null>(null)
-  const [error, setError] = useState<string | null>(null)
+function FullPageSpinner() {
+  return <Box sx={{ display: 'grid', placeItems: 'center', minHeight: '60vh' }}><CircularProgress /></Box>
+}
 
-  useEffect(() => {
-    const controller = new AbortController()
+/** 需登入；requireHousehold 時另需已選擇家庭。 */
+function Protected({ requireHousehold = false }: { requireHousehold?: boolean }) {
+  const me = useMe()
+  if (me.isPending) return <FullPageSpinner />
+  if (me.isError) return <Typography sx={{ p: 3 }}>無法連線到伺服器，請稍後再試。</Typography>
+  if (!me.data) return <Navigate to="/login" replace />
+  if (requireHousehold && !me.data.current_household) return <Navigate to="/households" replace />
+  return <Outlet />
+}
 
-    async function checkHealth() {
-      try {
-        const response = await fetch('/api/health/db', {
-          signal: controller.signal,
-        })
-
-        if (!response.ok) {
-          throw new Error(`HTTP ${response.status}`)
-        }
-
-        const data: HealthResponse = await response.json()
-        setHealth(data)
-      } catch (err) {
-        if (controller.signal.aborted) return
-
-        setError(
-          err instanceof Error ? err.message : '未知錯誤'
-        )
-      }
-    }
-
-    void checkHealth()
-
-    return () => controller.abort()
-  }, [])
-
+function Layout() {
+  const me = useMe()
+  const client = useQueryClient()
+  const navigate = useNavigate()
+  const logout = useMutation({
+    mutationFn: async () => api.post('/auth/logout'),
+    onSettled: () => {
+      client.clear()
+      navigate('/login', { replace: true })
+    },
+  })
   return (
-    <main style={{ padding: '2rem' }}>
-      <h1>T06 系統串接測試</h1>
-
-      {error ? (
-        <p>後端連線失敗：{error}</p>
-      ) : health ? (
-        <div>
-          <p>後端連線成功！</p>
-          <p>Status：{health.status}</p>
-          <p>Service：{health.service}</p>
-        </div>
-      ) : (
-        <p>正在檢查後端連線...</p>
-      )}
-    </main>
+    <>
+      <AppBar position="static" elevation={0}>
+        <Toolbar sx={{ gap: 1, flexWrap: 'wrap' }}>
+          <Typography variant="h6" component={Link} to="/members" sx={{ color: 'inherit', textDecoration: 'none', flexGrow: 1 }}>
+            今天吃啥
+          </Typography>
+          {me.data?.current_household && (
+            <>
+              <Button color="inherit" component={Link} to="/plan">規劃餐食</Button>
+              <Button color="inherit" component={Link} to="/members">成員</Button>
+              <Button color="inherit" component={Link} to="/households">{me.data.current_household.name}</Button>
+            </>
+          )}
+          {me.data && <Button color="inherit" onClick={() => logout.mutate()} disabled={logout.isPending}>登出</Button>}
+        </Toolbar>
+      </AppBar>
+      <Container maxWidth="md" sx={{ py: 3 }}>
+        <Outlet />
+      </Container>
+    </>
   )
 }
 
-export default App
+function LoginRoute() {
+  const me = useMe()
+  if (me.isPending) return <FullPageSpinner />
+  if (me.data) return <Navigate to={me.data.current_household ? '/plan' : '/households'} replace />
+  return <LoginPage />
+}
+
+const router = createBrowserRouter([
+  { path: '/login', element: <LoginRoute /> },
+  {
+    element: <Protected />,
+    children: [{
+      element: <Layout />,
+      children: [
+        { path: '/households', element: <HouseholdPage /> },
+        {
+          element: <Protected requireHousehold />,
+          children: [
+            { path: '/members', element: <MembersPage /> },
+            { path: '/plan', element: <MealRequestsPage /> },
+            { path: '/plan/:id', element: <MealRequestEditor /> },
+          ],
+        },
+      ],
+    }],
+  },
+  { path: '*', element: <Navigate to="/members" replace /> },
+])
+
+export default function App() {
+  return (
+    <ThemeProvider theme={theme}>
+      <CssBaseline />
+      <QueryClientProvider client={queryClient}>
+        <RouterProvider router={router} />
+      </QueryClientProvider>
+    </ThemeProvider>
+  )
+}

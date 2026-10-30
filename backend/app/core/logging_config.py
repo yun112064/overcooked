@@ -77,10 +77,44 @@ SAFE_LOG_EVENTS = {
         "api",
         "Database health check failed",
     ),
+    "auth_login_failed": (
+        "api",
+        "Login failed",
+    ),
     "log_cleanup_budget_exceeded": (
         "scheduler",
         "Log space budget exceeded after cleanup",
     ),
+    "job_claimed": ("process", "Background job claimed"),
+    "job_succeeded": ("process", "Background job succeeded"),
+    "job_failed": ("process", "Background job failed"),
+    "job_retry_scheduled": ("process", "Background job retry scheduled"),
+    "job_recovered": ("scheduler", "Expired background job recovered"),
+    "scheduler_started": ("scheduler", "Scheduler started"),
+    "scheduler_lock_held": ("scheduler", "Another scheduler instance is running"),
+    "price_collection_started": (
+        "scheduler",
+        "Price collection started",
+    ),
+    "price_collection_completed": (
+        "scheduler",
+        "Price collection completed",
+    ),
+    "price_collection_failed": (
+        "scheduler",
+        "Price collection failed",
+    ),
+    "price_collection_skipped": (
+        "scheduler",
+        "Duplicate or concurrent price collection skipped",
+    ),
+}
+
+# 可選追蹤欄位：只接受符合格式的值，避免任意內容寫入正式 Log
+SAFE_OPTIONAL_FIELDS = {
+    "job_id": re.compile(r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"),
+    "trace_id": re.compile(r"^[0-9a-f]{16,32}$"),
+    "error_code": re.compile(r"^[A-Z][A-Z_]{1,49}$"),
 }
 
 
@@ -112,6 +146,15 @@ class JsonFormatter(logging.Formatter):
             "source": source,
             "message": message,
         }
+
+        if approved is not None:
+            for field, pattern in SAFE_OPTIONAL_FIELDS.items():
+                value = getattr(record, field, None)
+                if isinstance(value, str) and pattern.fullmatch(value):
+                    log_data[field] = value
+            duration = getattr(record, "duration_ms", None)
+            if isinstance(duration, int) and not isinstance(duration, bool) and duration >= 0:
+                log_data["duration_ms"] = duration
 
         return json.dumps(
             log_data,
@@ -197,6 +240,8 @@ def get_logger(name: str, filename: str) -> logging.Logger:
             maxBytes=10 * 1024 * 1024,
             backupCount=0,
             encoding="utf-8",
+            # 第一次寫入才開檔：每個程序只持有自己會寫的日誌檔
+            delay=True,
         )
 
         handler.setFormatter(JsonFormatter())

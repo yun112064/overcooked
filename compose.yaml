@@ -26,15 +26,21 @@ services:
       context: .
       dockerfile: backend/Dockerfile
 
+    image: meal-planner-backend
     container_name: meal-planner-backend
 
     environment:
       DATABASE_URL: postgresql+psycopg://postgres:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}@db:5432/meal_planner
       PROJECT_DATA_ROOT: /app/data
       PYTHONUNBUFFERED: "1"
-      LOG_CLEANUP_APPLY: "true"
       PROJECT_RUNTIME_ROOT: /app/runtime
       PROJECT_BACKUP_ROOT: /app/backups
+      # 狀態修改請求只接受這些前端來源；正式網域部署時改為 https://<網域>
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-http://localhost:8080}
+      COOKIE_SECURE: ${COOKIE_SECURE:-true}
+      # T09 團隊電腦 YOLO 推論服務；未設定時辨識顯示不可用，可手動輸入
+      RECOGNITION_SERVICE_URL: ${RECOGNITION_SERVICE_URL:-}
+      RECOGNITION_SERVICE_TOKEN: ${RECOGNITION_SERVICE_TOKEN:-}
 
     ports:
       - "127.0.0.1:8000:8000"
@@ -54,6 +60,52 @@ services:
 
     depends_on:
       db:
+        condition: service_healthy
+
+  # T10：生成／推論工作程序，可視負載啟動多個副本
+  worker:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    image: meal-planner-backend
+    command: ["python", "-m", "app.jobs.worker"]
+    environment:
+      DATABASE_URL: postgresql+psycopg://postgres:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}@db:5432/meal_planner
+      PROJECT_DATA_ROOT: /app/data
+      PYTHONUNBUFFERED: "1"
+    volumes:
+      - ${PROJECT_DATA_ROOT:-../AIPE04期末專題_data}:/app/data
+    depends_on:
+      backend:
+        condition: service_healthy
+
+  # T10：單一排程程序（以 PostgreSQL advisory lock 保證只會有一個在執行）
+  scheduler:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    image: meal-planner-backend
+    command: ["python", "-m", "app.jobs.scheduler"]
+    environment:
+      DATABASE_URL: postgresql+psycopg://postgres:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}@db:5432/meal_planner
+      PROJECT_DATA_ROOT: /app/data
+      PYTHONUNBUFFERED: "1"
+      LOG_CLEANUP_APPLY: "true"
+      # T02 每日查價（由同一個排程程序執行）
+      PRICE_SCHEDULER_ENABLED: ${PRICE_SCHEDULER_ENABLED:-true}
+      PRICE_SCHEDULER_HOUR: ${PRICE_SCHEDULER_HOUR:-3}
+      PRICE_SCHEDULER_MINUTE: ${PRICE_SCHEDULER_MINUTE:-0}
+      PRICE_SCHEDULER_TIMEZONE: ${PRICE_SCHEDULER_TIMEZONE:-Asia/Taipei}
+      PRICE_WORKBOOK_PATH: ${PRICE_WORKBOOK_PATH_CONTAINER:-/app/data/recipe_dataset_1017.xlsx}
+      PRICE_COLLECTION_DELAY_SECONDS: ${PRICE_COLLECTION_DELAY_SECONDS:-1.5}
+      PRICE_COLLECTION_TIMEOUT_SECONDS: ${PRICE_COLLECTION_TIMEOUT_SECONDS:-15}
+      PRICE_COLLECTION_RETRIES: ${PRICE_COLLECTION_RETRIES:-1}
+      PRICE_COLLECTION_BATCH_SIZE: ${PRICE_COLLECTION_BATCH_SIZE:-0}
+    volumes:
+      - ${PROJECT_DATA_ROOT:-../AIPE04期末專題_data}:/app/data
+    restart: unless-stopped
+    depends_on:
+      backend:
         condition: service_healthy
 
   frontend:

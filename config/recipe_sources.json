@@ -1,0 +1,15 @@
+{
+  "note": "T01 食譜來源授權紀錄。匯入時以 scripts/import_recipes.py --sources 套用到工作簿中未附授權欄位的來源列；工作簿已填的值優先。rights_status 只有 verified／approved 才算授權已確認。",
+  "sources": {
+    "iCook 愛料理": {
+      "license_name": "iCook 愛料理食譜使用授權（專案已取得）",
+      "rights_status": "verified",
+      "rights_uri": null,
+      "rights_confirmed_on": "2026-10-19",
+      "rights_confirmed_by": "專案負責人（於開發對話中確認已取得授權）",
+      "rights_document": "待補：授權書／信件編號或存放位置",
+      "source_version": "recipe_dataset_1017",
+      "retrieved_at": "2026-10-17T00:00:00+08:00"
+    }
+  }
+}

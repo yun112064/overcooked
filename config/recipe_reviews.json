@@ -1,0 +1,16 @@
+{
+  "note": "T01 食譜人工審核紀錄。只套用到 SHA-256 完全相同的工作簿；工作簿任何修改後都需重新審核並更新此檔。工作簿已填的審核欄位優先。",
+  "workbook": "recipe_dataset_1017.xlsx",
+  "workbook_sha256": "6bcaca41549572e39bd0fc40d0d216663df6438ae8be50079f92d81aa32c7304",
+  "scope": "all_recipes",
+  "reviewed_on": "2026-10-19",
+  "reviewer": "專案團隊（於開發對話中確認全部食譜已審核；審核人姓名待補）",
+  "approvals": {
+    "source_review": "approved",
+    "recipe_review": "approved",
+    "cooking_method": "approved",
+    "step_review": "approved",
+    "adjustable_range": "approved"
+  },
+  "quantity_policy": "「適量／少許」等無數字用量，依資料整理時填入的 amount 欄作為參考用量（quantity_status=reference_amount）"
+}

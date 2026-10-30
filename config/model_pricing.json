@@ -1,0 +1,15 @@
+{
+  "pricing_version": "plan-2026-10-18",
+  "currency": "USD",
+  "unit": "per_million_tokens",
+  "note": "預留與結算用的價格表。正式接入前須依官方價格頁重新核對並發行新 pricing_version；未列出的模型一律拒絕呼叫，不以 0 計價。",
+  "models": {
+    "gpt-5.4-mini-2026-03-17": {
+      "provider": "openai",
+      "input": "0.75",
+      "output": "4.50",
+      "source": "https://developers.openai.com/api/docs/models/gpt-5.4-mini",
+      "checked_on": "2026-10-15"
+    }
+  }
+}
