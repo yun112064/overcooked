@@ -1,6 +1,6 @@
 # T04：TFDA 優先與 LLM 備援
 
-> 合併狀態：LLM 烹調係數作為正式採用依據的資格為「待決議」，此處的實作說明與本機測試不代表 G04 通過。主系統採用資格也不能直接等同於七項營養完整旗標。詳見 [T04／T06 待決議與驗收界線](../docs/T04-T06-merge-pending.md)。
+> 合併狀態：2026-10-30 使用者決議 T12 可直接使用 T04 驗證後的 LLM 烹調係數，須保留估算標示、來源及條件；本機測試仍不代表 G04 通過。主系統採用資格也不能直接等同於七項營養完整旗標。詳見 [T04／T06 待決議與驗收界線](../docs/T04-T06-merge-pending.md)。
 
 每項食材先找「食材型態及料理方式相符」的 TFDA 熟食營養；缺少時，以 TFDA 生食營養作基底，讓 LLM 參考相關 USDA 產率紀錄及料理條件估算參數，再由程式計算。這是執行時提供參考資料，不是訓練模型。USDA 熟食營養已退出主計算流程。
 
@@ -131,7 +131,7 @@ USDA 以 `data/usda_food_mapping.json` 前兩項關鍵字（物種及部位）�
 
 查無食材或營養缺值時，食譜相應 `total_nutrition` 為 null；已知部分只放 `partial_nutrition_totals`。LLM 未設定、逾時或無效時不退回生食值冒充熟食值。
 
-`total_nutrition`、`per_serving_nutrition` 與 `nutrition_per_100g` 為顯示用，取兩位小數。T12 做 n 倍縮放與 ±10% 邊界判斷時，請改用未取整的 `total_nutrition_unrounded`；缺值同樣是 null。
+`total_nutrition`、`per_serving_nutrition` 與 `nutrition_per_100g` 為顯示用，取兩位小數。T12 做 n 倍縮放與 ±10% 邊界判斷時，從 TFDA 原始十進位數值與 T04 驗證後的係數重算精確值，不直接使用 float 型別的 `total_nutrition_unrounded` 作邊界判斷；缺值同樣是 null。
 
 ## 營養知識資料（R12、G07）
 
