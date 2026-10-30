@@ -1,0 +1,6544 @@
+{
+  "policy_version": "exact-name-same-state-official-average-2026-10-30-v1",
+  "catalog_sha256": "e5dec62647a616a824e10353fc0f5b9569d13927f2788ffba50f663dfd0b4057",
+  "source_manifest": {
+    "recipe_workbook": "recipe_dataset_1017.xlsx",
+    "recipe_workbook_sha256": "6bcaca41549572e39bd0fc40d0d216663df6438ae8be50079f92d81aa32c7304",
+    "food_reference": "All_Food_ID_1018.xlsx",
+    "food_reference_sha256": "b1ccb1b9d9e89c559580571af8018608b442919df4136ed61cf737e928a6dd5f",
+    "authorized_by": "使用者於本對話核准：名稱明確、相符官方平均值先接，種類不明另列討論。"
+  },
+  "records": [
+    {
+      "food_id": "FOOD000002",
+      "canonical_names": [
+        "七味粉"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD000004",
+      "canonical_names": [
+        "九層塔"
+      ],
+      "status": "approved",
+      "sample_id": "E2700101",
+      "sample_state": "raw",
+      "match_rule": "unique_exact_standard_name",
+      "reason": null,
+      "candidate_ids": [
+        "E2700101"
+      ],
+      "source": {
+        "provider": "TFDA",
+        "source_id": "E2700101",
+        "source_food_id": "TFDA_E2700101",
+        "source_file": "食材營養成分表.xlsx",
+        "source_sheet": "食材營養成分",
+        "source_version": "TFDA 食品營養成分資料集",
+        "source_url": "https://data.gov.tw/dataset/8543"
+      },
+      "approval_basis": "User-approved deterministic mapping policy; not a claim of per-record human review"
+    },
+    {
+      "food_id": "FOOD000007",
+      "canonical_names": [
+        "八角"
+      ],
+      "status": "approved",
+      "sample_id": "P0100101",
+      "sample_state": "unspecified",
+      "match_rule": "unique_exact_standard_name",
+      "reason": null,
+      "candidate_ids": [
+        "P0100101"
+      ],
+      "source": {
+        "provider": "TFDA",
+        "source_id": "P0100101",
+        "source_food_id": "TFDA_P0100101",
+        "source_file": "食材營養成分表.xlsx",
+        "source_sheet": "食材營養成分",
+        "source_version": "TFDA 食品營養成分資料集",
+        "source_url": "https://data.gov.tw/dataset/8543"
+      },
+      "approval_basis": "User-approved deterministic mapping policy; not a claim of per-record human review"
+    },
+    {
+      "food_id": "FOOD000018",
+      "canonical_names": [
+        "土雞腿"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD000025",
+      "canonical_names": [
+        "大白粉"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD000026",
+      "canonical_names": [
+        "大白菜"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "alias_requires_confirmation",
+      "candidate_ids": [
+        "E33001",
+        "E3300101",
+        "E3300102",
+        "E3300104",
+        "E3300105"
+      ]
+    },
+    {
+      "food_id": "FOOD000039",
+      "canonical_names": [
+        "大蒜"
+      ],
+      "status": "approved",
+      "sample_id": "E2100101",
+      "sample_state": "unspecified",
+      "match_rule": "unique_exact_standard_name",
+      "reason": null,
+      "candidate_ids": [
+        "E2100101"
+      ],
+      "source": {
+        "provider": "TFDA",
+        "source_id": "E2100101",
+        "source_food_id": "TFDA_E2100101",
+        "source_file": "食材營養成分表.xlsx",
+        "source_sheet": "食材營養成分",
+        "source_version": "TFDA 食品營養成分資料集",
+        "source_url": "https://data.gov.tw/dataset/8543"
+      },
+      "approval_basis": "User-approved deterministic mapping policy; not a claim of per-record human review"
+    },
+    {
+      "food_id": "FOOD000040",
+      "canonical_names": [
+        "大頭菜"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "alias_requires_confirmation",
+      "candidate_ids": [
+        "E0900101"
+      ]
+    },
+    {
+      "food_id": "FOOD000045",
+      "canonical_names": [
+        "小白菇"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD000046",
+      "canonical_names": [
+        "小白菜"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD000049",
+      "canonical_names": [
+        "小卷"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "alias_requires_confirmation",
+      "candidate_ids": [
+        "J3500501",
+        "J3500502"
+      ]
+    },
+    {
+      "food_id": "FOOD000051",
+      "canonical_names": [
+        "小松菜"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "alias_requires_confirmation",
+      "candidate_ids": [
+        "E3201701"
+      ]
+    },
+    {
+      "food_id": "FOOD000053",
+      "canonical_names": [
+        "小茴香"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "alias_requires_confirmation",
+      "candidate_ids": [
+        "E4400101"
+      ]
+    },
+    {
+      "food_id": "FOOD000058",
+      "canonical_names": [
+        "小番茄"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD000059",
+      "canonical_names": [
+        "小黃瓜"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "alias_requires_confirmation",
+      "candidate_ids": [
+        "E6400201",
+        "J0410501",
+        "J0410601",
+        "R4401601"
+      ]
+    },
+    {
+      "food_id": "FOOD000061",
+      "canonical_names": [
+        "小辣椒"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD000069",
+      "canonical_names": [
+        "山葵胡椒粉"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD000075",
+      "canonical_names": [
+        "干貝醬"
+      ],
+      "status": "approved",
+      "sample_id": "P1000101",
+      "sample_state": "unspecified",
+      "match_rule": "unique_exact_standard_name",
+      "reason": null,
+      "candidate_ids": [
+        "P1000101"
+      ],
+      "source": {
+        "provider": "TFDA",
+        "source_id": "P1000101",
+        "source_food_id": "TFDA_P1000101",
+        "source_file": "食材營養成分表.xlsx",
+        "source_sheet": "食材營養成分",
+        "source_version": "TFDA 食品營養成分資料集",
+        "source_url": "https://data.gov.tw/dataset/8543"
+      },
+      "approval_basis": "User-approved deterministic mapping policy; not a claim of per-record human review"
+    },
+    {
+      "food_id": "FOOD000077",
+      "canonical_names": [
+        "中筋麵粉"
+      ],
+      "status": "approved",
+      "sample_id": "A0320301",
+      "sample_state": "unspecified",
+      "match_rule": "unique_exact_standard_name",
+      "reason": null,
+      "candidate_ids": [
+        "A0320301"
+      ],
+      "source": {
+        "provider": "TFDA",
+        "source_id": "A0320301",
+        "source_food_id": "TFDA_A0320301",
+        "source_file": "食材營養成分表.xlsx",
+        "source_sheet": "食材營養成分",
+        "source_version": "TFDA 食品營養成分資料集",
+        "source_url": "https://data.gov.tw/dataset/8543"
+      },
+      "approval_basis": "User-approved deterministic mapping policy; not a claim of per-record human review"
+    },
+    {
+      "food_id": "FOOD000078",
+      "canonical_names": [
+        "五木營養麵條"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD000079",
+      "canonical_names": [
+        "五印醋"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD000080",
+      "canonical_names": [
+        "五味粉"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD000081",
+      "canonical_names": [
+        "五花肉"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD000082",
+      "canonical_names": [
+        "五花肉片"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD000086",
+      "canonical_names": [
+        "五香粉"
+      ],
+      "status": "approved",
+      "sample_id": "P0100401",
+      "sample_state": "unspecified",
+      "match_rule": "unique_exact_standard_name",
+      "reason": null,
+      "candidate_ids": [
+        "P0100401"
+      ],
+      "source": {
+        "provider": "TFDA",
+        "source_id": "P0100401",
+        "source_food_id": "TFDA_P0100401",
+        "source_file": "食材營養成分表.xlsx",
+        "source_sheet": "食材營養成分",
+        "source_version": "TFDA 食品營養成分資料集",
+        "source_url": "https://data.gov.tw/dataset/8543"
+      },
+      "approval_basis": "User-approved deterministic mapping policy; not a claim of per-record human review"
+    },
+    {
+      "food_id": "FOOD000090",
+      "canonical_names": [
+        "太白粉"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "alias_requires_confirmation",
+      "candidate_ids": [
+        "B0720101"
+      ]
+    },
+    {
+      "food_id": "FOOD000091",
+      "canonical_names": [
+        "太白粉水"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD000094",
+      "canonical_names": [
+        "巴西里"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD000107",
+      "canonical_names": [
+        "日式炒麵醬"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD000109",
+      "canonical_names": [
+        "月桂葉"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD000111",
+      "canonical_names": [
+        "木耳"
+      ],
+      "status": "approved",
+      "sample_id": "G0100101",
+      "sample_state": "raw",
+      "match_rule": "unique_exact_standard_name",
+      "reason": null,
+      "candidate_ids": [
+        "G0100101"
+      ],
+      "source": {
+        "provider": "TFDA",
+        "source_id": "G0100101",
+        "source_food_id": "TFDA_G0100101",
+        "source_file": "食材營養成分表.xlsx",
+        "source_sheet": "食材營養成分",
+        "source_version": "TFDA 食品營養成分資料集",
+        "source_url": "https://data.gov.tw/dataset/8543"
+      },
+      "approval_basis": "User-approved deterministic mapping policy; not a claim of per-record human review"
+    },
+    {
+      "food_id": "FOOD000112",
+      "canonical_names": [
+        "木薯粉"
+      ],
+      "status": "approved",
+      "sample_id": "B0320101",
+      "sample_state": "unspecified",
+      "match_rule": "unique_exact_standard_name",
+      "reason": null,
+      "candidate_ids": [
+        "B0320101"
+      ],
+      "source": {
+        "provider": "TFDA",
+        "source_id": "B0320101",
+        "source_food_id": "TFDA_B0320101",
+        "source_file": "食材營養成分表.xlsx",
+        "source_sheet": "食材營養成分",
+        "source_version": "TFDA 食品營養成分資料集",
+        "source_url": "https://data.gov.tw/dataset/8543"
+      },
+      "approval_basis": "User-approved deterministic mapping policy; not a claim of per-record human review"
+    },
+    {
+      "food_id": "FOOD000114",
+      "canonical_names": [
+        "毛豆"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD000119",
+      "canonical_names": [
+        "水"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD000120",
+      "canonical_names": [
+        "水 各"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD000147",
+      "canonical_names": [
+        "水煮蛋"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD000153",
+      "canonical_names": [
+        "水煮鮪魚罐頭"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD000167",
+      "canonical_names": [
+        "水餃皮"
+      ],
+      "status": "approved",
+      "sample_id": "R1800101",
+      "sample_state": "unspecified",
+      "match_rule": "unique_exact_standard_name",
+      "reason": null,
+      "candidate_ids": [
+        "R1800101"
+      ],
+      "source": {
+        "provider": "TFDA",
+        "source_id": "R1800101",
+        "source_food_id": "TFDA_R1800101",
+        "source_file": "食材營養成分表.xlsx",
+        "source_sheet": "食材營養成分",
+        "source_version": "TFDA 食品營養成分資料集",
+        "source_url": "https://data.gov.tw/dataset/8543"
+      },
+      "approval_basis": "User-approved deterministic mapping policy; not a claim of per-record human review"
+    },
+    {
+      "food_id": "FOOD000168",
+      "canonical_names": [
+        "水蓮菜"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "alias_requires_confirmation",
+      "candidate_ids": [
+        "E9500101"
+      ]
+    },
+    {
+      "food_id": "FOOD000171",
+      "canonical_names": [
+        "火腿"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD000173",
+      "canonical_names": [
+        "火鍋羊肉片"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD000174",
+      "canonical_names": [
+        "火鍋肉片"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD000176",
+      "canonical_names": [
+        "牛小排"
+      ],
+      "status": "approved",
+      "sample_id": "I01001",
+      "sample_state": "raw",
+      "match_rule": "unique_same_state_official_average",
+      "reason": null,
+      "candidate_ids": [
+        "I01001"
+      ],
+      "source": {
+        "provider": "TFDA",
+        "source_id": "I01001",
+        "source_food_id": "TFDA_I01001",
+        "source_file": "食材營養成分表.xlsx",
+        "source_sheet": "食材營養成分",
+        "source_version": "TFDA 食品營養成分資料集",
+        "source_url": "https://data.gov.tw/dataset/8543"
+      },
+      "approval_basis": "User-approved deterministic mapping policy; not a claim of per-record human review"
+    },
+    {
+      "food_id": "FOOD000183",
+      "canonical_names": [
+        "牛肉"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD000190",
+      "canonical_names": [
+        "牛肉貢丸"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD000195",
+      "canonical_names": [
+        "牛肋條"
+      ],
+      "status": "approved",
+      "sample_id": "I0100201",
+      "sample_state": "raw",
+      "match_rule": "unique_exact_standard_name",
+      "reason": null,
+      "candidate_ids": [
+        "I0100201"
+      ],
+      "source": {
+        "provider": "TFDA",
+        "source_id": "I0100201",
+        "source_food_id": "TFDA_I0100201",
+        "source_file": "食材營養成分表.xlsx",
+        "source_sheet": "食材營養成分",
+        "source_version": "TFDA 食品營養成分資料集",
+        "source_url": "https://data.gov.tw/dataset/8543"
+      },
+      "approval_basis": "User-approved deterministic mapping policy; not a claim of per-record human review"
+    },
+    {
+      "food_id": "FOOD000205",
+      "canonical_names": [
+        "牛排"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD000208",
+      "canonical_names": [
+        "牛腩"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "alias_requires_confirmation",
+      "candidate_ids": [
+        "I0104101"
+      ]
+    },
+    {
+      "food_id": "FOOD000209",
+      "canonical_names": [
+        "牛腱"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "alias_requires_confirmation",
+      "candidate_ids": [
+        "I0108301",
+        "I0108302"
+      ]
+    },
+    {
+      "food_id": "FOOD000210",
+      "canonical_names": [
+        "牛腱肉"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD000216",
+      "canonical_names": [
+        "冬瓜"
+      ],
+      "status": "approved",
+      "sample_id": "E62001",
+      "sample_state": "raw",
+      "match_rule": "unique_same_state_official_average",
+      "reason": null,
+      "candidate_ids": [
+        "E62001",
+        "E6200101"
+      ],
+      "source": {
+        "provider": "TFDA",
+        "source_id": "E62001",
+        "source_food_id": "TFDA_E62001",
+        "source_file": "食材營養成分表.xlsx",
+        "source_sheet": "食材營養成分",
+        "source_version": "TFDA 食品營養成分資料集",
+        "source_url": "https://data.gov.tw/dataset/8543"
+      },
+      "approval_basis": "User-approved deterministic mapping policy; not a claim of per-record human review"
+    },
+    {
+      "food_id": "FOOD000232",
+      "canonical_names": [
+        "可樂"
+      ],
+      "status": "approved",
+      "sample_id": "O0600101",
+      "sample_state": "unspecified",
+      "match_rule": "unique_exact_standard_name",
+      "reason": null,
+      "candidate_ids": [
+        "O0600101"
+      ],
+      "source": {
+        "provider": "TFDA",
+        "source_id": "O0600101",
+        "source_food_id": "TFDA_O0600101",
+        "source_file": "食材營養成分表.xlsx",
+        "source_sheet": "食材營養成分",
+        "source_version": "TFDA 食品營養成分資料集",
+        "source_url": "https://data.gov.tw/dataset/8543"
+      },
+      "approval_basis": "User-approved deterministic mapping policy; not a claim of per-record human review"
+    },
+    {
+      "food_id": "FOOD000233",
+      "canonical_names": [
+        "台式醬油"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD000238",
+      "canonical_names": [
+        "史雲生清雞湯"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD000240",
+      "canonical_names": [
+        "四季豆"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "alias_requires_confirmation",
+      "candidate_ids": [
+        "H1000101",
+        "H1000201",
+        "H1000301"
+      ]
+    },
+    {
+      "food_id": "FOOD000242",
+      "canonical_names": [
+        "奶油"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD000245",
+      "canonical_names": [
+        "巧克力"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD000257",
+      "canonical_names": [
+        "玉米"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "alias_requires_confirmation",
+      "candidate_ids": [
+        "A0400301",
+        "A0400401"
+      ]
+    },
+    {
+      "food_id": "FOOD000262",
+      "canonical_names": [
+        "玉米筍"
+      ],
+      "status": "approved",
+      "sample_id": "E1300201",
+      "sample_state": "raw",
+      "match_rule": "unique_exact_standard_name",
+      "reason": null,
+      "candidate_ids": [
+        "E1300201"
+      ],
+      "source": {
+        "provider": "TFDA",
+        "source_id": "E1300201",
+        "source_food_id": "TFDA_E1300201",
+        "source_file": "食材營養成分表.xlsx",
+        "source_sheet": "食材營養成分",
+        "source_version": "TFDA 食品營養成分資料集",
+        "source_url": "https://data.gov.tw/dataset/8543"
+      },
+      "approval_basis": "User-approved deterministic mapping policy; not a claim of per-record human review"
+    },
+    {
+      "food_id": "FOOD000264",
+      "canonical_names": [
+        "玉米澱粉"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD000267",
+      "canonical_names": [
+        "甘草"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD000272",
+      "canonical_names": [
+        "生米"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD000279",
+      "canonical_names": [
+        "白吐司"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD000280",
+      "canonical_names": [
+        "白米"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD000281",
+      "canonical_names": [
+        "白米飯"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD000282",
+      "canonical_names": [
+        "白米醋"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD000285",
+      "canonical_names": [
+        "白芝麻"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD000289",
+      "canonical_names": [
+        "白胡椒粉"
+      ],
+      "status": "approved",
+      "sample_id": "P0101101",
+      "sample_state": "unspecified",
+      "match_rule": "unique_exact_standard_name",
+      "reason": null,
+      "candidate_ids": [
+        "P0101101"
+      ],
+      "source": {
+        "provider": "TFDA",
+        "source_id": "P0101101",
+        "source_food_id": "TFDA_P0101101",
+        "source_file": "食材營養成分表.xlsx",
+        "source_sheet": "食材營養成分",
+        "source_version": "TFDA 食品營養成分資料集",
+        "source_url": "https://data.gov.tw/dataset/8543"
+      },
+      "approval_basis": "User-approved deterministic mapping policy; not a claim of per-record human review"
+    },
+    {
+      "food_id": "FOOD000296",
+      "canonical_names": [
+        "白飯"
+      ],
+      "status": "approved",
+      "sample_id": "A0550601",
+      "sample_state": "cooked",
+      "match_rule": "unique_exact_standard_name",
+      "reason": null,
+      "candidate_ids": [
+        "A0550601"
+      ],
+      "source": {
+        "provider": "TFDA",
+        "source_id": "A0550601",
+        "source_food_id": "TFDA_A0550601",
+        "source_file": "食材營養成分表.xlsx",
+        "source_sheet": "食材營養成分",
+        "source_version": "TFDA 食品營養成分資料集",
+        "source_url": "https://data.gov.tw/dataset/8543"
+      },
+      "approval_basis": "User-approved deterministic mapping policy; not a claim of per-record human review"
+    },
+    {
+      "food_id": "FOOD000301",
+      "canonical_names": [
+        "白醋"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD000305",
+      "canonical_names": [
+        "白蘑菇"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD000307",
+      "canonical_names": [
+        "白蘿蔔"
+      ],
+      "status": "approved",
+      "sample_id": "E04001",
+      "sample_state": "raw",
+      "match_rule": "unique_same_state_official_average",
+      "reason": null,
+      "candidate_ids": [
+        "E04001",
+        "E0400101"
+      ],
+      "source": {
+        "provider": "TFDA",
+        "source_id": "E04001",
+        "source_food_id": "TFDA_E04001",
+        "source_file": "食材營養成分表.xlsx",
+        "source_sheet": "食材營養成分",
+        "source_version": "TFDA 食品營養成分資料集",
+        "source_url": "https://data.gov.tw/dataset/8543"
+      },
+      "approval_basis": "User-approved deterministic mapping policy; not a claim of per-record human review"
+    },
+    {
+      "food_id": "FOOD000309",
+      "canonical_names": [
+        "皮蛋"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD000312",
+      "canonical_names": [
+        "石頭火鍋粉"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD000315",
+      "canonical_names": [
+        "全蛋"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD000316",
+      "canonical_names": [
+        "全麥麵包"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD000320",
+      "canonical_names": [
+        "冰糖"
+      ],
+      "status": "approved",
+      "sample_id": "N0100201",
+      "sample_state": "unspecified",
+      "match_rule": "unique_exact_standard_name",
+      "reason": null,
+      "candidate_ids": [
+        "N0100201"
+      ],
+      "source": {
+        "provider": "TFDA",
+        "source_id": "N0100201",
+        "source_food_id": "TFDA_N0100201",
+        "source_file": "食材營養成分表.xlsx",
+        "source_sheet": "食材營養成分",
+        "source_version": "TFDA 食品營養成分資料集",
+        "source_url": "https://data.gov.tw/dataset/8543"
+      },
+      "approval_basis": "User-approved deterministic mapping policy; not a claim of per-record human review"
+    },
+    {
+      "food_id": "FOOD000322",
+      "canonical_names": [
+        "吉利丁片"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD000323",
+      "canonical_names": [
+        "吐司"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD000324",
+      "canonical_names": [
+        "在來米粉"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "alias_requires_confirmation",
+      "candidate_ids": [
+        "A0520201"
+      ]
+    },
+    {
+      "food_id": "FOOD000325",
+      "canonical_names": [
+        "地瓜"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "alias_requires_confirmation",
+      "candidate_ids": [
+        "B0400101",
+        "B0400201",
+        "B0400301",
+        "B0400401",
+        "B0400501",
+        "B0400601",
+        "B0600101"
+      ]
+    },
+    {
+      "food_id": "FOOD000326",
+      "canonical_names": [
+        "地瓜粉"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "alias_requires_confirmation",
+      "candidate_ids": [
+        "B0420101"
+      ]
+    },
+    {
+      "food_id": "FOOD000327",
+      "canonical_names": [
+        "地瓜葉"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "alias_requires_confirmation",
+      "candidate_ids": [
+        "E3100101"
+      ]
+    },
+    {
+      "food_id": "FOOD000328",
+      "canonical_names": [
+        "多利魚"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD000334",
+      "canonical_names": [
+        "年糕"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD000335",
+      "canonical_names": [
+        "有機素蠔油"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD000338",
+      "canonical_names": [
+        "百里香"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD000340",
+      "canonical_names": [
+        "百香果"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD000342",
+      "canonical_names": [
+        "竹筍"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD000345",
+      "canonical_names": [
+        "米"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD000347",
+      "canonical_names": [
+        "米油"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD000351",
+      "canonical_names": [
+        "米粉"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD000352",
+      "canonical_names": [
+        "米酒"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD000353",
+      "canonical_names": [
+        "米粕"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD000358",
+      "canonical_names": [
+        "老抽"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD000360",
+      "canonical_names": [
+        "肉桂"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD000361",
+      "canonical_names": [
+        "肉絲"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "food_kind_unspecified",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD000373",
+      "canonical_names": [
+        "西洋芹"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD000375",
+      "canonical_names": [
+        "低脂牛奶"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD000377",
+      "canonical_names": [
+        "低筋麵粉"
+      ],
+      "status": "approved",
+      "sample_id": "A0320202",
+      "sample_state": "unspecified",
+      "match_rule": "unique_exact_standard_name",
+      "reason": null,
+      "candidate_ids": [
+        "A0320202"
+      ],
+      "source": {
+        "provider": "TFDA",
+        "source_id": "A0320202",
+        "source_food_id": "TFDA_A0320202",
+        "source_file": "食材營養成分表.xlsx",
+        "source_sheet": "食材營養成分",
+        "source_version": "TFDA 食品營養成分資料集",
+        "source_url": "https://data.gov.tw/dataset/8543"
+      },
+      "approval_basis": "User-approved deterministic mapping policy; not a claim of per-record human review"
+    },
+    {
+      "food_id": "FOOD000380",
+      "canonical_names": [
+        "冷凍烏龍麵"
+      ],
+      "status": "approved",
+      "sample_id": "R2001301",
+      "sample_state": "unspecified",
+      "match_rule": "unique_exact_standard_name",
+      "reason": null,
+      "candidate_ids": [
+        "R2001301"
+      ],
+      "source": {
+        "provider": "TFDA",
+        "source_id": "R2001301",
+        "source_food_id": "TFDA_R2001301",
+        "source_file": "食材營養成分表.xlsx",
+        "source_sheet": "食材營養成分",
+        "source_version": "TFDA 食品營養成分資料集",
+        "source_url": "https://data.gov.tw/dataset/8543"
+      },
+      "approval_basis": "User-approved deterministic mapping policy; not a claim of per-record human review"
+    },
+    {
+      "food_id": "FOOD000383",
+      "canonical_names": [
+        "即溶酵母"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD000384",
+      "canonical_names": [
+        "吳郭魚"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "alias_requires_confirmation",
+      "candidate_ids": [
+        "J0412301"
+      ]
+    },
+    {
+      "food_id": "FOOD000388",
+      "canonical_names": [
+        "杏仁果"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD000390",
+      "canonical_names": [
+        "杏鮑菇"
+      ],
+      "status": "approved",
+      "sample_id": "G13002",
+      "sample_state": "raw",
+      "match_rule": "unique_same_state_official_average",
+      "reason": null,
+      "candidate_ids": [
+        "G13002"
+      ],
+      "source": {
+        "provider": "TFDA",
+        "source_id": "G13002",
+        "source_food_id": "TFDA_G13002",
+        "source_file": "食材營養成分表.xlsx",
+        "source_sheet": "食材營養成分",
+        "source_version": "TFDA 食品營養成分資料集",
+        "source_url": "https://data.gov.tw/dataset/8543"
+      },
+      "approval_basis": "User-approved deterministic mapping policy; not a claim of per-record human review"
+    },
+    {
+      "food_id": "FOOD000396",
+      "canonical_names": [
+        "沙拉油"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "alias_requires_confirmation",
+      "candidate_ids": [
+        "M1100101",
+        "M1100301"
+      ]
+    },
+    {
+      "food_id": "FOOD000398",
+      "canonical_names": [
+        "沙拉醬"
+      ],
+      "status": "approved",
+      "sample_id": "P1100101",
+      "sample_state": "unspecified",
+      "match_rule": "unique_exact_standard_name",
+      "reason": null,
+      "candidate_ids": [
+        "P1100101"
+      ],
+      "source": {
+        "provider": "TFDA",
+        "source_id": "P1100101",
+        "source_food_id": "TFDA_P1100101",
+        "source_file": "食材營養成分表.xlsx",
+        "source_sheet": "食材營養成分",
+        "source_version": "TFDA 食品營養成分資料集",
+        "source_url": "https://data.gov.tw/dataset/8543"
+      },
+      "approval_basis": "User-approved deterministic mapping policy; not a claim of per-record human review"
+    },
+    {
+      "food_id": "FOOD000400",
+      "canonical_names": [
+        "沙茶"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD000402",
+      "canonical_names": [
+        "沙茶醬"
+      ],
+      "status": "approved",
+      "sample_id": "P1001701",
+      "sample_state": "unspecified",
+      "match_rule": "unique_exact_standard_name",
+      "reason": null,
+      "candidate_ids": [
+        "P1001701"
+      ],
+      "source": {
+        "provider": "TFDA",
+        "source_id": "P1001701",
+        "source_food_id": "TFDA_P1001701",
+        "source_file": "食材營養成分表.xlsx",
+        "source_sheet": "食材營養成分",
+        "source_version": "TFDA 食品營養成分資料集",
+        "source_url": "https://data.gov.tw/dataset/8543"
+      },
+      "approval_basis": "User-approved deterministic mapping policy; not a claim of per-record human review"
+    },
+    {
+      "food_id": "FOOD000403",
+      "canonical_names": [
+        "沙茶醬的油"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD000412",
+      "canonical_names": [
+        "芋頭"
+      ],
+      "status": "approved",
+      "sample_id": "B0500101",
+      "sample_state": "raw",
+      "match_rule": "unique_exact_standard_name",
+      "reason": null,
+      "candidate_ids": [
+        "B0500101"
+      ],
+      "source": {
+        "provider": "TFDA",
+        "source_id": "B0500101",
+        "source_food_id": "TFDA_B0500101",
+        "source_file": "食材營養成分表.xlsx",
+        "source_sheet": "食材營養成分",
+        "source_version": "TFDA 食品營養成分資料集",
+        "source_url": "https://data.gov.tw/dataset/8543"
+      },
+      "approval_basis": "User-approved deterministic mapping policy; not a claim of per-record human review"
+    },
+    {
+      "food_id": "FOOD000415",
+      "canonical_names": [
+        "芋頭餡"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD000420",
+      "canonical_names": [
+        "豆干"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD000422",
+      "canonical_names": [
+        "豆皮"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "alias_requires_confirmation",
+      "candidate_ids": [
+        "R4700401"
+      ]
+    },
+    {
+      "food_id": "FOOD000425",
+      "canonical_names": [
+        "豆芽"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD000426",
+      "canonical_names": [
+        "豆芽菜"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "alias_requires_confirmation",
+      "candidate_ids": [
+        "E7700701"
+      ]
+    },
+    {
+      "food_id": "FOOD000427",
+      "canonical_names": [
+        "豆豉"
+      ],
+      "status": "approved",
+      "sample_id": "R4700601",
+      "sample_state": "unspecified",
+      "match_rule": "unique_exact_standard_name",
+      "reason": null,
+      "candidate_ids": [
+        "R4700601"
+      ],
+      "source": {
+        "provider": "TFDA",
+        "source_id": "R4700601",
+        "source_food_id": "TFDA_R4700601",
+        "source_file": "食材營養成分表.xlsx",
+        "source_sheet": "食材營養成分",
+        "source_version": "TFDA 食品營養成分資料集",
+        "source_url": "https://data.gov.tw/dataset/8543"
+      },
+      "approval_basis": "User-approved deterministic mapping policy; not a claim of per-record human review"
+    },
+    {
+      "food_id": "FOOD000428",
+      "canonical_names": [
+        "豆腐"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD000430",
+      "canonical_names": [
+        "豆腐乳"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD000433",
+      "canonical_names": [
+        "豆瓣醬"
+      ],
+      "status": "approved",
+      "sample_id": "P1004101",
+      "sample_state": "unspecified",
+      "match_rule": "unique_exact_standard_name",
+      "reason": null,
+      "candidate_ids": [
+        "P1004101"
+      ],
+      "source": {
+        "provider": "TFDA",
+        "source_id": "P1004101",
+        "source_food_id": "TFDA_P1004101",
+        "source_file": "食材營養成分表.xlsx",
+        "source_sheet": "食材營養成分",
+        "source_version": "TFDA 食品營養成分資料集",
+        "source_url": "https://data.gov.tw/dataset/8543"
+      },
+      "approval_basis": "User-approved deterministic mapping policy; not a claim of per-record human review"
+    },
+    {
+      "food_id": "FOOD000437",
+      "canonical_names": [
+        "乳酪絲"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD000441",
+      "canonical_names": [
+        "其他香料"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD000444",
+      "canonical_names": [
+        "味噌"
+      ],
+      "status": "approved",
+      "sample_id": "P1200101",
+      "sample_state": "unspecified",
+      "match_rule": "unique_exact_standard_name",
+      "reason": null,
+      "candidate_ids": [
+        "P1200101"
+      ],
+      "source": {
+        "provider": "TFDA",
+        "source_id": "P1200101",
+        "source_food_id": "TFDA_P1200101",
+        "source_file": "食材營養成分表.xlsx",
+        "source_sheet": "食材營養成分",
+        "source_version": "TFDA 食品營養成分資料集",
+        "source_url": "https://data.gov.tw/dataset/8543"
+      },
+      "approval_basis": "User-approved deterministic mapping policy; not a claim of per-record human review"
+    },
+    {
+      "food_id": "FOOD000445",
+      "canonical_names": [
+        "味醂"
+      ],
+      "status": "approved",
+      "sample_id": "P0800101",
+      "sample_state": "unspecified",
+      "match_rule": "unique_exact_standard_name",
+      "reason": null,
+      "candidate_ids": [
+        "P0800101"
+      ],
+      "source": {
+        "provider": "TFDA",
+        "source_id": "P0800101",
+        "source_food_id": "TFDA_P0800101",
+        "source_file": "食材營養成分表.xlsx",
+        "source_sheet": "食材營養成分",
+        "source_version": "TFDA 食品營養成分資料集",
+        "source_url": "https://data.gov.tw/dataset/8543"
+      },
+      "approval_basis": "User-approved deterministic mapping policy; not a claim of per-record human review"
+    },
+    {
+      "food_id": "FOOD000447",
+      "canonical_names": [
+        "咖哩塊"
+      ],
+      "status": "approved",
+      "sample_id": "P0200501",
+      "sample_state": "unspecified",
+      "match_rule": "unique_exact_standard_name",
+      "reason": null,
+      "candidate_ids": [
+        "P0200501"
+      ],
+      "source": {
+        "provider": "TFDA",
+        "source_id": "P0200501",
+        "source_food_id": "TFDA_P0200501",
+        "source_file": "食材營養成分表.xlsx",
+        "source_sheet": "食材營養成分",
+        "source_version": "TFDA 食品營養成分資料集",
+        "source_url": "https://data.gov.tw/dataset/8543"
+      },
+      "approval_basis": "User-approved deterministic mapping policy; not a claim of per-record human review"
+    },
+    {
+      "food_id": "FOOD000449",
+      "canonical_names": [
+        "咖啡粉"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD000450",
+      "canonical_names": [
+        "咖喱塊"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD000452",
+      "canonical_names": [
+        "奇亞籽"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD000457",
+      "canonical_names": [
+        "拉麵"
+      ],
+      "status": "approved",
+      "sample_id": "R2000901",
+      "sample_state": "unspecified",
+      "match_rule": "unique_exact_standard_name",
+      "reason": null,
+      "candidate_ids": [
+        "R2000901"
+      ],
+      "source": {
+        "provider": "TFDA",
+        "source_id": "R2000901",
+        "source_food_id": "TFDA_R2000901",
+        "source_file": "食材營養成分表.xlsx",
+        "source_sheet": "食材營養成分",
+        "source_version": "TFDA 食品營養成分資料集",
+        "source_url": "https://data.gov.tw/dataset/8543"
+      },
+      "approval_basis": "User-approved deterministic mapping policy; not a claim of per-record human review"
+    },
+    {
+      "food_id": "FOOD000458",
+      "canonical_names": [
+        "昆布"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "alias_requires_confirmation",
+      "candidate_ids": [
+        "F07001"
+      ]
+    },
+    {
+      "food_id": "FOOD000463",
+      "canonical_names": [
+        "松阪豬"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD000467",
+      "canonical_names": [
+        "板豆腐"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "alias_requires_confirmation",
+      "candidate_ids": [
+        "R4700901",
+        "R4700902"
+      ]
+    },
+    {
+      "food_id": "FOOD000472",
+      "canonical_names": [
+        "油"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "food_kind_unspecified",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD000473",
+      "canonical_names": [
+        "油豆腐"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD000474",
+      "canonical_names": [
+        "油花生"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD000486",
+      "canonical_names": [
+        "油菜"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD000488",
+      "canonical_names": [
+        "油蒜酥"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD000489",
+      "canonical_names": [
+        "油蔥酥"
+      ],
+      "status": "approved",
+      "sample_id": "P0200601",
+      "sample_state": "unspecified",
+      "match_rule": "unique_exact_standard_name",
+      "reason": null,
+      "candidate_ids": [
+        "P0200601"
+      ],
+      "source": {
+        "provider": "TFDA",
+        "source_id": "P0200601",
+        "source_food_id": "TFDA_P0200601",
+        "source_file": "食材營養成分表.xlsx",
+        "source_sheet": "食材營養成分",
+        "source_version": "TFDA 食品營養成分資料集",
+        "source_url": "https://data.gov.tw/dataset/8543"
+      },
+      "approval_basis": "User-approved deterministic mapping policy; not a claim of per-record human review"
+    },
+    {
+      "food_id": "FOOD000490",
+      "canonical_names": [
+        "油麵"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "alias_requires_confirmation",
+      "candidate_ids": [
+        "R2000201"
+      ]
+    },
+    {
+      "food_id": "FOOD000493",
+      "canonical_names": [
+        "法式香料"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD000494",
+      "canonical_names": [
+        "泡香菇的水"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD000495",
+      "canonical_names": [
+        "泡菜"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD000496",
+      "canonical_names": [
+        "泡蝦米水"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD000509",
+      "canonical_names": [
+        "空心菜"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "alias_requires_confirmation",
+      "candidate_ids": [
+        "E5600101",
+        "E5600102",
+        "E5600103",
+        "E5600104",
+        "E5600201",
+        "E5600202",
+        "E5600203",
+        "E5600204",
+        "E5600301",
+        "E5600302"
+      ]
+    },
+    {
+      "food_id": "FOOD000510",
+      "canonical_names": [
+        "芝麻"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD000512",
+      "canonical_names": [
+        "芝麻油"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD000517",
+      "canonical_names": [
+        "芥藍"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD000523",
+      "canonical_names": [
+        "花瓜"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "alias_requires_confirmation",
+      "candidate_ids": [
+        "E6400101",
+        "E6400201",
+        "R4401601"
+      ]
+    },
+    {
+      "food_id": "FOOD000533",
+      "canonical_names": [
+        "花生醬"
+      ],
+      "status": "approved",
+      "sample_id": "P1300901",
+      "sample_state": "unspecified",
+      "match_rule": "unique_exact_standard_name",
+      "reason": null,
+      "candidate_ids": [
+        "P1300901"
+      ],
+      "source": {
+        "provider": "TFDA",
+        "source_id": "P1300901",
+        "source_food_id": "TFDA_P1300901",
+        "source_file": "食材營養成分表.xlsx",
+        "source_sheet": "食材營養成分",
+        "source_version": "TFDA 食品營養成分資料集",
+        "source_url": "https://data.gov.tw/dataset/8543"
+      },
+      "approval_basis": "User-approved deterministic mapping policy; not a claim of per-record human review"
+    },
+    {
+      "food_id": "FOOD000539",
+      "canonical_names": [
+        "花枝"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "alias_requires_confirmation",
+      "candidate_ids": [
+        "J35001",
+        "J3500101",
+        "J3500102"
+      ]
+    },
+    {
+      "food_id": "FOOD000548",
+      "canonical_names": [
+        "花椒"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD000549",
+      "canonical_names": [
+        "花椒粉"
+      ],
+      "status": "approved",
+      "sample_id": "P0100801",
+      "sample_state": "unspecified",
+      "match_rule": "unique_exact_standard_name",
+      "reason": null,
+      "candidate_ids": [
+        "P0100801"
+      ],
+      "source": {
+        "provider": "TFDA",
+        "source_id": "P0100801",
+        "source_food_id": "TFDA_P0100801",
+        "source_file": "食材營養成分表.xlsx",
+        "source_sheet": "食材營養成分",
+        "source_version": "TFDA 食品營養成分資料集",
+        "source_url": "https://data.gov.tw/dataset/8543"
+      },
+      "approval_basis": "User-approved deterministic mapping policy; not a claim of per-record human review"
+    },
+    {
+      "food_id": "FOOD000550",
+      "canonical_names": [
+        "花椒粒"
+      ],
+      "status": "approved",
+      "sample_id": "P0102201",
+      "sample_state": "unspecified",
+      "match_rule": "unique_exact_standard_name",
+      "reason": null,
+      "candidate_ids": [
+        "P0102201"
+      ],
+      "source": {
+        "provider": "TFDA",
+        "source_id": "P0102201",
+        "source_food_id": "TFDA_P0102201",
+        "source_file": "食材營養成分表.xlsx",
+        "source_sheet": "食材營養成分",
+        "source_version": "TFDA 食品營養成分資料集",
+        "source_url": "https://data.gov.tw/dataset/8543"
+      },
+      "approval_basis": "User-approved deterministic mapping policy; not a claim of per-record human review"
+    },
+    {
+      "food_id": "FOOD000551",
+      "canonical_names": [
+        "花椰菜"
+      ],
+      "status": "approved",
+      "sample_id": "E5800101",
+      "sample_state": "raw",
+      "match_rule": "unique_exact_standard_name",
+      "reason": null,
+      "candidate_ids": [
+        "E5800101"
+      ],
+      "source": {
+        "provider": "TFDA",
+        "source_id": "E5800101",
+        "source_food_id": "TFDA_E5800101",
+        "source_file": "食材營養成分表.xlsx",
+        "source_sheet": "食材營養成分",
+        "source_version": "TFDA 食品營養成分資料集",
+        "source_url": "https://data.gov.tw/dataset/8543"
+      },
+      "approval_basis": "User-approved deterministic mapping policy; not a claim of per-record human review"
+    },
+    {
+      "food_id": "FOOD000554",
+      "canonical_names": [
+        "芹菜"
+      ],
+      "status": "approved",
+      "sample_id": "E37002",
+      "sample_state": "raw",
+      "match_rule": "unique_same_state_official_average",
+      "reason": null,
+      "candidate_ids": [
+        "E37002",
+        "E3700202"
+      ],
+      "source": {
+        "provider": "TFDA",
+        "source_id": "E37002",
+        "source_food_id": "TFDA_E37002",
+        "source_file": "食材營養成分表.xlsx",
+        "source_sheet": "食材營養成分",
+        "source_version": "TFDA 食品營養成分資料集",
+        "source_url": "https://data.gov.tw/dataset/8543"
+      },
+      "approval_basis": "User-approved deterministic mapping policy; not a claim of per-record human review"
+    },
+    {
+      "food_id": "FOOD000558",
+      "canonical_names": [
+        "虱目魚肚"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD000560",
+      "canonical_names": [
+        "金瓜"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "alias_requires_confirmation",
+      "candidate_ids": [
+        "E63001",
+        "E6300101",
+        "E6300102",
+        "E6300103",
+        "E6300104"
+      ]
+    },
+    {
+      "food_id": "FOOD000563",
+      "canonical_names": [
+        "金針菇"
+      ],
+      "status": "approved",
+      "sample_id": "G1600101",
+      "sample_state": "raw",
+      "match_rule": "unique_exact_standard_name",
+      "reason": null,
+      "candidate_ids": [
+        "G1600101"
+      ],
+      "source": {
+        "provider": "TFDA",
+        "source_id": "G1600101",
+        "source_food_id": "TFDA_G1600101",
+        "source_file": "食材營養成分表.xlsx",
+        "source_sheet": "食材營養成分",
+        "source_version": "TFDA 食品營養成分資料集",
+        "source_url": "https://data.gov.tw/dataset/8543"
+      },
+      "approval_basis": "User-approved deterministic mapping policy; not a claim of per-record human review"
+    },
+    {
+      "food_id": "FOOD000572",
+      "canonical_names": [
+        "長米"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "alias_requires_confirmation",
+      "candidate_ids": [
+        "A05001",
+        "A0500101",
+        "A0500102",
+        "A0500103"
+      ]
+    },
+    {
+      "food_id": "FOOD000585",
+      "canonical_names": [
+        "青江菜"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD000588",
+      "canonical_names": [
+        "青花菜"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD000593",
+      "canonical_names": [
+        "青椒"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "alias_requires_confirmation",
+      "candidate_ids": [
+        "E75001"
+      ]
+    },
+    {
+      "food_id": "FOOD000598",
+      "canonical_names": [
+        "青蔥"
+      ],
+      "status": "approved",
+      "sample_id": "E23001",
+      "sample_state": "raw",
+      "match_rule": "unique_same_state_official_average",
+      "reason": null,
+      "candidate_ids": [
+        "E23001"
+      ],
+      "source": {
+        "provider": "TFDA",
+        "source_id": "E23001",
+        "source_food_id": "TFDA_E23001",
+        "source_file": "食材營養成分表.xlsx",
+        "source_sheet": "食材營養成分",
+        "source_version": "TFDA 食品營養成分資料集",
+        "source_url": "https://data.gov.tw/dataset/8543"
+      },
+      "approval_basis": "User-approved deterministic mapping policy; not a claim of per-record human review"
+    },
+    {
+      "food_id": "FOOD000599",
+      "canonical_names": [
+        "青蘿蔔"
+      ],
+      "status": "approved",
+      "sample_id": "E0400301",
+      "sample_state": "raw",
+      "match_rule": "unique_exact_standard_name",
+      "reason": null,
+      "candidate_ids": [
+        "E0400301"
+      ],
+      "source": {
+        "provider": "TFDA",
+        "source_id": "E0400301",
+        "source_food_id": "TFDA_E0400301",
+        "source_file": "食材營養成分表.xlsx",
+        "source_sheet": "食材營養成分",
+        "source_version": "TFDA 食品營養成分資料集",
+        "source_url": "https://data.gov.tw/dataset/8543"
+      },
+      "approval_basis": "User-approved deterministic mapping policy; not a claim of per-record human review"
+    },
+    {
+      "food_id": "FOOD000601",
+      "canonical_names": [
+        "南瓜"
+      ],
+      "status": "approved",
+      "sample_id": "E63001",
+      "sample_state": "raw",
+      "match_rule": "unique_same_state_official_average",
+      "reason": null,
+      "candidate_ids": [
+        "E63001"
+      ],
+      "source": {
+        "provider": "TFDA",
+        "source_id": "E63001",
+        "source_food_id": "TFDA_E63001",
+        "source_file": "食材營養成分表.xlsx",
+        "source_sheet": "食材營養成分",
+        "source_version": "TFDA 食品營養成分資料集",
+        "source_url": "https://data.gov.tw/dataset/8543"
+      },
+      "approval_basis": "User-approved deterministic mapping policy; not a claim of per-record human review"
+    },
+    {
+      "food_id": "FOOD000611",
+      "canonical_names": [
+        "枸杞"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "alias_requires_confirmation",
+      "candidate_ids": [
+        "E7210101"
+      ]
+    },
+    {
+      "food_id": "FOOD000616",
+      "canonical_names": [
+        "洋菇"
+      ],
+      "status": "approved",
+      "sample_id": "G2000101",
+      "sample_state": "raw",
+      "match_rule": "unique_exact_standard_name",
+      "reason": null,
+      "candidate_ids": [
+        "G2000101"
+      ],
+      "source": {
+        "provider": "TFDA",
+        "source_id": "G2000101",
+        "source_food_id": "TFDA_G2000101",
+        "source_file": "食材營養成分表.xlsx",
+        "source_sheet": "食材營養成分",
+        "source_version": "TFDA 食品營養成分資料集",
+        "source_url": "https://data.gov.tw/dataset/8543"
+      },
+      "approval_basis": "User-approved deterministic mapping policy; not a claim of per-record human review"
+    },
+    {
+      "food_id": "FOOD000618",
+      "canonical_names": [
+        "洋蔥"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD000628",
+      "canonical_names": [
+        "砂糖"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD000630",
+      "canonical_names": [
+        "秋刀魚"
+      ],
+      "status": "approved",
+      "sample_id": "J0416501",
+      "sample_state": "raw",
+      "match_rule": "unique_exact_standard_name",
+      "reason": null,
+      "candidate_ids": [
+        "J0416501"
+      ],
+      "source": {
+        "provider": "TFDA",
+        "source_id": "J0416501",
+        "source_food_id": "TFDA_J0416501",
+        "source_file": "食材營養成分表.xlsx",
+        "source_sheet": "食材營養成分",
+        "source_version": "TFDA 食品營養成分資料集",
+        "source_url": "https://data.gov.tw/dataset/8543"
+      },
+      "approval_basis": "User-approved deterministic mapping policy; not a claim of per-record human review"
+    },
+    {
+      "food_id": "FOOD000631",
+      "canonical_names": [
+        "秋葵"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "alias_requires_confirmation",
+      "candidate_ids": [
+        "E7600101"
+      ]
+    },
+    {
+      "food_id": "FOOD000635",
+      "canonical_names": [
+        "紅冰糖"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD000649",
+      "canonical_names": [
+        "紅茶葉"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD000650",
+      "canonical_names": [
+        "紅酒"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD000651",
+      "canonical_names": [
+        "紅彩椒"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD000655",
+      "canonical_names": [
+        "紅椒"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD000659",
+      "canonical_names": [
+        "紅標料理米酒"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD000660",
+      "canonical_names": [
+        "紅蔥酥"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD000661",
+      "canonical_names": [
+        "紅蔥頭"
+      ],
+      "status": "approved",
+      "sample_id": "E2500101",
+      "sample_state": "raw",
+      "match_rule": "unique_exact_standard_name",
+      "reason": null,
+      "candidate_ids": [
+        "E2500101"
+      ],
+      "source": {
+        "provider": "TFDA",
+        "source_id": "E2500101",
+        "source_food_id": "TFDA_E2500101",
+        "source_file": "食材營養成分表.xlsx",
+        "source_sheet": "食材營養成分",
+        "source_version": "TFDA 食品營養成分資料集",
+        "source_url": "https://data.gov.tw/dataset/8543"
+      },
+      "approval_basis": "User-approved deterministic mapping policy; not a claim of per-record human review"
+    },
+    {
+      "food_id": "FOOD000663",
+      "canonical_names": [
+        "紅糖"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "alias_requires_confirmation",
+      "candidate_ids": [
+        "N0100301"
+      ]
+    },
+    {
+      "food_id": "FOOD000671",
+      "canonical_names": [
+        "美乃滋"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD000672",
+      "canonical_names": [
+        "美極鮮味露"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD000675",
+      "canonical_names": [
+        "胡椒"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD000676",
+      "canonical_names": [
+        "胡椒粉"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD000677",
+      "canonical_names": [
+        "胡椒鹽"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD000678",
+      "canonical_names": [
+        "胡蘿蔔"
+      ],
+      "status": "approved",
+      "sample_id": "E02001",
+      "sample_state": "raw",
+      "match_rule": "unique_same_state_official_average",
+      "reason": null,
+      "candidate_ids": [
+        "E02001",
+        "E0200101"
+      ],
+      "source": {
+        "provider": "TFDA",
+        "source_id": "E02001",
+        "source_food_id": "TFDA_E02001",
+        "source_file": "食材營養成分表.xlsx",
+        "source_sheet": "食材營養成分",
+        "source_version": "TFDA 食品營養成分資料集",
+        "source_url": "https://data.gov.tw/dataset/8543"
+      },
+      "approval_basis": "User-approved deterministic mapping policy; not a claim of per-record human review"
+    },
+    {
+      "food_id": "FOOD000680",
+      "canonical_names": [
+        "苦瓜"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD000684",
+      "canonical_names": [
+        "茄子"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD000686",
+      "canonical_names": [
+        "茉莉香米"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD000687",
+      "canonical_names": [
+        "韭菜"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD000688",
+      "canonical_names": [
+        "韭菜花"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD000691",
+      "canonical_names": [
+        "食鹽"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD000693",
+      "canonical_names": [
+        "香油"
+      ],
+      "status": "approved",
+      "sample_id": "P0900201",
+      "sample_state": "unspecified",
+      "match_rule": "unique_exact_standard_name",
+      "reason": null,
+      "candidate_ids": [
+        "P0900201"
+      ],
+      "source": {
+        "provider": "TFDA",
+        "source_id": "P0900201",
+        "source_food_id": "TFDA_P0900201",
+        "source_file": "食材營養成分表.xlsx",
+        "source_sheet": "食材營養成分",
+        "source_version": "TFDA 食品營養成分資料集",
+        "source_url": "https://data.gov.tw/dataset/8543"
+      },
+      "approval_basis": "User-approved deterministic mapping policy; not a claim of per-record human review"
+    },
+    {
+      "food_id": "FOOD000700",
+      "canonical_names": [
+        "香菇"
+      ],
+      "status": "approved",
+      "sample_id": "G08001",
+      "sample_state": "raw",
+      "match_rule": "unique_same_state_official_average",
+      "reason": null,
+      "candidate_ids": [
+        "G08001"
+      ],
+      "source": {
+        "provider": "TFDA",
+        "source_id": "G08001",
+        "source_food_id": "TFDA_G08001",
+        "source_file": "食材營養成分表.xlsx",
+        "source_sheet": "食材營養成分",
+        "source_version": "TFDA 食品營養成分資料集",
+        "source_url": "https://data.gov.tw/dataset/8543"
+      },
+      "approval_basis": "User-approved deterministic mapping policy; not a claim of per-record human review"
+    },
+    {
+      "food_id": "FOOD000701",
+      "canonical_names": [
+        "香菇水"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD000705",
+      "canonical_names": [
+        "香菜"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "alias_requires_confirmation",
+      "candidate_ids": [
+        "E4000101"
+      ]
+    },
+    {
+      "food_id": "FOOD000706",
+      "canonical_names": [
+        "香腸"
+      ],
+      "status": "approved",
+      "sample_id": "R5300201",
+      "sample_state": "raw",
+      "match_rule": "unique_exact_standard_name",
+      "reason": null,
+      "candidate_ids": [
+        "R5300201"
+      ],
+      "source": {
+        "provider": "TFDA",
+        "source_id": "R5300201",
+        "source_food_id": "TFDA_R5300201",
+        "source_file": "食材營養成分表.xlsx",
+        "source_sheet": "食材營養成分",
+        "source_version": "TFDA 食品營養成分資料集",
+        "source_url": "https://data.gov.tw/dataset/8543"
+      },
+      "approval_basis": "User-approved deterministic mapping policy; not a claim of per-record human review"
+    },
+    {
+      "food_id": "FOOD000707",
+      "canonical_names": [
+        "香葉"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD000708",
+      "canonical_names": [
+        "香蒜胡椒鹽"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD000717",
+      "canonical_names": [
+        "料酒"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD000718",
+      "canonical_names": [
+        "料理酒"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD000719",
+      "canonical_names": [
+        "柴魚"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "alias_requires_confirmation",
+      "candidate_ids": [
+        "J0407801",
+        "J0409001",
+        "J0414001"
+      ]
+    },
+    {
+      "food_id": "FOOD000721",
+      "canonical_names": [
+        "柴魚片花"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD000722",
+      "canonical_names": [
+        "柴魚粉"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD000723",
+      "canonical_names": [
+        "柴魚高湯"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD000727",
+      "canonical_names": [
+        "桂皮"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD000728",
+      "canonical_names": [
+        "桂竹筍"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD000733",
+      "canonical_names": [
+        "海苔粉"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD000742",
+      "canonical_names": [
+        "海鹽"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD000752",
+      "canonical_names": [
+        "烏醋"
+      ],
+      "status": "approved",
+      "sample_id": "P0600701",
+      "sample_state": "unspecified",
+      "match_rule": "unique_exact_standard_name",
+      "reason": null,
+      "candidate_ids": [
+        "P0600701"
+      ],
+      "source": {
+        "provider": "TFDA",
+        "source_id": "P0600701",
+        "source_food_id": "TFDA_P0600701",
+        "source_file": "食材營養成分表.xlsx",
+        "source_sheet": "食材營養成分",
+        "source_version": "TFDA 食品營養成分資料集",
+        "source_url": "https://data.gov.tw/dataset/8543"
+      },
+      "approval_basis": "User-approved deterministic mapping policy; not a claim of per-record human review"
+    },
+    {
+      "food_id": "FOOD000753",
+      "canonical_names": [
+        "烏龍麵"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD000808",
+      "canonical_names": [
+        "破布子"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD000810",
+      "canonical_names": [
+        "粉絲"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "alias_requires_confirmation",
+      "candidate_ids": [
+        "R4600101",
+        "R4600201"
+      ]
+    },
+    {
+      "food_id": "FOOD000818",
+      "canonical_names": [
+        "素蠔油"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD000821",
+      "canonical_names": [
+        "脆瓜罐頭"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD000827",
+      "canonical_names": [
+        "草果"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD000828",
+      "canonical_names": [
+        "草莓"
+      ],
+      "status": "approved",
+      "sample_id": "D1400101",
+      "sample_state": "unspecified",
+      "match_rule": "unique_exact_standard_name",
+      "reason": null,
+      "candidate_ids": [
+        "D1400101"
+      ],
+      "source": {
+        "provider": "TFDA",
+        "source_id": "D1400101",
+        "source_food_id": "TFDA_D1400101",
+        "source_file": "食材營養成分表.xlsx",
+        "source_sheet": "食材營養成分",
+        "source_version": "TFDA 食品營養成分資料集",
+        "source_url": "https://data.gov.tw/dataset/8543"
+      },
+      "approval_basis": "User-approved deterministic mapping policy; not a claim of per-record human review"
+    },
+    {
+      "food_id": "FOOD000835",
+      "canonical_names": [
+        "草蝦"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "alias_requires_confirmation",
+      "candidate_ids": [
+        "J2101101"
+      ]
+    },
+    {
+      "food_id": "FOOD000836",
+      "canonical_names": [
+        "草蝦仁"
+      ],
+      "status": "approved",
+      "sample_id": "J2200501",
+      "sample_state": "raw",
+      "match_rule": "unique_exact_standard_name",
+      "reason": null,
+      "candidate_ids": [
+        "J2200501"
+      ],
+      "source": {
+        "provider": "TFDA",
+        "source_id": "J2200501",
+        "source_food_id": "TFDA_J2200501",
+        "source_file": "食材營養成分表.xlsx",
+        "source_sheet": "食材營養成分",
+        "source_version": "TFDA 食品營養成分資料集",
+        "source_url": "https://data.gov.tw/dataset/8543"
+      },
+      "approval_basis": "User-approved deterministic mapping policy; not a claim of per-record human review"
+    },
+    {
+      "food_id": "FOOD000839",
+      "canonical_names": [
+        "貢丸"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD000840",
+      "canonical_names": [
+        "起司"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "alias_requires_confirmation",
+      "candidate_ids": [
+        "L0500101",
+        "L0500201",
+        "L0500301"
+      ]
+    },
+    {
+      "food_id": "FOOD000841",
+      "canonical_names": [
+        "起司粉"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "alias_requires_confirmation",
+      "candidate_ids": [
+        "L0500401"
+      ]
+    },
+    {
+      "food_id": "FOOD000844",
+      "canonical_names": [
+        "迷迭香"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD000845",
+      "canonical_names": [
+        "酒"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "food_kind_unspecified",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD000851",
+      "canonical_names": [
+        "馬鈴薯"
+      ],
+      "status": "approved",
+      "sample_id": "B0700201",
+      "sample_state": "raw",
+      "match_rule": "unique_exact_standard_name",
+      "reason": null,
+      "candidate_ids": [
+        "B0700201"
+      ],
+      "source": {
+        "provider": "TFDA",
+        "source_id": "B0700201",
+        "source_food_id": "TFDA_B0700201",
+        "source_file": "食材營養成分表.xlsx",
+        "source_sheet": "食材營養成分",
+        "source_version": "TFDA 食品營養成分資料集",
+        "source_url": "https://data.gov.tw/dataset/8543"
+      },
+      "approval_basis": "User-approved deterministic mapping policy; not a claim of per-record human review"
+    },
+    {
+      "food_id": "FOOD000859",
+      "canonical_names": [
+        "高湯"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "food_kind_unspecified",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD000860",
+      "canonical_names": [
+        "高湯水"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD000861",
+      "canonical_names": [
+        "高筋麵粉"
+      ],
+      "status": "approved",
+      "sample_id": "A0320404",
+      "sample_state": "unspecified",
+      "match_rule": "unique_exact_standard_name",
+      "reason": null,
+      "candidate_ids": [
+        "A0320404"
+      ],
+      "source": {
+        "provider": "TFDA",
+        "source_id": "A0320404",
+        "source_food_id": "TFDA_A0320404",
+        "source_file": "食材營養成分表.xlsx",
+        "source_sheet": "食材營養成分",
+        "source_version": "TFDA 食品營養成分資料集",
+        "source_url": "https://data.gov.tw/dataset/8543"
+      },
+      "approval_basis": "User-approved deterministic mapping policy; not a claim of per-record human review"
+    },
+    {
+      "food_id": "FOOD000862",
+      "canonical_names": [
+        "高粱酒"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD000863",
+      "canonical_names": [
+        "高粱醋"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD000865",
+      "canonical_names": [
+        "高鮮味精"
+      ],
+      "status": "approved",
+      "sample_id": "P0400201",
+      "sample_state": "unspecified",
+      "match_rule": "unique_exact_standard_name",
+      "reason": null,
+      "candidate_ids": [
+        "P0400201"
+      ],
+      "source": {
+        "provider": "TFDA",
+        "source_id": "P0400201",
+        "source_food_id": "TFDA_P0400201",
+        "source_file": "食材營養成分表.xlsx",
+        "source_sheet": "食材營養成分",
+        "source_version": "TFDA 食品營養成分資料集",
+        "source_url": "https://data.gov.tw/dataset/8543"
+      },
+      "approval_basis": "User-approved deterministic mapping policy; not a claim of per-record human review"
+    },
+    {
+      "food_id": "FOOD000867",
+      "canonical_names": [
+        "高麗菜"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "alias_requires_confirmation",
+      "candidate_ids": [
+        "E30001",
+        "E3000101",
+        "E3000102",
+        "E3000103",
+        "E3000104",
+        "E3000401"
+      ]
+    },
+    {
+      "food_id": "FOOD000877",
+      "canonical_names": [
+        "乾香菇"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "sample_or_average_ambiguous",
+      "candidate_ids": [
+        "G08101",
+        "G0810101"
+      ]
+    },
+    {
+      "food_id": "FOOD000880",
+      "canonical_names": [
+        "乾辣椒"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD000881",
+      "canonical_names": [
+        "乾燥海帶芽"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD000882",
+      "canonical_names": [
+        "乾燥迷迭香"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD000885",
+      "canonical_names": [
+        "啤酒"
+      ],
+      "status": "approved",
+      "sample_id": "R9900102",
+      "sample_state": "unspecified",
+      "match_rule": "unique_exact_standard_name",
+      "reason": null,
+      "candidate_ids": [
+        "R9900102"
+      ],
+      "source": {
+        "provider": "TFDA",
+        "source_id": "R9900102",
+        "source_food_id": "TFDA_R9900102",
+        "source_file": "食材營養成分表.xlsx",
+        "source_sheet": "食材營養成分",
+        "source_version": "TFDA 食品營養成分資料集",
+        "source_url": "https://data.gov.tw/dataset/8543"
+      },
+      "approval_basis": "User-approved deterministic mapping policy; not a claim of per-record human review"
+    },
+    {
+      "food_id": "FOOD000886",
+      "canonical_names": [
+        "培根"
+      ],
+      "status": "approved",
+      "sample_id": "R5100801",
+      "sample_state": "raw",
+      "match_rule": "unique_exact_standard_name",
+      "reason": null,
+      "candidate_ids": [
+        "R5100801"
+      ],
+      "source": {
+        "provider": "TFDA",
+        "source_id": "R5100801",
+        "source_food_id": "TFDA_R5100801",
+        "source_file": "食材營養成分表.xlsx",
+        "source_sheet": "食材營養成分",
+        "source_version": "TFDA 食品營養成分資料集",
+        "source_url": "https://data.gov.tw/dataset/8543"
+      },
+      "approval_basis": "User-approved deterministic mapping policy; not a claim of per-record human review"
+    },
+    {
+      "food_id": "FOOD000889",
+      "canonical_names": [
+        "帶皮帶骨雞肉"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD000890",
+      "canonical_names": [
+        "帶皮雞腿"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD000896",
+      "canonical_names": [
+        "排骨酥"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD000898",
+      "canonical_names": [
+        "梅子粉"
+      ],
+      "status": "approved",
+      "sample_id": "P0200701",
+      "sample_state": "unspecified",
+      "match_rule": "unique_exact_standard_name",
+      "reason": null,
+      "candidate_ids": [
+        "P0200701"
+      ],
+      "source": {
+        "provider": "TFDA",
+        "source_id": "P0200701",
+        "source_food_id": "TFDA_P0200701",
+        "source_file": "食材營養成分表.xlsx",
+        "source_sheet": "食材營養成分",
+        "source_version": "TFDA 食品營養成分資料集",
+        "source_url": "https://data.gov.tw/dataset/8543"
+      },
+      "approval_basis": "User-approved deterministic mapping policy; not a claim of per-record human review"
+    },
+    {
+      "food_id": "FOOD000899",
+      "canonical_names": [
+        "梅花肉"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "alias_requires_confirmation",
+      "candidate_ids": [
+        "I0300301"
+      ]
+    },
+    {
+      "food_id": "FOOD000902",
+      "canonical_names": [
+        "淡醬油"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD000906",
+      "canonical_names": [
+        "清酒"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD000910",
+      "canonical_names": [
+        "清雞高湯"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD000911",
+      "canonical_names": [
+        "烹大師"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD000912",
+      "canonical_names": [
+        "焗烤起司"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD000913",
+      "canonical_names": [
+        "甜不辣"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "alias_requires_confirmation",
+      "candidate_ids": [
+        "R6700401"
+      ]
+    },
+    {
+      "food_id": "FOOD000917",
+      "canonical_names": [
+        "甜豆"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD000924",
+      "canonical_names": [
+        "甜麵醬"
+      ],
+      "status": "approved",
+      "sample_id": "P1002601",
+      "sample_state": "unspecified",
+      "match_rule": "unique_exact_standard_name",
+      "reason": null,
+      "candidate_ids": [
+        "P1002601"
+      ],
+      "source": {
+        "provider": "TFDA",
+        "source_id": "P1002601",
+        "source_food_id": "TFDA_P1002601",
+        "source_file": "食材營養成分表.xlsx",
+        "source_sheet": "食材營養成分",
+        "source_version": "TFDA 食品營養成分資料集",
+        "source_url": "https://data.gov.tw/dataset/8543"
+      },
+      "approval_basis": "User-approved deterministic mapping policy; not a claim of per-record human review"
+    },
+    {
+      "food_id": "FOOD000928",
+      "canonical_names": [
+        "粗黑胡椒粉"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD000930",
+      "canonical_names": [
+        "細糖"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD000931",
+      "canonical_names": [
+        "紹興酒"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD000933",
+      "canonical_names": [
+        "荷包蛋"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD000943",
+      "canonical_names": [
+        "蛋白"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD000944",
+      "canonical_names": [
+        "蛋豆腐"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD000945",
+      "canonical_names": [
+        "蛋黃"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD000952",
+      "canonical_names": [
+        "袖珍菇"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD000954",
+      "canonical_names": [
+        "透抽"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "alias_requires_confirmation",
+      "candidate_ids": [
+        "J3500502"
+      ]
+    },
+    {
+      "food_id": "FOOD000965",
+      "canonical_names": [
+        "魚"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "food_kind_unspecified",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD000971",
+      "canonical_names": [
+        "魚高湯"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD000975",
+      "canonical_names": [
+        "魚露"
+      ],
+      "status": "approved",
+      "sample_id": "P0800401",
+      "sample_state": "unspecified",
+      "match_rule": "unique_exact_standard_name",
+      "reason": null,
+      "candidate_ids": [
+        "P0800401"
+      ],
+      "source": {
+        "provider": "TFDA",
+        "source_id": "P0800401",
+        "source_food_id": "TFDA_P0800401",
+        "source_file": "食材營養成分表.xlsx",
+        "source_sheet": "食材營養成分",
+        "source_version": "TFDA 食品營養成分資料集",
+        "source_url": "https://data.gov.tw/dataset/8543"
+      },
+      "approval_basis": "User-approved deterministic mapping policy; not a claim of per-record human review"
+    },
+    {
+      "food_id": "FOOD000976",
+      "canonical_names": [
+        "麥片"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD000978",
+      "canonical_names": [
+        "麥芽糖"
+      ],
+      "status": "approved",
+      "sample_id": "N0200101",
+      "sample_state": "unspecified",
+      "match_rule": "unique_exact_standard_name",
+      "reason": null,
+      "candidate_ids": [
+        "N0200101"
+      ],
+      "source": {
+        "provider": "TFDA",
+        "source_id": "N0200101",
+        "source_food_id": "TFDA_N0200101",
+        "source_file": "食材營養成分表.xlsx",
+        "source_sheet": "食材營養成分",
+        "source_version": "TFDA 食品營養成分資料集",
+        "source_url": "https://data.gov.tw/dataset/8543"
+      },
+      "approval_basis": "User-approved deterministic mapping policy; not a claim of per-record human review"
+    },
+    {
+      "food_id": "FOOD000981",
+      "canonical_names": [
+        "麻油"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD000982",
+      "canonical_names": [
+        "凱撒沙拉醬"
+      ],
+      "status": "approved",
+      "sample_id": "P1100501",
+      "sample_state": "unspecified",
+      "match_rule": "unique_exact_standard_name",
+      "reason": null,
+      "candidate_ids": [
+        "P1100501"
+      ],
+      "source": {
+        "provider": "TFDA",
+        "source_id": "P1100501",
+        "source_food_id": "TFDA_P1100501",
+        "source_file": "食材營養成分表.xlsx",
+        "source_sheet": "食材營養成分",
+        "source_version": "TFDA 食品營養成分資料集",
+        "source_url": "https://data.gov.tw/dataset/8543"
+      },
+      "approval_basis": "User-approved deterministic mapping policy; not a claim of per-record human review"
+    },
+    {
+      "food_id": "FOOD000998",
+      "canonical_names": [
+        "普羅旺斯風味香料"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD000999",
+      "canonical_names": [
+        "朝天椒"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD001008",
+      "canonical_names": [
+        "無骨雞腿肉"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD001010",
+      "canonical_names": [
+        "無塩奶油"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD001011",
+      "canonical_names": [
+        "無糖豆漿"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD001016",
+      "canonical_names": [
+        "番茄"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD001017",
+      "canonical_names": [
+        "番茄糊"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD001018",
+      "canonical_names": [
+        "番茄醬"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD001024",
+      "canonical_names": [
+        "筊白筍"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD001025",
+      "canonical_names": [
+        "筍片"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD001027",
+      "canonical_names": [
+        "粟米"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD001033",
+      "canonical_names": [
+        "紫菜"
+      ],
+      "status": "approved",
+      "sample_id": "F0210101",
+      "sample_state": "unspecified",
+      "match_rule": "unique_exact_standard_name",
+      "reason": null,
+      "candidate_ids": [
+        "F0210101"
+      ],
+      "source": {
+        "provider": "TFDA",
+        "source_id": "F0210101",
+        "source_food_id": "TFDA_F0210101",
+        "source_file": "食材營養成分表.xlsx",
+        "source_sheet": "食材營養成分",
+        "source_version": "TFDA 食品營養成分資料集",
+        "source_url": "https://data.gov.tw/dataset/8543"
+      },
+      "approval_basis": "User-approved deterministic mapping policy; not a claim of per-record human review"
+    },
+    {
+      "food_id": "FOOD001034",
+      "canonical_names": [
+        "紫薯粉"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD001036",
+      "canonical_names": [
+        "絞肉"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "food_kind_unspecified",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD001037",
+      "canonical_names": [
+        "絲瓜"
+      ],
+      "status": "approved",
+      "sample_id": "E6800101",
+      "sample_state": "raw",
+      "match_rule": "unique_exact_standard_name",
+      "reason": null,
+      "candidate_ids": [
+        "E6800101"
+      ],
+      "source": {
+        "provider": "TFDA",
+        "source_id": "E6800101",
+        "source_food_id": "TFDA_E6800101",
+        "source_file": "食材營養成分表.xlsx",
+        "source_sheet": "食材營養成分",
+        "source_version": "TFDA 食品營養成分資料集",
+        "source_url": "https://data.gov.tw/dataset/8543"
+      },
+      "approval_basis": "User-approved deterministic mapping policy; not a claim of per-record human review"
+    },
+    {
+      "food_id": "FOOD001043",
+      "canonical_names": [
+        "菠菜"
+      ],
+      "status": "approved",
+      "sample_id": "E5000101",
+      "sample_state": "raw",
+      "match_rule": "unique_exact_standard_name",
+      "reason": null,
+      "candidate_ids": [
+        "E5000101"
+      ],
+      "source": {
+        "provider": "TFDA",
+        "source_id": "E5000101",
+        "source_food_id": "TFDA_E5000101",
+        "source_file": "食材營養成分表.xlsx",
+        "source_sheet": "食材營養成分",
+        "source_version": "TFDA 食品營養成分資料集",
+        "source_url": "https://data.gov.tw/dataset/8543"
+      },
+      "approval_basis": "User-approved deterministic mapping policy; not a claim of per-record human review"
+    },
+    {
+      "food_id": "FOOD001057",
+      "canonical_names": [
+        "蛤蜊"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD001058",
+      "canonical_names": [
+        "蛤蜊汁"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD001059",
+      "canonical_names": [
+        "蛤蠣"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD001067",
+      "canonical_names": [
+        "黃冰糖"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD001071",
+      "canonical_names": [
+        "黃豆油"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "alias_requires_confirmation",
+      "candidate_ids": [
+        "M1100101"
+      ]
+    },
+    {
+      "food_id": "FOOD001072",
+      "canonical_names": [
+        "黃豆芽"
+      ],
+      "status": "approved",
+      "sample_id": "E7700401",
+      "sample_state": "raw",
+      "match_rule": "unique_exact_standard_name",
+      "reason": null,
+      "candidate_ids": [
+        "E7700401"
+      ],
+      "source": {
+        "provider": "TFDA",
+        "source_id": "E7700401",
+        "source_food_id": "TFDA_E7700401",
+        "source_file": "食材營養成分表.xlsx",
+        "source_sheet": "食材營養成分",
+        "source_version": "TFDA 食品營養成分資料集",
+        "source_url": "https://data.gov.tw/dataset/8543"
+      },
+      "approval_basis": "User-approved deterministic mapping policy; not a claim of per-record human review"
+    },
+    {
+      "food_id": "FOOD001075",
+      "canonical_names": [
+        "黃芥末醬"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD001082",
+      "canonical_names": [
+        "黃椒"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD001087",
+      "canonical_names": [
+        "黑木耳"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "alias_requires_confirmation",
+      "candidate_ids": [
+        "G0100101",
+        "G0100201",
+        "G01101",
+        "G0110101",
+        "G0110102"
+      ]
+    },
+    {
+      "food_id": "FOOD001088",
+      "canonical_names": [
+        "黑白芝麻"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD001095",
+      "canonical_names": [
+        "黑芝麻"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD001099",
+      "canonical_names": [
+        "黑胡椒粉"
+      ],
+      "status": "approved",
+      "sample_id": "P0101301",
+      "sample_state": "unspecified",
+      "match_rule": "unique_exact_standard_name",
+      "reason": null,
+      "candidate_ids": [
+        "P0101301"
+      ],
+      "source": {
+        "provider": "TFDA",
+        "source_id": "P0101301",
+        "source_food_id": "TFDA_P0101301",
+        "source_file": "食材營養成分表.xlsx",
+        "source_sheet": "食材營養成分",
+        "source_version": "TFDA 食品營養成分資料集",
+        "source_url": "https://data.gov.tw/dataset/8543"
+      },
+      "approval_basis": "User-approved deterministic mapping policy; not a claim of per-record human review"
+    },
+    {
+      "food_id": "FOOD001101",
+      "canonical_names": [
+        "黑啤酒"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD001109",
+      "canonical_names": [
+        "黑醋"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD001111",
+      "canonical_names": [
+        "黑糖"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "alias_requires_confirmation",
+      "candidate_ids": [
+        "N0100401"
+      ]
+    },
+    {
+      "food_id": "FOOD001115",
+      "canonical_names": [
+        "傳統豆干"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD001126",
+      "canonical_names": [
+        "新鮮檸檬"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD001127",
+      "canonical_names": [
+        "新鮮藍莓"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD001129",
+      "canonical_names": [
+        "椰子油"
+      ],
+      "status": "approved",
+      "sample_id": "M2400101",
+      "sample_state": "unspecified",
+      "match_rule": "unique_exact_standard_name",
+      "reason": null,
+      "candidate_ids": [
+        "M2400101"
+      ],
+      "source": {
+        "provider": "TFDA",
+        "source_id": "M2400101",
+        "source_food_id": "TFDA_M2400101",
+        "source_file": "食材營養成分表.xlsx",
+        "source_sheet": "食材營養成分",
+        "source_version": "TFDA 食品營養成分資料集",
+        "source_url": "https://data.gov.tw/dataset/8543"
+      },
+      "approval_basis": "User-approved deterministic mapping policy; not a claim of per-record human review"
+    },
+    {
+      "food_id": "FOOD001130",
+      "canonical_names": [
+        "椰菜"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD001135",
+      "canonical_names": [
+        "煉乳"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD001145",
+      "canonical_names": [
+        "當歸"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD001147",
+      "canonical_names": [
+        "義大利麵"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD001148",
+      "canonical_names": [
+        "義大利麵醬"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD001149",
+      "canonical_names": [
+        "義式香料"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD001150",
+      "canonical_names": [
+        "義式香腸"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD001151",
+      "canonical_names": [
+        "腰內肉"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "alias_requires_confirmation",
+      "candidate_ids": [
+        "I0106201",
+        "I0106202",
+        "I0306101"
+      ]
+    },
+    {
+      "food_id": "FOOD001153",
+      "canonical_names": [
+        "萵苣"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD001162",
+      "canonical_names": [
+        "葱花"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD001164",
+      "canonical_names": [
+        "葵花油"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD001167",
+      "canonical_names": [
+        "蜂蜜"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD001170",
+      "canonical_names": [
+        "話梅"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD001172",
+      "canonical_names": [
+        "酪梨"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD001173",
+      "canonical_names": [
+        "酪梨油"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD001182",
+      "canonical_names": [
+        "嫩豆腐"
+      ],
+      "status": "approved",
+      "sample_id": "R4701201",
+      "sample_state": "unspecified",
+      "match_rule": "unique_exact_standard_name",
+      "reason": null,
+      "candidate_ids": [
+        "R4701201"
+      ],
+      "source": {
+        "provider": "TFDA",
+        "source_id": "R4701201",
+        "source_food_id": "TFDA_R4701201",
+        "source_file": "食材營養成分表.xlsx",
+        "source_sheet": "食材營養成分",
+        "source_version": "TFDA 食品營養成分資料集",
+        "source_url": "https://data.gov.tw/dataset/8543"
+      },
+      "approval_basis": "User-approved deterministic mapping policy; not a claim of per-record human review"
+    },
+    {
+      "food_id": "FOOD001208",
+      "canonical_names": [
+        "滾水"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD001210",
+      "canonical_names": [
+        "福山萵苣"
+      ],
+      "status": "approved",
+      "sample_id": "E5300104",
+      "sample_state": "raw",
+      "match_rule": "unique_exact_standard_name",
+      "reason": null,
+      "candidate_ids": [
+        "E5300104"
+      ],
+      "source": {
+        "provider": "TFDA",
+        "source_id": "E5300104",
+        "source_food_id": "TFDA_E5300104",
+        "source_file": "食材營養成分表.xlsx",
+        "source_sheet": "食材營養成分",
+        "source_version": "TFDA 食品營養成分資料集",
+        "source_url": "https://data.gov.tw/dataset/8543"
+      },
+      "approval_basis": "User-approved deterministic mapping policy; not a claim of per-record human review"
+    },
+    {
+      "food_id": "FOOD001214",
+      "canonical_names": [
+        "綜合香料"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD001223",
+      "canonical_names": [
+        "綠花椰菜"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD001225",
+      "canonical_names": [
+        "綠蘆筍"
+      ],
+      "status": "approved",
+      "sample_id": "E17002",
+      "sample_state": "raw",
+      "match_rule": "unique_same_state_official_average",
+      "reason": null,
+      "candidate_ids": [
+        "E17002",
+        "E1700201"
+      ],
+      "source": {
+        "provider": "TFDA",
+        "source_id": "E17002",
+        "source_food_id": "TFDA_E17002",
+        "source_file": "食材營養成分表.xlsx",
+        "source_sheet": "食材營養成分",
+        "source_version": "TFDA 食品營養成分資料集",
+        "source_url": "https://data.gov.tw/dataset/8543"
+      },
+      "approval_basis": "User-approved deterministic mapping policy; not a claim of per-record human review"
+    },
+    {
+      "food_id": "FOOD001232",
+      "canonical_names": [
+        "蒜末"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD001235",
+      "canonical_names": [
+        "蒜苗"
+      ],
+      "status": "approved",
+      "sample_id": "E2100301",
+      "sample_state": "raw",
+      "match_rule": "unique_exact_standard_name",
+      "reason": null,
+      "candidate_ids": [
+        "E2100301"
+      ],
+      "source": {
+        "provider": "TFDA",
+        "source_id": "E2100301",
+        "source_food_id": "TFDA_E2100301",
+        "source_file": "食材營養成分表.xlsx",
+        "source_sheet": "食材營養成分",
+        "source_version": "TFDA 食品營養成分資料集",
+        "source_url": "https://data.gov.tw/dataset/8543"
+      },
+      "approval_basis": "User-approved deterministic mapping policy; not a claim of per-record human review"
+    },
+    {
+      "food_id": "FOOD001236",
+      "canonical_names": [
+        "蒜酥"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD001237",
+      "canonical_names": [
+        "蒜頭"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "alias_requires_confirmation",
+      "candidate_ids": [
+        "E2100101"
+      ]
+    },
+    {
+      "food_id": "FOOD001238",
+      "canonical_names": [
+        "蒟蒻烏龍麵"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD001248",
+      "canonical_names": [
+        "辣豆瓣"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD001249",
+      "canonical_names": [
+        "辣豆瓣醬"
+      ],
+      "status": "approved",
+      "sample_id": "P1004201",
+      "sample_state": "unspecified",
+      "match_rule": "unique_exact_standard_name",
+      "reason": null,
+      "candidate_ids": [
+        "P1004201"
+      ],
+      "source": {
+        "provider": "TFDA",
+        "source_id": "P1004201",
+        "source_food_id": "TFDA_P1004201",
+        "source_file": "食材營養成分表.xlsx",
+        "source_sheet": "食材營養成分",
+        "source_version": "TFDA 食品營養成分資料集",
+        "source_url": "https://data.gov.tw/dataset/8543"
+      },
+      "approval_basis": "User-approved deterministic mapping policy; not a claim of per-record human review"
+    },
+    {
+      "food_id": "FOOD001250",
+      "canonical_names": [
+        "辣椒"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "alias_requires_confirmation",
+      "candidate_ids": [
+        "E75005",
+        "E7500501",
+        "E7500502",
+        "E7500503",
+        "E75006",
+        "E7500601",
+        "E7500602",
+        "E7500603",
+        "E7510101"
+      ]
+    },
+    {
+      "food_id": "FOOD001251",
+      "canonical_names": [
+        "辣椒粉"
+      ],
+      "status": "approved",
+      "sample_id": "P0101801",
+      "sample_state": "unspecified",
+      "match_rule": "unique_exact_standard_name",
+      "reason": null,
+      "candidate_ids": [
+        "P0101801"
+      ],
+      "source": {
+        "provider": "TFDA",
+        "source_id": "P0101801",
+        "source_food_id": "TFDA_P0101801",
+        "source_file": "食材營養成分表.xlsx",
+        "source_sheet": "食材營養成分",
+        "source_version": "TFDA 食品營養成分資料集",
+        "source_url": "https://data.gov.tw/dataset/8543"
+      },
+      "approval_basis": "User-approved deterministic mapping policy; not a claim of per-record human review"
+    },
+    {
+      "food_id": "FOOD001252",
+      "canonical_names": [
+        "辣椒醬"
+      ],
+      "status": "approved",
+      "sample_id": "P1003201",
+      "sample_state": "unspecified",
+      "match_rule": "unique_exact_standard_name",
+      "reason": null,
+      "candidate_ids": [
+        "P1003201"
+      ],
+      "source": {
+        "provider": "TFDA",
+        "source_id": "P1003201",
+        "source_food_id": "TFDA_P1003201",
+        "source_file": "食材營養成分表.xlsx",
+        "source_sheet": "食材營養成分",
+        "source_version": "TFDA 食品營養成分資料集",
+        "source_url": "https://data.gov.tw/dataset/8543"
+      },
+      "approval_basis": "User-approved deterministic mapping policy; not a claim of per-record human review"
+    },
+    {
+      "food_id": "FOOD001254",
+      "canonical_names": [
+        "酸黃瓜醬"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD001262",
+      "canonical_names": [
+        "餃子皮"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD001270",
+      "canonical_names": [
+        "鳳梨罐頭"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD001273",
+      "canonical_names": [
+        "寬麵條"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD001280",
+      "canonical_names": [
+        "澄粉"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "alias_requires_confirmation",
+      "candidate_ids": [
+        "A0320101"
+      ]
+    },
+    {
+      "food_id": "FOOD001288",
+      "canonical_names": [
+        "熟蛤蜊"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD001302",
+      "canonical_names": [
+        "蓮藕粉"
+      ],
+      "status": "approved",
+      "sample_id": "B0920101",
+      "sample_state": "unspecified",
+      "match_rule": "unique_exact_standard_name",
+      "reason": null,
+      "candidate_ids": [
+        "B0920101"
+      ],
+      "source": {
+        "provider": "TFDA",
+        "source_id": "B0920101",
+        "source_food_id": "TFDA_B0920101",
+        "source_file": "食材營養成分表.xlsx",
+        "source_sheet": "食材營養成分",
+        "source_version": "TFDA 食品營養成分資料集",
+        "source_url": "https://data.gov.tw/dataset/8543"
+      },
+      "approval_basis": "User-approved deterministic mapping policy; not a claim of per-record human review"
+    },
+    {
+      "food_id": "FOOD001307",
+      "canonical_names": [
+        "蔥花"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD001308",
+      "canonical_names": [
+        "蔬菜雞高湯"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD001309",
+      "canonical_names": [
+        "蔭油"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "alias_requires_confirmation",
+      "candidate_ids": [
+        "P0700301"
+      ]
+    },
+    {
+      "food_id": "FOOD001310",
+      "canonical_names": [
+        "蝦"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD001312",
+      "canonical_names": [
+        "蝦子"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD001313",
+      "canonical_names": [
+        "蝦仁"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD001314",
+      "canonical_names": [
+        "蝦皮"
+      ],
+      "status": "approved",
+      "sample_id": "J2300101",
+      "sample_state": "unspecified",
+      "match_rule": "unique_exact_standard_name",
+      "reason": null,
+      "candidate_ids": [
+        "J2300101"
+      ],
+      "source": {
+        "provider": "TFDA",
+        "source_id": "J2300101",
+        "source_food_id": "TFDA_J2300101",
+        "source_file": "食材營養成分表.xlsx",
+        "source_sheet": "食材營養成分",
+        "source_version": "TFDA 食品營養成分資料集",
+        "source_url": "https://data.gov.tw/dataset/8543"
+      },
+      "approval_basis": "User-approved deterministic mapping policy; not a claim of per-record human review"
+    },
+    {
+      "food_id": "FOOD001316",
+      "canonical_names": [
+        "蝦米"
+      ],
+      "status": "approved",
+      "sample_id": "J2300201",
+      "sample_state": "unspecified",
+      "match_rule": "unique_exact_standard_name",
+      "reason": null,
+      "candidate_ids": [
+        "J2300201"
+      ],
+      "source": {
+        "provider": "TFDA",
+        "source_id": "J2300201",
+        "source_food_id": "TFDA_J2300201",
+        "source_file": "食材營養成分表.xlsx",
+        "source_sheet": "食材營養成分",
+        "source_version": "TFDA 食品營養成分資料集",
+        "source_url": "https://data.gov.tw/dataset/8543"
+      },
+      "approval_basis": "User-approved deterministic mapping policy; not a claim of per-record human review"
+    },
+    {
+      "food_id": "FOOD001336",
+      "canonical_names": [
+        "豬五花肉片"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD001344",
+      "canonical_names": [
+        "豬肉片"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD001353",
+      "canonical_names": [
+        "豬肉絲"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD001366",
+      "canonical_names": [
+        "豬里肌肉"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD001367",
+      "canonical_names": [
+        "豬油"
+      ],
+      "status": "approved",
+      "sample_id": "M0200101",
+      "sample_state": "unspecified",
+      "match_rule": "unique_exact_standard_name",
+      "reason": null,
+      "candidate_ids": [
+        "M0200101"
+      ],
+      "source": {
+        "provider": "TFDA",
+        "source_id": "M0200101",
+        "source_food_id": "TFDA_M0200101",
+        "source_file": "食材營養成分表.xlsx",
+        "source_sheet": "食材營養成分",
+        "source_version": "TFDA 食品營養成分資料集",
+        "source_url": "https://data.gov.tw/dataset/8543"
+      },
+      "approval_basis": "User-approved deterministic mapping policy; not a claim of per-record human review"
+    },
+    {
+      "food_id": "FOOD001369",
+      "canonical_names": [
+        "豬油蔥"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD001371",
+      "canonical_names": [
+        "豬肩肉"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD001378",
+      "canonical_names": [
+        "豬後腿肉"
+      ],
+      "status": "approved",
+      "sample_id": "I0302201",
+      "sample_state": "raw",
+      "match_rule": "unique_exact_standard_name",
+      "reason": null,
+      "candidate_ids": [
+        "I0302201"
+      ],
+      "source": {
+        "provider": "TFDA",
+        "source_id": "I0302201",
+        "source_food_id": "TFDA_I0302201",
+        "source_file": "食材營養成分表.xlsx",
+        "source_sheet": "食材營養成分",
+        "source_version": "TFDA 食品營養成分資料集",
+        "source_url": "https://data.gov.tw/dataset/8543"
+      },
+      "approval_basis": "User-approved deterministic mapping policy; not a claim of per-record human review"
+    },
+    {
+      "food_id": "FOOD001381",
+      "canonical_names": [
+        "豬排肉"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD001382",
+      "canonical_names": [
+        "豬排骨"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD001383",
+      "canonical_names": [
+        "豬梅花排骨"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD001385",
+      "canonical_names": [
+        "豬絞肉"
+      ],
+      "status": "approved",
+      "sample_id": "I03104",
+      "sample_state": "raw",
+      "match_rule": "unique_same_state_official_average",
+      "reason": null,
+      "candidate_ids": [
+        "I03104"
+      ],
+      "source": {
+        "provider": "TFDA",
+        "source_id": "I03104",
+        "source_food_id": "TFDA_I03104",
+        "source_file": "食材營養成分表.xlsx",
+        "source_sheet": "食材營養成分",
+        "source_version": "TFDA 食品營養成分資料集",
+        "source_url": "https://data.gov.tw/dataset/8543"
+      },
+      "approval_basis": "User-approved deterministic mapping policy; not a claim of per-record human review"
+    },
+    {
+      "food_id": "FOOD001395",
+      "canonical_names": [
+        "醃豬肉"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD001396",
+      "canonical_names": [
+        "醋"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD001398",
+      "canonical_names": [
+        "養樂多"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD001403",
+      "canonical_names": [
+        "魷魚"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD001407",
+      "canonical_names": [
+        "橄欖油"
+      ],
+      "status": "approved",
+      "sample_id": "M2700101",
+      "sample_state": "unspecified",
+      "match_rule": "unique_exact_standard_name",
+      "reason": null,
+      "candidate_ids": [
+        "M2700101"
+      ],
+      "source": {
+        "provider": "TFDA",
+        "source_id": "M2700101",
+        "source_food_id": "TFDA_M2700101",
+        "source_file": "食材營養成分表.xlsx",
+        "source_sheet": "食材營養成分",
+        "source_version": "TFDA 食品營養成分資料集",
+        "source_url": "https://data.gov.tw/dataset/8543"
+      },
+      "approval_basis": "User-approved deterministic mapping policy; not a claim of per-record human review"
+    },
+    {
+      "food_id": "FOOD001408",
+      "canonical_names": [
+        "橄欖油檸檬沙拉醬"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD001435",
+      "canonical_names": [
+        "燕麥片"
+      ],
+      "status": "approved",
+      "sample_id": "A0810101",
+      "sample_state": "unspecified",
+      "match_rule": "unique_exact_standard_name",
+      "reason": null,
+      "candidate_ids": [
+        "A0810101"
+      ],
+      "source": {
+        "provider": "TFDA",
+        "source_id": "A0810101",
+        "source_food_id": "TFDA_A0810101",
+        "source_file": "食材營養成分表.xlsx",
+        "source_sheet": "食材營養成分",
+        "source_version": "TFDA 食品營養成分資料集",
+        "source_url": "https://data.gov.tw/dataset/8543"
+      },
+      "approval_basis": "User-approved deterministic mapping policy; not a claim of per-record human review"
+    },
+    {
+      "food_id": "FOOD001437",
+      "canonical_names": [
+        "糖"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD001439",
+      "canonical_names": [
+        "糖粉"
+      ],
+      "status": "approved",
+      "sample_id": "P0201001",
+      "sample_state": "unspecified",
+      "match_rule": "unique_exact_standard_name",
+      "reason": null,
+      "candidate_ids": [
+        "P0201001"
+      ],
+      "source": {
+        "provider": "TFDA",
+        "source_id": "P0201001",
+        "source_food_id": "TFDA_P0201001",
+        "source_file": "食材營養成分表.xlsx",
+        "source_sheet": "食材營養成分",
+        "source_version": "TFDA 食品營養成分資料集",
+        "source_url": "https://data.gov.tw/dataset/8543"
+      },
+      "approval_basis": "User-approved deterministic mapping policy; not a claim of per-record human review"
+    },
+    {
+      "food_id": "FOOD001444",
+      "canonical_names": [
+        "蕃茄"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD001445",
+      "canonical_names": [
+        "蕃茄膏"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD001452",
+      "canonical_names": [
+        "餛飩"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD001453",
+      "canonical_names": [
+        "餛飩皮"
+      ],
+      "status": "approved",
+      "sample_id": "R1800301",
+      "sample_state": "unspecified",
+      "match_rule": "unique_exact_standard_name",
+      "reason": null,
+      "candidate_ids": [
+        "R1800301"
+      ],
+      "source": {
+        "provider": "TFDA",
+        "source_id": "R1800301",
+        "source_food_id": "TFDA_R1800301",
+        "source_file": "食材營養成分表.xlsx",
+        "source_sheet": "食材營養成分",
+        "source_version": "TFDA 食品營養成分資料集",
+        "source_url": "https://data.gov.tw/dataset/8543"
+      },
+      "approval_basis": "User-approved deterministic mapping policy; not a claim of per-record human review"
+    },
+    {
+      "food_id": "FOOD001481",
+      "canonical_names": [
+        "優格"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "alias_requires_confirmation",
+      "candidate_ids": [
+        "L0320101",
+        "L0322101",
+        "L0324101",
+        "L0324201",
+        "L0328101"
+      ]
+    },
+    {
+      "food_id": "FOOD001482",
+      "canonical_names": [
+        "櫛瓜"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD001496",
+      "canonical_names": [
+        "薑"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD001498",
+      "canonical_names": [
+        "薑油"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD001504",
+      "canonical_names": [
+        "韓式芝麻油"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD001505",
+      "canonical_names": [
+        "韓式烤肉醬"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD001506",
+      "canonical_names": [
+        "韓式辣椒粉"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD001507",
+      "canonical_names": [
+        "韓式辣椒醬"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD001508",
+      "canonical_names": [
+        "韓式辣醬"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD001515",
+      "canonical_names": [
+        "鮪魚罐頭"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD001516",
+      "canonical_names": [
+        "鮭魚"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD001518",
+      "canonical_names": [
+        "鮮奶"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD001520",
+      "canonical_names": [
+        "鮮奶油"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD001521",
+      "canonical_names": [
+        "鮮味炒手"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD001522",
+      "canonical_names": [
+        "鮮雞粉"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD001523",
+      "canonical_names": [
+        "鴻喜菇"
+      ],
+      "status": "approved",
+      "sample_id": "G1900101",
+      "sample_state": "raw",
+      "match_rule": "unique_exact_standard_name",
+      "reason": null,
+      "candidate_ids": [
+        "G1900101"
+      ],
+      "source": {
+        "provider": "TFDA",
+        "source_id": "G1900101",
+        "source_food_id": "TFDA_G1900101",
+        "source_file": "食材營養成分表.xlsx",
+        "source_sheet": "食材營養成分",
+        "source_version": "TFDA 食品營養成分資料集",
+        "source_url": "https://data.gov.tw/dataset/8543"
+      },
+      "approval_basis": "User-approved deterministic mapping policy; not a claim of per-record human review"
+    },
+    {
+      "food_id": "FOOD001526",
+      "canonical_names": [
+        "檸檬"
+      ],
+      "status": "approved",
+      "sample_id": "D3800101",
+      "sample_state": "unspecified",
+      "match_rule": "unique_exact_standard_name",
+      "reason": null,
+      "candidate_ids": [
+        "D3800101"
+      ],
+      "source": {
+        "provider": "TFDA",
+        "source_id": "D3800101",
+        "source_food_id": "TFDA_D3800101",
+        "source_file": "食材營養成分表.xlsx",
+        "source_sheet": "食材營養成分",
+        "source_version": "TFDA 食品營養成分資料集",
+        "source_url": "https://data.gov.tw/dataset/8543"
+      },
+      "approval_basis": "User-approved deterministic mapping policy; not a claim of per-record human review"
+    },
+    {
+      "food_id": "FOOD001527",
+      "canonical_names": [
+        "檸檬汁"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "sample_or_average_ambiguous",
+      "candidate_ids": [
+        "D38003"
+      ]
+    },
+    {
+      "food_id": "FOOD001532",
+      "canonical_names": [
+        "燻鮭魚"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD001541",
+      "canonical_names": [
+        "醬油"
+      ],
+      "status": "approved",
+      "sample_id": "P0700101",
+      "sample_state": "unspecified",
+      "match_rule": "unique_exact_standard_name",
+      "reason": null,
+      "candidate_ids": [
+        "P0700101"
+      ],
+      "source": {
+        "provider": "TFDA",
+        "source_id": "P0700101",
+        "source_food_id": "TFDA_P0700101",
+        "source_file": "食材營養成分表.xlsx",
+        "source_sheet": "食材營養成分",
+        "source_version": "TFDA 食品營養成分資料集",
+        "source_url": "https://data.gov.tw/dataset/8543"
+      },
+      "approval_basis": "User-approved deterministic mapping policy; not a claim of per-record human review"
+    },
+    {
+      "food_id": "FOOD001542",
+      "canonical_names": [
+        "醬油膏"
+      ],
+      "status": "approved",
+      "sample_id": "P0700701",
+      "sample_state": "unspecified",
+      "match_rule": "unique_exact_standard_name",
+      "reason": null,
+      "candidate_ids": [
+        "P0700701"
+      ],
+      "source": {
+        "provider": "TFDA",
+        "source_id": "P0700701",
+        "source_food_id": "TFDA_P0700701",
+        "source_file": "食材營養成分表.xlsx",
+        "source_sheet": "食材營養成分",
+        "source_version": "TFDA 食品營養成分資料集",
+        "source_url": "https://data.gov.tw/dataset/8543"
+      },
+      "approval_basis": "User-approved deterministic mapping policy; not a claim of per-record human review"
+    },
+    {
+      "food_id": "FOOD001559",
+      "canonical_names": [
+        "雞里肌肉"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD001560",
+      "canonical_names": [
+        "雞柳條"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD001562",
+      "canonical_names": [
+        "雞粉"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD001563",
+      "canonical_names": [
+        "雞翅"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD001564",
+      "canonical_names": [
+        "雞胸肉"
+      ],
+      "status": "approved",
+      "sample_id": "I0402402",
+      "sample_state": "raw",
+      "match_rule": "existing_t04_explicit_mapping",
+      "reason": null,
+      "candidate_ids": [
+        "I0402402"
+      ],
+      "source": {
+        "provider": "TFDA",
+        "source_id": "I0402402",
+        "source_food_id": "TFDA_I0402402",
+        "source_file": "食材營養成分表.xlsx",
+        "source_sheet": "食材營養成分",
+        "source_version": "TFDA 食品營養成分資料集",
+        "source_url": "https://data.gov.tw/dataset/8543"
+      },
+      "approval_basis": "User-approved deterministic mapping policy; not a claim of per-record human review"
+    },
+    {
+      "food_id": "FOOD001566",
+      "canonical_names": [
+        "雞蛋"
+      ],
+      "status": "approved",
+      "sample_id": "K01001",
+      "sample_state": "raw",
+      "match_rule": "unique_same_state_official_average",
+      "reason": null,
+      "candidate_ids": [
+        "K01001"
+      ],
+      "source": {
+        "provider": "TFDA",
+        "source_id": "K01001",
+        "source_food_id": "TFDA_K01001",
+        "source_file": "食材營養成分表.xlsx",
+        "source_sheet": "食材營養成分",
+        "source_version": "TFDA 食品營養成分資料集",
+        "source_url": "https://data.gov.tw/dataset/8543"
+      },
+      "approval_basis": "User-approved deterministic mapping policy; not a claim of per-record human review"
+    },
+    {
+      "food_id": "FOOD001568",
+      "canonical_names": [
+        "雞蛋豆腐"
+      ],
+      "status": "approved",
+      "sample_id": "R4701301",
+      "sample_state": "unspecified",
+      "match_rule": "unique_exact_standard_name",
+      "reason": null,
+      "candidate_ids": [
+        "R4701301"
+      ],
+      "source": {
+        "provider": "TFDA",
+        "source_id": "R4701301",
+        "source_food_id": "TFDA_R4701301",
+        "source_file": "食材營養成分表.xlsx",
+        "source_sheet": "食材營養成分",
+        "source_version": "TFDA 食品營養成分資料集",
+        "source_url": "https://data.gov.tw/dataset/8543"
+      },
+      "approval_basis": "User-approved deterministic mapping policy; not a claim of per-record human review"
+    },
+    {
+      "food_id": "FOOD001571",
+      "canonical_names": [
+        "雞湯"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD001577",
+      "canonical_names": [
+        "雞腿"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "alias_requires_confirmation",
+      "candidate_ids": [
+        "I0404101",
+        "I0404102",
+        "I0404201",
+        "I0404202",
+        "I0404301",
+        "I0404302"
+      ]
+    },
+    {
+      "food_id": "FOOD001578",
+      "canonical_names": [
+        "雞腿肉"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD001579",
+      "canonical_names": [
+        "雞腿骨"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD001580",
+      "canonical_names": [
+        "雞腿排"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD001600",
+      "canonical_names": [
+        "羅勒葉"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD001602",
+      "canonical_names": [
+        "蟹肉棒"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "alias_requires_confirmation",
+      "candidate_ids": [
+        "R6700101"
+      ]
+    },
+    {
+      "food_id": "FOOD001609",
+      "canonical_names": [
+        "鯖魚"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD001611",
+      "canonical_names": [
+        "鯛魚"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD001612",
+      "canonical_names": [
+        "鯛魚片"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD001620",
+      "canonical_names": [
+        "糯米粉"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD001623",
+      "canonical_names": [
+        "糯米辣椒醬"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD001626",
+      "canonical_names": [
+        "蘆筍"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD001631",
+      "canonical_names": [
+        "蘋果"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD001634",
+      "canonical_names": [
+        "蘑菇"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD001636",
+      "canonical_names": [
+        "蠔油"
+      ],
+      "status": "approved",
+      "sample_id": "P0800301",
+      "sample_state": "unspecified",
+      "match_rule": "unique_exact_standard_name",
+      "reason": null,
+      "candidate_ids": [
+        "P0800301"
+      ],
+      "source": {
+        "provider": "TFDA",
+        "source_id": "P0800301",
+        "source_food_id": "TFDA_P0800301",
+        "source_file": "食材營養成分表.xlsx",
+        "source_sheet": "食材營養成分",
+        "source_version": "TFDA 食品營養成分資料集",
+        "source_url": "https://data.gov.tw/dataset/8543"
+      },
+      "approval_basis": "User-approved deterministic mapping policy; not a claim of per-record human review"
+    },
+    {
+      "food_id": "FOOD001641",
+      "canonical_names": [
+        "鹹蛋"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD001642",
+      "canonical_names": [
+        "鹹蛋黃"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD001644",
+      "canonical_names": [
+        "鹹豬肉"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD001646",
+      "canonical_names": [
+        "麵包丁"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD001648",
+      "canonical_names": [
+        "麵包粉"
+      ],
+      "status": "approved",
+      "sample_id": "P1500501",
+      "sample_state": "unspecified",
+      "match_rule": "unique_exact_standard_name",
+      "reason": null,
+      "candidate_ids": [
+        "P1500501"
+      ],
+      "source": {
+        "provider": "TFDA",
+        "source_id": "P1500501",
+        "source_food_id": "TFDA_P1500501",
+        "source_file": "食材營養成分表.xlsx",
+        "source_sheet": "食材營養成分",
+        "source_version": "TFDA 食品營養成分資料集",
+        "source_url": "https://data.gov.tw/dataset/8543"
+      },
+      "approval_basis": "User-approved deterministic mapping policy; not a claim of per-record human review"
+    },
+    {
+      "food_id": "FOOD001649",
+      "canonical_names": [
+        "麵粉"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD001650",
+      "canonical_names": [
+        "麵條"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD001651",
+      "canonical_names": [
+        "麵筋"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD001660",
+      "canonical_names": [
+        "鰹魚粉"
+      ],
+      "status": "approved",
+      "sample_id": "P0400401",
+      "sample_state": "unspecified",
+      "match_rule": "unique_exact_standard_name",
+      "reason": null,
+      "candidate_ids": [
+        "P0400401"
+      ],
+      "source": {
+        "provider": "TFDA",
+        "source_id": "P0400401",
+        "source_food_id": "TFDA_P0400401",
+        "source_file": "食材營養成分表.xlsx",
+        "source_sheet": "食材營養成分",
+        "source_version": "TFDA 食品營養成分資料集",
+        "source_url": "https://data.gov.tw/dataset/8543"
+      },
+      "approval_basis": "User-approved deterministic mapping policy; not a claim of per-record human review"
+    },
+    {
+      "food_id": "FOOD001663",
+      "canonical_names": [
+        "鱈魚"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD001665",
+      "canonical_names": [
+        "蘿蔔"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "alias_requires_confirmation",
+      "candidate_ids": [
+        "E04001",
+        "E0400101",
+        "E0400102",
+        "E0400201",
+        "E0400301"
+      ]
+    },
+    {
+      "food_id": "FOOD001676",
+      "canonical_names": [
+        "罐頭花瓜醬汁"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD001677",
+      "canonical_names": [
+        "罐頭鮪魚"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD001680",
+      "canonical_names": [
+        "鹽"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD001681",
+      "canonical_names": [
+        "鹽巴"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD001682",
+      "canonical_names": [
+        "鹽麴"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "tfda_sample_not_found",
+      "candidate_ids": []
+    },
+    {
+      "food_id": "FOOD001684",
+      "canonical_names": [
+        "鱸魚"
+      ],
+      "status": "pending",
+      "sample_id": null,
+      "sample_state": null,
+      "match_rule": null,
+      "reason": "alias_requires_confirmation",
+      "candidate_ids": [
+        "J04044",
+        "J0404401",
+        "J0404402",
+        "J0404403",
+        "J0404404",
+        "J0404405",
+        "J0404501"
+      ]
+    }
+  ],
+  "counts": {
+    "approved": 93,
+    "pending": 341
+  }
+}

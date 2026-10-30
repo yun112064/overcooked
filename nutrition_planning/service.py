@@ -28,6 +28,9 @@ class CookingEvidence:
     source: str | None = None
     source_version: str | None = None
     conditions: Mapping[str, str | bool] = field(default_factory=dict)
+    is_estimated: bool = False
+    reference_ids: tuple[str, ...] = ()
+    assumptions: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)
