@@ -1,13 +1,12 @@
 {
-  "review_version": "web-paper-source-review-2026-10-30-v1",
-  "policy": "使用者：文章有明確具名醫師、營養師等專業人士支持即可採用；原始醫學／營養研究具名作者按既有準則核對。",
+  "review_version": "web-paper-source-review-2026-10-30-v2",
+  "policy": "使用者接受Hello醫師及健康醫療網作為T11知識平台來源，不再僅因缺少個別具名專業人士而排除。",
   "original_study_required_for_every_web_record": false,
   "human_trial_required_for_every_record": false,
   "review_performed_for_records": 123,
   "unique_sources": 104,
   "counts": {
-    "pending_named_professional": 27,
-    "accepted_under_user_policy": 96
+    "accepted_under_user_policy": 123
   },
   "database_or_index_changed": false,
   "scope": "來源內容與適用條件審核；不宣稱醫療專業認證、授權完成或正式索引發布。",
@@ -18,18 +17,21 @@
       "ingredient_name": "水蓮菜",
       "source_article_id": "HY-water",
       "source_url": "https://helloyishi.com.tw/healthy-eating/healthy-recipes/white-water-snowflake-recipes/",
-      "source_content_decision": "pending_named_professional",
+      "source_content_decision": "accepted_under_user_policy",
       "professional_name": "",
       "professional_role": "",
       "review_method": "current_primary_article_and_editorial_review_footer",
-      "decision_basis": "摘要與原文可對照，但僅列Hello醫師資料查核，未確認支持本筆主張的具名專業人士。",
+      "decision_basis": "逐筆摘要與原文及適用條件已核對；依使用者新增的平台採用準則接受本來源。未確認支持本筆主張的個別具名專業人士，不冒稱醫師背書。",
       "locator": "網頁擷取L24、L29、L31",
       "fact_zh_reviewed": "文章指出水蓮屬低熱量、含纖維的蔬菜，適量食用可用於體重控制；文中也提到利尿、消水腫的用途。",
       "conditions_reviewed": "限文中所述一般食用形式；未提供可保證效果的劑量。\n證據限制與不可外推範圍：這是網站對食材的衛教說明，未據此認定已完成該食材人體試驗；不延伸成疾病治療或保證效果。",
       "formal_index_approval_granted": false,
       "reviewed_by": "Codex依使用者核准的來源準則",
       "human_per_record_review_claimed": false,
-      "source_snapshot_sha256": "94dc62da395c6d0e1d3212bbed0d16cfbce63d7861e6a244a9ca768843e754df"
+      "source_snapshot_sha256": "94dc62da395c6d0e1d3212bbed0d16cfbce63d7861e6a244a9ca768843e754df",
+      "previous_source_content_decision": "pending_named_professional",
+      "previous_decision_basis": "摘要與原文可對照，但僅列Hello醫師資料查核，未確認支持本筆主張的具名專業人士。",
+      "acceptance_basis": "user_accepted_platform_source"
     },
     {
       "knowledge_id": "WEB-014-001--HY-fushan",
@@ -37,18 +39,21 @@
       "ingredient_name": "福山萵苣",
       "source_article_id": "HY-fushan",
       "source_url": "https://helloyishi.com.tw/healthy-eating/nutrition/fushan-lettuce/",
-      "source_content_decision": "pending_named_professional",
+      "source_content_decision": "accepted_under_user_policy",
       "professional_name": "",
       "professional_role": "",
       "review_method": "current_primary_article_and_editorial_review_footer",
-      "decision_basis": "摘要與原文可對照，但僅列Hello醫師資料查核，未確認支持本筆主張的具名專業人士。",
+      "decision_basis": "逐筆摘要與原文及適用條件已核對；依使用者新增的平台採用準則接受本來源。未確認支持本筆主張的個別具名專業人士，不冒稱醫師背書。",
       "locator": "網頁擷取L37、L67、L68、L70",
       "fact_zh_reviewed": "文章以大陸妹（福山萵苣）為主題，說明其有助抗氧化與眼睛保健；腎功能不佳或血鉀偏高者需留意食用量。",
       "conditions_reviewed": "限文中所述一般食用形式；未提供可保證效果的劑量。\n證據限制與不可外推範圍：網站食材衛教；不得當成已證實可預防眼疾或提升免疫的食材人體試驗。",
       "formal_index_approval_granted": false,
       "reviewed_by": "Codex依使用者核准的來源準則",
       "human_per_record_review_claimed": false,
-      "source_snapshot_sha256": "c853407d963e0860d4d84d38d6a99fe033e588992911565479553a36b14d611a"
+      "source_snapshot_sha256": "c853407d963e0860d4d84d38d6a99fe033e588992911565479553a36b14d611a",
+      "previous_source_content_decision": "pending_named_professional",
+      "previous_decision_basis": "摘要與原文可對照，但僅列Hello醫師資料查核，未確認支持本筆主張的具名專業人士。",
+      "acceptance_basis": "user_accepted_platform_source"
     },
     {
       "knowledge_id": "WEB-028-001--HY-babycorn",
@@ -56,18 +61,21 @@
       "ingredient_name": "玉米筍",
       "source_article_id": "HY-babycorn",
       "source_url": "https://helloyishi.com.tw/healthy-eating/nutrition/baby-corn/",
-      "source_content_decision": "pending_named_professional",
+      "source_content_decision": "accepted_under_user_policy",
       "professional_name": "",
       "professional_role": "",
       "review_method": "current_primary_article_and_editorial_review_footer",
-      "decision_basis": "摘要與原文可對照，但僅列Hello醫師資料查核，未確認支持本筆主張的具名專業人士。",
+      "decision_basis": "逐筆摘要與原文及適用條件已核對；依使用者新增的平台採用準則接受本來源。未確認支持本筆主張的個別具名專業人士，不冒稱醫師背書。",
       "locator": "網頁擷取L55、L59",
       "fact_zh_reviewed": "文章指出玉米筍適量食用有利尿、消水腫的用途，也提醒痛風族群留意食用量。",
       "conditions_reviewed": "限玉米筍；文中另列痛風族群的食用提醒。\n證據限制與不可外推範圍：依網站衛教整理，未核定食材人體試驗；不可套用成熟玉米的效果。",
       "formal_index_approval_granted": false,
       "reviewed_by": "Codex依使用者核准的來源準則",
       "human_per_record_review_claimed": false,
-      "source_snapshot_sha256": "2c47c08611b1499992edeedc80866ae12fe80a22fb6cb5cd93bbe69f6d7dd985"
+      "source_snapshot_sha256": "2c47c08611b1499992edeedc80866ae12fe80a22fb6cb5cd93bbe69f6d7dd985",
+      "previous_source_content_decision": "pending_named_professional",
+      "previous_decision_basis": "摘要與原文可對照，但僅列Hello醫師資料查核，未確認支持本筆主張的具名專業人士。",
+      "acceptance_basis": "user_accepted_platform_source"
     },
     {
       "knowledge_id": "WEB-071-001--HY-whitesesame",
@@ -75,18 +83,21 @@
       "ingredient_name": "白芝麻",
       "source_article_id": "HY-whitesesame",
       "source_url": "https://helloyishi.com.tw/healthy-eating/nutrition/the-health-benefits-of-white-sesame/",
-      "source_content_decision": "pending_named_professional",
+      "source_content_decision": "accepted_under_user_policy",
       "professional_name": "",
       "professional_role": "",
       "review_method": "current_primary_article_and_editorial_review_footer",
-      "decision_basis": "摘要與原文可對照，但僅列Hello醫師資料查核，未確認支持本筆主張的具名專業人士。",
+      "decision_basis": "逐筆摘要與原文及適用條件已核對；依使用者新增的平台採用準則接受本來源。未確認支持本筆主張的個別具名專業人士，不冒稱醫師背書。",
       "locator": "網頁擷取L48、L57、L59",
       "fact_zh_reviewed": "文章說明白芝麻有潤腸、改善便祕的作用，但本身油脂與熱量高；容易腹瀉者不宜過多。",
       "conditions_reviewed": "限白芝麻；食用量需計入整體油脂及熱量，容易腹瀉者留意。\n證據限制與不可外推範圍：這是網站對食材的衛教說明，未據此認定已完成該食材人體試驗；不延伸成疾病治療或保證效果。",
       "formal_index_approval_granted": false,
       "reviewed_by": "Codex依使用者核准的來源準則",
       "human_per_record_review_claimed": false,
-      "source_snapshot_sha256": "a3f7c2a96d4273de44039cb144a70af38392594aab1ca2745ebe804a812ea3bb"
+      "source_snapshot_sha256": "a3f7c2a96d4273de44039cb144a70af38392594aab1ca2745ebe804a812ea3bb",
+      "previous_source_content_decision": "pending_named_professional",
+      "previous_decision_basis": "摘要與原文可對照，但僅列Hello醫師資料查核，未確認支持本筆主張的具名專業人士。",
+      "acceptance_basis": "user_accepted_platform_source"
     },
     {
       "knowledge_id": "WEB-003-001--HY-leaves",
@@ -105,7 +116,8 @@
       "formal_index_approval_granted": false,
       "reviewed_by": "Codex依使用者核准的來源準則",
       "human_per_record_review_claimed": false,
-      "source_snapshot_sha256": "31a1d55f3c80c827ba42114fe324b505d0de76d1e55bcbe00598995636f96951"
+      "source_snapshot_sha256": "31a1d55f3c80c827ba42114fe324b505d0de76d1e55bcbe00598995636f96951",
+      "acceptance_basis": "named_professional_or_original_research"
     },
     {
       "knowledge_id": "WEB-003-001--HN-33590",
@@ -124,7 +136,8 @@
       "formal_index_approval_granted": false,
       "reviewed_by": "Codex依使用者核准的來源準則",
       "human_per_record_review_claimed": false,
-      "source_snapshot_sha256": "de12efe2da56f7dbb2a4497c2b857c6f582d294a24ac843cf0ae2e6cb915f7ff"
+      "source_snapshot_sha256": "de12efe2da56f7dbb2a4497c2b857c6f582d294a24ac843cf0ae2e6cb915f7ff",
+      "acceptance_basis": "named_professional_or_original_research"
     },
     {
       "knowledge_id": "WEB-003-001--P26",
@@ -144,7 +157,8 @@
       "reviewed_by": "Codex依使用者核准的來源準則",
       "human_per_record_review_claimed": false,
       "http_fetch_status": 403,
-      "access_note": "直接HTTP受阻；另由web工具取得原始期刊／PubMed內容核對。"
+      "access_note": "直接HTTP受阻；另由web工具取得原始期刊／PubMed內容核對。",
+      "acceptance_basis": "named_professional_or_original_research"
     },
     {
       "knowledge_id": "WEB-015-001--HY-lettuce",
@@ -152,18 +166,21 @@
       "ingredient_name": "萵苣",
       "source_article_id": "HY-lettuce",
       "source_url": "https://helloyishi.com.tw/healthy-eating/nutrition/lettuce-health-benefits/",
-      "source_content_decision": "pending_named_professional",
+      "source_content_decision": "accepted_under_user_policy",
       "professional_name": "",
       "professional_role": "",
       "review_method": "current_primary_article_and_editorial_review_footer",
-      "decision_basis": "摘要與原文可對照，但僅列Hello醫師資料查核，未確認支持本筆主張的具名專業人士。",
+      "decision_basis": "逐筆摘要與原文及適用條件已核對；依使用者新增的平台採用準則接受本來源。未確認支持本筆主張的個別具名專業人士，不冒稱醫師背書。",
       "locator": "網頁擷取L56",
       "fact_zh_reviewed": "文章將萵苣列為可幫助腸道蠕動、改善便祕的蔬菜。",
       "conditions_reviewed": "限文中所述一般食用形式；未提供可保證效果的劑量。\n證據限制與不可外推範圍：限文章對萵苣的共通說明；不把特定品種的鉀或營養含量套到所有萵苣。",
       "formal_index_approval_granted": false,
       "reviewed_by": "Codex依使用者核准的來源準則",
       "human_per_record_review_claimed": false,
-      "source_snapshot_sha256": "0b68629e042470e9e1992fa6eb5b0943d84601917506ebe6ff0ef6de506bab8f"
+      "source_snapshot_sha256": "0b68629e042470e9e1992fa6eb5b0943d84601917506ebe6ff0ef6de506bab8f",
+      "previous_source_content_decision": "pending_named_professional",
+      "previous_decision_basis": "摘要與原文可對照，但僅列Hello醫師資料查核，未確認支持本筆主張的具名專業人士。",
+      "acceptance_basis": "user_accepted_platform_source"
     },
     {
       "knowledge_id": "WEB-015-001--HN-60979",
@@ -171,18 +188,21 @@
       "ingredient_name": "萵苣",
       "source_article_id": "HN-60979",
       "source_url": "https://www.healthnews.com.tw/article/60979",
-      "source_content_decision": "pending_named_professional",
+      "source_content_decision": "accepted_under_user_policy",
       "professional_name": "",
       "professional_role": "",
       "review_method": "current_primary_article_and_named_attribution",
-      "decision_basis": "內容可找到，但本文未確認支持本筆主張的具名專業人士；不可僅因網站名稱採用。",
+      "decision_basis": "逐筆摘要與原文及適用條件已核對；依使用者新增的平台採用準則接受本來源。未確認支持本筆主張的個別具名專業人士，不冒稱醫師背書。",
       "locator": "正文第8段",
       "fact_zh_reviewed": "文章指出萵苣的膳食纖維與水分有助腸道蠕動及改善便秘。",
       "conditions_reviewed": "文章泛指萵苣；沒有福山萵苣單獨試驗或效果。\n證據限制與不可外推範圍：屬網站衛教敘述，不等於已驗證該食材的人體療效。",
       "formal_index_approval_granted": false,
       "reviewed_by": "Codex依使用者核准的來源準則",
       "human_per_record_review_claimed": false,
-      "source_snapshot_sha256": "c317b95e9bb665e1f45b1e5fd54eef41a2c52cba6a81726ad00737a11e05d69d"
+      "source_snapshot_sha256": "c317b95e9bb665e1f45b1e5fd54eef41a2c52cba6a81726ad00737a11e05d69d",
+      "previous_source_content_decision": "pending_named_professional",
+      "previous_decision_basis": "內容可找到，但本文未確認支持本筆主張的具名專業人士；不可僅因網站名稱採用。",
+      "acceptance_basis": "user_accepted_platform_source"
     },
     {
       "knowledge_id": "WEB-015-001--P22",
@@ -202,7 +222,8 @@
       "reviewed_by": "Codex依使用者核准的來源準則",
       "human_per_record_review_claimed": false,
       "http_fetch_status": 403,
-      "access_note": "直接HTTP受阻；另由web工具取得原始期刊／PubMed內容核對。"
+      "access_note": "直接HTTP受阻；另由web工具取得原始期刊／PubMed內容核對。",
+      "acceptance_basis": "named_professional_or_original_research"
     },
     {
       "knowledge_id": "WEB-017-001--HY-carrot",
@@ -221,7 +242,8 @@
       "formal_index_approval_granted": false,
       "reviewed_by": "Codex依使用者核准的來源準則",
       "human_per_record_review_claimed": false,
-      "source_snapshot_sha256": "0d821cd2413bc6593db9c18e673e1ffd32dfb1771b62319a95ce245d0ace493e"
+      "source_snapshot_sha256": "0d821cd2413bc6593db9c18e673e1ffd32dfb1771b62319a95ce245d0ace493e",
+      "acceptance_basis": "named_professional_or_original_research"
     },
     {
       "knowledge_id": "WEB-017-001--HN-52573",
@@ -240,7 +262,8 @@
       "formal_index_approval_granted": false,
       "reviewed_by": "Codex依使用者核准的來源準則",
       "human_per_record_review_claimed": false,
-      "source_snapshot_sha256": "f7a46e629be83540747118cf4ce3679d3f6f7ae19aacb3c0b0dc9bf7f4bab9d8"
+      "source_snapshot_sha256": "f7a46e629be83540747118cf4ce3679d3f6f7ae19aacb3c0b0dc9bf7f4bab9d8",
+      "acceptance_basis": "named_professional_or_original_research"
     },
     {
       "knowledge_id": "WEB-017-001--P13",
@@ -259,7 +282,8 @@
       "formal_index_approval_granted": false,
       "reviewed_by": "Codex依使用者核准的來源準則",
       "human_per_record_review_claimed": false,
-      "source_snapshot_sha256": "3b18b524af6e32b747323bc509733ef1e77bf7d88309ae711b731d1f512d287f"
+      "source_snapshot_sha256": "3b18b524af6e32b747323bc509733ef1e77bf7d88309ae711b731d1f512d287f",
+      "acceptance_basis": "named_professional_or_original_research"
     },
     {
       "knowledge_id": "WEB-018-001--HY-pumpkin",
@@ -278,7 +302,8 @@
       "formal_index_approval_granted": false,
       "reviewed_by": "Codex依使用者核准的來源準則",
       "human_per_record_review_claimed": false,
-      "source_snapshot_sha256": "649a92430afaddd77384c1d544a2ea4a6ff87997722ada57c088a3910ee1369a"
+      "source_snapshot_sha256": "649a92430afaddd77384c1d544a2ea4a6ff87997722ada57c088a3910ee1369a",
+      "acceptance_basis": "named_professional_or_original_research"
     },
     {
       "knowledge_id": "WEB-018-001--HN-55676",
@@ -297,7 +322,8 @@
       "formal_index_approval_granted": false,
       "reviewed_by": "Codex依使用者核准的來源準則",
       "human_per_record_review_claimed": false,
-      "source_snapshot_sha256": "68440f8f90c7ea18f4c08dcda846523a9da72fef45c677014cbc9d9355a9b63b"
+      "source_snapshot_sha256": "68440f8f90c7ea18f4c08dcda846523a9da72fef45c677014cbc9d9355a9b63b",
+      "acceptance_basis": "named_professional_or_original_research"
     },
     {
       "knowledge_id": "WEB-018-001--P08",
@@ -316,7 +342,8 @@
       "formal_index_approval_granted": false,
       "reviewed_by": "Codex依使用者核准的來源準則",
       "human_per_record_review_claimed": false,
-      "source_snapshot_sha256": "9db882b7ef435c461eac80f166adbd5a9163818d29dee92c0c31c865b17eb174"
+      "source_snapshot_sha256": "9db882b7ef435c461eac80f166adbd5a9163818d29dee92c0c31c865b17eb174",
+      "acceptance_basis": "named_professional_or_original_research"
     },
     {
       "knowledge_id": "WEB-020-001--HY-sweetpotato",
@@ -335,7 +362,8 @@
       "formal_index_approval_granted": false,
       "reviewed_by": "Codex依使用者核准的來源準則",
       "human_per_record_review_claimed": false,
-      "source_snapshot_sha256": "b647bcddf7c621fe941abb7e301ab186722fcc032139c756d17f2bf03ccf3ac3"
+      "source_snapshot_sha256": "b647bcddf7c621fe941abb7e301ab186722fcc032139c756d17f2bf03ccf3ac3",
+      "acceptance_basis": "named_professional_or_original_research"
     },
     {
       "knowledge_id": "WEB-020-001--HN-45761",
@@ -354,7 +382,8 @@
       "formal_index_approval_granted": false,
       "reviewed_by": "Codex依使用者核准的來源準則",
       "human_per_record_review_claimed": false,
-      "source_snapshot_sha256": "dbc30948cd14ca22fe69becde38ea4ae713495c909f98553a26dcccc16cc2534"
+      "source_snapshot_sha256": "dbc30948cd14ca22fe69becde38ea4ae713495c909f98553a26dcccc16cc2534",
+      "acceptance_basis": "named_professional_or_original_research"
     },
     {
       "knowledge_id": "WEB-020-001--P30",
@@ -374,7 +403,8 @@
       "reviewed_by": "Codex依使用者核准的來源準則",
       "human_per_record_review_claimed": false,
       "http_fetch_status": 403,
-      "access_note": "直接HTTP受阻；另由web工具取得原始期刊／PubMed內容核對。"
+      "access_note": "直接HTTP受阻；另由web工具取得原始期刊／PubMed內容核對。",
+      "acceptance_basis": "named_professional_or_original_research"
     },
     {
       "knowledge_id": "WEB-021-001--HY-tomato",
@@ -393,7 +423,8 @@
       "formal_index_approval_granted": false,
       "reviewed_by": "Codex依使用者核准的來源準則",
       "human_per_record_review_claimed": false,
-      "source_snapshot_sha256": "e3269cada563a87e771535e9be3c15e0d12a165db8f1ada9aa085399b9b33f3c"
+      "source_snapshot_sha256": "e3269cada563a87e771535e9be3c15e0d12a165db8f1ada9aa085399b9b33f3c",
+      "acceptance_basis": "named_professional_or_original_research"
     },
     {
       "knowledge_id": "WEB-021-001--HN-66393",
@@ -412,7 +443,8 @@
       "formal_index_approval_granted": false,
       "reviewed_by": "Codex依使用者核准的來源準則",
       "human_per_record_review_claimed": false,
-      "source_snapshot_sha256": "23dd1fe8d7d3cd535b082423cee3034805744583bcd0919cd50491e909264ca9"
+      "source_snapshot_sha256": "23dd1fe8d7d3cd535b082423cee3034805744583bcd0919cd50491e909264ca9",
+      "acceptance_basis": "named_professional_or_original_research"
     },
     {
       "knowledge_id": "WEB-021-001--P01",
@@ -432,7 +464,8 @@
       "reviewed_by": "Codex依使用者核准的來源準則",
       "human_per_record_review_claimed": false,
       "http_fetch_status": 403,
-      "access_note": "直接HTTP受阻；另由web工具取得原始期刊／PubMed內容核對。"
+      "access_note": "直接HTTP受阻；另由web工具取得原始期刊／PubMed內容核對。",
+      "acceptance_basis": "named_professional_or_original_research"
     },
     {
       "knowledge_id": "WEB-026-001--HY-greenpepper",
@@ -451,7 +484,8 @@
       "formal_index_approval_granted": false,
       "reviewed_by": "Codex依使用者核准的來源準則",
       "human_per_record_review_claimed": false,
-      "source_snapshot_sha256": "a5ada8bc635b3b4d6c074de545c02b788db4fd31f9a1b8e3f7c456dfe5e46369"
+      "source_snapshot_sha256": "a5ada8bc635b3b4d6c074de545c02b788db4fd31f9a1b8e3f7c456dfe5e46369",
+      "acceptance_basis": "named_professional_or_original_research"
     },
     {
       "knowledge_id": "WEB-026-001--HN-44809",
@@ -470,7 +504,8 @@
       "formal_index_approval_granted": false,
       "reviewed_by": "Codex依使用者核准的來源準則",
       "human_per_record_review_claimed": false,
-      "source_snapshot_sha256": "4a354f78e0671f29acca56315fea5a5373594ce7e024f91df9f0107e970b0af3"
+      "source_snapshot_sha256": "4a354f78e0671f29acca56315fea5a5373594ce7e024f91df9f0107e970b0af3",
+      "acceptance_basis": "named_professional_or_original_research"
     },
     {
       "knowledge_id": "WEB-027-001--HY-corn",
@@ -478,18 +513,21 @@
       "ingredient_name": "玉米",
       "source_article_id": "HY-corn",
       "source_url": "https://helloyishi.com.tw/healthy-eating/nutrition/corn-health-benefits/",
-      "source_content_decision": "pending_named_professional",
+      "source_content_decision": "accepted_under_user_policy",
       "professional_name": "",
       "professional_role": "",
       "review_method": "current_primary_article_and_editorial_review_footer",
-      "decision_basis": "摘要與原文可對照，但僅列Hello醫師資料查核，未確認支持本筆主張的具名專業人士。",
+      "decision_basis": "逐筆摘要與原文及適用條件已核對；依使用者新增的平台採用準則接受本來源。未確認支持本筆主張的個別具名專業人士，不冒稱醫師背書。",
       "locator": "網頁擷取L57、L68",
       "fact_zh_reviewed": "文章指出玉米可延緩消化、增加飽足感，並減緩血糖上升；其含醣量仍須計入餐食，過量不利血糖控制。",
       "conditions_reviewed": "限文中所述一般食用形式；未提供可保證效果的劑量。\n證據限制與不可外推範圍：這是網站對食材的衛教說明，未據此認定已完成該食材人體試驗；不延伸成疾病治療或保證效果。",
       "formal_index_approval_granted": false,
       "reviewed_by": "Codex依使用者核准的來源準則",
       "human_per_record_review_claimed": false,
-      "source_snapshot_sha256": "9f5887babd32e81c6cf034cbec76ac55b6c6c68648a6f16f7177476f0d8c8b73"
+      "source_snapshot_sha256": "9f5887babd32e81c6cf034cbec76ac55b6c6c68648a6f16f7177476f0d8c8b73",
+      "previous_source_content_decision": "pending_named_professional",
+      "previous_decision_basis": "摘要與原文可對照，但僅列Hello醫師資料查核，未確認支持本筆主張的具名專業人士。",
+      "acceptance_basis": "user_accepted_platform_source"
     },
     {
       "knowledge_id": "WEB-027-001--HN-32552",
@@ -508,7 +546,8 @@
       "formal_index_approval_granted": false,
       "reviewed_by": "Codex依使用者核准的來源準則",
       "human_per_record_review_claimed": false,
-      "source_snapshot_sha256": "1c326f3bc5e18eeeb90bf02214d3094dff6176e621c43e207c13f48f3b1a13da"
+      "source_snapshot_sha256": "1c326f3bc5e18eeeb90bf02214d3094dff6176e621c43e207c13f48f3b1a13da",
+      "acceptance_basis": "named_professional_or_original_research"
     },
     {
       "knowledge_id": "WEB-027-001--P17",
@@ -527,7 +566,8 @@
       "formal_index_approval_granted": false,
       "reviewed_by": "Codex依使用者核准的來源準則",
       "human_per_record_review_claimed": false,
-      "source_snapshot_sha256": "a617920979a23619c13a083a0b6d1545131fc4fe61fd18d1405377879dbc7793"
+      "source_snapshot_sha256": "a617920979a23619c13a083a0b6d1545131fc4fe61fd18d1405377879dbc7793",
+      "acceptance_basis": "named_professional_or_original_research"
     },
     {
       "knowledge_id": "WEB-031-001--HY-radish",
@@ -535,18 +575,21 @@
       "ingredient_name": "白蘿蔔",
       "source_article_id": "HY-radish",
       "source_url": "https://helloyishi.com.tw/healthy-eating/nutrition/daikon-radish/",
-      "source_content_decision": "pending_named_professional",
+      "source_content_decision": "accepted_under_user_policy",
       "professional_name": "",
       "professional_role": "",
       "review_method": "current_primary_article_and_editorial_review_footer",
-      "decision_basis": "摘要與原文可對照，但僅列Hello醫師資料查核，未確認支持本筆主張的具名專業人士。",
+      "decision_basis": "逐筆摘要與原文及適用條件已核對；依使用者新增的平台採用準則接受本來源。未確認支持本筆主張的個別具名專業人士，不冒稱醫師背書。",
       "locator": "網頁擷取L32",
       "fact_zh_reviewed": "文章將白蘿蔔列為低熱量、可用於增加飽足感與控制飲食的食材。",
       "conditions_reviewed": "限文中所述一般食用形式；未提供可保證效果的劑量。\n證據限制與不可外推範圍：限白蘿蔔；未採用文中有疑義的GI比較數字，也不外推青蘿蔔或名稱未明的蘿蔔。",
       "formal_index_approval_granted": false,
       "reviewed_by": "Codex依使用者核准的來源準則",
       "human_per_record_review_claimed": false,
-      "source_snapshot_sha256": "126ae2d9e73a20987fc935720c76c91ea5c0605938b52fbc035d506e4aaec7ca"
+      "source_snapshot_sha256": "126ae2d9e73a20987fc935720c76c91ea5c0605938b52fbc035d506e4aaec7ca",
+      "previous_source_content_decision": "pending_named_professional",
+      "previous_decision_basis": "摘要與原文可對照，但僅列Hello醫師資料查核，未確認支持本筆主張的具名專業人士。",
+      "acceptance_basis": "user_accepted_platform_source"
     },
     {
       "knowledge_id": "WEB-036-001--HY-waterbamboo",
@@ -554,18 +597,21 @@
       "ingredient_name": "筊白筍",
       "source_article_id": "HY-waterbamboo",
       "source_url": "https://helloyishi.com.tw/healthy-eating/nutrition/the-nutrition-of-water-bamboo-shoots/",
-      "source_content_decision": "pending_named_professional",
+      "source_content_decision": "accepted_under_user_policy",
       "professional_name": "",
       "professional_role": "",
       "review_method": "current_primary_article_and_editorial_review_footer",
-      "decision_basis": "摘要與原文可對照，但僅列Hello醫師資料查核，未確認支持本筆主張的具名專業人士。",
+      "decision_basis": "逐筆摘要與原文及適用條件已核對；依使用者新增的平台採用準則接受本來源。未確認支持本筆主張的個別具名專業人士，不冒稱醫師背書。",
       "locator": "網頁擷取L27",
       "fact_zh_reviewed": "文章指出筊白筍熱量低，可作為體重控制期間的蔬菜選擇。",
       "conditions_reviewed": "限文中所述一般食用形式；未提供可保證效果的劑量。\n證據限制與不可外推範圍：網站飲食衛教，並未提供吃筊白筍即可減重的人體試驗證據。",
       "formal_index_approval_granted": false,
       "reviewed_by": "Codex依使用者核准的來源準則",
       "human_per_record_review_claimed": false,
-      "source_snapshot_sha256": "a12f725ce6f97ff0c8ca612f38464dff01755008a9fedca2384e2d8469032408"
+      "source_snapshot_sha256": "a12f725ce6f97ff0c8ca612f38464dff01755008a9fedca2384e2d8469032408",
+      "previous_source_content_decision": "pending_named_professional",
+      "previous_decision_basis": "摘要與原文可對照，但僅列Hello醫師資料查核，未確認支持本筆主張的具名專業人士。",
+      "acceptance_basis": "user_accepted_platform_source"
     },
     {
       "knowledge_id": "WEB-036-001--HN-58443",
@@ -584,7 +630,8 @@
       "formal_index_approval_granted": false,
       "reviewed_by": "Codex依使用者核准的來源準則",
       "human_per_record_review_claimed": false,
-      "source_snapshot_sha256": "4e19cf3ca85260e27a36fca426004f81bc698d8be7697145e3f3ad2c6d3b73db"
+      "source_snapshot_sha256": "4e19cf3ca85260e27a36fca426004f81bc698d8be7697145e3f3ad2c6d3b73db",
+      "acceptance_basis": "named_professional_or_original_research"
     },
     {
       "knowledge_id": "WEB-038-001--HY-okra",
@@ -592,18 +639,21 @@
       "ingredient_name": "秋葵",
       "source_article_id": "HY-okra",
       "source_url": "https://helloyishi.com.tw/healthy-eating/nutrition/okra/",
-      "source_content_decision": "pending_named_professional",
+      "source_content_decision": "accepted_under_user_policy",
       "professional_name": "",
       "professional_role": "",
       "review_method": "current_primary_article_and_editorial_review_footer",
-      "decision_basis": "摘要與原文可對照，但僅列Hello醫師資料查核，未確認支持本筆主張的具名專業人士。",
+      "decision_basis": "逐筆摘要與原文及適用條件已核對；依使用者新增的平台採用準則接受本來源。未確認支持本筆主張的個別具名專業人士，不冒稱醫師背書。",
       "locator": "網頁擷取L54、L58",
       "fact_zh_reviewed": "文章說明秋葵有助延緩胃排空與血糖上升，也能增加糞便含水量及飽足感。",
       "conditions_reviewed": "限文中所述一般食用形式；未提供可保證效果的劑量。\n證據限制與不可外推範圍：這是網站對食材的衛教說明，未據此認定已完成該食材人體試驗；不延伸成疾病治療或保證效果。",
       "formal_index_approval_granted": false,
       "reviewed_by": "Codex依使用者核准的來源準則",
       "human_per_record_review_claimed": false,
-      "source_snapshot_sha256": "442e5b117302e19de3065e8b8620faaf0ee93ac879561e2fd21599cc186552ec"
+      "source_snapshot_sha256": "442e5b117302e19de3065e8b8620faaf0ee93ac879561e2fd21599cc186552ec",
+      "previous_source_content_decision": "pending_named_professional",
+      "previous_decision_basis": "摘要與原文可對照，但僅列Hello醫師資料查核，未確認支持本筆主張的具名專業人士。",
+      "acceptance_basis": "user_accepted_platform_source"
     },
     {
       "knowledge_id": "WEB-038-001--HN-29287",
@@ -622,7 +672,8 @@
       "formal_index_approval_granted": false,
       "reviewed_by": "Codex依使用者核准的來源準則",
       "human_per_record_review_claimed": false,
-      "source_snapshot_sha256": "671925832401060a6f493577ce762973449ecdf77e27f8163f8464af21373471"
+      "source_snapshot_sha256": "671925832401060a6f493577ce762973449ecdf77e27f8163f8464af21373471",
+      "acceptance_basis": "named_professional_or_original_research"
     },
     {
       "knowledge_id": "WEB-039-001--HY-greenbean",
@@ -630,18 +681,21 @@
       "ingredient_name": "四季豆",
       "source_article_id": "HY-greenbean",
       "source_url": "https://helloyishi.com.tw/healthy-eating/nutrition/green-bean/",
-      "source_content_decision": "pending_named_professional",
+      "source_content_decision": "accepted_under_user_policy",
       "professional_name": "",
       "professional_role": "",
       "review_method": "current_primary_article_and_editorial_review_footer",
-      "decision_basis": "摘要與原文可對照，但僅列Hello醫師資料查核，未確認支持本筆主張的具名專業人士。",
+      "decision_basis": "逐筆摘要與原文及適用條件已核對；依使用者新增的平台採用準則接受本來源。未確認支持本筆主張的個別具名專業人士，不冒稱醫師背書。",
       "locator": "網頁擷取L54",
       "fact_zh_reviewed": "文章指出四季豆能幫助腸胃蠕動、促進排便，改善便祕困擾。",
       "conditions_reviewed": "限文中所述一般食用形式；未提供可保證效果的劑量。\n證據限制與不可外推範圍：只整理原文排便相關說明；未採用文中熱量數字或把預防癌症寫成確定效果。",
       "formal_index_approval_granted": false,
       "reviewed_by": "Codex依使用者核准的來源準則",
       "human_per_record_review_claimed": false,
-      "source_snapshot_sha256": "b40bf680d96f50d40f452d722594d9021230efb4833bed0b4d02612dce550e4c"
+      "source_snapshot_sha256": "b40bf680d96f50d40f452d722594d9021230efb4833bed0b4d02612dce550e4c",
+      "previous_source_content_decision": "pending_named_professional",
+      "previous_decision_basis": "摘要與原文可對照，但僅列Hello醫師資料查核，未確認支持本筆主張的具名專業人士。",
+      "acceptance_basis": "user_accepted_platform_source"
     },
     {
       "knowledge_id": "WEB-039-001--P12",
@@ -660,7 +714,8 @@
       "formal_index_approval_granted": false,
       "reviewed_by": "Codex依使用者核准的來源準則",
       "human_per_record_review_claimed": false,
-      "source_snapshot_sha256": "dc46c7df56b34b9119114effcafeea1185d2d131083c2a3235c2f3738664880d"
+      "source_snapshot_sha256": "dc46c7df56b34b9119114effcafeea1185d2d131083c2a3235c2f3738664880d",
+      "acceptance_basis": "named_professional_or_original_research"
     },
     {
       "knowledge_id": "WEB-041-001--HY-bittergourd",
@@ -668,18 +723,21 @@
       "ingredient_name": "苦瓜",
       "source_article_id": "HY-bittergourd",
       "source_url": "https://helloyishi.com.tw/healthy-eating/nutrition/bitter-gourd-benefits/",
-      "source_content_decision": "pending_named_professional",
+      "source_content_decision": "accepted_under_user_policy",
       "professional_name": "",
       "professional_role": "",
       "review_method": "current_primary_article_and_editorial_review_footer",
-      "decision_basis": "摘要與原文可對照，但僅列Hello醫師資料查核，未確認支持本筆主張的具名專業人士。",
+      "decision_basis": "逐筆摘要與原文及適用條件已核對；依使用者新增的平台採用準則接受本來源。未確認支持本筆主張的個別具名專業人士，不冒稱醫師背書。",
       "locator": "網頁擷取L26、L61",
       "fact_zh_reviewed": "文章指出苦瓜熱量低，適量食用能增加飽足感，可納入體重管理的飲食。",
       "conditions_reviewed": "限文中所述一般食用形式；未提供可保證效果的劑量。\n證據限制與不可外推範圍：不採用苦瓜苷、胜肽或萃取物的研究結果作為一般熟苦瓜可治療糖尿病的證據。",
       "formal_index_approval_granted": false,
       "reviewed_by": "Codex依使用者核准的來源準則",
       "human_per_record_review_claimed": false,
-      "source_snapshot_sha256": "21d66a96bfb372218ba8cec46bbc43a179e3e176e41b788fdcd36a90657046b5"
+      "source_snapshot_sha256": "21d66a96bfb372218ba8cec46bbc43a179e3e176e41b788fdcd36a90657046b5",
+      "previous_source_content_decision": "pending_named_professional",
+      "previous_decision_basis": "摘要與原文可對照，但僅列Hello醫師資料查核，未確認支持本筆主張的具名專業人士。",
+      "acceptance_basis": "user_accepted_platform_source"
     },
     {
       "knowledge_id": "WEB-041-001--HN-69068",
@@ -698,7 +756,8 @@
       "formal_index_approval_granted": false,
       "reviewed_by": "Codex依使用者核准的來源準則",
       "human_per_record_review_claimed": false,
-      "source_snapshot_sha256": "ea80518f35da3d360cc43cb6b9fc6f273c8bd4573539d3f85006775fba7fcabd"
+      "source_snapshot_sha256": "ea80518f35da3d360cc43cb6b9fc6f273c8bd4573539d3f85006775fba7fcabd",
+      "acceptance_basis": "named_professional_or_original_research"
     },
     {
       "knowledge_id": "WEB-042-001--HY-eggplant",
@@ -717,7 +776,8 @@
       "formal_index_approval_granted": false,
       "reviewed_by": "Codex依使用者核准的來源準則",
       "human_per_record_review_claimed": false,
-      "source_snapshot_sha256": "bf77a9a1372d1575565fb93f88c3a69bd5a9e1ebbb6590c6e900734923c1c230"
+      "source_snapshot_sha256": "bf77a9a1372d1575565fb93f88c3a69bd5a9e1ebbb6590c6e900734923c1c230",
+      "acceptance_basis": "named_professional_or_original_research"
     },
     {
       "knowledge_id": "WEB-042-001--HN-52573",
@@ -736,7 +796,8 @@
       "formal_index_approval_granted": false,
       "reviewed_by": "Codex依使用者核准的來源準則",
       "human_per_record_review_claimed": false,
-      "source_snapshot_sha256": "f7a46e629be83540747118cf4ce3679d3f6f7ae19aacb3c0b0dc9bf7f4bab9d8"
+      "source_snapshot_sha256": "f7a46e629be83540747118cf4ce3679d3f6f7ae19aacb3c0b0dc9bf7f4bab9d8",
+      "acceptance_basis": "named_professional_or_original_research"
     },
     {
       "knowledge_id": "WEB-042-001--P12",
@@ -755,7 +816,8 @@
       "formal_index_approval_granted": false,
       "reviewed_by": "Codex依使用者核准的來源準則",
       "human_per_record_review_claimed": false,
-      "source_snapshot_sha256": "dc46c7df56b34b9119114effcafeea1185d2d131083c2a3235c2f3738664880d"
+      "source_snapshot_sha256": "dc46c7df56b34b9119114effcafeea1185d2d131083c2a3235c2f3738664880d",
+      "acceptance_basis": "named_professional_or_original_research"
     },
     {
       "knowledge_id": "WEB-043-001--HY-loofah",
@@ -763,18 +825,21 @@
       "ingredient_name": "絲瓜",
       "source_article_id": "HY-loofah",
       "source_url": "https://helloyishi.com.tw/healthy-eating/benefits-of-loofah/",
-      "source_content_decision": "pending_named_professional",
+      "source_content_decision": "accepted_under_user_policy",
       "professional_name": "",
       "professional_role": "",
       "review_method": "current_primary_article_and_editorial_review_footer",
-      "decision_basis": "摘要與原文可對照，但僅列Hello醫師資料查核，未確認支持本筆主張的具名專業人士。",
+      "decision_basis": "逐筆摘要與原文及適用條件已核對；依使用者新增的平台採用準則接受本來源。未確認支持本筆主張的個別具名專業人士，不冒稱醫師背書。",
       "locator": "網頁擷取L59、L63",
       "fact_zh_reviewed": "文章說明絲瓜可幫助腸胃蠕動、改善便祕；容易腹瀉者吃太多可能使腹瀉加重。",
       "conditions_reviewed": "限文中所述一般食用形式；未提供可保證效果的劑量。\n證據限制與不可外推範圍：這是網站對食材的衛教說明，未據此認定已完成該食材人體試驗；不延伸成疾病治療或保證效果。",
       "formal_index_approval_granted": false,
       "reviewed_by": "Codex依使用者核准的來源準則",
       "human_per_record_review_claimed": false,
-      "source_snapshot_sha256": "41184e0708de30a343e12804a34f15719cafef8b8930d40144ca587a9ec0872a"
+      "source_snapshot_sha256": "41184e0708de30a343e12804a34f15719cafef8b8930d40144ca587a9ec0872a",
+      "previous_source_content_decision": "pending_named_professional",
+      "previous_decision_basis": "摘要與原文可對照，但僅列Hello醫師資料查核，未確認支持本筆主張的具名專業人士。",
+      "acceptance_basis": "user_accepted_platform_source"
     },
     {
       "knowledge_id": "WEB-044-001--HY-zucchini",
@@ -782,18 +847,21 @@
       "ingredient_name": "櫛瓜",
       "source_article_id": "HY-zucchini",
       "source_url": "https://helloyishi.com.tw/healthy-eating/nutrition/zucchini/",
-      "source_content_decision": "pending_named_professional",
+      "source_content_decision": "accepted_under_user_policy",
       "professional_name": "",
       "professional_role": "",
       "review_method": "current_primary_article_and_editorial_review_footer",
-      "decision_basis": "摘要與原文可對照，但僅列Hello醫師資料查核，未確認支持本筆主張的具名專業人士。",
+      "decision_basis": "逐筆摘要與原文及適用條件已核對；依使用者新增的平台採用準則接受本來源。未確認支持本筆主張的個別具名專業人士，不冒稱醫師背書。",
       "locator": "網頁擷取L98",
       "fact_zh_reviewed": "文章指出櫛瓜有助促進排便與維持腸道健康，能協助避免便祕。",
       "conditions_reviewed": "限文中所述一般食用形式；未提供可保證效果的劑量。\n證據限制與不可外推範圍：不把文中大鼠食用櫛瓜的血脂或體重結果當成人體效果。",
       "formal_index_approval_granted": false,
       "reviewed_by": "Codex依使用者核准的來源準則",
       "human_per_record_review_claimed": false,
-      "source_snapshot_sha256": "d150c29d321ad52cc0add6be11b08f27981173404aad3e815d2f513a7a90042f"
+      "source_snapshot_sha256": "d150c29d321ad52cc0add6be11b08f27981173404aad3e815d2f513a7a90042f",
+      "previous_source_content_decision": "pending_named_professional",
+      "previous_decision_basis": "摘要與原文可對照，但僅列Hello醫師資料查核，未確認支持本筆主張的具名專業人士。",
+      "acceptance_basis": "user_accepted_platform_source"
     },
     {
       "knowledge_id": "WEB-045-001--HY-cucumber",
@@ -812,7 +880,8 @@
       "formal_index_approval_granted": false,
       "reviewed_by": "Codex依使用者核准的來源準則",
       "human_per_record_review_claimed": false,
-      "source_snapshot_sha256": "56bd13a00472d3165e4ed38996c12180f404a2b24cd0d1501411a5df857b16c7"
+      "source_snapshot_sha256": "56bd13a00472d3165e4ed38996c12180f404a2b24cd0d1501411a5df857b16c7",
+      "acceptance_basis": "named_professional_or_original_research"
     },
     {
       "knowledge_id": "WEB-045-001--HN-52573",
@@ -831,7 +900,8 @@
       "formal_index_approval_granted": false,
       "reviewed_by": "Codex依使用者核准的來源準則",
       "human_per_record_review_claimed": false,
-      "source_snapshot_sha256": "f7a46e629be83540747118cf4ce3679d3f6f7ae19aacb3c0b0dc9bf7f4bab9d8"
+      "source_snapshot_sha256": "f7a46e629be83540747118cf4ce3679d3f6f7ae19aacb3c0b0dc9bf7f4bab9d8",
+      "acceptance_basis": "named_professional_or_original_research"
     },
     {
       "knowledge_id": "WEB-045-001--P06",
@@ -850,7 +920,8 @@
       "formal_index_approval_granted": false,
       "reviewed_by": "Codex依使用者核准的來源準則",
       "human_per_record_review_claimed": false,
-      "source_snapshot_sha256": "ce6b0ab977c36209003514822bd5adf8632a7abd290b0fdf4ab679f9c5ff8b06"
+      "source_snapshot_sha256": "ce6b0ab977c36209003514822bd5adf8632a7abd290b0fdf4ab679f9c5ff8b06",
+      "acceptance_basis": "named_professional_or_original_research"
     },
     {
       "knowledge_id": "WEB-048-001--HY-garlic",
@@ -869,7 +940,8 @@
       "formal_index_approval_granted": false,
       "reviewed_by": "Codex依使用者核准的來源準則",
       "human_per_record_review_claimed": false,
-      "source_snapshot_sha256": "05b5a08891a38c22bcf8bac85134476ea7ee6d8b0d8ee494b84eba824df272e5"
+      "source_snapshot_sha256": "05b5a08891a38c22bcf8bac85134476ea7ee6d8b0d8ee494b84eba824df272e5",
+      "acceptance_basis": "named_professional_or_original_research"
     },
     {
       "knowledge_id": "WEB-049-001--HY-garlic",
@@ -888,7 +960,8 @@
       "formal_index_approval_granted": false,
       "reviewed_by": "Codex依使用者核准的來源準則",
       "human_per_record_review_claimed": false,
-      "source_snapshot_sha256": "05b5a08891a38c22bcf8bac85134476ea7ee6d8b0d8ee494b84eba824df272e5"
+      "source_snapshot_sha256": "05b5a08891a38c22bcf8bac85134476ea7ee6d8b0d8ee494b84eba824df272e5",
+      "acceptance_basis": "named_professional_or_original_research"
     },
     {
       "knowledge_id": "WEB-048-001--HN-54202",
@@ -907,7 +980,8 @@
       "formal_index_approval_granted": false,
       "reviewed_by": "Codex依使用者核准的來源準則",
       "human_per_record_review_claimed": false,
-      "source_snapshot_sha256": "42d9f7f916a2dbbf09d329a9a65c2f8a49edb6b1bed229f1cea9341564e9460d"
+      "source_snapshot_sha256": "42d9f7f916a2dbbf09d329a9a65c2f8a49edb6b1bed229f1cea9341564e9460d",
+      "acceptance_basis": "named_professional_or_original_research"
     },
     {
       "knowledge_id": "WEB-049-001--HN-54202",
@@ -926,7 +1000,8 @@
       "formal_index_approval_granted": false,
       "reviewed_by": "Codex依使用者核准的來源準則",
       "human_per_record_review_claimed": false,
-      "source_snapshot_sha256": "42d9f7f916a2dbbf09d329a9a65c2f8a49edb6b1bed229f1cea9341564e9460d"
+      "source_snapshot_sha256": "42d9f7f916a2dbbf09d329a9a65c2f8a49edb6b1bed229f1cea9341564e9460d",
+      "acceptance_basis": "named_professional_or_original_research"
     },
     {
       "knowledge_id": "WEB-054-001--HY-scallion",
@@ -934,18 +1009,21 @@
       "ingredient_name": "青蔥",
       "source_article_id": "HY-scallion",
       "source_url": "https://helloyishi.com.tw/healthy-eating/benefit-of-scallion/",
-      "source_content_decision": "pending_named_professional",
+      "source_content_decision": "accepted_under_user_policy",
       "professional_name": "",
       "professional_role": "",
       "review_method": "current_primary_article_and_editorial_review_footer",
-      "decision_basis": "摘要與原文可對照，但僅列Hello醫師資料查核，未確認支持本筆主張的具名專業人士。同文林親怡醫師談的是中藥／體質禁忌，不能用來替本筆便祕主張背書。",
+      "decision_basis": "逐筆摘要與原文及適用條件已核對；依使用者新增的平台採用準則接受本來源。未確認支持本筆主張的個別具名專業人士，不冒稱醫師背書。",
       "locator": "網頁擷取L60",
       "fact_zh_reviewed": "文章指出青蔥可幫助維持腸道蠕動及濕潤，改善便祕困擾。",
       "conditions_reviewed": "限文中所述一般食用形式；未提供可保證效果的劑量。\n證據限制與不可外推範圍：不將文中癌症風險的推論寫成已證實的青蔥人體效果。",
       "formal_index_approval_granted": false,
       "reviewed_by": "Codex依使用者核准的來源準則",
       "human_per_record_review_claimed": false,
-      "source_snapshot_sha256": "95c614bd0b7589a17a91499403f596dfdbb6f85f7b5ca0e47897c7a733a0dcd4"
+      "source_snapshot_sha256": "95c614bd0b7589a17a91499403f596dfdbb6f85f7b5ca0e47897c7a733a0dcd4",
+      "previous_source_content_decision": "pending_named_professional",
+      "previous_decision_basis": "摘要與原文可對照，但僅列Hello醫師資料查核，未確認支持本筆主張的具名專業人士。同文林親怡醫師談的是中藥／體質禁忌，不能用來替本筆便祕主張背書。",
+      "acceptance_basis": "user_accepted_platform_source"
     },
     {
       "knowledge_id": "WEB-054-001--HN-52573",
@@ -964,7 +1042,8 @@
       "formal_index_approval_granted": false,
       "reviewed_by": "Codex依使用者核准的來源準則",
       "human_per_record_review_claimed": false,
-      "source_snapshot_sha256": "f7a46e629be83540747118cf4ce3679d3f6f7ae19aacb3c0b0dc9bf7f4bab9d8"
+      "source_snapshot_sha256": "f7a46e629be83540747118cf4ce3679d3f6f7ae19aacb3c0b0dc9bf7f4bab9d8",
+      "acceptance_basis": "named_professional_or_original_research"
     },
     {
       "knowledge_id": "WEB-058-001--HY-beansprout",
@@ -983,7 +1062,8 @@
       "formal_index_approval_granted": false,
       "reviewed_by": "Codex依使用者核准的來源準則",
       "human_per_record_review_claimed": false,
-      "source_snapshot_sha256": "45f3287f8f9dfcceddc52b06e69561bb172a2fdec83ac7df462de6fe1587bbe9"
+      "source_snapshot_sha256": "45f3287f8f9dfcceddc52b06e69561bb172a2fdec83ac7df462de6fe1587bbe9",
+      "acceptance_basis": "named_professional_or_original_research"
     },
     {
       "knowledge_id": "WEB-058-001--HN-66961",
@@ -1002,7 +1082,8 @@
       "formal_index_approval_granted": false,
       "reviewed_by": "Codex依使用者核准的來源準則",
       "human_per_record_review_claimed": false,
-      "source_snapshot_sha256": "9dc40c4f428704406192c3099aa8c3cc4d5e90e507590b49f8d750a37df58adc"
+      "source_snapshot_sha256": "9dc40c4f428704406192c3099aa8c3cc4d5e90e507590b49f8d750a37df58adc",
+      "acceptance_basis": "named_professional_or_original_research"
     },
     {
       "knowledge_id": "WEB-059-001--HY-beansprout",
@@ -1021,7 +1102,8 @@
       "formal_index_approval_granted": false,
       "reviewed_by": "Codex依使用者核准的來源準則",
       "human_per_record_review_claimed": false,
-      "source_snapshot_sha256": "45f3287f8f9dfcceddc52b06e69561bb172a2fdec83ac7df462de6fe1587bbe9"
+      "source_snapshot_sha256": "45f3287f8f9dfcceddc52b06e69561bb172a2fdec83ac7df462de6fe1587bbe9",
+      "acceptance_basis": "named_professional_or_original_research"
     },
     {
       "knowledge_id": "WEB-060-001--HY-beansprout",
@@ -1040,7 +1122,8 @@
       "formal_index_approval_granted": false,
       "reviewed_by": "Codex依使用者核准的來源準則",
       "human_per_record_review_claimed": false,
-      "source_snapshot_sha256": "45f3287f8f9dfcceddc52b06e69561bb172a2fdec83ac7df462de6fe1587bbe9"
+      "source_snapshot_sha256": "45f3287f8f9dfcceddc52b06e69561bb172a2fdec83ac7df462de6fe1587bbe9",
+      "acceptance_basis": "named_professional_or_original_research"
     },
     {
       "knowledge_id": "WEB-061-001--HY-tofu",
@@ -1059,7 +1142,8 @@
       "formal_index_approval_granted": false,
       "reviewed_by": "Codex依使用者核准的來源準則",
       "human_per_record_review_claimed": false,
-      "source_snapshot_sha256": "6663630f8a94762f046b89765ad5f2bd2208308d7b455ad1a8eff1f59902f68a"
+      "source_snapshot_sha256": "6663630f8a94762f046b89765ad5f2bd2208308d7b455ad1a8eff1f59902f68a",
+      "acceptance_basis": "named_professional_or_original_research"
     },
     {
       "knowledge_id": "WEB-061-001--HN-44826",
@@ -1078,7 +1162,8 @@
       "formal_index_approval_granted": false,
       "reviewed_by": "Codex依使用者核准的來源準則",
       "human_per_record_review_claimed": false,
-      "source_snapshot_sha256": "294debb9d74c1044359a715ec69267cee918d4e6f88e81bc67d21551e9f5a442"
+      "source_snapshot_sha256": "294debb9d74c1044359a715ec69267cee918d4e6f88e81bc67d21551e9f5a442",
+      "acceptance_basis": "named_professional_or_original_research"
     },
     {
       "knowledge_id": "WEB-069-001--HY-chia",
@@ -1086,18 +1171,21 @@
       "ingredient_name": "奇亞籽",
       "source_article_id": "HY-chia",
       "source_url": "https://helloyishi.com.tw/healthy-eating/nutrition/chia-seed/",
-      "source_content_decision": "pending_named_professional",
+      "source_content_decision": "accepted_under_user_policy",
       "professional_name": "",
       "professional_role": "",
       "review_method": "current_primary_article_and_editorial_review_footer",
-      "decision_basis": "摘要與原文可對照，但僅列Hello醫師資料查核，未確認支持本筆主張的具名專業人士。",
+      "decision_basis": "逐筆摘要與原文及適用條件已核對；依使用者新增的平台採用準則接受本來源。未確認支持本筆主張的個別具名專業人士，不冒稱醫師背書。",
       "locator": "網頁擷取L93、L96、L98、L227、L238、L265",
       "fact_zh_reviewed": "文章指出泡水後的奇亞籽有助排便與增加飽足感；體重管理仍須配合整體飲食與運動，不能靠奇亞籽直接減肥。",
       "conditions_reviewed": "需先泡水並補足水分；吞嚥不便者需特別留意，避免乾吃。\n證據限制與不可外推範圍：採用食材直接衛教；未以單一營養素或未回查的研究推論所有人都能降血糖。",
       "formal_index_approval_granted": false,
       "reviewed_by": "Codex依使用者核准的來源準則",
       "human_per_record_review_claimed": false,
-      "source_snapshot_sha256": "ccf3eac9b51647addaae5a2143cf8aee5e2fc374de924a154de05fc58a8e723c"
+      "source_snapshot_sha256": "ccf3eac9b51647addaae5a2143cf8aee5e2fc374de924a154de05fc58a8e723c",
+      "previous_source_content_decision": "pending_named_professional",
+      "previous_decision_basis": "摘要與原文可對照，但僅列Hello醫師資料查核，未確認支持本筆主張的具名專業人士。",
+      "acceptance_basis": "user_accepted_platform_source"
     },
     {
       "knowledge_id": "WEB-069-001--HN-68037",
@@ -1116,7 +1204,8 @@
       "formal_index_approval_granted": false,
       "reviewed_by": "Codex依使用者核准的來源準則",
       "human_per_record_review_claimed": false,
-      "source_snapshot_sha256": "fddfd9a80ef8121498456854b6190feb55a92828f4d1cb339ed4aac27e4a732e"
+      "source_snapshot_sha256": "fddfd9a80ef8121498456854b6190feb55a92828f4d1cb339ed4aac27e4a732e",
+      "acceptance_basis": "named_professional_or_original_research"
     },
     {
       "knowledge_id": "WEB-070-001--HY-sesame",
@@ -1135,7 +1224,8 @@
       "formal_index_approval_granted": false,
       "reviewed_by": "Codex依使用者核准的來源準則",
       "human_per_record_review_claimed": false,
-      "source_snapshot_sha256": "e4d834f9f3d434f159c448a1d2d814dd957598cbaacc3ac8acade8c8e5935b33"
+      "source_snapshot_sha256": "e4d834f9f3d434f159c448a1d2d814dd957598cbaacc3ac8acade8c8e5935b33",
+      "acceptance_basis": "named_professional_or_original_research"
     },
     {
       "knowledge_id": "WEB-073-001--HY-sesame",
@@ -1154,7 +1244,8 @@
       "formal_index_approval_granted": false,
       "reviewed_by": "Codex依使用者核准的來源準則",
       "human_per_record_review_claimed": false,
-      "source_snapshot_sha256": "e4d834f9f3d434f159c448a1d2d814dd957598cbaacc3ac8acade8c8e5935b33"
+      "source_snapshot_sha256": "e4d834f9f3d434f159c448a1d2d814dd957598cbaacc3ac8acade8c8e5935b33",
+      "acceptance_basis": "named_professional_or_original_research"
     },
     {
       "knowledge_id": "WEB-072-001--HY-sesame",
@@ -1173,7 +1264,8 @@
       "formal_index_approval_granted": false,
       "reviewed_by": "Codex依使用者核准的來源準則",
       "human_per_record_review_claimed": false,
-      "source_snapshot_sha256": "e4d834f9f3d434f159c448a1d2d814dd957598cbaacc3ac8acade8c8e5935b33"
+      "source_snapshot_sha256": "e4d834f9f3d434f159c448a1d2d814dd957598cbaacc3ac8acade8c8e5935b33",
+      "acceptance_basis": "named_professional_or_original_research"
     },
     {
       "knowledge_id": "WEB-072-001--HN-16555",
@@ -1192,7 +1284,8 @@
       "formal_index_approval_granted": false,
       "reviewed_by": "Codex依使用者核准的來源準則",
       "human_per_record_review_claimed": false,
-      "source_snapshot_sha256": "8cd1cd4b61eae49f8c352fdd7340b252ac9cff77c1de5435b3581da019e07913"
+      "source_snapshot_sha256": "8cd1cd4b61eae49f8c352fdd7340b252ac9cff77c1de5435b3581da019e07913",
+      "acceptance_basis": "named_professional_or_original_research"
     },
     {
       "knowledge_id": "WEB-077-001--HY-avocado",
@@ -1200,18 +1293,21 @@
       "ingredient_name": "酪梨",
       "source_article_id": "HY-avocado",
       "source_url": "https://helloyishi.com.tw/healthy-eating/avocado-benefits-help-weight-loss-and-anti-cancer/",
-      "source_content_decision": "pending_named_professional",
+      "source_content_decision": "accepted_under_user_policy",
       "professional_name": "",
       "professional_role": "",
       "review_method": "current_primary_article_and_editorial_review_footer",
-      "decision_basis": "摘要與原文可對照，但僅列Hello醫師資料查核，未確認支持本筆主張的具名專業人士。",
+      "decision_basis": "逐筆摘要與原文及適用條件已核對；依使用者新增的平台採用準則接受本來源。未確認支持本筆主張的個別具名專業人士，不冒稱醫師背書。",
       "locator": "網頁擷取L78",
       "fact_zh_reviewed": "文章報導午餐食用半顆酪梨的人較不容易感到飢餓，並說明酪梨有助增加飽足感。",
       "conditions_reviewed": "限文中午餐吃半顆酪梨的情境；不能等同所有攝取量都會減重。\n證據限制與不可外推範圍：網站引用人體食用情境，但未回查原始論文、樣本及統計；不宣稱減重療效。",
       "formal_index_approval_granted": false,
       "reviewed_by": "Codex依使用者核准的來源準則",
       "human_per_record_review_claimed": false,
-      "source_snapshot_sha256": "9b14aa6e37912bbbcbacdb6ae6f50b69d8d37662a3465368f7190069b9174367"
+      "source_snapshot_sha256": "9b14aa6e37912bbbcbacdb6ae6f50b69d8d37662a3465368f7190069b9174367",
+      "previous_source_content_decision": "pending_named_professional",
+      "previous_decision_basis": "摘要與原文可對照，但僅列Hello醫師資料查核，未確認支持本筆主張的具名專業人士。",
+      "acceptance_basis": "user_accepted_platform_source"
     },
     {
       "knowledge_id": "WEB-077-001--HN-69169",
@@ -1230,7 +1326,8 @@
       "formal_index_approval_granted": false,
       "reviewed_by": "Codex依使用者核准的來源準則",
       "human_per_record_review_claimed": false,
-      "source_snapshot_sha256": "145520c6aa81df63e1dcca0ebd51e9999b33801a353ce599bb6578e3028b3b98"
+      "source_snapshot_sha256": "145520c6aa81df63e1dcca0ebd51e9999b33801a353ce599bb6578e3028b3b98",
+      "acceptance_basis": "named_professional_or_original_research"
     },
     {
       "knowledge_id": "WEB-078-001--HY-passion",
@@ -1238,18 +1335,21 @@
       "ingredient_name": "百香果",
       "source_article_id": "HY-passion",
       "source_url": "https://helloyishi.com.tw/healthy-eating/nutrition/passion-fruit/",
-      "source_content_decision": "pending_named_professional",
+      "source_content_decision": "accepted_under_user_policy",
       "professional_name": "",
       "professional_role": "",
       "review_method": "current_primary_article_and_editorial_review_footer",
-      "decision_basis": "摘要與原文可對照，但僅列Hello醫師資料查核，未確認支持本筆主張的具名專業人士。",
+      "decision_basis": "逐筆摘要與原文及適用條件已核對；依使用者新增的平台採用準則接受本來源。未確認支持本筆主張的個別具名專業人士，不冒稱醫師背書。",
       "locator": "網頁擷取L58、L105",
       "fact_zh_reviewed": "文章指出食用百香果有助腸胃蠕動、避免便祕；睡前不宜大量食用，以免腸胃不適。",
       "conditions_reviewed": "限文中所述一般食用形式；未提供可保證效果的劑量。\n證據限制與不可外推範圍：不把百香果果皮萃取物改善氣喘的研究套用到一般食用果肉。",
       "formal_index_approval_granted": false,
       "reviewed_by": "Codex依使用者核准的來源準則",
       "human_per_record_review_claimed": false,
-      "source_snapshot_sha256": "0629aae9a45a674dc878b3f574caac78ea2a0219095d67643f3b9f68ae036b9d"
+      "source_snapshot_sha256": "0629aae9a45a674dc878b3f574caac78ea2a0219095d67643f3b9f68ae036b9d",
+      "previous_source_content_decision": "pending_named_professional",
+      "previous_decision_basis": "摘要與原文可對照，但僅列Hello醫師資料查核，未確認支持本筆主張的具名專業人士。",
+      "acceptance_basis": "user_accepted_platform_source"
     },
     {
       "knowledge_id": "WEB-078-001--HN-67119",
@@ -1268,7 +1368,8 @@
       "formal_index_approval_granted": false,
       "reviewed_by": "Codex依使用者核准的來源準則",
       "human_per_record_review_claimed": false,
-      "source_snapshot_sha256": "73dae573c917108feeb2341716515e86c92ddc64f4228b255d56ab6b5f76d12f"
+      "source_snapshot_sha256": "73dae573c917108feeb2341716515e86c92ddc64f4228b255d56ab6b5f76d12f",
+      "acceptance_basis": "named_professional_or_original_research"
     },
     {
       "knowledge_id": "WEB-079-001--HY-lemon",
@@ -1276,18 +1377,21 @@
       "ingredient_name": "檸檬",
       "source_article_id": "HY-lemon",
       "source_url": "https://helloyishi.com.tw/healthy-eating/benefits-of-lemonade/",
-      "source_content_decision": "pending_named_professional",
+      "source_content_decision": "accepted_under_user_policy",
       "professional_name": "",
       "professional_role": "",
       "review_method": "current_primary_article_and_editorial_review_footer",
-      "decision_basis": "摘要與原文可對照，但僅列Hello醫師資料查核，未確認支持本筆主張的具名專業人士。",
+      "decision_basis": "逐筆摘要與原文及適用條件已核對；依使用者新增的平台採用準則接受本來源。未確認支持本筆主張的個別具名專業人士，不冒稱醫師背書。",
       "locator": "網頁擷取L51、L68、L69",
       "fact_zh_reviewed": "文章指出把檸檬加入水中可提高部分人的飲水意願；濃度過高或喝太多則可能刺激腸胃、造成胃酸逆流或傷害牙齒琺瑯質。",
       "conditions_reviewed": "僅限以檸檬片或汁製作檸檬水的情境；不是直接食用原果的療效。\n證據限制與不可外推範圍：不採用檸檬水能改變體質、防癌或治療結石的推論；不能套用含糖檸檬飲品。",
       "formal_index_approval_granted": false,
       "reviewed_by": "Codex依使用者核准的來源準則",
       "human_per_record_review_claimed": false,
-      "source_snapshot_sha256": "f84252d5d8c807a5f0357e81dbd435e67dc28b939ab2175d548fac72fd64cc9d"
+      "source_snapshot_sha256": "f84252d5d8c807a5f0357e81dbd435e67dc28b939ab2175d548fac72fd64cc9d",
+      "previous_source_content_decision": "pending_named_professional",
+      "previous_decision_basis": "摘要與原文可對照，但僅列Hello醫師資料查核，未確認支持本筆主張的具名專業人士。",
+      "acceptance_basis": "user_accepted_platform_source"
     },
     {
       "knowledge_id": "WEB-080-001--HY-lemon",
@@ -1295,18 +1399,21 @@
       "ingredient_name": "新鮮檸檬",
       "source_article_id": "HY-lemon",
       "source_url": "https://helloyishi.com.tw/healthy-eating/benefits-of-lemonade/",
-      "source_content_decision": "pending_named_professional",
+      "source_content_decision": "accepted_under_user_policy",
       "professional_name": "",
       "professional_role": "",
       "review_method": "current_primary_article_and_editorial_review_footer",
-      "decision_basis": "摘要與原文可對照，但僅列Hello醫師資料查核，未確認支持本筆主張的具名專業人士。",
+      "decision_basis": "逐筆摘要與原文及適用條件已核對；依使用者新增的平台採用準則接受本來源。未確認支持本筆主張的個別具名專業人士，不冒稱醫師背書。",
       "locator": "網頁擷取L51、L68、L69",
       "fact_zh_reviewed": "文章指出把檸檬加入水中可提高部分人的飲水意願；濃度過高或喝太多則可能刺激腸胃、造成胃酸逆流或傷害牙齒琺瑯質。",
       "conditions_reviewed": "僅限以檸檬片或汁製作檸檬水的情境；不是直接食用原果的療效。\n證據限制與不可外推範圍：不採用檸檬水能改變體質、防癌或治療結石的推論；不能套用含糖檸檬飲品。",
       "formal_index_approval_granted": false,
       "reviewed_by": "Codex依使用者核准的來源準則",
       "human_per_record_review_claimed": false,
-      "source_snapshot_sha256": "f84252d5d8c807a5f0357e81dbd435e67dc28b939ab2175d548fac72fd64cc9d"
+      "source_snapshot_sha256": "f84252d5d8c807a5f0357e81dbd435e67dc28b939ab2175d548fac72fd64cc9d",
+      "previous_source_content_decision": "pending_named_professional",
+      "previous_decision_basis": "摘要與原文可對照，但僅列Hello醫師資料查核，未確認支持本筆主張的具名專業人士。",
+      "acceptance_basis": "user_accepted_platform_source"
     },
     {
       "knowledge_id": "WEB-079-001--HN-64916",
@@ -1325,7 +1432,8 @@
       "formal_index_approval_granted": false,
       "reviewed_by": "Codex依使用者核准的來源準則",
       "human_per_record_review_claimed": false,
-      "source_snapshot_sha256": "06b4f910af55fe39bea38994a0bd46d6da17f89c162bbf69cfb7117d0cc02ae4"
+      "source_snapshot_sha256": "06b4f910af55fe39bea38994a0bd46d6da17f89c162bbf69cfb7117d0cc02ae4",
+      "acceptance_basis": "named_professional_or_original_research"
     },
     {
       "knowledge_id": "WEB-080-001--HN-64916",
@@ -1344,7 +1452,8 @@
       "formal_index_approval_granted": false,
       "reviewed_by": "Codex依使用者核准的來源準則",
       "human_per_record_review_claimed": false,
-      "source_snapshot_sha256": "06b4f910af55fe39bea38994a0bd46d6da17f89c162bbf69cfb7117d0cc02ae4"
+      "source_snapshot_sha256": "06b4f910af55fe39bea38994a0bd46d6da17f89c162bbf69cfb7117d0cc02ae4",
+      "acceptance_basis": "named_professional_or_original_research"
     },
     {
       "knowledge_id": "WEB-082-001--HY-blackfungus",
@@ -1363,7 +1472,8 @@
       "formal_index_approval_granted": false,
       "reviewed_by": "Codex依使用者核准的來源準則",
       "human_per_record_review_claimed": false,
-      "source_snapshot_sha256": "750212471af29ce1e354b33ad7c39cd6b6c94867455d2acbf7c5c8f16ca0ecf6"
+      "source_snapshot_sha256": "750212471af29ce1e354b33ad7c39cd6b6c94867455d2acbf7c5c8f16ca0ecf6",
+      "acceptance_basis": "named_professional_or_original_research"
     },
     {
       "knowledge_id": "WEB-082-001--HN-66454",
@@ -1382,7 +1492,8 @@
       "formal_index_approval_granted": false,
       "reviewed_by": "Codex依使用者核准的來源準則",
       "human_per_record_review_claimed": false,
-      "source_snapshot_sha256": "e93b6cb85c36c836f47de6d069da7c421640100390b19b16cce5e09947614404"
+      "source_snapshot_sha256": "e93b6cb85c36c836f47de6d069da7c421640100390b19b16cce5e09947614404",
+      "acceptance_basis": "named_professional_or_original_research"
     },
     {
       "knowledge_id": "WEB-103-001--HY-seabass",
@@ -1390,18 +1501,21 @@
       "ingredient_name": "鱸魚",
       "source_article_id": "HY-seabass",
       "source_url": "https://helloyishi.com.tw/healthy-eating/nutrients-in-sea-bass/",
-      "source_content_decision": "pending_named_professional",
+      "source_content_decision": "accepted_under_user_policy",
       "professional_name": "",
       "professional_role": "",
       "review_method": "current_primary_article_and_editorial_review_footer",
-      "decision_basis": "摘要與原文可對照，但僅列Hello醫師資料查核，未確認支持本筆主張的具名專業人士。",
+      "decision_basis": "逐筆摘要與原文及適用條件已核對；依使用者新增的平台採用準則接受本來源。未確認支持本筆主張的個別具名專業人士，不冒稱醫師背書。",
       "locator": "網頁擷取L33、L37",
       "fact_zh_reviewed": "文章將鱸魚列為術後補充營養的食物，魚湯對胃口不佳者較易入口，並說明其肉質細嫩、容易消化吸收。",
       "conditions_reviewed": "限文中魚肉與魚湯的食用情境；不能將魚湯等同完整魚肉的營養量。\n證據限制與不可外推範圍：食材衛教；原文未提供吃鱸魚比其他蛋白質食物更能加速傷口癒合的直接人體比較結果。",
       "formal_index_approval_granted": false,
       "reviewed_by": "Codex依使用者核准的來源準則",
       "human_per_record_review_claimed": false,
-      "source_snapshot_sha256": "2483ace6363cde71e9f3566324c91990df222220621d350dab01f8c5c2791555"
+      "source_snapshot_sha256": "2483ace6363cde71e9f3566324c91990df222220621d350dab01f8c5c2791555",
+      "previous_source_content_decision": "pending_named_professional",
+      "previous_decision_basis": "摘要與原文可對照，但僅列Hello醫師資料查核，未確認支持本筆主張的具名專業人士。",
+      "acceptance_basis": "user_accepted_platform_source"
     },
     {
       "knowledge_id": "WEB-113-001--HY-eggs",
@@ -1420,7 +1534,8 @@
       "formal_index_approval_granted": false,
       "reviewed_by": "Codex依使用者核准的來源準則",
       "human_per_record_review_claimed": false,
-      "source_snapshot_sha256": "ddc6f58dbf7e197d3c57afb181d8d83c567ec865490262d68f29ccc54a5e4d49"
+      "source_snapshot_sha256": "ddc6f58dbf7e197d3c57afb181d8d83c567ec865490262d68f29ccc54a5e4d49",
+      "acceptance_basis": "named_professional_or_original_research"
     },
     {
       "knowledge_id": "WEB-113-001--HN-45394",
@@ -1439,7 +1554,8 @@
       "formal_index_approval_granted": false,
       "reviewed_by": "Codex依使用者核准的來源準則",
       "human_per_record_review_claimed": false,
-      "source_snapshot_sha256": "48a397b3c8406b81bcb269b499f3fcec0c93c6abbbce06d098389e6f62f23db0"
+      "source_snapshot_sha256": "48a397b3c8406b81bcb269b499f3fcec0c93c6abbbce06d098389e6f62f23db0",
+      "acceptance_basis": "named_professional_or_original_research"
     },
     {
       "knowledge_id": "WEB-113-001--P18",
@@ -1458,7 +1574,8 @@
       "formal_index_approval_granted": false,
       "reviewed_by": "Codex依使用者核准的來源準則",
       "human_per_record_review_claimed": false,
-      "source_snapshot_sha256": "7147234d38d0de363a5b9cc9a2d1bb575a04759c43ac7467faed790a0b8ce643"
+      "source_snapshot_sha256": "7147234d38d0de363a5b9cc9a2d1bb575a04759c43ac7467faed790a0b8ce643",
+      "acceptance_basis": "named_professional_or_original_research"
     },
     {
       "knowledge_id": "WEB-118-001--HY-yogurt",
@@ -1477,7 +1594,8 @@
       "formal_index_approval_granted": false,
       "reviewed_by": "Codex依使用者核准的來源準則",
       "human_per_record_review_claimed": false,
-      "source_snapshot_sha256": "0dfb565579dabe6608871471cd7d3aabd486267366f39ac8c28856fad9d581da"
+      "source_snapshot_sha256": "0dfb565579dabe6608871471cd7d3aabd486267366f39ac8c28856fad9d581da",
+      "acceptance_basis": "named_professional_or_original_research"
     },
     {
       "knowledge_id": "WEB-118-001--HN-69606",
@@ -1496,7 +1614,8 @@
       "formal_index_approval_granted": false,
       "reviewed_by": "Codex依使用者核准的來源準則",
       "human_per_record_review_claimed": false,
-      "source_snapshot_sha256": "d2c2ba72adea8b2e110e99573981371175645b1400aea52859a292f62f773431"
+      "source_snapshot_sha256": "d2c2ba72adea8b2e110e99573981371175645b1400aea52859a292f62f773431",
+      "acceptance_basis": "named_professional_or_original_research"
     },
     {
       "knowledge_id": "WEB-010-001--HY-cabbage",
@@ -1515,7 +1634,8 @@
       "formal_index_approval_granted": false,
       "reviewed_by": "Codex依使用者核准的來源準則",
       "human_per_record_review_claimed": false,
-      "source_snapshot_sha256": "e17608825a58ed4b5d8720b1e9d63a1a52a4266d55fe3083e76337c9f67b601f"
+      "source_snapshot_sha256": "e17608825a58ed4b5d8720b1e9d63a1a52a4266d55fe3083e76337c9f67b601f",
+      "acceptance_basis": "named_professional_or_original_research"
     },
     {
       "knowledge_id": "WEB-010-001--HN-13547",
@@ -1534,7 +1654,8 @@
       "formal_index_approval_granted": false,
       "reviewed_by": "Codex依使用者核准的來源準則",
       "human_per_record_review_claimed": false,
-      "source_snapshot_sha256": "963ff1b5d12b938fd40a4020e552f73feb96bc60e76735d8b46402f9ab42a70e"
+      "source_snapshot_sha256": "963ff1b5d12b938fd40a4020e552f73feb96bc60e76735d8b46402f9ab42a70e",
+      "acceptance_basis": "named_professional_or_original_research"
     },
     {
       "knowledge_id": "WEB-008-001--HY-bokchoy",
@@ -1542,18 +1663,21 @@
       "ingredient_name": "青江菜",
       "source_article_id": "HY-bokchoy",
       "source_url": "https://helloyishi.com.tw/healthy-eating/nutrition/bok-choy/",
-      "source_content_decision": "pending_named_professional",
+      "source_content_decision": "accepted_under_user_policy",
       "professional_name": "",
       "professional_role": "",
       "review_method": "current_primary_article_and_editorial_review_footer",
-      "decision_basis": "摘要與原文可對照，但僅列Hello醫師資料查核，未確認支持本筆主張的具名專業人士。",
+      "decision_basis": "逐筆摘要與原文及適用條件已核對；依使用者新增的平台採用準則接受本來源。未確認支持本筆主張的個別具名專業人士，不冒稱醫師背書。",
       "locator": "網頁擷取L61",
       "fact_zh_reviewed": "文章說明食用青江菜有助排便、避免便祕，並可增加飽足感。",
       "conditions_reviewed": "限文中所述一般食用形式；未提供可保證效果的劑量。\n證據限制與不可外推範圍：來源同一段已直接說明青江菜食用影響；未另接營養素來源，也未當作食材人體試驗。",
       "formal_index_approval_granted": false,
       "reviewed_by": "Codex依使用者核准的來源準則",
       "human_per_record_review_claimed": false,
-      "source_snapshot_sha256": "c18446584b689050670398711fbf83cc6758adad2d41aa97f05986e3db25f528"
+      "source_snapshot_sha256": "c18446584b689050670398711fbf83cc6758adad2d41aa97f05986e3db25f528",
+      "previous_source_content_decision": "pending_named_professional",
+      "previous_decision_basis": "摘要與原文可對照，但僅列Hello醫師資料查核，未確認支持本筆主張的具名專業人士。",
+      "acceptance_basis": "user_accepted_platform_source"
     },
     {
       "knowledge_id": "WEB-008-001--P12",
@@ -1572,7 +1696,8 @@
       "formal_index_approval_granted": false,
       "reviewed_by": "Codex依使用者核准的來源準則",
       "human_per_record_review_claimed": false,
-      "source_snapshot_sha256": "dc46c7df56b34b9119114effcafeea1185d2d131083c2a3235c2f3738664880d"
+      "source_snapshot_sha256": "dc46c7df56b34b9119114effcafeea1185d2d131083c2a3235c2f3738664880d",
+      "acceptance_basis": "named_professional_or_original_research"
     },
     {
       "knowledge_id": "WEB-057-001--HY-edamame",
@@ -1580,18 +1705,21 @@
       "ingredient_name": "毛豆",
       "source_article_id": "HY-edamame",
       "source_url": "https://helloyishi.com.tw/healthy-eating/nutrition/edamame-benefits/",
-      "source_content_decision": "pending_named_professional",
+      "source_content_decision": "accepted_under_user_policy",
       "professional_name": "",
       "professional_role": "",
       "review_method": "current_primary_article_and_editorial_review_footer",
-      "decision_basis": "摘要與原文可對照，但僅列Hello醫師資料查核，未確認支持本筆主張的具名專業人士。",
+      "decision_basis": "逐筆摘要與原文及適用條件已核對；依使用者新增的平台採用準則接受本來源。未確認支持本筆主張的個別具名專業人士，不冒稱醫師背書。",
       "locator": "網頁擷取L34",
       "fact_zh_reviewed": "文章指出毛豆食用後具有飽足感，適合納入體重控制或健身者的飲食安排。",
       "conditions_reviewed": "限文中所述一般食用形式；未提供可保證效果的劑量。\n證據限制與不可外推範圍：這是網站對食材的衛教說明，未據此認定已完成該食材人體試驗；不延伸成疾病治療或保證效果。",
       "formal_index_approval_granted": false,
       "reviewed_by": "Codex依使用者核准的來源準則",
       "human_per_record_review_claimed": false,
-      "source_snapshot_sha256": "2fe8fe1adc052c538349d0a785730ee8efa1e9d67b3ef79650b8d54a58e8ee6b"
+      "source_snapshot_sha256": "2fe8fe1adc052c538349d0a785730ee8efa1e9d67b3ef79650b8d54a58e8ee6b",
+      "previous_source_content_decision": "pending_named_professional",
+      "previous_decision_basis": "摘要與原文可對照，但僅列Hello醫師資料查核，未確認支持本筆主張的具名專業人士。",
+      "acceptance_basis": "user_accepted_platform_source"
     },
     {
       "knowledge_id": "WEB-057-001--HN-42827",
@@ -1599,18 +1727,21 @@
       "ingredient_name": "毛豆",
       "source_article_id": "HN-42827",
       "source_url": "https://www.healthnews.com.tw/article/42827",
-      "source_content_decision": "pending_named_professional",
+      "source_content_decision": "accepted_under_user_policy",
       "professional_name": "",
       "professional_role": "",
       "review_method": "current_primary_article_and_named_attribution",
-      "decision_basis": "內容可找到，但本文未確認支持本筆主張的具名專業人士；不可僅因網站名稱採用。",
+      "decision_basis": "逐筆摘要與原文及適用條件已核對；依使用者新增的平台採用準則接受本來源。未確認支持本筆主張的個別具名專業人士，不冒稱醫師背書。",
       "locator": "正文第4、7段",
       "fact_zh_reviewed": "文章指出適量吃毛豆可產生飽足感，也提醒食用後可能脹氣。",
       "conditions_reviewed": "適量食用，本文沒有一般吃毛豆的固定試驗劑量。\n證據限制與不可外推範圍：只摘取毛豆本身的食用敘述，不套用黃豆異黃酮研究結果。",
       "formal_index_approval_granted": false,
       "reviewed_by": "Codex依使用者核准的來源準則",
       "human_per_record_review_claimed": false,
-      "source_snapshot_sha256": "62174c4f3baab5d034c517d0ba7ab5d20a5b31f754e1a2174bb51f8ef0481b86"
+      "source_snapshot_sha256": "62174c4f3baab5d034c517d0ba7ab5d20a5b31f754e1a2174bb51f8ef0481b86",
+      "previous_source_content_decision": "pending_named_professional",
+      "previous_decision_basis": "內容可找到，但本文未確認支持本筆主張的具名專業人士；不可僅因網站名稱採用。",
+      "acceptance_basis": "user_accepted_platform_source"
     },
     {
       "knowledge_id": "WEB-067-001--HY-soymilk",
@@ -1629,7 +1760,8 @@
       "formal_index_approval_granted": false,
       "reviewed_by": "Codex依使用者核准的來源準則",
       "human_per_record_review_claimed": false,
-      "source_snapshot_sha256": "911ba653b94c2dc008d3c57bacced29cc956faf0bba42065a8616059c67fb894"
+      "source_snapshot_sha256": "911ba653b94c2dc008d3c57bacced29cc956faf0bba42065a8616059c67fb894",
+      "acceptance_basis": "named_professional_or_original_research"
     },
     {
       "knowledge_id": "WEB-068-001--HY-nuts",
@@ -1648,7 +1780,8 @@
       "formal_index_approval_granted": false,
       "reviewed_by": "Codex依使用者核准的來源準則",
       "human_per_record_review_claimed": false,
-      "source_snapshot_sha256": "ec28799d5481925499742c6f648844a22447848efdfc84fcfb18751da3ddb07d"
+      "source_snapshot_sha256": "ec28799d5481925499742c6f648844a22447848efdfc84fcfb18751da3ddb07d",
+      "acceptance_basis": "named_professional_or_original_research"
     },
     {
       "knowledge_id": "WEB-001-001--HN-68074",
@@ -1667,7 +1800,8 @@
       "formal_index_approval_granted": false,
       "reviewed_by": "Codex依使用者核准的來源準則",
       "human_per_record_review_claimed": false,
-      "source_snapshot_sha256": "214dd3c46d22709eeccc6dc336bf9624018465d43ecc306057b73bc39fff499e"
+      "source_snapshot_sha256": "214dd3c46d22709eeccc6dc336bf9624018465d43ecc306057b73bc39fff499e",
+      "acceptance_basis": "named_professional_or_original_research"
     },
     {
       "knowledge_id": "WEB-005-001--HN-11618",
@@ -1686,7 +1820,8 @@
       "formal_index_approval_granted": false,
       "reviewed_by": "Codex依使用者核准的來源準則",
       "human_per_record_review_claimed": false,
-      "source_snapshot_sha256": "41820f113e917783d0ca8821c9a6286c092bb7ecf5fc39e186c311a4f71f7fa8"
+      "source_snapshot_sha256": "41820f113e917783d0ca8821c9a6286c092bb7ecf5fc39e186c311a4f71f7fa8",
+      "acceptance_basis": "named_professional_or_original_research"
     },
     {
       "knowledge_id": "WEB-005-001--P27",
@@ -1706,7 +1841,8 @@
       "reviewed_by": "Codex依使用者核准的來源準則",
       "human_per_record_review_claimed": false,
       "http_fetch_status": 403,
-      "access_note": "直接HTTP受阻；另由web工具取得原始期刊／PubMed內容核對。"
+      "access_note": "直接HTTP受阻；另由web工具取得原始期刊／PubMed內容核對。",
+      "acceptance_basis": "named_professional_or_original_research"
     },
     {
       "knowledge_id": "WEB-006-001--HN-68074",
@@ -1725,7 +1861,8 @@
       "formal_index_approval_granted": false,
       "reviewed_by": "Codex依使用者核准的來源準則",
       "human_per_record_review_claimed": false,
-      "source_snapshot_sha256": "214dd3c46d22709eeccc6dc336bf9624018465d43ecc306057b73bc39fff499e"
+      "source_snapshot_sha256": "214dd3c46d22709eeccc6dc336bf9624018465d43ecc306057b73bc39fff499e",
+      "acceptance_basis": "named_professional_or_original_research"
     },
     {
       "knowledge_id": "WEB-007-001--HN-38933",
@@ -1744,7 +1881,8 @@
       "formal_index_approval_granted": false,
       "reviewed_by": "Codex依使用者核准的來源準則",
       "human_per_record_review_claimed": false,
-      "source_snapshot_sha256": "50aa37e13c3a9b93ce7d22f6c2641ca32d9f4967858b194c4c0abf4dfbf3919a"
+      "source_snapshot_sha256": "50aa37e13c3a9b93ce7d22f6c2641ca32d9f4967858b194c4c0abf4dfbf3919a",
+      "acceptance_basis": "named_professional_or_original_research"
     },
     {
       "knowledge_id": "WEB-012-001--HN-49706",
@@ -1763,7 +1901,8 @@
       "formal_index_approval_granted": false,
       "reviewed_by": "Codex依使用者核准的來源準則",
       "human_per_record_review_claimed": false,
-      "source_snapshot_sha256": "9175f94540b4ae755b1c0c00a3e723983c94d6b5db3d04b3a2d5b2d8ae89d0cb"
+      "source_snapshot_sha256": "9175f94540b4ae755b1c0c00a3e723983c94d6b5db3d04b3a2d5b2d8ae89d0cb",
+      "acceptance_basis": "named_professional_or_original_research"
     },
     {
       "knowledge_id": "WEB-012-001--P25",
@@ -1782,7 +1921,8 @@
       "formal_index_approval_granted": false,
       "reviewed_by": "Codex依使用者核准的來源準則",
       "human_per_record_review_claimed": false,
-      "source_snapshot_sha256": "f289a1eacd8ebdaaad7f3642f760fefa6f0f90bca3b64858d98d2da72fdfc774"
+      "source_snapshot_sha256": "f289a1eacd8ebdaaad7f3642f760fefa6f0f90bca3b64858d98d2da72fdfc774",
+      "acceptance_basis": "named_professional_or_original_research"
     },
     {
       "knowledge_id": "WEB-022-001--HN-13716",
@@ -1801,7 +1941,8 @@
       "formal_index_approval_granted": false,
       "reviewed_by": "Codex依使用者核准的來源準則",
       "human_per_record_review_claimed": false,
-      "source_snapshot_sha256": "b7773e068df0df087434d79f00777ec978800995d9cb61ce678fcb25a7771f78"
+      "source_snapshot_sha256": "b7773e068df0df087434d79f00777ec978800995d9cb61ce678fcb25a7771f78",
+      "acceptance_basis": "named_professional_or_original_research"
     },
     {
       "knowledge_id": "WEB-029-001--HN-69068",
@@ -1820,7 +1961,8 @@
       "formal_index_approval_granted": false,
       "reviewed_by": "Codex依使用者核准的來源準則",
       "human_per_record_review_claimed": false,
-      "source_snapshot_sha256": "ea80518f35da3d360cc43cb6b9fc6f273c8bd4573539d3f85006775fba7fcabd"
+      "source_snapshot_sha256": "ea80518f35da3d360cc43cb6b9fc6f273c8bd4573539d3f85006775fba7fcabd",
+      "acceptance_basis": "named_professional_or_original_research"
     },
     {
       "knowledge_id": "WEB-034-001--HN-52550",
@@ -1839,7 +1981,8 @@
       "formal_index_approval_granted": false,
       "reviewed_by": "Codex依使用者核准的來源準則",
       "human_per_record_review_claimed": false,
-      "source_snapshot_sha256": "7ee8708f3f06a5f11809131fe2e61e4baf93f488b069fb548638d3256a7349a8"
+      "source_snapshot_sha256": "7ee8708f3f06a5f11809131fe2e61e4baf93f488b069fb548638d3256a7349a8",
+      "acceptance_basis": "named_professional_or_original_research"
     },
     {
       "knowledge_id": "WEB-046-001--HN-52573",
@@ -1858,7 +2001,8 @@
       "formal_index_approval_granted": false,
       "reviewed_by": "Codex依使用者核准的來源準則",
       "human_per_record_review_claimed": false,
-      "source_snapshot_sha256": "f7a46e629be83540747118cf4ce3679d3f6f7ae19aacb3c0b0dc9bf7f4bab9d8"
+      "source_snapshot_sha256": "f7a46e629be83540747118cf4ce3679d3f6f7ae19aacb3c0b0dc9bf7f4bab9d8",
+      "acceptance_basis": "named_professional_or_original_research"
     },
     {
       "knowledge_id": "WEB-047-001--HN-65972",
@@ -1877,7 +2021,8 @@
       "formal_index_approval_granted": false,
       "reviewed_by": "Codex依使用者核准的來源準則",
       "human_per_record_review_claimed": false,
-      "source_snapshot_sha256": "9999d3d06d60838edffcff370108ca045ddcd875db468c16c0266dfa916963c6"
+      "source_snapshot_sha256": "9999d3d06d60838edffcff370108ca045ddcd875db468c16c0266dfa916963c6",
+      "acceptance_basis": "named_professional_or_original_research"
     },
     {
       "knowledge_id": "WEB-047-001--P32",
@@ -1897,7 +2042,8 @@
       "reviewed_by": "Codex依使用者核准的來源準則",
       "human_per_record_review_claimed": false,
       "http_fetch_status": 403,
-      "access_note": "直接HTTP受阻；另由web工具取得原始期刊／PubMed內容核對。"
+      "access_note": "直接HTTP受阻；另由web工具取得原始期刊／PubMed內容核對。",
+      "acceptance_basis": "named_professional_or_original_research"
     },
     {
       "knowledge_id": "WEB-052-001--HN-52573",
@@ -1916,7 +2062,8 @@
       "formal_index_approval_granted": false,
       "reviewed_by": "Codex依使用者核准的來源準則",
       "human_per_record_review_claimed": false,
-      "source_snapshot_sha256": "f7a46e629be83540747118cf4ce3679d3f6f7ae19aacb3c0b0dc9bf7f4bab9d8"
+      "source_snapshot_sha256": "f7a46e629be83540747118cf4ce3679d3f6f7ae19aacb3c0b0dc9bf7f4bab9d8",
+      "acceptance_basis": "named_professional_or_original_research"
     },
     {
       "knowledge_id": "WEB-052-001--P07",
@@ -1936,7 +2083,8 @@
       "reviewed_by": "Codex依使用者核准的來源準則",
       "human_per_record_review_claimed": false,
       "http_fetch_status": 403,
-      "access_note": "直接HTTP受阻；另由web工具取得原始期刊／PubMed內容核對。"
+      "access_note": "直接HTTP受阻；另由web工具取得原始期刊／PubMed內容核對。",
+      "acceptance_basis": "named_professional_or_original_research"
     },
     {
       "knowledge_id": "WEB-055-001--HN-48201",
@@ -1955,7 +2103,8 @@
       "formal_index_approval_granted": false,
       "reviewed_by": "Codex依使用者核准的來源準則",
       "human_per_record_review_claimed": false,
-      "source_snapshot_sha256": "d1f74a708cbb94fea858e98a4a4b871c39db94992bf352b828f88a22935015bd"
+      "source_snapshot_sha256": "d1f74a708cbb94fea858e98a4a4b871c39db94992bf352b828f88a22935015bd",
+      "acceptance_basis": "named_professional_or_original_research"
     },
     {
       "knowledge_id": "WEB-055-001--P31",
@@ -1975,7 +2124,8 @@
       "reviewed_by": "Codex依使用者核准的來源準則",
       "human_per_record_review_claimed": false,
       "http_fetch_status": 403,
-      "access_note": "直接HTTP受阻；另由web工具取得原始期刊／PubMed內容核對。"
+      "access_note": "直接HTTP受阻；另由web工具取得原始期刊／PubMed內容核對。",
+      "acceptance_basis": "named_professional_or_original_research"
     },
     {
       "knowledge_id": "WEB-056-001--HN-31058",
@@ -1994,7 +2144,8 @@
       "formal_index_approval_granted": false,
       "reviewed_by": "Codex依使用者核准的來源準則",
       "human_per_record_review_claimed": false,
-      "source_snapshot_sha256": "b3d4f0a808f88b6faef4468d87d3c5dd7de3326964d84ba0e452c55c86edd35b"
+      "source_snapshot_sha256": "b3d4f0a808f88b6faef4468d87d3c5dd7de3326964d84ba0e452c55c86edd35b",
+      "acceptance_basis": "named_professional_or_original_research"
     },
     {
       "knowledge_id": "WEB-056-001--P05",
@@ -2014,7 +2165,8 @@
       "reviewed_by": "Codex依使用者核准的來源準則",
       "human_per_record_review_claimed": false,
       "http_fetch_status": 403,
-      "access_note": "直接HTTP受阻；另由web工具取得原始期刊／PubMed內容核對。"
+      "access_note": "直接HTTP受阻；另由web工具取得原始期刊／PubMed內容核對。",
+      "acceptance_basis": "named_professional_or_original_research"
     },
     {
       "knowledge_id": "WEB-074-001--HN-44080",
@@ -2033,7 +2185,8 @@
       "formal_index_approval_granted": false,
       "reviewed_by": "Codex依使用者核准的來源準則",
       "human_per_record_review_claimed": false,
-      "source_snapshot_sha256": "1b94644fd56169d7ef59a318d579f8f0a62c61ac66d369b4fc8c58d3180685e2"
+      "source_snapshot_sha256": "1b94644fd56169d7ef59a318d579f8f0a62c61ac66d369b4fc8c58d3180685e2",
+      "acceptance_basis": "named_professional_or_original_research"
     },
     {
       "knowledge_id": "WEB-075-001--HN-13776",
@@ -2041,18 +2194,21 @@
       "ingredient_name": "草莓",
       "source_article_id": "HN-13776",
       "source_url": "https://www.healthnews.com.tw/article/13776",
-      "source_content_decision": "pending_named_professional",
+      "source_content_decision": "accepted_under_user_policy",
       "professional_name": "",
       "professional_role": "",
       "review_method": "current_primary_article_and_named_attribution",
-      "decision_basis": "內容可找到，但本文未確認支持本筆主張的具名專業人士；不可僅因網站名稱採用。",
+      "decision_basis": "逐筆摘要與原文及適用條件已核對；依使用者新增的平台採用準則接受本來源。未確認支持本筆主張的個別具名專業人士，不冒稱醫師背書。",
       "locator": "正文第7段",
       "fact_zh_reviewed": "文章報導老年女性群體研究：藍莓與草莓攝取較多，與認知能力下降較慢有關。",
       "conditions_reviewed": "超過1.6萬名婦女的長期追蹤；原文未列草莓單獨攝取量。\n證據限制與不可外推範圍：兩種莓果的觀察性關聯，不能說草莓單獨已證實延緩老化或治療失智。",
       "formal_index_approval_granted": false,
       "reviewed_by": "Codex依使用者核准的來源準則",
       "human_per_record_review_claimed": false,
-      "source_snapshot_sha256": "e8ebe3e8ae8f9e8583dfb10ca2282d2063b210d0ea03d582848c6b34101db592"
+      "source_snapshot_sha256": "e8ebe3e8ae8f9e8583dfb10ca2282d2063b210d0ea03d582848c6b34101db592",
+      "previous_source_content_decision": "pending_named_professional",
+      "previous_decision_basis": "內容可找到，但本文未確認支持本筆主張的具名專業人士；不可僅因網站名稱採用。",
+      "acceptance_basis": "user_accepted_platform_source"
     },
     {
       "knowledge_id": "WEB-076-001--HN-32428",
@@ -2071,7 +2227,8 @@
       "formal_index_approval_granted": false,
       "reviewed_by": "Codex依使用者核准的來源準則",
       "human_per_record_review_claimed": false,
-      "source_snapshot_sha256": "3709debdb6a38ddd10c82f6a40a3d187c04deaba84512816e5faadf23505b0b7"
+      "source_snapshot_sha256": "3709debdb6a38ddd10c82f6a40a3d187c04deaba84512816e5faadf23505b0b7",
+      "acceptance_basis": "named_professional_or_original_research"
     },
     {
       "knowledge_id": "WEB-083-001--HN-56390",
@@ -2090,7 +2247,8 @@
       "formal_index_approval_granted": false,
       "reviewed_by": "Codex依使用者核准的來源準則",
       "human_per_record_review_claimed": false,
-      "source_snapshot_sha256": "165ac71865342a9c366964885ed211ee3e706a7712de2741fbe9b83451ced340"
+      "source_snapshot_sha256": "165ac71865342a9c366964885ed211ee3e706a7712de2741fbe9b83451ced340",
+      "acceptance_basis": "named_professional_or_original_research"
     },
     {
       "knowledge_id": "WEB-084-001--HN-25857",
@@ -2109,7 +2267,8 @@
       "formal_index_approval_granted": false,
       "reviewed_by": "Codex依使用者核准的來源準則",
       "human_per_record_review_claimed": false,
-      "source_snapshot_sha256": "8e4f37911c5aa09e8f04af5dedb46b7cf3c12e0506c4a7b57ac1661f27c2b6d8"
+      "source_snapshot_sha256": "8e4f37911c5aa09e8f04af5dedb46b7cf3c12e0506c4a7b57ac1661f27c2b6d8",
+      "acceptance_basis": "named_professional_or_original_research"
     },
     {
       "knowledge_id": "WEB-085-001--HN-56390",
@@ -2128,7 +2287,8 @@
       "formal_index_approval_granted": false,
       "reviewed_by": "Codex依使用者核准的來源準則",
       "human_per_record_review_claimed": false,
-      "source_snapshot_sha256": "165ac71865342a9c366964885ed211ee3e706a7712de2741fbe9b83451ced340"
+      "source_snapshot_sha256": "165ac71865342a9c366964885ed211ee3e706a7712de2741fbe9b83451ced340",
+      "acceptance_basis": "named_professional_or_original_research"
     },
     {
       "knowledge_id": "WEB-089-001--HN-56390",
@@ -2147,7 +2307,8 @@
       "formal_index_approval_granted": false,
       "reviewed_by": "Codex依使用者核准的來源準則",
       "human_per_record_review_claimed": false,
-      "source_snapshot_sha256": "165ac71865342a9c366964885ed211ee3e706a7712de2741fbe9b83451ced340"
+      "source_snapshot_sha256": "165ac71865342a9c366964885ed211ee3e706a7712de2741fbe9b83451ced340",
+      "acceptance_basis": "named_professional_or_original_research"
     },
     {
       "knowledge_id": "WEB-095-001--HN-65815",
@@ -2166,7 +2327,8 @@
       "formal_index_approval_granted": false,
       "reviewed_by": "Codex依使用者核准的來源準則",
       "human_per_record_review_claimed": false,
-      "source_snapshot_sha256": "41fd4cd2bc9bae386b7da8f4d95e51556354403586aebd39ed6878a7a53c9af8"
+      "source_snapshot_sha256": "41fd4cd2bc9bae386b7da8f4d95e51556354403586aebd39ed6878a7a53c9af8",
+      "acceptance_basis": "named_professional_or_original_research"
     },
     {
       "knowledge_id": "WEB-096-001--HN-66914",
@@ -2185,7 +2347,8 @@
       "formal_index_approval_granted": false,
       "reviewed_by": "Codex依使用者核准的來源準則",
       "human_per_record_review_claimed": false,
-      "source_snapshot_sha256": "cf2e3ecb9c23e9d54155d01e931b3156196f8929ce405555dda6f1261a043085"
+      "source_snapshot_sha256": "cf2e3ecb9c23e9d54155d01e931b3156196f8929ce405555dda6f1261a043085",
+      "acceptance_basis": "named_professional_or_original_research"
     },
     {
       "knowledge_id": "WEB-097-001--HN-66967",
@@ -2204,7 +2367,8 @@
       "formal_index_approval_granted": false,
       "reviewed_by": "Codex依使用者核准的來源準則",
       "human_per_record_review_claimed": false,
-      "source_snapshot_sha256": "af648ad05e99b166b9c14e7a1392bd83e45553605206821ae336927249563277"
+      "source_snapshot_sha256": "af648ad05e99b166b9c14e7a1392bd83e45553605206821ae336927249563277",
+      "acceptance_basis": "named_professional_or_original_research"
     },
     {
       "knowledge_id": "WEB-099-001--HN-57251",
@@ -2212,18 +2376,21 @@
       "ingredient_name": "虱目魚肚",
       "source_article_id": "HN-57251",
       "source_url": "https://www.healthnews.com.tw/article/57251",
-      "source_content_decision": "pending_named_professional",
+      "source_content_decision": "accepted_under_user_policy",
       "professional_name": "",
       "professional_role": "",
       "review_method": "current_primary_article_and_named_attribution",
-      "decision_basis": "內容可找到，但本文未確認支持本筆主張的具名專業人士；不可僅因網站名稱採用。",
+      "decision_basis": "逐筆摘要與原文及適用條件已核對；依使用者新增的平台採用準則接受本來源。未確認支持本筆主張的個別具名專業人士，不冒稱醫師背書。",
       "locator": "正文第2、3段",
       "fact_zh_reviewed": "文章指出虱目魚肚所含魚油可幫助調降血壓與膽固醇。",
       "conditions_reviewed": "只採魚肚段落，不把整道生菜沙拉的膳食纖維與飽足感歸給魚肚。\n證據限制與不可外推範圍：漁業署食材衛教，未載魚肚人體介入試驗，不作疾病治療主張。",
       "formal_index_approval_granted": false,
       "reviewed_by": "Codex依使用者核准的來源準則",
       "human_per_record_review_claimed": false,
-      "source_snapshot_sha256": "0f750a6440fb8ea9de99c5a5460faab86f3548c2b350416566e7ed9a2dd6d96c"
+      "source_snapshot_sha256": "0f750a6440fb8ea9de99c5a5460faab86f3548c2b350416566e7ed9a2dd6d96c",
+      "previous_source_content_decision": "pending_named_professional",
+      "previous_decision_basis": "內容可找到，但本文未確認支持本筆主張的具名專業人士；不可僅因網站名稱採用。",
+      "acceptance_basis": "user_accepted_platform_source"
     },
     {
       "knowledge_id": "WEB-114-001--HN-62406",
@@ -2242,7 +2409,8 @@
       "formal_index_approval_granted": false,
       "reviewed_by": "Codex依使用者核准的來源準則",
       "human_per_record_review_claimed": false,
-      "source_snapshot_sha256": "fdf16c71457f76c43b8ca6487808f0f69e43445e1a793b96602a3580f7f51e57"
+      "source_snapshot_sha256": "fdf16c71457f76c43b8ca6487808f0f69e43445e1a793b96602a3580f7f51e57",
+      "acceptance_basis": "named_professional_or_original_research"
     },
     {
       "knowledge_id": "WEB-115-001--HN-69647",
@@ -2261,7 +2429,8 @@
       "formal_index_approval_granted": false,
       "reviewed_by": "Codex依使用者核准的來源準則",
       "human_per_record_review_claimed": false,
-      "source_snapshot_sha256": "bb8b7971f284fee5ddf7c16c8d32e23fd9ae07b7d3f5a654c42b821433527f56"
+      "source_snapshot_sha256": "bb8b7971f284fee5ddf7c16c8d32e23fd9ae07b7d3f5a654c42b821433527f56",
+      "acceptance_basis": "named_professional_or_original_research"
     },
     {
       "knowledge_id": "WEB-119-001--HN-49811",
@@ -2269,18 +2438,21 @@
       "ingredient_name": "雞胸肉",
       "source_article_id": "HN-49811",
       "source_url": "https://www.healthnews.com.tw/article/49811",
-      "source_content_decision": "pending_named_professional",
+      "source_content_decision": "accepted_under_user_policy",
       "professional_name": "",
       "professional_role": "",
       "review_method": "current_primary_article_and_named_attribution",
-      "decision_basis": "內容可找到，但本文未確認支持本筆主張的具名專業人士；不可僅因網站名稱採用。",
+      "decision_basis": "逐筆摘要與原文及適用條件已核對；依使用者新增的平台採用準則接受本來源。未確認支持本筆主張的個別具名專業人士，不冒稱醫師背書。",
       "locator": "正文第1、2段",
       "fact_zh_reviewed": "文章將雞胸肉描述為可較長時間維持飽足感的低脂、高蛋白減重食材。",
       "conditions_reviewed": "原文為韓國料理專家的食譜書摘，未提供固定份量對照試驗。\n證據限制與不可外推範圍：屬食材與料理書說明，不能宣稱吃雞胸肉必然減重或預防掉髮。",
       "formal_index_approval_granted": false,
       "reviewed_by": "Codex依使用者核准的來源準則",
       "human_per_record_review_claimed": false,
-      "source_snapshot_sha256": "62ccaa14e9e4efb4fa372de8b50f52d4dd35fcf8f8bc369a9b64ecbe882919da"
+      "source_snapshot_sha256": "62ccaa14e9e4efb4fa372de8b50f52d4dd35fcf8f8bc369a9b64ecbe882919da",
+      "previous_source_content_decision": "pending_named_professional",
+      "previous_decision_basis": "內容可找到，但本文未確認支持本筆主張的具名專業人士；不可僅因網站名稱採用。",
+      "acceptance_basis": "user_accepted_platform_source"
     },
     {
       "knowledge_id": "WEB-124-001--HN-41279",
@@ -2299,7 +2471,8 @@
       "formal_index_approval_granted": false,
       "reviewed_by": "Codex依使用者核准的來源準則",
       "human_per_record_review_claimed": false,
-      "source_snapshot_sha256": "da2b0ee98698012423bc91829a20d807cf69f17c751dd0571982ec4128f3279c"
+      "source_snapshot_sha256": "da2b0ee98698012423bc91829a20d807cf69f17c751dd0571982ec4128f3279c",
+      "acceptance_basis": "named_professional_or_original_research"
     },
     {
       "knowledge_id": "WEB-125-001--HN-66269",
@@ -2318,7 +2491,8 @@
       "formal_index_approval_granted": false,
       "reviewed_by": "Codex依使用者核准的來源準則",
       "human_per_record_review_claimed": false,
-      "source_snapshot_sha256": "3bc5c076ecdd05d8777d10a270ef672081a64d464f501648713fe7f4a2b1e593"
+      "source_snapshot_sha256": "3bc5c076ecdd05d8777d10a270ef672081a64d464f501648713fe7f4a2b1e593",
+      "acceptance_basis": "named_professional_or_original_research"
     },
     {
       "knowledge_id": "WEB-009-001--P33",
@@ -2338,7 +2512,8 @@
       "reviewed_by": "Codex依使用者核准的來源準則",
       "human_per_record_review_claimed": false,
       "http_fetch_status": 403,
-      "access_note": "直接HTTP受阻；另由web工具取得原始期刊／PubMed內容核對。"
+      "access_note": "直接HTTP受阻；另由web工具取得原始期刊／PubMed內容核對。",
+      "acceptance_basis": "named_professional_or_original_research"
     },
     {
       "knowledge_id": "RAG-FOOD000687--P15",
@@ -2357,7 +2532,28 @@
       "formal_index_approval_granted": false,
       "reviewed_by": "Codex依使用者核准的來源準則",
       "human_per_record_review_claimed": false,
-      "source_snapshot_sha256": "4e2d649cc6cb9d27e00bd37a93629b818f43822acf979bbdae8990084f2d62aa"
+      "source_snapshot_sha256": "4e2d649cc6cb9d27e00bd37a93629b818f43822acf979bbdae8990084f2d62aa",
+      "acceptance_basis": "named_professional_or_original_research"
     }
-  ]
+  ],
+  "previous_review_version": "web-paper-source-review-2026-10-30-v1",
+  "platform_policy": {
+    "version": "user-approved-platform-sources-2026-10-30-v1",
+    "instruction": "使用者接受Hello醫師及健康醫療網作為T11知識平台來源，不再僅因缺少個別具名專業人士而排除。",
+    "requirements": [
+      "逐筆摘要與來源原文相符",
+      "食材對應正確",
+      "保留適用條件、研究限制與陳述歸屬",
+      "不虛構個別專業人士背書或逐篇醫學審稿"
+    ],
+    "evidence_urls": [
+      "https://helloyishi.com.tw/static/editorial-and-corrections-policy/",
+      "https://www.healthnews.com.tw/"
+    ],
+    "platform_distinction": "Hello醫師有官方編輯／醫療內容審查政策；健康醫療網為使用者接受的健康新聞／衛教平台，不推定每篇都經獨立醫學審稿。"
+  },
+  "acceptance_basis_counts": {
+    "named_professional_or_original_research": 96,
+    "user_accepted_platform_source": 27
+  }
 }
