@@ -1,7 +1,7 @@
 {
   "source_workbook": "knowledge_rag/sources/RAG食材知識來源_網頁及論文_ID對齊版.xlsx",
   "source_sha256": "f96fda1e07ce075d58c6a9a9b8f3895a09240c9353b6d23b9c5cf51bfb3beefc",
-  "source_version": "web-paper-reviewed-2026-10-30-r2",
+  "source_version": "web-paper-platform-2026-10-30-r3",
   "food_reference": {
     "file": "knowledge_rag/sources/All_Food_ID_1018.xlsx",
     "sha256": "b1ccb1b9d9e89c559580571af8018608b442919df4136ed61cf737e928a6dd5f",
@@ -14,7 +14,7 @@
       "knowledge_id": "WEB-004-001--HY-water",
       "ingredient_id": "FOOD000168",
       "ingredient_name": "水蓮菜",
-      "source_version": "web-paper-reviewed-2026-10-30-r2",
+      "source_version": "web-paper-platform-2026-10-30-r3",
       "fact_zh": "文章指出水蓮屬低熱量、含纖維的蔬菜，適量食用可用於體重控制；文中也提到利尿、消水腫的用途。",
       "excerpt": "整理摘要（非逐字原文）：文章指出水蓮屬低熱量、含纖維的蔬菜，適量食用可用於體重控制；文中也提到利尿、消水腫的用途。",
       "excerpt_kind": "editorial_summary_not_verbatim",
@@ -54,13 +54,14 @@
         "sheet": "網頁與論文上下整合",
         "row": 9
       },
-      "content_review_decision": "pending_named_professional"
+      "content_review_decision": "accepted_under_user_policy",
+      "source_acceptance_basis": "user_accepted_platform_source"
     },
     {
       "knowledge_id": "WEB-014-001--HY-fushan",
       "ingredient_id": "FOOD001210",
       "ingredient_name": "福山萵苣",
-      "source_version": "web-paper-reviewed-2026-10-30-r2",
+      "source_version": "web-paper-platform-2026-10-30-r3",
       "fact_zh": "文章以大陸妹（福山萵苣）為主題，說明其有助抗氧化與眼睛保健；腎功能不佳或血鉀偏高者需留意食用量。",
       "excerpt": "整理摘要（非逐字原文）：文章以大陸妹（福山萵苣）為主題，說明其有助抗氧化與眼睛保健；腎功能不佳或血鉀偏高者需留意食用量。",
       "excerpt_kind": "editorial_summary_not_verbatim",
@@ -100,13 +101,14 @@
         "sheet": "網頁與論文上下整合",
         "row": 10
       },
-      "content_review_decision": "pending_named_professional"
+      "content_review_decision": "accepted_under_user_policy",
+      "source_acceptance_basis": "user_accepted_platform_source"
     },
     {
       "knowledge_id": "WEB-028-001--HY-babycorn",
       "ingredient_id": "FOOD000262",
       "ingredient_name": "玉米筍",
-      "source_version": "web-paper-reviewed-2026-10-30-r2",
+      "source_version": "web-paper-platform-2026-10-30-r3",
       "fact_zh": "文章指出玉米筍適量食用有利尿、消水腫的用途，也提醒痛風族群留意食用量。",
       "excerpt": "整理摘要（非逐字原文）：文章指出玉米筍適量食用有利尿、消水腫的用途，也提醒痛風族群留意食用量。",
       "excerpt_kind": "editorial_summary_not_verbatim",
@@ -146,13 +148,14 @@
         "sheet": "網頁與論文上下整合",
         "row": 11
       },
-      "content_review_decision": "pending_named_professional"
+      "content_review_decision": "accepted_under_user_policy",
+      "source_acceptance_basis": "user_accepted_platform_source"
     },
     {
       "knowledge_id": "WEB-071-001--HY-whitesesame",
       "ingredient_id": "FOOD000285",
       "ingredient_name": "白芝麻",
-      "source_version": "web-paper-reviewed-2026-10-30-r2",
+      "source_version": "web-paper-platform-2026-10-30-r3",
       "fact_zh": "文章說明白芝麻有潤腸、改善便祕的作用，但本身油脂與熱量高；容易腹瀉者不宜過多。",
       "excerpt": "整理摘要（非逐字原文）：文章說明白芝麻有潤腸、改善便祕的作用，但本身油脂與熱量高；容易腹瀉者不宜過多。",
       "excerpt_kind": "editorial_summary_not_verbatim",
@@ -192,13 +195,14 @@
         "sheet": "網頁與論文上下整合",
         "row": 12
       },
-      "content_review_decision": "pending_named_professional"
+      "content_review_decision": "accepted_under_user_policy",
+      "source_acceptance_basis": "user_accepted_platform_source"
     },
     {
       "knowledge_id": "WEB-003-001--HY-leaves",
       "ingredient_id": "FOOD000327",
       "ingredient_name": "地瓜葉",
-      "source_version": "web-paper-reviewed-2026-10-30-r2",
+      "source_version": "web-paper-platform-2026-10-30-r3",
       "fact_zh": "文章指出地瓜葉有助增加糞便柔軟度及腸道蠕動，協助排便。",
       "excerpt": "整理摘要（非逐字原文）：文章指出地瓜葉有助增加糞便柔軟度及腸道蠕動，協助排便。",
       "excerpt_kind": "editorial_summary_not_verbatim",
@@ -240,13 +244,14 @@
       },
       "content_review_decision": "accepted_under_user_policy",
       "professional_name": "賴建翰醫師",
-      "professional_role": "醫師／文章醫學審稿"
+      "professional_role": "醫師／文章醫學審稿",
+      "source_acceptance_basis": "named_professional_or_original_research"
     },
     {
       "knowledge_id": "WEB-003-001--HN-33590",
       "ingredient_id": "FOOD000327",
       "ingredient_name": "地瓜葉",
-      "source_version": "web-paper-reviewed-2026-10-30-r2",
+      "source_version": "web-paper-platform-2026-10-30-r3",
       "fact_zh": "營養師把地瓜葉列為有助血糖穩定的食材，並強調蔬菜份量、食物代換及均衡飲食。",
       "excerpt": "整理摘要（非逐字原文）：營養師把地瓜葉列為有助血糖穩定的食材，並強調蔬菜份量、食物代換及均衡飲食。",
       "excerpt_kind": "editorial_summary_not_verbatim",
@@ -288,13 +293,14 @@
       },
       "content_review_decision": "accepted_under_user_policy",
       "professional_name": "李婉萍",
-      "professional_role": "營養師"
+      "professional_role": "營養師",
+      "source_acceptance_basis": "named_professional_or_original_research"
     },
     {
       "knowledge_id": "WEB-003-001--P26",
       "ingredient_id": "FOOD000327",
       "ingredient_name": "地瓜葉",
-      "source_version": "web-paper-reviewed-2026-10-30-r2",
+      "source_version": "web-paper-platform-2026-10-30-r3",
       "fact_zh": "紫地瓜葉可能有助調節免疫細胞的活性，並提高自然殺手細胞的活性。",
       "excerpt": "整理摘要（非逐字原文）：紫地瓜葉可能有助調節免疫細胞的活性，並提高自然殺手細胞的活性。",
       "excerpt_kind": "editorial_summary_not_verbatim",
@@ -336,13 +342,14 @@
       },
       "content_review_decision": "accepted_under_user_policy",
       "professional_name": "Chiao-Ming Chen 等",
-      "professional_role": "臺北醫學大學藥學／營養研究者"
+      "professional_role": "臺北醫學大學藥學／營養研究者",
+      "source_acceptance_basis": "named_professional_or_original_research"
     },
     {
       "knowledge_id": "WEB-015-001--HY-lettuce",
       "ingredient_id": "FOOD001153",
       "ingredient_name": "萵苣",
-      "source_version": "web-paper-reviewed-2026-10-30-r2",
+      "source_version": "web-paper-platform-2026-10-30-r3",
       "fact_zh": "文章將萵苣列為可幫助腸道蠕動、改善便祕的蔬菜。",
       "excerpt": "整理摘要（非逐字原文）：文章將萵苣列為可幫助腸道蠕動、改善便祕的蔬菜。",
       "excerpt_kind": "editorial_summary_not_verbatim",
@@ -382,13 +389,14 @@
         "sheet": "網頁與論文上下整合",
         "row": 16
       },
-      "content_review_decision": "pending_named_professional"
+      "content_review_decision": "accepted_under_user_policy",
+      "source_acceptance_basis": "user_accepted_platform_source"
     },
     {
       "knowledge_id": "WEB-015-001--HN-60979",
       "ingredient_id": "FOOD001153",
       "ingredient_name": "萵苣",
-      "source_version": "web-paper-reviewed-2026-10-30-r2",
+      "source_version": "web-paper-platform-2026-10-30-r3",
       "fact_zh": "文章指出萵苣的膳食纖維與水分有助腸道蠕動及改善便秘。",
       "excerpt": "整理摘要（非逐字原文）：文章指出萵苣的膳食纖維與水分有助腸道蠕動及改善便秘。",
       "excerpt_kind": "editorial_summary_not_verbatim",
@@ -428,13 +436,14 @@
         "sheet": "網頁與論文上下整合",
         "row": 17
       },
-      "content_review_decision": "pending_named_professional"
+      "content_review_decision": "accepted_under_user_policy",
+      "source_acceptance_basis": "user_accepted_platform_source"
     },
     {
       "knowledge_id": "WEB-015-001--P22",
       "ingredient_id": "FOOD001153",
       "ingredient_name": "萵苣",
-      "source_version": "web-paper-reviewed-2026-10-30-r2",
+      "source_version": "web-paper-platform-2026-10-30-r3",
       "fact_zh": "隨餐吃萵苣，可能有助減緩飯後血糖上升。飯後胰島素的上升幅度也可能較小。",
       "excerpt": "整理摘要（非逐字原文）：隨餐吃萵苣，可能有助減緩飯後血糖上升。飯後胰島素的上升幅度也可能較小。",
       "excerpt_kind": "editorial_summary_not_verbatim",
@@ -476,13 +485,14 @@
       },
       "content_review_decision": "accepted_under_user_policy",
       "professional_name": "Sahar Shokraei 等",
-      "professional_role": "臨床營養與飲食學研究者"
+      "professional_role": "臨床營養與飲食學研究者",
+      "source_acceptance_basis": "named_professional_or_original_research"
     },
     {
       "knowledge_id": "WEB-017-001--HY-carrot",
       "ingredient_id": "FOOD000678",
       "ingredient_name": "胡蘿蔔",
-      "source_version": "web-paper-reviewed-2026-10-30-r2",
+      "source_version": "web-paper-platform-2026-10-30-r3",
       "fact_zh": "文章指出胡蘿蔔煮熟後較有助於類胡蘿蔔素吸收；過量食用則可能使皮膚偏黃。",
       "excerpt": "整理摘要（非逐字原文）：文章指出胡蘿蔔煮熟後較有助於類胡蘿蔔素吸收；過量食用則可能使皮膚偏黃。",
       "excerpt_kind": "editorial_summary_not_verbatim",
@@ -524,13 +534,14 @@
       },
       "content_review_decision": "accepted_under_user_policy",
       "professional_name": "賴建翰醫師",
-      "professional_role": "醫師／文章醫學審稿"
+      "professional_role": "醫師／文章醫學審稿",
+      "source_acceptance_basis": "named_professional_or_original_research"
     },
     {
       "knowledge_id": "WEB-017-001--HN-52573",
       "ingredient_id": "FOOD000678",
       "ingredient_name": "胡蘿蔔",
-      "source_version": "web-paper-reviewed-2026-10-30-r2",
+      "source_version": "web-paper-platform-2026-10-30-r3",
       "fact_zh": "營養師指出胡蘿蔔有益視覺健康，並有助暗處視覺。",
       "excerpt": "整理摘要（非逐字原文）：營養師指出胡蘿蔔有益視覺健康，並有助暗處視覺。",
       "excerpt_kind": "editorial_summary_not_verbatim",
@@ -572,13 +583,14 @@
       },
       "content_review_decision": "accepted_under_user_policy",
       "professional_name": "李其昀",
-      "professional_role": "營養師"
+      "professional_role": "營養師",
+      "source_acceptance_basis": "named_professional_or_original_research"
     },
     {
       "knowledge_id": "WEB-017-001--P13",
       "ingredient_id": "FOOD000678",
       "ingredient_name": "胡蘿蔔",
-      "source_version": "web-paper-reviewed-2026-10-30-r2",
+      "source_version": "web-paper-platform-2026-10-30-r3",
       "fact_zh": "飲用胡蘿蔔汁可能提升身體的抗氧化能力。也可能減少體內脂質受到氧化的程度。",
       "excerpt": "整理摘要（非逐字原文）：飲用胡蘿蔔汁可能提升身體的抗氧化能力。也可能減少體內脂質受到氧化的程度。",
       "excerpt_kind": "editorial_summary_not_verbatim",
@@ -620,13 +632,14 @@
       },
       "content_review_decision": "accepted_under_user_policy",
       "professional_name": "Andrew S Potter 等",
-      "professional_role": "Texas A&M人體科學研究者"
+      "professional_role": "Texas A&M人體科學研究者",
+      "source_acceptance_basis": "named_professional_or_original_research"
     },
     {
       "knowledge_id": "WEB-018-001--HY-pumpkin",
       "ingredient_id": "FOOD000601",
       "ingredient_name": "南瓜",
-      "source_version": "web-paper-reviewed-2026-10-30-r2",
+      "source_version": "web-paper-platform-2026-10-30-r3",
       "fact_zh": "文章指出南瓜可提供飽足感，有助控制其他食物攝取；南瓜也含澱粉，控制血糖時需連同其他主食計算份量。",
       "excerpt": "整理摘要（非逐字原文）：文章指出南瓜可提供飽足感，有助控制其他食物攝取；南瓜也含澱粉，控制血糖時需連同其他主食計算份量。",
       "excerpt_kind": "editorial_summary_not_verbatim",
@@ -668,13 +681,14 @@
       },
       "content_review_decision": "accepted_under_user_policy",
       "professional_name": "賴建翰醫師",
-      "professional_role": "醫師／文章醫學審稿"
+      "professional_role": "醫師／文章醫學審稿",
+      "source_acceptance_basis": "named_professional_or_original_research"
     },
     {
       "knowledge_id": "WEB-018-001--HN-55676",
       "ingredient_id": "FOOD000601",
       "ingredient_name": "南瓜",
-      "source_version": "web-paper-reviewed-2026-10-30-r2",
+      "source_version": "web-paper-platform-2026-10-30-r3",
       "fact_zh": "文章指出南瓜有助正常視覺、皮膚與黏膜健康，並可促進腸道蠕動、增加飽足感。",
       "excerpt": "整理摘要（非逐字原文）：文章指出南瓜有助正常視覺、皮膚與黏膜健康，並可促進腸道蠕動、增加飽足感。",
       "excerpt_kind": "editorial_summary_not_verbatim",
@@ -716,13 +730,14 @@
       },
       "content_review_decision": "accepted_under_user_policy",
       "professional_name": "吳昭軍",
-      "professional_role": "國民健康署署長／公共衛生機關代表"
+      "professional_role": "國民健康署署長／公共衛生機關代表",
+      "source_acceptance_basis": "named_professional_or_original_research"
     },
     {
       "knowledge_id": "WEB-018-001--P08",
       "ingredient_id": "FOOD000601",
       "ingredient_name": "南瓜",
-      "source_version": "web-paper-reviewed-2026-10-30-r2",
+      "source_version": "web-paper-platform-2026-10-30-r3",
       "fact_zh": "南瓜會使飯後血糖上升，部分人體測試的升糖反應較高。",
       "excerpt": "整理摘要（非逐字原文）：南瓜會使飯後血糖上升，部分人體測試的升糖反應較高。",
       "excerpt_kind": "editorial_summary_not_verbatim",
@@ -764,13 +779,14 @@
       },
       "content_review_decision": "accepted_under_user_policy",
       "professional_name": "HAN Wen-ting；XU Gui-fa；LIU Bin",
-      "professional_role": "山東大學營養與食品衛生研究者"
+      "professional_role": "山東大學營養與食品衛生研究者",
+      "source_acceptance_basis": "named_professional_or_original_research"
     },
     {
       "knowledge_id": "WEB-020-001--HY-sweetpotato",
       "ingredient_id": "FOOD000325",
       "ingredient_name": "地瓜",
-      "source_version": "web-paper-reviewed-2026-10-30-r2",
+      "source_version": "web-paper-platform-2026-10-30-r3",
       "fact_zh": "文章說明地瓜有助減緩餐後血糖的劇烈波動，作為飲食選擇時仍須留意份量。",
       "excerpt": "整理摘要（非逐字原文）：文章說明地瓜有助減緩餐後血糖的劇烈波動，作為飲食選擇時仍須留意份量。",
       "excerpt_kind": "editorial_summary_not_verbatim",
@@ -812,13 +828,14 @@
       },
       "content_review_decision": "accepted_under_user_policy",
       "professional_name": "賴建翰醫師",
-      "professional_role": "醫師／文章醫學審稿"
+      "professional_role": "醫師／文章醫學審稿",
+      "source_acceptance_basis": "named_professional_or_original_research"
     },
     {
       "knowledge_id": "WEB-020-001--HN-45761",
       "ingredient_id": "FOOD000325",
       "ingredient_name": "地瓜",
-      "source_version": "web-paper-reviewed-2026-10-30-r2",
+      "source_version": "web-paper-platform-2026-10-30-r3",
       "fact_zh": "營養師指出蒸熟後冰鎮的地瓜可延長飽足感，文中也將地瓜列為排便不順者適合的食物。",
       "excerpt": "整理摘要（非逐字原文）：營養師指出蒸熟後冰鎮的地瓜可延長飽足感，文中也將地瓜列為排便不順者適合的食物。",
       "excerpt_kind": "editorial_summary_not_verbatim",
@@ -860,13 +877,14 @@
       },
       "content_review_decision": "accepted_under_user_policy",
       "professional_name": "陳扆洵",
-      "professional_role": "營養師"
+      "professional_role": "營養師",
+      "source_acceptance_basis": "named_professional_or_original_research"
     },
     {
       "knowledge_id": "WEB-020-001--P30",
       "ingredient_id": "FOOD000325",
       "ingredient_name": "地瓜",
-      "source_version": "web-paper-reviewed-2026-10-30-r2",
+      "source_version": "web-paper-platform-2026-10-30-r3",
       "fact_zh": "對接受化療的白血病患者，吃地瓜可能改善便祕、幫助排便。也可能提升對排便狀況的滿意度。",
       "excerpt": "整理摘要（非逐字原文）：對接受化療的白血病患者，吃地瓜可能改善便祕、幫助排便。也可能提升對排便狀況的滿意度。",
       "excerpt_kind": "editorial_summary_not_verbatim",
@@ -908,13 +926,14 @@
       },
       "content_review_decision": "accepted_under_user_policy",
       "professional_name": "Jing-Ying Zou 等",
-      "professional_role": "Cancer Nursing原研究具名作者"
+      "professional_role": "Cancer Nursing原研究具名作者",
+      "source_acceptance_basis": "named_professional_or_original_research"
     },
     {
       "knowledge_id": "WEB-021-001--HY-tomato",
       "ingredient_id": "FOOD001016",
       "ingredient_name": "番茄",
-      "source_version": "web-paper-reviewed-2026-10-30-r2",
+      "source_version": "web-paper-platform-2026-10-30-r3",
       "fact_zh": "文章指出番茄能促進腸道蠕動，幫助維持排便順暢。",
       "excerpt": "整理摘要（非逐字原文）：文章指出番茄能促進腸道蠕動，幫助維持排便順暢。",
       "excerpt_kind": "editorial_summary_not_verbatim",
@@ -956,13 +975,14 @@
       },
       "content_review_decision": "accepted_under_user_policy",
       "professional_name": "賴建翰醫師",
-      "professional_role": "醫師／文章醫學審稿"
+      "professional_role": "醫師／文章醫學審稿",
+      "source_acceptance_basis": "named_professional_or_original_research"
     },
     {
       "knowledge_id": "WEB-021-001--HN-66393",
       "ingredient_id": "FOOD001016",
       "ingredient_name": "番茄",
-      "source_version": "web-paper-reviewed-2026-10-30-r2",
+      "source_version": "web-paper-platform-2026-10-30-r3",
       "fact_zh": "文章指出大番茄可能有攝護腺癌預防益處，但也明言目前證據力有限。",
       "excerpt": "整理摘要（非逐字原文）：文章指出大番茄可能有攝護腺癌預防益處，但也明言目前證據力有限。",
       "excerpt_kind": "editorial_summary_not_verbatim",
@@ -1004,13 +1024,14 @@
       },
       "content_review_decision": "accepted_under_user_policy",
       "professional_name": "徐桂婷",
-      "professional_role": "營養師"
+      "professional_role": "營養師",
+      "source_acceptance_basis": "named_professional_or_original_research"
     },
     {
       "knowledge_id": "WEB-021-001--P01",
       "ingredient_id": "FOOD001016",
       "ingredient_name": "番茄",
-      "source_version": "web-paper-reviewed-2026-10-30-r2",
+      "source_version": "web-paper-platform-2026-10-30-r3",
       "fact_zh": "對血壓偏高者，飲用無鹽番茄汁可能有助降低血壓。對血脂異常者，也可能有助降低壞膽固醇。",
       "excerpt": "整理摘要（非逐字原文）：對血壓偏高者，飲用無鹽番茄汁可能有助降低血壓。對血脂異常者，也可能有助降低壞膽固醇。",
       "excerpt_kind": "editorial_summary_not_verbatim",
@@ -1052,13 +1073,14 @@
       },
       "content_review_decision": "accepted_under_user_policy",
       "professional_name": "T Odai 等",
-      "professional_role": "Food Science & Nutrition原研究具名作者"
+      "professional_role": "Food Science & Nutrition原研究具名作者",
+      "source_acceptance_basis": "named_professional_or_original_research"
     },
     {
       "knowledge_id": "WEB-026-001--HY-greenpepper",
       "ingredient_id": "FOOD000593",
       "ingredient_name": "青椒",
-      "source_version": "web-paper-reviewed-2026-10-30-r2",
+      "source_version": "web-paper-platform-2026-10-30-r3",
       "fact_zh": "文章說明青椒可增加飽足感，並幫助腸道蠕動、改善便祕；腸胃容易不適者需避免過量。",
       "excerpt": "整理摘要（非逐字原文）：文章說明青椒可增加飽足感，並幫助腸道蠕動、改善便祕；腸胃容易不適者需避免過量。",
       "excerpt_kind": "editorial_summary_not_verbatim",
@@ -1100,13 +1122,14 @@
       },
       "content_review_decision": "accepted_under_user_policy",
       "professional_name": "蔡正亮營養師",
-      "professional_role": "營養師／文章醫學審稿"
+      "professional_role": "營養師／文章醫學審稿",
+      "source_acceptance_basis": "named_professional_or_original_research"
     },
     {
       "knowledge_id": "WEB-026-001--HN-44809",
       "ingredient_id": "FOOD000593",
       "ingredient_name": "青椒",
-      "source_version": "web-paper-reviewed-2026-10-30-r2",
+      "source_version": "web-paper-platform-2026-10-30-r3",
       "fact_zh": "受訪營養師指出青椒富含鐵質，有助造血。",
       "excerpt": "整理摘要（非逐字原文）：受訪營養師指出青椒富含鐵質，有助造血。",
       "excerpt_kind": "editorial_summary_not_verbatim",
@@ -1148,13 +1171,14 @@
       },
       "content_review_decision": "accepted_under_user_policy",
       "professional_name": "萬巧羽",
-      "professional_role": "營養師"
+      "professional_role": "營養師",
+      "source_acceptance_basis": "named_professional_or_original_research"
     },
     {
       "knowledge_id": "WEB-027-001--HY-corn",
       "ingredient_id": "FOOD000257",
       "ingredient_name": "玉米",
-      "source_version": "web-paper-reviewed-2026-10-30-r2",
+      "source_version": "web-paper-platform-2026-10-30-r3",
       "fact_zh": "文章指出玉米可延緩消化、增加飽足感，並減緩血糖上升；其含醣量仍須計入餐食，過量不利血糖控制。",
       "excerpt": "整理摘要（非逐字原文）：文章指出玉米可延緩消化、增加飽足感，並減緩血糖上升；其含醣量仍須計入餐食，過量不利血糖控制。",
       "excerpt_kind": "editorial_summary_not_verbatim",
@@ -1194,13 +1218,14 @@
         "sheet": "網頁與論文上下整合",
         "row": 33
       },
-      "content_review_decision": "pending_named_professional"
+      "content_review_decision": "accepted_under_user_policy",
+      "source_acceptance_basis": "user_accepted_platform_source"
     },
     {
       "knowledge_id": "WEB-027-001--HN-32552",
       "ingredient_id": "FOOD000257",
       "ingredient_name": "玉米",
-      "source_version": "web-paper-reviewed-2026-10-30-r2",
+      "source_version": "web-paper-platform-2026-10-30-r3",
       "fact_zh": "文章將玉米列為可替代白飯的主食選擇，指出其飯後血糖波動較小，但吃過量仍可能變胖。",
       "excerpt": "整理摘要（非逐字原文）：文章將玉米列為可替代白飯的主食選擇，指出其飯後血糖波動較小，但吃過量仍可能變胖。",
       "excerpt_kind": "editorial_summary_not_verbatim",
@@ -1242,13 +1267,14 @@
       },
       "content_review_decision": "accepted_under_user_policy",
       "professional_name": "張心怡",
-      "professional_role": "營養師"
+      "professional_role": "營養師",
+      "source_acceptance_basis": "named_professional_or_original_research"
     },
     {
       "knowledge_id": "WEB-027-001--P17",
       "ingredient_id": "FOOD000257",
       "ingredient_name": "玉米",
-      "source_version": "web-paper-reviewed-2026-10-30-r2",
+      "source_version": "web-paper-platform-2026-10-30-r3",
       "fact_zh": "吃甜玉米會使血糖上升，人體測試的升糖反應落在低至中等範圍。",
       "excerpt": "整理摘要（非逐字原文）：吃甜玉米會使血糖上升，人體測試的升糖反應落在低至中等範圍。",
       "excerpt_kind": "editorial_summary_not_verbatim",
@@ -1290,13 +1316,14 @@
       },
       "content_review_decision": "accepted_under_user_policy",
       "professional_name": "Sri Nur Amalia；Rimbawan；Mira Dewi",
-      "professional_role": "IPB社區營養研究者"
+      "professional_role": "IPB社區營養研究者",
+      "source_acceptance_basis": "named_professional_or_original_research"
     },
     {
       "knowledge_id": "WEB-031-001--HY-radish",
       "ingredient_id": "FOOD000307",
       "ingredient_name": "白蘿蔔",
-      "source_version": "web-paper-reviewed-2026-10-30-r2",
+      "source_version": "web-paper-platform-2026-10-30-r3",
       "fact_zh": "文章將白蘿蔔列為低熱量、可用於增加飽足感與控制飲食的食材。",
       "excerpt": "整理摘要（非逐字原文）：文章將白蘿蔔列為低熱量、可用於增加飽足感與控制飲食的食材。",
       "excerpt_kind": "editorial_summary_not_verbatim",
@@ -1336,13 +1363,14 @@
         "sheet": "網頁與論文上下整合",
         "row": 36
       },
-      "content_review_decision": "pending_named_professional"
+      "content_review_decision": "accepted_under_user_policy",
+      "source_acceptance_basis": "user_accepted_platform_source"
     },
     {
       "knowledge_id": "WEB-036-001--HY-waterbamboo",
       "ingredient_id": "FOOD001024",
       "ingredient_name": "筊白筍",
-      "source_version": "web-paper-reviewed-2026-10-30-r2",
+      "source_version": "web-paper-platform-2026-10-30-r3",
       "fact_zh": "文章指出筊白筍熱量低，可作為體重控制期間的蔬菜選擇。",
       "excerpt": "整理摘要（非逐字原文）：文章指出筊白筍熱量低，可作為體重控制期間的蔬菜選擇。",
       "excerpt_kind": "editorial_summary_not_verbatim",
@@ -1382,13 +1410,14 @@
         "sheet": "網頁與論文上下整合",
         "row": 37
       },
-      "content_review_decision": "pending_named_professional"
+      "content_review_decision": "accepted_under_user_policy",
+      "source_acceptance_basis": "user_accepted_platform_source"
     },
     {
       "knowledge_id": "WEB-036-001--HN-58443",
       "ingredient_id": "FOOD001024",
       "ingredient_name": "筊白筍",
-      "source_version": "web-paper-reviewed-2026-10-30-r2",
+      "source_version": "web-paper-platform-2026-10-30-r3",
       "fact_zh": "文章指出筊白筍有助腸道健康與排便，並說明與豆腐同食不等於會造成體內結石。",
       "excerpt": "整理摘要（非逐字原文）：文章指出筊白筍有助腸道健康與排便，並說明與豆腐同食不等於會造成體內結石。",
       "excerpt_kind": "editorial_summary_not_verbatim",
@@ -1430,13 +1459,14 @@
       },
       "content_review_decision": "accepted_under_user_policy",
       "professional_name": "陳詩婷",
-      "professional_role": "營養師"
+      "professional_role": "營養師",
+      "source_acceptance_basis": "named_professional_or_original_research"
     },
     {
       "knowledge_id": "WEB-038-001--HY-okra",
       "ingredient_id": "FOOD000631",
       "ingredient_name": "秋葵",
-      "source_version": "web-paper-reviewed-2026-10-30-r2",
+      "source_version": "web-paper-platform-2026-10-30-r3",
       "fact_zh": "文章說明秋葵有助延緩胃排空與血糖上升，也能增加糞便含水量及飽足感。",
       "excerpt": "整理摘要（非逐字原文）：文章說明秋葵有助延緩胃排空與血糖上升，也能增加糞便含水量及飽足感。",
       "excerpt_kind": "editorial_summary_not_verbatim",
@@ -1476,13 +1506,14 @@
         "sheet": "網頁與論文上下整合",
         "row": 39
       },
-      "content_review_decision": "pending_named_professional"
+      "content_review_decision": "accepted_under_user_policy",
+      "source_acceptance_basis": "user_accepted_platform_source"
     },
     {
       "knowledge_id": "WEB-038-001--HN-29287",
       "ingredient_id": "FOOD000631",
       "ingredient_name": "秋葵",
-      "source_version": "web-paper-reviewed-2026-10-30-r2",
+      "source_version": "web-paper-platform-2026-10-30-r3",
       "fact_zh": "營養師指出秋葵可增加飽足感、幫助控制食量；體重與血糖管理仍須配合整體飲食及運動。",
       "excerpt": "整理摘要（非逐字原文）：營養師指出秋葵可增加飽足感、幫助控制食量；體重與血糖管理仍須配合整體飲食及運動。",
       "excerpt_kind": "editorial_summary_not_verbatim",
@@ -1524,13 +1555,14 @@
       },
       "content_review_decision": "accepted_under_user_policy",
       "professional_name": "鄭師嘉",
-      "professional_role": "營養師"
+      "professional_role": "營養師",
+      "source_acceptance_basis": "named_professional_or_original_research"
     },
     {
       "knowledge_id": "WEB-039-001--HY-greenbean",
       "ingredient_id": "FOOD000240",
       "ingredient_name": "四季豆",
-      "source_version": "web-paper-reviewed-2026-10-30-r2",
+      "source_version": "web-paper-platform-2026-10-30-r3",
       "fact_zh": "文章指出四季豆能幫助腸胃蠕動、促進排便，改善便祕困擾。",
       "excerpt": "整理摘要（非逐字原文）：文章指出四季豆能幫助腸胃蠕動、促進排便，改善便祕困擾。",
       "excerpt_kind": "editorial_summary_not_verbatim",
@@ -1570,13 +1602,14 @@
         "sheet": "網頁與論文上下整合",
         "row": 41
       },
-      "content_review_decision": "pending_named_professional"
+      "content_review_decision": "accepted_under_user_policy",
+      "source_acceptance_basis": "user_accepted_platform_source"
     },
     {
       "knowledge_id": "WEB-039-001--P12",
       "ingredient_id": "FOOD000240",
       "ingredient_name": "四季豆",
-      "source_version": "web-paper-reviewed-2026-10-30-r2",
+      "source_version": "web-paper-platform-2026-10-30-r3",
       "fact_zh": "與米飯同吃四季豆，可能有助減緩飯後血糖上升。",
       "excerpt": "整理摘要（非逐字原文）：與米飯同吃四季豆，可能有助減緩飯後血糖上升。",
       "excerpt_kind": "editorial_summary_not_verbatim",
@@ -1618,13 +1651,14 @@
       },
       "content_review_decision": "accepted_under_user_policy",
       "professional_name": "ZHU Ruixin；LAN Xiaofang；FAN Zhihong；WANG Linlin",
-      "professional_role": "中國農業大學食品科學與營養工程研究者"
+      "professional_role": "中國農業大學食品科學與營養工程研究者",
+      "source_acceptance_basis": "named_professional_or_original_research"
     },
     {
       "knowledge_id": "WEB-041-001--HY-bittergourd",
       "ingredient_id": "FOOD000680",
       "ingredient_name": "苦瓜",
-      "source_version": "web-paper-reviewed-2026-10-30-r2",
+      "source_version": "web-paper-platform-2026-10-30-r3",
       "fact_zh": "文章指出苦瓜熱量低，適量食用能增加飽足感，可納入體重管理的飲食。",
       "excerpt": "整理摘要（非逐字原文）：文章指出苦瓜熱量低，適量食用能增加飽足感，可納入體重管理的飲食。",
       "excerpt_kind": "editorial_summary_not_verbatim",
@@ -1664,13 +1698,14 @@
         "sheet": "網頁與論文上下整合",
         "row": 43
       },
-      "content_review_decision": "pending_named_professional"
+      "content_review_decision": "accepted_under_user_policy",
+      "source_acceptance_basis": "user_accepted_platform_source"
     },
     {
       "knowledge_id": "WEB-041-001--HN-69068",
       "ingredient_id": "FOOD000680",
       "ingredient_name": "苦瓜",
-      "source_version": "web-paper-reviewed-2026-10-30-r2",
+      "source_version": "web-paper-platform-2026-10-30-r3",
       "fact_zh": "營養師指出苦瓜熱量低，且食用後有較好的飽足感。",
       "excerpt": "整理摘要（非逐字原文）：營養師指出苦瓜熱量低，且食用後有較好的飽足感。",
       "excerpt_kind": "editorial_summary_not_verbatim",
@@ -1712,13 +1747,14 @@
       },
       "content_review_decision": "accepted_under_user_policy",
       "professional_name": "羅孟欣",
-      "professional_role": "營養師"
+      "professional_role": "營養師",
+      "source_acceptance_basis": "named_professional_or_original_research"
     },
     {
       "knowledge_id": "WEB-042-001--HY-eggplant",
       "ingredient_id": "FOOD000684",
       "ingredient_name": "茄子",
-      "source_version": "web-paper-reviewed-2026-10-30-r2",
+      "source_version": "web-paper-platform-2026-10-30-r3",
       "fact_zh": "文章指出茄子能增加飽足感，但料理時容易吸油；油量過多反而會增加熱量攝取。",
       "excerpt": "整理摘要（非逐字原文）：文章指出茄子能增加飽足感，但料理時容易吸油；油量過多反而會增加熱量攝取。",
       "excerpt_kind": "editorial_summary_not_verbatim",
@@ -1760,13 +1796,14 @@
       },
       "content_review_decision": "accepted_under_user_policy",
       "professional_name": "賴建翰醫師",
-      "professional_role": "醫師／文章醫學審稿"
+      "professional_role": "醫師／文章醫學審稿",
+      "source_acceptance_basis": "named_professional_or_original_research"
     },
     {
       "knowledge_id": "WEB-042-001--HN-52573",
       "ingredient_id": "FOOD000684",
       "ingredient_name": "茄子",
-      "source_version": "web-paper-reviewed-2026-10-30-r2",
+      "source_version": "web-paper-platform-2026-10-30-r3",
       "fact_zh": "營養師指出茄子有助抗氧化及維持血管彈性。",
       "excerpt": "整理摘要（非逐字原文）：營養師指出茄子有助抗氧化及維持血管彈性。",
       "excerpt_kind": "editorial_summary_not_verbatim",
@@ -1808,13 +1845,14 @@
       },
       "content_review_decision": "accepted_under_user_policy",
       "professional_name": "李其昀",
-      "professional_role": "營養師"
+      "professional_role": "營養師",
+      "source_acceptance_basis": "named_professional_or_original_research"
     },
     {
       "knowledge_id": "WEB-042-001--P12",
       "ingredient_id": "FOOD000684",
       "ingredient_name": "茄子",
-      "source_version": "web-paper-reviewed-2026-10-30-r2",
+      "source_version": "web-paper-platform-2026-10-30-r3",
       "fact_zh": "與米飯同吃茄子，可能有助減緩飯後血糖上升。",
       "excerpt": "整理摘要（非逐字原文）：與米飯同吃茄子，可能有助減緩飯後血糖上升。",
       "excerpt_kind": "editorial_summary_not_verbatim",
@@ -1856,13 +1894,14 @@
       },
       "content_review_decision": "accepted_under_user_policy",
       "professional_name": "ZHU Ruixin；LAN Xiaofang；FAN Zhihong；WANG Linlin",
-      "professional_role": "中國農業大學食品科學與營養工程研究者"
+      "professional_role": "中國農業大學食品科學與營養工程研究者",
+      "source_acceptance_basis": "named_professional_or_original_research"
     },
     {
       "knowledge_id": "WEB-043-001--HY-loofah",
       "ingredient_id": "FOOD001037",
       "ingredient_name": "絲瓜",
-      "source_version": "web-paper-reviewed-2026-10-30-r2",
+      "source_version": "web-paper-platform-2026-10-30-r3",
       "fact_zh": "文章說明絲瓜可幫助腸胃蠕動、改善便祕；容易腹瀉者吃太多可能使腹瀉加重。",
       "excerpt": "整理摘要（非逐字原文）：文章說明絲瓜可幫助腸胃蠕動、改善便祕；容易腹瀉者吃太多可能使腹瀉加重。",
       "excerpt_kind": "editorial_summary_not_verbatim",
@@ -1902,13 +1941,14 @@
         "sheet": "網頁與論文上下整合",
         "row": 48
       },
-      "content_review_decision": "pending_named_professional"
+      "content_review_decision": "accepted_under_user_policy",
+      "source_acceptance_basis": "user_accepted_platform_source"
     },
     {
       "knowledge_id": "WEB-044-001--HY-zucchini",
       "ingredient_id": "FOOD001482",
       "ingredient_name": "櫛瓜",
-      "source_version": "web-paper-reviewed-2026-10-30-r2",
+      "source_version": "web-paper-platform-2026-10-30-r3",
       "fact_zh": "文章指出櫛瓜有助促進排便與維持腸道健康，能協助避免便祕。",
       "excerpt": "整理摘要（非逐字原文）：文章指出櫛瓜有助促進排便與維持腸道健康，能協助避免便祕。",
       "excerpt_kind": "editorial_summary_not_verbatim",
@@ -1948,13 +1988,14 @@
         "sheet": "網頁與論文上下整合",
         "row": 49
       },
-      "content_review_decision": "pending_named_professional"
+      "content_review_decision": "accepted_under_user_policy",
+      "source_acceptance_basis": "user_accepted_platform_source"
     },
     {
       "knowledge_id": "WEB-045-001--HY-cucumber",
       "ingredient_id": "FOOD000059",
       "ingredient_name": "小黃瓜",
-      "source_version": "web-paper-reviewed-2026-10-30-r2",
+      "source_version": "web-paper-platform-2026-10-30-r3",
       "fact_zh": "文章指出小黃瓜含水量高，食用後可增加飽足感，也有助腸道蠕動與規律排便。",
       "excerpt": "整理摘要（非逐字原文）：文章指出小黃瓜含水量高，食用後可增加飽足感，也有助腸道蠕動與規律排便。",
       "excerpt_kind": "editorial_summary_not_verbatim",
@@ -1996,13 +2037,14 @@
       },
       "content_review_decision": "accepted_under_user_policy",
       "professional_name": "賴建翰醫師",
-      "professional_role": "醫師／文章醫學審稿"
+      "professional_role": "醫師／文章醫學審稿",
+      "source_acceptance_basis": "named_professional_or_original_research"
     },
     {
       "knowledge_id": "WEB-045-001--HN-52573",
       "ingredient_id": "FOOD000059",
       "ingredient_name": "小黃瓜",
-      "source_version": "web-paper-reviewed-2026-10-30-r2",
+      "source_version": "web-paper-platform-2026-10-30-r3",
       "fact_zh": "營養師指出小黃瓜水分多、熱量低，可補充水分並帶來飽足感。",
       "excerpt": "整理摘要（非逐字原文）：營養師指出小黃瓜水分多、熱量低，可補充水分並帶來飽足感。",
       "excerpt_kind": "editorial_summary_not_verbatim",
@@ -2044,13 +2086,14 @@
       },
       "content_review_decision": "accepted_under_user_policy",
       "professional_name": "李其昀",
-      "professional_role": "營養師"
+      "professional_role": "營養師",
+      "source_acceptance_basis": "named_professional_or_original_research"
     },
     {
       "knowledge_id": "WEB-045-001--P06",
       "ingredient_id": "FOOD000059",
       "ingredient_name": "小黃瓜",
-      "source_version": "web-paper-reviewed-2026-10-30-r2",
+      "source_version": "web-paper-platform-2026-10-30-r3",
       "fact_zh": "對高血壓者，飲用小黃瓜汁可能有助降低血壓。",
       "excerpt": "整理摘要（非逐字原文）：對高血壓者，飲用小黃瓜汁可能有助降低血壓。",
       "excerpt_kind": "editorial_summary_not_verbatim",
@@ -2092,13 +2135,14 @@
       },
       "content_review_decision": "accepted_under_user_policy",
       "professional_name": "Agung Sutriyawan 等",
-      "professional_role": "公共衛生／健康科學研究者"
+      "professional_role": "公共衛生／健康科學研究者",
+      "source_acceptance_basis": "named_professional_or_original_research"
     },
     {
       "knowledge_id": "WEB-048-001--HY-garlic",
       "ingredient_id": "FOOD000039",
       "ingredient_name": "大蒜",
-      "source_version": "web-paper-reviewed-2026-10-30-r2",
+      "source_version": "web-paper-platform-2026-10-30-r3",
       "fact_zh": "文章提醒大蒜對腸胃有刺激性，一次吃太多可能造成腹脹、腹瀉或其他腸胃不適。",
       "excerpt": "整理摘要（非逐字原文）：文章提醒大蒜對腸胃有刺激性，一次吃太多可能造成腹脹、腹瀉或其他腸胃不適。",
       "excerpt_kind": "editorial_summary_not_verbatim",
@@ -2140,13 +2184,14 @@
       },
       "content_review_decision": "accepted_under_user_policy",
       "professional_name": "賴建翰醫師",
-      "professional_role": "醫師／文章醫學審稿"
+      "professional_role": "醫師／文章醫學審稿",
+      "source_acceptance_basis": "named_professional_or_original_research"
     },
     {
       "knowledge_id": "WEB-049-001--HY-garlic",
       "ingredient_id": "FOOD001237",
       "ingredient_name": "蒜頭",
-      "source_version": "web-paper-reviewed-2026-10-30-r2",
+      "source_version": "web-paper-platform-2026-10-30-r3",
       "fact_zh": "文章提醒大蒜對腸胃有刺激性，一次吃太多可能造成腹脹、腹瀉或其他腸胃不適。",
       "excerpt": "整理摘要（非逐字原文）：文章提醒大蒜對腸胃有刺激性，一次吃太多可能造成腹脹、腹瀉或其他腸胃不適。",
       "excerpt_kind": "editorial_summary_not_verbatim",
@@ -2188,13 +2233,14 @@
       },
       "content_review_decision": "accepted_under_user_policy",
       "professional_name": "賴建翰醫師",
-      "professional_role": "醫師／文章醫學審稿"
+      "professional_role": "醫師／文章醫學審稿",
+      "source_acceptance_basis": "named_professional_or_original_research"
     },
     {
       "knowledge_id": "WEB-048-001--HN-54202",
       "ingredient_id": "FOOD000039",
       "ingredient_name": "大蒜",
-      "source_version": "web-paper-reviewed-2026-10-30-r2",
+      "source_version": "web-paper-platform-2026-10-30-r3",
       "fact_zh": "營養師指出食用大蒜有助提振食慾、代謝及減輕疲勞。",
       "excerpt": "整理摘要（非逐字原文）：營養師指出食用大蒜有助提振食慾、代謝及減輕疲勞。",
       "excerpt_kind": "editorial_summary_not_verbatim",
@@ -2236,13 +2282,14 @@
       },
       "content_review_decision": "accepted_under_user_policy",
       "professional_name": "程涵宇",
-      "professional_role": "營養師"
+      "professional_role": "營養師",
+      "source_acceptance_basis": "named_professional_or_original_research"
     },
     {
       "knowledge_id": "WEB-049-001--HN-54202",
       "ingredient_id": "FOOD001237",
       "ingredient_name": "蒜頭",
-      "source_version": "web-paper-reviewed-2026-10-30-r2",
+      "source_version": "web-paper-platform-2026-10-30-r3",
       "fact_zh": "營養師指出食用蒜頭有助提振食慾、代謝及減輕疲勞。",
       "excerpt": "整理摘要（非逐字原文）：營養師指出食用蒜頭有助提振食慾、代謝及減輕疲勞。",
       "excerpt_kind": "editorial_summary_not_verbatim",
@@ -2284,13 +2331,14 @@
       },
       "content_review_decision": "accepted_under_user_policy",
       "professional_name": "程涵宇",
-      "professional_role": "營養師"
+      "professional_role": "營養師",
+      "source_acceptance_basis": "named_professional_or_original_research"
     },
     {
       "knowledge_id": "WEB-054-001--HY-scallion",
       "ingredient_id": "FOOD000598",
       "ingredient_name": "青蔥",
-      "source_version": "web-paper-reviewed-2026-10-30-r2",
+      "source_version": "web-paper-platform-2026-10-30-r3",
       "fact_zh": "文章指出青蔥可幫助維持腸道蠕動及濕潤，改善便祕困擾。",
       "excerpt": "整理摘要（非逐字原文）：文章指出青蔥可幫助維持腸道蠕動及濕潤，改善便祕困擾。",
       "excerpt_kind": "editorial_summary_not_verbatim",
@@ -2330,13 +2378,14 @@
         "sheet": "網頁與論文上下整合",
         "row": 57
       },
-      "content_review_decision": "pending_named_professional"
+      "content_review_decision": "accepted_under_user_policy",
+      "source_acceptance_basis": "user_accepted_platform_source"
     },
     {
       "knowledge_id": "WEB-054-001--HN-52573",
       "ingredient_id": "FOOD000598",
       "ingredient_name": "青蔥",
-      "source_version": "web-paper-reviewed-2026-10-30-r2",
+      "source_version": "web-paper-platform-2026-10-30-r3",
       "fact_zh": "營養師區分蔥白與蔥綠，指出蔥綠有助免疫功能；本文未提供人體試驗。",
       "excerpt": "整理摘要（非逐字原文）：營養師區分蔥白與蔥綠，指出蔥綠有助免疫功能；本文未提供人體試驗。",
       "excerpt_kind": "editorial_summary_not_verbatim",
@@ -2378,13 +2427,14 @@
       },
       "content_review_decision": "accepted_under_user_policy",
       "professional_name": "李其昀",
-      "professional_role": "營養師"
+      "professional_role": "營養師",
+      "source_acceptance_basis": "named_professional_or_original_research"
     },
     {
       "knowledge_id": "WEB-058-001--HY-beansprout",
       "ingredient_id": "FOOD001072",
       "ingredient_name": "黃豆芽",
-      "source_version": "web-paper-reviewed-2026-10-30-r2",
+      "source_version": "web-paper-platform-2026-10-30-r3",
       "fact_zh": "文章指出黃豆芽與綠豆芽熱量皆低，可搭配其他食物增加飽足感，作為控制飲食的選擇。",
       "excerpt": "整理摘要（非逐字原文）：文章指出黃豆芽與綠豆芽熱量皆低，可搭配其他食物增加飽足感，作為控制飲食的選擇。",
       "excerpt_kind": "editorial_summary_not_verbatim",
@@ -2426,13 +2476,14 @@
       },
       "content_review_decision": "accepted_under_user_policy",
       "professional_name": "張益堯營養師",
-      "professional_role": "營養師／文章醫學審稿"
+      "professional_role": "營養師／文章醫學審稿",
+      "source_acceptance_basis": "named_professional_or_original_research"
     },
     {
       "knowledge_id": "WEB-058-001--HN-66961",
       "ingredient_id": "FOOD001072",
       "ingredient_name": "黃豆芽",
-      "source_version": "web-paper-reviewed-2026-10-30-r2",
+      "source_version": "web-paper-platform-2026-10-30-r3",
       "fact_zh": "營養師將黃豆芽列為希望提高飽足感、控制體重者可選的蔬菜。",
       "excerpt": "整理摘要（非逐字原文）：營養師將黃豆芽列為希望提高飽足感、控制體重者可選的蔬菜。",
       "excerpt_kind": "editorial_summary_not_verbatim",
@@ -2474,13 +2525,14 @@
       },
       "content_review_decision": "accepted_under_user_policy",
       "professional_name": "黃雅鈺",
-      "professional_role": "營養師"
+      "professional_role": "營養師",
+      "source_acceptance_basis": "named_professional_or_original_research"
     },
     {
       "knowledge_id": "WEB-059-001--HY-beansprout",
       "ingredient_id": "FOOD000425",
       "ingredient_name": "豆芽",
-      "source_version": "web-paper-reviewed-2026-10-30-r2",
+      "source_version": "web-paper-platform-2026-10-30-r3",
       "fact_zh": "文章指出黃豆芽與綠豆芽熱量皆低，可搭配其他食物增加飽足感，作為控制飲食的選擇。",
       "excerpt": "整理摘要（非逐字原文）：文章指出黃豆芽與綠豆芽熱量皆低，可搭配其他食物增加飽足感，作為控制飲食的選擇。",
       "excerpt_kind": "editorial_summary_not_verbatim",
@@ -2522,13 +2574,14 @@
       },
       "content_review_decision": "accepted_under_user_policy",
       "professional_name": "張益堯營養師",
-      "professional_role": "營養師／文章醫學審稿"
+      "professional_role": "營養師／文章醫學審稿",
+      "source_acceptance_basis": "named_professional_or_original_research"
     },
     {
       "knowledge_id": "WEB-060-001--HY-beansprout",
       "ingredient_id": "FOOD000426",
       "ingredient_name": "豆芽菜",
-      "source_version": "web-paper-reviewed-2026-10-30-r2",
+      "source_version": "web-paper-platform-2026-10-30-r3",
       "fact_zh": "文章指出黃豆芽與綠豆芽熱量皆低，可搭配其他食物增加飽足感，作為控制飲食的選擇。",
       "excerpt": "整理摘要（非逐字原文）：文章指出黃豆芽與綠豆芽熱量皆低，可搭配其他食物增加飽足感，作為控制飲食的選擇。",
       "excerpt_kind": "editorial_summary_not_verbatim",
@@ -2570,13 +2623,14 @@
       },
       "content_review_decision": "accepted_under_user_policy",
       "professional_name": "張益堯營養師",
-      "professional_role": "營養師／文章醫學審稿"
+      "professional_role": "營養師／文章醫學審稿",
+      "source_acceptance_basis": "named_professional_or_original_research"
     },
     {
       "knowledge_id": "WEB-061-001--HY-tofu",
       "ingredient_id": "FOOD000428",
       "ingredient_name": "豆腐",
-      "source_version": "web-paper-reviewed-2026-10-30-r2",
+      "source_version": "web-paper-platform-2026-10-30-r3",
       "fact_zh": "文章將豆腐列為適合體重控制的食物選擇；其低熱量與蛋白質特性可用於飲食安排。",
       "excerpt": "整理摘要（非逐字原文）：文章將豆腐列為適合體重控制的食物選擇；其低熱量與蛋白質特性可用於飲食安排。",
       "excerpt_kind": "editorial_summary_not_verbatim",
@@ -2618,13 +2672,14 @@
       },
       "content_review_decision": "accepted_under_user_policy",
       "professional_name": "賴建翰醫師",
-      "professional_role": "醫師／文章醫學審稿"
+      "professional_role": "醫師／文章醫學審稿",
+      "source_acceptance_basis": "named_professional_or_original_research"
     },
     {
       "knowledge_id": "WEB-061-001--HN-44826",
       "ingredient_id": "FOOD000428",
       "ingredient_name": "豆腐",
-      "source_version": "web-paper-reviewed-2026-10-30-r2",
+      "source_version": "web-paper-platform-2026-10-30-r3",
       "fact_zh": "文章引述2012年世代研究，報導豆腐攝取與較低的第二型糖尿病風險有關。",
       "excerpt": "整理摘要（非逐字原文）：文章引述2012年世代研究，報導豆腐攝取與較低的第二型糖尿病風險有關。",
       "excerpt_kind": "editorial_summary_not_verbatim",
@@ -2666,13 +2721,14 @@
       },
       "content_review_decision": "accepted_under_user_policy",
       "professional_name": "楊斯涵",
-      "professional_role": "營養師"
+      "professional_role": "營養師",
+      "source_acceptance_basis": "named_professional_or_original_research"
     },
     {
       "knowledge_id": "WEB-069-001--HY-chia",
       "ingredient_id": "FOOD000452",
       "ingredient_name": "奇亞籽",
-      "source_version": "web-paper-reviewed-2026-10-30-r2",
+      "source_version": "web-paper-platform-2026-10-30-r3",
       "fact_zh": "文章指出泡水後的奇亞籽有助排便與增加飽足感；體重管理仍須配合整體飲食與運動，不能靠奇亞籽直接減肥。",
       "excerpt": "整理摘要（非逐字原文）：文章指出泡水後的奇亞籽有助排便與增加飽足感；體重管理仍須配合整體飲食與運動，不能靠奇亞籽直接減肥。",
       "excerpt_kind": "editorial_summary_not_verbatim",
@@ -2712,13 +2768,14 @@
         "sheet": "網頁與論文上下整合",
         "row": 65
       },
-      "content_review_decision": "pending_named_professional"
+      "content_review_decision": "accepted_under_user_policy",
+      "source_acceptance_basis": "user_accepted_platform_source"
     },
     {
       "knowledge_id": "WEB-069-001--HN-68037",
       "ingredient_id": "FOOD000452",
       "ingredient_name": "奇亞籽",
-      "source_version": "web-paper-reviewed-2026-10-30-r2",
+      "source_version": "web-paper-platform-2026-10-30-r3",
       "fact_zh": "文章報導，相較完整奇亞籽，磨碎後食用所觀察到的血液ALA濃度提升較多。",
       "excerpt": "整理摘要（非逐字原文）：文章報導，相較完整奇亞籽，磨碎後食用所觀察到的血液ALA濃度提升較多。",
       "excerpt_kind": "editorial_summary_not_verbatim",
@@ -2760,13 +2817,14 @@
       },
       "content_review_decision": "accepted_under_user_policy",
       "professional_name": "林俐岑",
-      "professional_role": "營養師"
+      "professional_role": "營養師",
+      "source_acceptance_basis": "named_professional_or_original_research"
     },
     {
       "knowledge_id": "WEB-070-001--HY-sesame",
       "ingredient_id": "FOOD000510",
       "ingredient_name": "芝麻",
-      "source_version": "web-paper-reviewed-2026-10-30-r2",
+      "source_version": "web-paper-platform-2026-10-30-r3",
       "fact_zh": "文章說明芝麻有潤腸、改善便祕的作用，但黑芝麻與白芝麻熱量都高，份量需控制。",
       "excerpt": "整理摘要（非逐字原文）：文章說明芝麻有潤腸、改善便祕的作用，但黑芝麻與白芝麻熱量都高，份量需控制。",
       "excerpt_kind": "editorial_summary_not_verbatim",
@@ -2808,13 +2866,14 @@
       },
       "content_review_decision": "accepted_under_user_policy",
       "professional_name": "蘇奕安營養師",
-      "professional_role": "營養師／文章醫學審稿"
+      "professional_role": "營養師／文章醫學審稿",
+      "source_acceptance_basis": "named_professional_or_original_research"
     },
     {
       "knowledge_id": "WEB-073-001--HY-sesame",
       "ingredient_id": "FOOD001088",
       "ingredient_name": "黑白芝麻",
-      "source_version": "web-paper-reviewed-2026-10-30-r2",
+      "source_version": "web-paper-platform-2026-10-30-r3",
       "fact_zh": "文章說明芝麻有潤腸、改善便祕的作用，但黑芝麻與白芝麻熱量都高，份量需控制。",
       "excerpt": "整理摘要（非逐字原文）：文章說明芝麻有潤腸、改善便祕的作用，但黑芝麻與白芝麻熱量都高，份量需控制。",
       "excerpt_kind": "editorial_summary_not_verbatim",
@@ -2856,13 +2915,14 @@
       },
       "content_review_decision": "accepted_under_user_policy",
       "professional_name": "蘇奕安營養師",
-      "professional_role": "營養師／文章醫學審稿"
+      "professional_role": "營養師／文章醫學審稿",
+      "source_acceptance_basis": "named_professional_or_original_research"
     },
     {
       "knowledge_id": "WEB-072-001--HY-sesame",
       "ingredient_id": "FOOD001095",
       "ingredient_name": "黑芝麻",
-      "source_version": "web-paper-reviewed-2026-10-30-r2",
+      "source_version": "web-paper-platform-2026-10-30-r3",
       "fact_zh": "文章引用營養師說明，黑芝麻可納入飲食，作為不喝牛奶者補充每日鈣需求的食物之一。",
       "excerpt": "整理摘要（非逐字原文）：文章引用營養師說明，黑芝麻可納入飲食，作為不喝牛奶者補充每日鈣需求的食物之一。",
       "excerpt_kind": "editorial_summary_not_verbatim",
@@ -2904,13 +2964,14 @@
       },
       "content_review_decision": "accepted_under_user_policy",
       "professional_name": "蘇奕安營養師",
-      "professional_role": "營養師／文章醫學審稿"
+      "professional_role": "營養師／文章醫學審稿",
+      "source_acceptance_basis": "named_professional_or_original_research"
     },
     {
       "knowledge_id": "WEB-072-001--HN-16555",
       "ingredient_id": "FOOD001095",
       "ingredient_name": "黑芝麻",
-      "source_version": "web-paper-reviewed-2026-10-30-r2",
+      "source_version": "web-paper-platform-2026-10-30-r3",
       "fact_zh": "營養師指出黑芝麻有助降低壞膽固醇，但油脂與熱量高，不宜過量食用。",
       "excerpt": "整理摘要（非逐字原文）：營養師指出黑芝麻有助降低壞膽固醇，但油脂與熱量高，不宜過量食用。",
       "excerpt_kind": "editorial_summary_not_verbatim",
@@ -2952,13 +3013,14 @@
       },
       "content_review_decision": "accepted_under_user_policy",
       "professional_name": "劉怡里",
-      "professional_role": "營養師"
+      "professional_role": "營養師",
+      "source_acceptance_basis": "named_professional_or_original_research"
     },
     {
       "knowledge_id": "WEB-077-001--HY-avocado",
       "ingredient_id": "FOOD001172",
       "ingredient_name": "酪梨",
-      "source_version": "web-paper-reviewed-2026-10-30-r2",
+      "source_version": "web-paper-platform-2026-10-30-r3",
       "fact_zh": "文章報導午餐食用半顆酪梨的人較不容易感到飢餓，並說明酪梨有助增加飽足感。",
       "excerpt": "整理摘要（非逐字原文）：文章報導午餐食用半顆酪梨的人較不容易感到飢餓，並說明酪梨有助增加飽足感。",
       "excerpt_kind": "editorial_summary_not_verbatim",
@@ -2998,13 +3060,14 @@
         "sheet": "網頁與論文上下整合",
         "row": 71
       },
-      "content_review_decision": "pending_named_professional"
+      "content_review_decision": "accepted_under_user_policy",
+      "source_acceptance_basis": "user_accepted_platform_source"
     },
     {
       "knowledge_id": "WEB-077-001--HN-69169",
       "ingredient_id": "FOOD001172",
       "ingredient_name": "酪梨",
-      "source_version": "web-paper-reviewed-2026-10-30-r2",
+      "source_version": "web-paper-platform-2026-10-30-r3",
       "fact_zh": "文章報導成人連續6個月每天吃1顆酪梨，LDL粒子濃度下降，但體重與腰圍沒有明顯改變。",
       "excerpt": "整理摘要（非逐字原文）：文章報導成人連續6個月每天吃1顆酪梨，LDL粒子濃度下降，但體重與腰圍沒有明顯改變。",
       "excerpt_kind": "editorial_summary_not_verbatim",
@@ -3046,13 +3109,14 @@
       },
       "content_review_decision": "accepted_under_user_policy",
       "professional_name": "Kristina Petersen",
-      "professional_role": "營養科學副教授／原研究共同作者"
+      "professional_role": "營養科學副教授／原研究共同作者",
+      "source_acceptance_basis": "named_professional_or_original_research"
     },
     {
       "knowledge_id": "WEB-078-001--HY-passion",
       "ingredient_id": "FOOD000340",
       "ingredient_name": "百香果",
-      "source_version": "web-paper-reviewed-2026-10-30-r2",
+      "source_version": "web-paper-platform-2026-10-30-r3",
       "fact_zh": "文章指出食用百香果有助腸胃蠕動、避免便祕；睡前不宜大量食用，以免腸胃不適。",
       "excerpt": "整理摘要（非逐字原文）：文章指出食用百香果有助腸胃蠕動、避免便祕；睡前不宜大量食用，以免腸胃不適。",
       "excerpt_kind": "editorial_summary_not_verbatim",
@@ -3092,13 +3156,14 @@
         "sheet": "網頁與論文上下整合",
         "row": 73
       },
-      "content_review_decision": "pending_named_professional"
+      "content_review_decision": "accepted_under_user_policy",
+      "source_acceptance_basis": "user_accepted_platform_source"
     },
     {
       "knowledge_id": "WEB-078-001--HN-67119",
       "ingredient_id": "FOOD000340",
       "ingredient_name": "百香果",
-      "source_version": "web-paper-reviewed-2026-10-30-r2",
+      "source_version": "web-paper-platform-2026-10-30-r3",
       "fact_zh": "營養師指出百香果連籽食用有助腸道蠕動、改善便秘與增加飽足感。",
       "excerpt": "整理摘要（非逐字原文）：營養師指出百香果連籽食用有助腸道蠕動、改善便秘與增加飽足感。",
       "excerpt_kind": "editorial_summary_not_verbatim",
@@ -3140,13 +3205,14 @@
       },
       "content_review_decision": "accepted_under_user_policy",
       "professional_name": "林俐岑",
-      "professional_role": "營養師"
+      "professional_role": "營養師",
+      "source_acceptance_basis": "named_professional_or_original_research"
     },
     {
       "knowledge_id": "WEB-079-001--HY-lemon",
       "ingredient_id": "FOOD001526",
       "ingredient_name": "檸檬",
-      "source_version": "web-paper-reviewed-2026-10-30-r2",
+      "source_version": "web-paper-platform-2026-10-30-r3",
       "fact_zh": "文章指出把檸檬加入水中可提高部分人的飲水意願；濃度過高或喝太多則可能刺激腸胃、造成胃酸逆流或傷害牙齒琺瑯質。",
       "excerpt": "整理摘要（非逐字原文）：文章指出把檸檬加入水中可提高部分人的飲水意願；濃度過高或喝太多則可能刺激腸胃、造成胃酸逆流或傷害牙齒琺瑯質。",
       "excerpt_kind": "editorial_summary_not_verbatim",
@@ -3186,13 +3252,14 @@
         "sheet": "網頁與論文上下整合",
         "row": 75
       },
-      "content_review_decision": "pending_named_professional"
+      "content_review_decision": "accepted_under_user_policy",
+      "source_acceptance_basis": "user_accepted_platform_source"
     },
     {
       "knowledge_id": "WEB-080-001--HY-lemon",
       "ingredient_id": "FOOD001126",
       "ingredient_name": "新鮮檸檬",
-      "source_version": "web-paper-reviewed-2026-10-30-r2",
+      "source_version": "web-paper-platform-2026-10-30-r3",
       "fact_zh": "文章指出把檸檬加入水中可提高部分人的飲水意願；濃度過高或喝太多則可能刺激腸胃、造成胃酸逆流或傷害牙齒琺瑯質。",
       "excerpt": "整理摘要（非逐字原文）：文章指出把檸檬加入水中可提高部分人的飲水意願；濃度過高或喝太多則可能刺激腸胃、造成胃酸逆流或傷害牙齒琺瑯質。",
       "excerpt_kind": "editorial_summary_not_verbatim",
@@ -3232,13 +3299,14 @@
         "sheet": "網頁與論文上下整合",
         "row": 76
       },
-      "content_review_decision": "pending_named_professional"
+      "content_review_decision": "accepted_under_user_policy",
+      "source_acceptance_basis": "user_accepted_platform_source"
     },
     {
       "knowledge_id": "WEB-079-001--HN-64916",
       "ingredient_id": "FOOD001526",
       "ingredient_name": "檸檬",
-      "source_version": "web-paper-reviewed-2026-10-30-r2",
+      "source_version": "web-paper-platform-2026-10-30-r3",
       "fact_zh": "文章指出檸檬水可補水及幫助消化，但不會直接讓體重下降，仍須配合飲食與運動。",
       "excerpt": "整理摘要（非逐字原文）：文章指出檸檬水可補水及幫助消化，但不會直接讓體重下降，仍須配合飲食與運動。",
       "excerpt_kind": "editorial_summary_not_verbatim",
@@ -3280,13 +3348,14 @@
       },
       "content_review_decision": "accepted_under_user_policy",
       "professional_name": "洪泰雄",
-      "professional_role": "文章具名營養學者"
+      "professional_role": "文章具名營養學者",
+      "source_acceptance_basis": "named_professional_or_original_research"
     },
     {
       "knowledge_id": "WEB-080-001--HN-64916",
       "ingredient_id": "FOOD001126",
       "ingredient_name": "新鮮檸檬",
-      "source_version": "web-paper-reviewed-2026-10-30-r2",
+      "source_version": "web-paper-platform-2026-10-30-r3",
       "fact_zh": "文章指出以檸檬汁加水可補水及幫助消化，但不會直接使體重下降。",
       "excerpt": "整理摘要（非逐字原文）：文章指出以檸檬汁加水可補水及幫助消化，但不會直接使體重下降。",
       "excerpt_kind": "editorial_summary_not_verbatim",
@@ -3328,13 +3397,14 @@
       },
       "content_review_decision": "accepted_under_user_policy",
       "professional_name": "洪泰雄",
-      "professional_role": "文章具名營養學者"
+      "professional_role": "文章具名營養學者",
+      "source_acceptance_basis": "named_professional_or_original_research"
     },
     {
       "knowledge_id": "WEB-082-001--HY-blackfungus",
       "ingredient_id": "FOOD001087",
       "ingredient_name": "黑木耳",
-      "source_version": "web-paper-reviewed-2026-10-30-r2",
+      "source_version": "web-paper-platform-2026-10-30-r3",
       "fact_zh": "文章指出黑木耳可幫助腸道蠕動與排便，也能增加餐後飽足感、減少進食量。",
       "excerpt": "整理摘要（非逐字原文）：文章指出黑木耳可幫助腸道蠕動與排便，也能增加餐後飽足感、減少進食量。",
       "excerpt_kind": "editorial_summary_not_verbatim",
@@ -3376,13 +3446,14 @@
       },
       "content_review_decision": "accepted_under_user_policy",
       "professional_name": "蔡正亮營養師",
-      "professional_role": "營養師／文章醫學審稿"
+      "professional_role": "營養師／文章醫學審稿",
+      "source_acceptance_basis": "named_professional_or_original_research"
     },
     {
       "knowledge_id": "WEB-082-001--HN-66454",
       "ingredient_id": "FOOD001087",
       "ingredient_name": "黑木耳",
-      "source_version": "web-paper-reviewed-2026-10-30-r2",
+      "source_version": "web-paper-platform-2026-10-30-r3",
       "fact_zh": "營養師指出黑木耳有助膽固醇控制，並提醒凝血異常或服用相關藥物者避免大量食用。",
       "excerpt": "整理摘要（非逐字原文）：營養師指出黑木耳有助膽固醇控制，並提醒凝血異常或服用相關藥物者避免大量食用。",
       "excerpt_kind": "editorial_summary_not_verbatim",
@@ -3424,13 +3495,14 @@
       },
       "content_review_decision": "accepted_under_user_policy",
       "professional_name": "陳詩婷",
-      "professional_role": "營養師"
+      "professional_role": "營養師",
+      "source_acceptance_basis": "named_professional_or_original_research"
     },
     {
       "knowledge_id": "WEB-103-001--HY-seabass",
       "ingredient_id": "FOOD001684",
       "ingredient_name": "鱸魚",
-      "source_version": "web-paper-reviewed-2026-10-30-r2",
+      "source_version": "web-paper-platform-2026-10-30-r3",
       "fact_zh": "文章將鱸魚列為術後補充營養的食物，魚湯對胃口不佳者較易入口，並說明其肉質細嫩、容易消化吸收。",
       "excerpt": "整理摘要（非逐字原文）：文章將鱸魚列為術後補充營養的食物，魚湯對胃口不佳者較易入口，並說明其肉質細嫩、容易消化吸收。",
       "excerpt_kind": "editorial_summary_not_verbatim",
@@ -3470,13 +3542,14 @@
         "sheet": "網頁與論文上下整合",
         "row": 81
       },
-      "content_review_decision": "pending_named_professional"
+      "content_review_decision": "accepted_under_user_policy",
+      "source_acceptance_basis": "user_accepted_platform_source"
     },
     {
       "knowledge_id": "WEB-113-001--HY-eggs",
       "ingredient_id": "FOOD001566",
       "ingredient_name": "雞蛋",
-      "source_version": "web-paper-reviewed-2026-10-30-r2",
+      "source_version": "web-paper-platform-2026-10-30-r3",
       "fact_zh": "文章指出少數人可能因攝取較多膽固醇而使血中膽固醇升高；糖尿病、慢性腎臟病或高血脂族群，吃蛋份量需依個人狀況與醫師討論。",
       "excerpt": "整理摘要（非逐字原文）：文章指出少數人可能因攝取較多膽固醇而使血中膽固醇升高；糖尿病、慢性腎臟病或高血脂族群，吃蛋份量需依個人狀況與醫師討論。",
       "excerpt_kind": "editorial_summary_not_verbatim",
@@ -3518,13 +3591,14 @@
       },
       "content_review_decision": "accepted_under_user_policy",
       "professional_name": "張益堯營養師",
-      "professional_role": "營養師／文章醫學審稿"
+      "professional_role": "營養師／文章醫學審稿",
+      "source_acceptance_basis": "named_professional_or_original_research"
     },
     {
       "knowledge_id": "WEB-113-001--HN-45394",
       "ingredient_id": "FOOD001566",
       "ingredient_name": "雞蛋",
-      "source_version": "web-paper-reviewed-2026-10-30-r2",
+      "source_version": "web-paper-platform-2026-10-30-r3",
       "fact_zh": "文章報導世代研究及統合分析：平均每天約1顆雞蛋，與心血管疾病風險未見明確關聯。",
       "excerpt": "整理摘要（非逐字原文）：文章報導世代研究及統合分析：平均每天約1顆雞蛋，與心血管疾病風險未見明確關聯。",
       "excerpt_kind": "editorial_summary_not_verbatim",
@@ -3566,13 +3640,14 @@
       },
       "content_review_decision": "accepted_under_user_policy",
       "professional_name": "Frank Hu",
-      "professional_role": "營養學與流行病學教授"
+      "professional_role": "營養學與流行病學教授",
+      "source_acceptance_basis": "named_professional_or_original_research"
     },
     {
       "knowledge_id": "WEB-113-001--P18",
       "ingredient_id": "FOOD001566",
       "ingredient_name": "雞蛋",
-      "source_version": "web-paper-reviewed-2026-10-30-r2",
+      "source_version": "web-paper-platform-2026-10-30-r3",
       "fact_zh": "吃雞蛋可能增加飽足感，讓人比較不容易餓。也可能讓血中的壞膽固醇與好膽固醇都上升。",
       "excerpt": "整理摘要（非逐字原文）：吃雞蛋可能增加飽足感，讓人比較不容易餓。也可能讓血中的壞膽固醇與好膽固醇都上升。",
       "excerpt_kind": "editorial_summary_not_verbatim",
@@ -3614,13 +3689,14 @@
       },
       "content_review_decision": "accepted_under_user_policy",
       "professional_name": "Amanda Missimer 等",
-      "professional_role": "Connecticut大學營養科學研究者"
+      "professional_role": "Connecticut大學營養科學研究者",
+      "source_acceptance_basis": "named_professional_or_original_research"
     },
     {
       "knowledge_id": "WEB-118-001--HY-yogurt",
       "ingredient_id": "FOOD001481",
       "ingredient_name": "優格",
-      "source_version": "web-paper-reviewed-2026-10-30-r2",
+      "source_version": "web-paper-platform-2026-10-30-r3",
       "fact_zh": "文章報導在總熱量相同的飲食安排下，以優格當點心的一組較不容易餓，後續晚餐攝取量也較少。",
       "excerpt": "整理摘要（非逐字原文）：文章報導在總熱量相同的飲食安排下，以優格當點心的一組較不容易餓，後續晚餐攝取量也較少。",
       "excerpt_kind": "editorial_summary_not_verbatim",
@@ -3662,13 +3738,14 @@
       },
       "content_review_decision": "accepted_under_user_policy",
       "professional_name": "賴建翰醫師",
-      "professional_role": "醫師／文章醫學審稿"
+      "professional_role": "醫師／文章醫學審稿",
+      "source_acceptance_basis": "named_professional_or_original_research"
     },
     {
       "knowledge_id": "WEB-118-001--HN-69606",
       "ingredient_id": "FOOD001481",
       "ingredient_name": "優格",
-      "source_version": "web-paper-reviewed-2026-10-30-r2",
+      "source_version": "web-paper-platform-2026-10-30-r3",
       "fact_zh": "醫師指出優格可作為腸道保健輔助，但效益須看菌種、活菌數及添加物，並建議飯後食用。",
       "excerpt": "整理摘要（非逐字原文）：醫師指出優格可作為腸道保健輔助，但效益須看菌種、活菌數及添加物，並建議飯後食用。",
       "excerpt_kind": "editorial_summary_not_verbatim",
@@ -3710,13 +3787,14 @@
       },
       "content_review_decision": "accepted_under_user_policy",
       "professional_name": "黃士維",
-      "professional_role": "醫師"
+      "professional_role": "醫師",
+      "source_acceptance_basis": "named_professional_or_original_research"
     },
     {
       "knowledge_id": "WEB-010-001--HY-cabbage",
       "ingredient_id": "FOOD000867",
       "ingredient_name": "高麗菜",
-      "source_version": "web-paper-reviewed-2026-10-30-r2",
+      "source_version": "web-paper-platform-2026-10-30-r3",
       "fact_zh": "文章指出高麗菜可增加糞便體積、幫助腸胃蠕動與消化，改善便祕；容易脹氣或腸胃蠕動慢者，文中提醒避免生食。",
       "excerpt": "整理摘要（非逐字原文）：文章指出高麗菜可增加糞便體積、幫助腸胃蠕動與消化，改善便祕；容易脹氣或腸胃蠕動慢者，文中提醒避免生食。",
       "excerpt_kind": "editorial_summary_not_verbatim",
@@ -3758,13 +3836,14 @@
       },
       "content_review_decision": "accepted_under_user_policy",
       "professional_name": "張益堯營養師",
-      "professional_role": "營養師／文章醫學審稿"
+      "professional_role": "營養師／文章醫學審稿",
+      "source_acceptance_basis": "named_professional_or_original_research"
     },
     {
       "knowledge_id": "WEB-010-001--HN-13547",
       "ingredient_id": "FOOD000867",
       "ingredient_name": "高麗菜",
-      "source_version": "web-paper-reviewed-2026-10-30-r2",
+      "source_version": "web-paper-platform-2026-10-30-r3",
       "fact_zh": "受訪營養師指出甘藍菜亦稱高麗菜，其維生素K攝取與骨骼鈣化、維持骨密度有關。",
       "excerpt": "整理摘要（非逐字原文）：受訪營養師指出甘藍菜亦稱高麗菜，其維生素K攝取與骨骼鈣化、維持骨密度有關。",
       "excerpt_kind": "editorial_summary_not_verbatim",
@@ -3806,13 +3885,14 @@
       },
       "content_review_decision": "accepted_under_user_policy",
       "professional_name": "廖珮吟",
-      "professional_role": "營養師"
+      "professional_role": "營養師",
+      "source_acceptance_basis": "named_professional_or_original_research"
     },
     {
       "knowledge_id": "WEB-008-001--HY-bokchoy",
       "ingredient_id": "FOOD000585",
       "ingredient_name": "青江菜",
-      "source_version": "web-paper-reviewed-2026-10-30-r2",
+      "source_version": "web-paper-platform-2026-10-30-r3",
       "fact_zh": "文章說明食用青江菜有助排便、避免便祕，並可增加飽足感。",
       "excerpt": "整理摘要（非逐字原文）：文章說明食用青江菜有助排便、避免便祕，並可增加飽足感。",
       "excerpt_kind": "editorial_summary_not_verbatim",
@@ -3852,13 +3932,14 @@
         "sheet": "網頁與論文上下整合",
         "row": 89
       },
-      "content_review_decision": "pending_named_professional"
+      "content_review_decision": "accepted_under_user_policy",
+      "source_acceptance_basis": "user_accepted_platform_source"
     },
     {
       "knowledge_id": "WEB-008-001--P12",
       "ingredient_id": "FOOD000585",
       "ingredient_name": "青江菜",
-      "source_version": "web-paper-reviewed-2026-10-30-r2",
+      "source_version": "web-paper-platform-2026-10-30-r3",
       "fact_zh": "與米飯同吃青江菜，可能有助降低飯後血糖的高峰。也可能讓飯後血糖起伏較小。",
       "excerpt": "整理摘要（非逐字原文）：與米飯同吃青江菜，可能有助降低飯後血糖的高峰。也可能讓飯後血糖起伏較小。",
       "excerpt_kind": "editorial_summary_not_verbatim",
@@ -3900,13 +3981,14 @@
       },
       "content_review_decision": "accepted_under_user_policy",
       "professional_name": "ZHU Ruixin；LAN Xiaofang；FAN Zhihong；WANG Linlin",
-      "professional_role": "中國農業大學食品科學與營養工程研究者"
+      "professional_role": "中國農業大學食品科學與營養工程研究者",
+      "source_acceptance_basis": "named_professional_or_original_research"
     },
     {
       "knowledge_id": "WEB-057-001--HY-edamame",
       "ingredient_id": "FOOD000114",
       "ingredient_name": "毛豆",
-      "source_version": "web-paper-reviewed-2026-10-30-r2",
+      "source_version": "web-paper-platform-2026-10-30-r3",
       "fact_zh": "文章指出毛豆食用後具有飽足感，適合納入體重控制或健身者的飲食安排。",
       "excerpt": "整理摘要（非逐字原文）：文章指出毛豆食用後具有飽足感，適合納入體重控制或健身者的飲食安排。",
       "excerpt_kind": "editorial_summary_not_verbatim",
@@ -3946,13 +4028,14 @@
         "sheet": "網頁與論文上下整合",
         "row": 91
       },
-      "content_review_decision": "pending_named_professional"
+      "content_review_decision": "accepted_under_user_policy",
+      "source_acceptance_basis": "user_accepted_platform_source"
     },
     {
       "knowledge_id": "WEB-057-001--HN-42827",
       "ingredient_id": "FOOD000114",
       "ingredient_name": "毛豆",
-      "source_version": "web-paper-reviewed-2026-10-30-r2",
+      "source_version": "web-paper-platform-2026-10-30-r3",
       "fact_zh": "文章指出適量吃毛豆可產生飽足感，也提醒食用後可能脹氣。",
       "excerpt": "整理摘要（非逐字原文）：文章指出適量吃毛豆可產生飽足感，也提醒食用後可能脹氣。",
       "excerpt_kind": "editorial_summary_not_verbatim",
@@ -3992,13 +4075,14 @@
         "sheet": "網頁與論文上下整合",
         "row": 92
       },
-      "content_review_decision": "pending_named_professional"
+      "content_review_decision": "accepted_under_user_policy",
+      "source_acceptance_basis": "user_accepted_platform_source"
     },
     {
       "knowledge_id": "WEB-067-001--HY-soymilk",
       "ingredient_id": "FOOD001011",
       "ingredient_name": "無糖豆漿",
-      "source_version": "web-paper-reviewed-2026-10-30-r2",
+      "source_version": "web-paper-platform-2026-10-30-r3",
       "fact_zh": "文章指出無糖豆漿含醣量不高，糖尿病患者可依飲食安排選用；自製時若保留豆渣，能增加纖維攝取。",
       "excerpt": "整理摘要（非逐字原文）：文章指出無糖豆漿含醣量不高，糖尿病患者可依飲食安排選用；自製時若保留豆渣，能增加纖維攝取。",
       "excerpt_kind": "editorial_summary_not_verbatim",
@@ -4040,13 +4124,14 @@
       },
       "content_review_decision": "accepted_under_user_policy",
       "professional_name": "張益堯營養師",
-      "professional_role": "營養師／文章醫學審稿"
+      "professional_role": "營養師／文章醫學審稿",
+      "source_acceptance_basis": "named_professional_or_original_research"
     },
     {
       "knowledge_id": "WEB-068-001--HY-nuts",
       "ingredient_id": "FOOD000388",
       "ingredient_name": "杏仁果",
-      "source_version": "web-paper-reviewed-2026-10-30-r2",
+      "source_version": "web-paper-platform-2026-10-30-r3",
       "fact_zh": "文章指出杏仁果有助降低壞膽固醇；對過重或肥胖者，搭配低熱量飲食的情況下也可能有助血壓管理。",
       "excerpt": "整理摘要（非逐字原文）：文章指出杏仁果有助降低壞膽固醇；對過重或肥胖者，搭配低熱量飲食的情況下也可能有助血壓管理。",
       "excerpt_kind": "editorial_summary_not_verbatim",
@@ -4088,13 +4173,14 @@
       },
       "content_review_decision": "accepted_under_user_policy",
       "professional_name": "賴建翰醫師",
-      "professional_role": "醫師／文章醫學審稿"
+      "professional_role": "醫師／文章醫學審稿",
+      "source_acceptance_basis": "named_professional_or_original_research"
     },
     {
       "knowledge_id": "WEB-001-001--HN-68074",
       "ingredient_id": "FOOD000046",
       "ingredient_name": "小白菜",
-      "source_version": "web-paper-reviewed-2026-10-30-r2",
+      "source_version": "web-paper-platform-2026-10-30-r3",
       "fact_zh": "文章將小白菜列為草酸較低的高鈣蔬菜，指出經常攝取有助骨鈣補充。",
       "excerpt": "整理摘要（非逐字原文）：文章將小白菜列為草酸較低的高鈣蔬菜，指出經常攝取有助骨鈣補充。",
       "excerpt_kind": "editorial_summary_not_verbatim",
@@ -4136,13 +4222,14 @@
       },
       "content_review_decision": "accepted_under_user_policy",
       "professional_name": "陳詩婷",
-      "professional_role": "營養師"
+      "professional_role": "營養師",
+      "source_acceptance_basis": "named_professional_or_original_research"
     },
     {
       "knowledge_id": "WEB-005-001--HN-11618",
       "ingredient_id": "FOOD000509",
       "ingredient_name": "空心菜",
-      "source_version": "web-paper-reviewed-2026-10-30-r2",
+      "source_version": "web-paper-platform-2026-10-30-r3",
       "fact_zh": "受訪中醫師指出空心菜可促進腸道蠕動、改善排便；腸胃較弱者不宜多吃。",
       "excerpt": "整理摘要（非逐字原文）：受訪中醫師指出空心菜可促進腸道蠕動、改善排便；腸胃較弱者不宜多吃。",
       "excerpt_kind": "editorial_summary_not_verbatim",
@@ -4184,13 +4271,14 @@
       },
       "content_review_decision": "accepted_under_user_policy",
       "professional_name": "陳旺全",
-      "professional_role": "中醫師"
+      "professional_role": "中醫師",
+      "source_acceptance_basis": "named_professional_or_original_research"
     },
     {
       "knowledge_id": "WEB-005-001--P27",
       "ingredient_id": "FOOD000509",
       "ingredient_name": "空心菜",
-      "source_version": "web-paper-reviewed-2026-10-30-r2",
+      "source_version": "web-paper-platform-2026-10-30-r3",
       "fact_zh": "對第二型糖尿病患者，食用打碎的空心菜可能有助減緩血糖上升。",
       "excerpt": "整理摘要（非逐字原文）：對第二型糖尿病患者，食用打碎的空心菜可能有助減緩血糖上升。",
       "excerpt_kind": "editorial_summary_not_verbatim",
@@ -4232,13 +4320,14 @@
       },
       "content_review_decision": "accepted_under_user_policy",
       "professional_name": "T S Malalavidhane 等",
-      "professional_role": "Kelaniya大學醫學院生化／臨床化學研究者"
+      "professional_role": "Kelaniya大學醫學院生化／臨床化學研究者",
+      "source_acceptance_basis": "named_professional_or_original_research"
     },
     {
       "knowledge_id": "WEB-006-001--HN-68074",
       "ingredient_id": "FOOD000517",
       "ingredient_name": "芥藍",
-      "source_version": "web-paper-reviewed-2026-10-30-r2",
+      "source_version": "web-paper-platform-2026-10-30-r3",
       "fact_zh": "文章將芥藍菜列為草酸較低的高鈣蔬菜，指出經常攝取有助骨鈣補充。",
       "excerpt": "整理摘要（非逐字原文）：文章將芥藍菜列為草酸較低的高鈣蔬菜，指出經常攝取有助骨鈣補充。",
       "excerpt_kind": "editorial_summary_not_verbatim",
@@ -4280,13 +4369,14 @@
       },
       "content_review_decision": "accepted_under_user_policy",
       "professional_name": "陳詩婷",
-      "professional_role": "營養師"
+      "professional_role": "營養師",
+      "source_acceptance_basis": "named_professional_or_original_research"
     },
     {
       "knowledge_id": "WEB-007-001--HN-38933",
       "ingredient_id": "FOOD000551",
       "ingredient_name": "花椰菜",
-      "source_version": "web-paper-reviewed-2026-10-30-r2",
+      "source_version": "web-paper-platform-2026-10-30-r3",
       "fact_zh": "文章指出花椰菜富含纖維，其高纖飲食有助預防便秘並維持腸道健康。",
       "excerpt": "整理摘要（非逐字原文）：文章指出花椰菜富含纖維，其高纖飲食有助預防便秘並維持腸道健康。",
       "excerpt_kind": "editorial_summary_not_verbatim",
@@ -4328,13 +4418,14 @@
       },
       "content_review_decision": "accepted_under_user_policy",
       "professional_name": "Heather Mangieri",
-      "professional_role": "營養師"
+      "professional_role": "營養師",
+      "source_acceptance_basis": "named_professional_or_original_research"
     },
     {
       "knowledge_id": "WEB-012-001--HN-49706",
       "ingredient_id": "FOOD001043",
       "ingredient_name": "菠菜",
-      "source_version": "web-paper-reviewed-2026-10-30-r2",
+      "source_version": "web-paper-platform-2026-10-30-r3",
       "fact_zh": "營養師指出菠菜有助眼睛保健，也可作為素食者或牙口不佳者的鐵質食物來源。",
       "excerpt": "整理摘要（非逐字原文）：營養師指出菠菜有助眼睛保健，也可作為素食者或牙口不佳者的鐵質食物來源。",
       "excerpt_kind": "editorial_summary_not_verbatim",
@@ -4376,13 +4467,14 @@
       },
       "content_review_decision": "accepted_under_user_policy",
       "professional_name": "Liz",
-      "professional_role": "營養師"
+      "professional_role": "營養師",
+      "source_acceptance_basis": "named_professional_or_original_research"
     },
     {
       "knowledge_id": "WEB-012-001--P25",
       "ingredient_id": "FOOD001043",
       "ingredient_name": "菠菜",
-      "source_version": "web-paper-reviewed-2026-10-30-r2",
+      "source_version": "web-paper-platform-2026-10-30-r3",
       "fact_zh": "吃菠菜可能有助降低血壓。",
       "excerpt": "整理摘要（非逐字原文）：吃菠菜可能有助降低血壓。",
       "excerpt_kind": "editorial_summary_not_verbatim",
@@ -4424,13 +4516,14 @@
       },
       "content_review_decision": "accepted_under_user_policy",
       "professional_name": "Elena Jovanovski 等",
-      "professional_role": "Toronto大學營養科學研究者"
+      "professional_role": "Toronto大學營養科學研究者",
+      "source_acceptance_basis": "named_professional_or_original_research"
     },
     {
       "knowledge_id": "WEB-022-001--HN-13716",
       "ingredient_id": "FOOD000058",
       "ingredient_name": "小番茄",
-      "source_version": "web-paper-reviewed-2026-10-30-r2",
+      "source_version": "web-paper-platform-2026-10-30-r3",
       "fact_zh": "營養師指出小番茄有眼睛保健及抗氧化用途；同餐搭配油脂可幫助茄紅素吸收。",
       "excerpt": "整理摘要（非逐字原文）：營養師指出小番茄有眼睛保健及抗氧化用途；同餐搭配油脂可幫助茄紅素吸收。",
       "excerpt_kind": "editorial_summary_not_verbatim",
@@ -4472,13 +4565,14 @@
       },
       "content_review_decision": "accepted_under_user_policy",
       "professional_name": "楊承樺",
-      "professional_role": "營養師"
+      "professional_role": "營養師",
+      "source_acceptance_basis": "named_professional_or_original_research"
     },
     {
       "knowledge_id": "WEB-029-001--HN-69068",
       "ingredient_id": "FOOD000216",
       "ingredient_name": "冬瓜",
-      "source_version": "web-paper-reviewed-2026-10-30-r2",
+      "source_version": "web-paper-platform-2026-10-30-r3",
       "fact_zh": "營養師指出冬瓜水分豐富，有助維持身體水分補充的平衡。",
       "excerpt": "整理摘要（非逐字原文）：營養師指出冬瓜水分豐富，有助維持身體水分補充的平衡。",
       "excerpt_kind": "editorial_summary_not_verbatim",
@@ -4520,13 +4614,14 @@
       },
       "content_review_decision": "accepted_under_user_policy",
       "professional_name": "羅孟欣",
-      "professional_role": "營養師"
+      "professional_role": "營養師",
+      "source_acceptance_basis": "named_professional_or_original_research"
     },
     {
       "knowledge_id": "WEB-034-001--HN-52550",
       "ingredient_id": "FOOD000342",
       "ingredient_name": "竹筍",
-      "source_version": "web-paper-reviewed-2026-10-30-r2",
+      "source_version": "web-paper-platform-2026-10-30-r3",
       "fact_zh": "營養師指出竹筍的膳食纖維有助腸胃蠕動、改善便秘，但腸道疾病患者應酌量食用。",
       "excerpt": "整理摘要（非逐字原文）：營養師指出竹筍的膳食纖維有助腸胃蠕動、改善便秘，但腸道疾病患者應酌量食用。",
       "excerpt_kind": "editorial_summary_not_verbatim",
@@ -4568,13 +4663,14 @@
       },
       "content_review_decision": "accepted_under_user_policy",
       "professional_name": "黃淑敏",
-      "professional_role": "營養師"
+      "professional_role": "營養師",
+      "source_acceptance_basis": "named_professional_or_original_research"
     },
     {
       "knowledge_id": "WEB-046-001--HN-52573",
       "ingredient_id": "FOOD000412",
       "ingredient_name": "芋頭",
-      "source_version": "web-paper-reviewed-2026-10-30-r2",
+      "source_version": "web-paper-platform-2026-10-30-r3",
       "fact_zh": "營養師指出芋頭消化較慢，有助維持血糖穩定，並將其列為減重者可選的原型食物。",
       "excerpt": "整理摘要（非逐字原文）：營養師指出芋頭消化較慢，有助維持血糖穩定，並將其列為減重者可選的原型食物。",
       "excerpt_kind": "editorial_summary_not_verbatim",
@@ -4616,13 +4712,14 @@
       },
       "content_review_decision": "accepted_under_user_policy",
       "professional_name": "李其昀",
-      "professional_role": "營養師"
+      "professional_role": "營養師",
+      "source_acceptance_basis": "named_professional_or_original_research"
     },
     {
       "knowledge_id": "WEB-047-001--HN-65972",
       "ingredient_id": "FOOD000851",
       "ingredient_name": "馬鈴薯",
-      "source_version": "web-paper-reviewed-2026-10-30-r2",
+      "source_version": "web-paper-platform-2026-10-30-r3",
       "fact_zh": "文章報導飲食追蹤研究：每週吃3次炸薯條與第二型糖尿病風險較高有關，且烹調方式有差異。",
       "excerpt": "整理摘要（非逐字原文）：文章報導飲食追蹤研究：每週吃3次炸薯條與第二型糖尿病風險較高有關，且烹調方式有差異。",
       "excerpt_kind": "editorial_summary_not_verbatim",
@@ -4664,13 +4761,14 @@
       },
       "content_review_decision": "accepted_under_user_policy",
       "professional_name": "Kawther Hashem",
-      "professional_role": "公共衛生營養學講師"
+      "professional_role": "公共衛生營養學講師",
+      "source_acceptance_basis": "named_professional_or_original_research"
     },
     {
       "knowledge_id": "WEB-047-001--P32",
       "ingredient_id": "FOOD000851",
       "ingredient_name": "馬鈴薯",
-      "source_version": "web-paper-reviewed-2026-10-30-r2",
+      "source_version": "web-paper-platform-2026-10-30-r3",
       "fact_zh": "吃馬鈴薯有助增加飽足感。在相同熱量下，帶來的飽足感可能比白麵包更強。",
       "excerpt": "整理摘要（非逐字原文）：吃馬鈴薯有助增加飽足感。在相同熱量下，帶來的飽足感可能比白麵包更強。",
       "excerpt_kind": "editorial_summary_not_verbatim",
@@ -4712,13 +4810,14 @@
       },
       "content_review_decision": "accepted_under_user_policy",
       "professional_name": "S H Holt 等",
-      "professional_role": "Sydney大學生化研究者"
+      "professional_role": "Sydney大學生化研究者",
+      "source_acceptance_basis": "named_professional_or_original_research"
     },
     {
       "knowledge_id": "WEB-052-001--HN-52573",
       "ingredient_id": "FOOD000618",
       "ingredient_name": "洋蔥",
-      "source_version": "web-paper-reviewed-2026-10-30-r2",
+      "source_version": "web-paper-platform-2026-10-30-r3",
       "fact_zh": "營養師指出洋蔥有抗氧化、抗發炎及維持心血管健康的用途。",
       "excerpt": "整理摘要（非逐字原文）：營養師指出洋蔥有抗氧化、抗發炎及維持心血管健康的用途。",
       "excerpt_kind": "editorial_summary_not_verbatim",
@@ -4760,13 +4859,14 @@
       },
       "content_review_decision": "accepted_under_user_policy",
       "professional_name": "李其昀",
-      "professional_role": "營養師"
+      "professional_role": "營養師",
+      "source_acceptance_basis": "named_professional_or_original_research"
     },
     {
       "knowledge_id": "WEB-052-001--P07",
       "ingredient_id": "FOOD000618",
       "ingredient_name": "洋蔥",
-      "source_version": "web-paper-reviewed-2026-10-30-r2",
+      "source_version": "web-paper-platform-2026-10-30-r3",
       "fact_zh": "對過重或肥胖、患有多囊卵巢症候群的女性，吃生紅洋蔥可能有助降低總膽固醇與壞膽固醇。",
       "excerpt": "整理摘要（非逐字原文）：對過重或肥胖、患有多囊卵巢症候群的女性，吃生紅洋蔥可能有助降低總膽固醇與壞膽固醇。",
       "excerpt_kind": "editorial_summary_not_verbatim",
@@ -4808,13 +4908,14 @@
       },
       "content_review_decision": "accepted_under_user_policy",
       "professional_name": "Mehranghiz Ebrahimi-Mamaghani 等",
-      "professional_role": "Tabriz醫學大學營養研究者"
+      "professional_role": "Tabriz醫學大學營養研究者",
+      "source_acceptance_basis": "named_professional_or_original_research"
     },
     {
       "knowledge_id": "WEB-055-001--HN-48201",
       "ingredient_id": "FOOD001496",
       "ingredient_name": "薑",
-      "source_version": "web-paper-reviewed-2026-10-30-r2",
+      "source_version": "web-paper-platform-2026-10-30-r3",
       "fact_zh": "受訪營養師指出，少量薑片或薑茶可減輕噁心、嘔吐感。",
       "excerpt": "整理摘要（非逐字原文）：受訪營養師指出，少量薑片或薑茶可減輕噁心、嘔吐感。",
       "excerpt_kind": "editorial_summary_not_verbatim",
@@ -4856,13 +4957,14 @@
       },
       "content_review_decision": "accepted_under_user_policy",
       "professional_name": "蔡秀雯",
-      "professional_role": "營養師"
+      "professional_role": "營養師",
+      "source_acceptance_basis": "named_professional_or_original_research"
     },
     {
       "knowledge_id": "WEB-055-001--P31",
       "ingredient_id": "FOOD001496",
       "ingredient_name": "薑",
-      "source_version": "web-paper-reviewed-2026-10-30-r2",
+      "source_version": "web-paper-platform-2026-10-30-r3",
       "fact_zh": "喝薑飲可能減少飢餓感。也可能降低想繼續吃東西的意願。",
       "excerpt": "整理摘要（非逐字原文）：喝薑飲可能減少飢餓感。也可能降低想繼續吃東西的意願。",
       "excerpt_kind": "editorial_summary_not_verbatim",
@@ -4904,13 +5006,14 @@
       },
       "content_review_decision": "accepted_under_user_policy",
       "professional_name": "Muhammad S Mansour 等",
-      "professional_role": "Columbia大學人體營養研究者"
+      "professional_role": "Columbia大學人體營養研究者",
+      "source_acceptance_basis": "named_professional_or_original_research"
     },
     {
       "knowledge_id": "WEB-056-001--HN-31058",
       "ingredient_id": "FOOD001250",
       "ingredient_name": "辣椒",
-      "source_version": "web-paper-reviewed-2026-10-30-r2",
+      "source_version": "web-paper-platform-2026-10-30-r3",
       "fact_zh": "文章報導美國追蹤研究：較常吃辣椒者的整體死亡率較低，作用原因仍不確定。",
       "excerpt": "整理摘要（非逐字原文）：文章報導美國追蹤研究：較常吃辣椒者的整體死亡率較低，作用原因仍不確定。",
       "excerpt_kind": "editorial_summary_not_verbatim",
@@ -4952,13 +5055,14 @@
       },
       "content_review_decision": "accepted_under_user_policy",
       "professional_name": "班哲明‧里坦伯格",
-      "professional_role": "醫學院教授／原研究共同作者Benjamin Littenberg"
+      "professional_role": "醫學院教授／原研究共同作者Benjamin Littenberg",
+      "source_acceptance_basis": "named_professional_or_original_research"
     },
     {
       "knowledge_id": "WEB-056-001--P05",
       "ingredient_id": "FOOD001250",
       "ingredient_name": "辣椒",
-      "source_version": "web-paper-reviewed-2026-10-30-r2",
+      "source_version": "web-paper-platform-2026-10-30-r3",
       "fact_zh": "規律吃辣椒，可能減輕飯後胰島素升高的程度。",
       "excerpt": "整理摘要（非逐字原文）：規律吃辣椒，可能減輕飯後胰島素升高的程度。",
       "excerpt_kind": "editorial_summary_not_verbatim",
@@ -5000,13 +5104,14 @@
       },
       "content_review_decision": "accepted_under_user_policy",
       "professional_name": "Kiran Dk Ahuja 等",
-      "professional_role": "Tasmania大學人體生命科學研究者"
+      "professional_role": "Tasmania大學人體生命科學研究者",
+      "source_acceptance_basis": "named_professional_or_original_research"
     },
     {
       "knowledge_id": "WEB-074-001--HN-44080",
       "ingredient_id": "FOOD001127",
       "ingredient_name": "新鮮藍莓",
-      "source_version": "web-paper-reviewed-2026-10-30-r2",
+      "source_version": "web-paper-platform-2026-10-30-r3",
       "fact_zh": "文章指出藍莓有助腸胃蠕動及排便，並介紹新鮮藍莓的挑選方式。",
       "excerpt": "整理摘要（非逐字原文）：文章指出藍莓有助腸胃蠕動及排便，並介紹新鮮藍莓的挑選方式。",
       "excerpt_kind": "editorial_summary_not_verbatim",
@@ -5048,13 +5153,14 @@
       },
       "content_review_decision": "accepted_under_user_policy",
       "professional_name": "程涵宇",
-      "professional_role": "營養師"
+      "professional_role": "營養師",
+      "source_acceptance_basis": "named_professional_or_original_research"
     },
     {
       "knowledge_id": "WEB-075-001--HN-13776",
       "ingredient_id": "FOOD000828",
       "ingredient_name": "草莓",
-      "source_version": "web-paper-reviewed-2026-10-30-r2",
+      "source_version": "web-paper-platform-2026-10-30-r3",
       "fact_zh": "文章報導老年女性群體研究：藍莓與草莓攝取較多，與認知能力下降較慢有關。",
       "excerpt": "整理摘要（非逐字原文）：文章報導老年女性群體研究：藍莓與草莓攝取較多，與認知能力下降較慢有關。",
       "excerpt_kind": "editorial_summary_not_verbatim",
@@ -5094,13 +5200,14 @@
         "sheet": "網頁與論文上下整合",
         "row": 115
       },
-      "content_review_decision": "pending_named_professional"
+      "content_review_decision": "accepted_under_user_policy",
+      "source_acceptance_basis": "user_accepted_platform_source"
     },
     {
       "knowledge_id": "WEB-076-001--HN-32428",
       "ingredient_id": "FOOD001631",
       "ingredient_name": "蘋果",
-      "source_version": "web-paper-reviewed-2026-10-30-r2",
+      "source_version": "web-paper-platform-2026-10-30-r3",
       "fact_zh": "文章指出蘋果可增加飽足感，其食用也有助腸道蠕動與排便。",
       "excerpt": "整理摘要（非逐字原文）：文章指出蘋果可增加飽足感，其食用也有助腸道蠕動與排便。",
       "excerpt_kind": "editorial_summary_not_verbatim",
@@ -5142,13 +5249,14 @@
       },
       "content_review_decision": "accepted_under_user_policy",
       "professional_name": "何一成",
-      "professional_role": "醫師"
+      "professional_role": "醫師",
+      "source_acceptance_basis": "named_professional_or_original_research"
     },
     {
       "knowledge_id": "WEB-083-001--HN-56390",
       "ingredient_id": "FOOD000700",
       "ingredient_name": "香菇",
-      "source_version": "web-paper-reviewed-2026-10-30-r2",
+      "source_version": "web-paper-platform-2026-10-30-r3",
       "fact_zh": "營養師把香菇列入菇類食材，指出這類食材可增加飽足感、促進腸胃蠕動。",
       "excerpt": "整理摘要（非逐字原文）：營養師把香菇列入菇類食材，指出這類食材可增加飽足感、促進腸胃蠕動。",
       "excerpt_kind": "editorial_summary_not_verbatim",
@@ -5190,13 +5298,14 @@
       },
       "content_review_decision": "accepted_under_user_policy",
       "professional_name": "趙美玲",
-      "professional_role": "營養師"
+      "professional_role": "營養師",
+      "source_acceptance_basis": "named_professional_or_original_research"
     },
     {
       "knowledge_id": "WEB-084-001--HN-25857",
       "ingredient_id": "FOOD000877",
       "ingredient_name": "乾香菇",
-      "source_version": "web-paper-reviewed-2026-10-30-r2",
+      "source_version": "web-paper-platform-2026-10-30-r3",
       "fact_zh": "營養師指出經太陽曬乾的香菇含維生素D，有助體內鈣質吸收。",
       "excerpt": "整理摘要（非逐字原文）：營養師指出經太陽曬乾的香菇含維生素D，有助體內鈣質吸收。",
       "excerpt_kind": "editorial_summary_not_verbatim",
@@ -5238,13 +5347,14 @@
       },
       "content_review_decision": "accepted_under_user_policy",
       "professional_name": "周婉琪",
-      "professional_role": "營養師"
+      "professional_role": "營養師",
+      "source_acceptance_basis": "named_professional_or_original_research"
     },
     {
       "knowledge_id": "WEB-085-001--HN-56390",
       "ingredient_id": "FOOD000390",
       "ingredient_name": "杏鮑菇",
-      "source_version": "web-paper-reviewed-2026-10-30-r2",
+      "source_version": "web-paper-platform-2026-10-30-r3",
       "fact_zh": "營養師把杏鮑菇列入菇類食材，指出這類食材可增加飽足感、促進腸胃蠕動。",
       "excerpt": "整理摘要（非逐字原文）：營養師把杏鮑菇列入菇類食材，指出這類食材可增加飽足感、促進腸胃蠕動。",
       "excerpt_kind": "editorial_summary_not_verbatim",
@@ -5286,13 +5396,14 @@
       },
       "content_review_decision": "accepted_under_user_policy",
       "professional_name": "趙美玲",
-      "professional_role": "營養師"
+      "professional_role": "營養師",
+      "source_acceptance_basis": "named_professional_or_original_research"
     },
     {
       "knowledge_id": "WEB-089-001--HN-56390",
       "ingredient_id": "FOOD000563",
       "ingredient_name": "金針菇",
-      "source_version": "web-paper-reviewed-2026-10-30-r2",
+      "source_version": "web-paper-platform-2026-10-30-r3",
       "fact_zh": "營養師把金針菇列入菇類食材，指出這類食材可增加飽足感、促進腸胃蠕動。",
       "excerpt": "整理摘要（非逐字原文）：營養師把金針菇列入菇類食材，指出這類食材可增加飽足感、促進腸胃蠕動。",
       "excerpt_kind": "editorial_summary_not_verbatim",
@@ -5334,13 +5445,14 @@
       },
       "content_review_decision": "accepted_under_user_policy",
       "professional_name": "趙美玲",
-      "professional_role": "營養師"
+      "professional_role": "營養師",
+      "source_acceptance_basis": "named_professional_or_original_research"
     },
     {
       "knowledge_id": "WEB-095-001--HN-65815",
       "ingredient_id": "FOOD000458",
       "ingredient_name": "昆布",
-      "source_version": "web-paper-reviewed-2026-10-30-r2",
+      "source_version": "web-paper-platform-2026-10-30-r3",
       "fact_zh": "醫師指出昆布含半纖維素，列為有便意困難者可考慮的排便飲食選擇。",
       "excerpt": "整理摘要（非逐字原文）：醫師指出昆布含半纖維素，列為有便意困難者可考慮的排便飲食選擇。",
       "excerpt_kind": "editorial_summary_not_verbatim",
@@ -5382,13 +5494,14 @@
       },
       "content_review_decision": "accepted_under_user_policy",
       "professional_name": "鍾雲霓",
-      "professional_role": "醫師"
+      "professional_role": "醫師",
+      "source_acceptance_basis": "named_professional_or_original_research"
     },
     {
       "knowledge_id": "WEB-096-001--HN-66914",
       "ingredient_id": "FOOD001516",
       "ingredient_name": "鮭魚",
-      "source_version": "web-paper-reviewed-2026-10-30-r2",
+      "source_version": "web-paper-platform-2026-10-30-r3",
       "fact_zh": "文章報導一項冬季鮭魚飲食研究，受試者較快入睡、睡眠品質改善，白天精神也較佳。",
       "excerpt": "整理摘要（非逐字原文）：文章報導一項冬季鮭魚飲食研究，受試者較快入睡、睡眠品質改善，白天精神也較佳。",
       "excerpt_kind": "editorial_summary_not_verbatim",
@@ -5430,13 +5543,14 @@
       },
       "content_review_decision": "accepted_under_user_policy",
       "professional_name": "林雨薇",
-      "professional_role": "營養師"
+      "professional_role": "營養師",
+      "source_acceptance_basis": "named_professional_or_original_research"
     },
     {
       "knowledge_id": "WEB-097-001--HN-66967",
       "ingredient_id": "FOOD001609",
       "ingredient_name": "鯖魚",
-      "source_version": "web-paper-reviewed-2026-10-30-r2",
+      "source_version": "web-paper-platform-2026-10-30-r3",
       "fact_zh": "受訪營養師將鯖魚列為有助乾眼預防的魚類食材。",
       "excerpt": "整理摘要（非逐字原文）：受訪營養師將鯖魚列為有助乾眼預防的魚類食材。",
       "excerpt_kind": "editorial_summary_not_verbatim",
@@ -5478,13 +5592,14 @@
       },
       "content_review_decision": "accepted_under_user_policy",
       "professional_name": "珊珊",
-      "professional_role": "營養師"
+      "professional_role": "營養師",
+      "source_acceptance_basis": "named_professional_or_original_research"
     },
     {
       "knowledge_id": "WEB-099-001--HN-57251",
       "ingredient_id": "FOOD000558",
       "ingredient_name": "虱目魚肚",
-      "source_version": "web-paper-reviewed-2026-10-30-r2",
+      "source_version": "web-paper-platform-2026-10-30-r3",
       "fact_zh": "文章指出虱目魚肚所含魚油可幫助調降血壓與膽固醇。",
       "excerpt": "整理摘要（非逐字原文）：文章指出虱目魚肚所含魚油可幫助調降血壓與膽固醇。",
       "excerpt_kind": "editorial_summary_not_verbatim",
@@ -5524,13 +5639,14 @@
         "sheet": "網頁與論文上下整合",
         "row": 124
       },
-      "content_review_decision": "pending_named_professional"
+      "content_review_decision": "accepted_under_user_policy",
+      "source_acceptance_basis": "user_accepted_platform_source"
     },
     {
       "knowledge_id": "WEB-114-001--HN-62406",
       "ingredient_id": "FOOD000943",
       "ingredient_name": "蛋白",
-      "source_version": "web-paper-reviewed-2026-10-30-r2",
+      "source_version": "web-paper-platform-2026-10-30-r3",
       "fact_zh": "文章提醒長期大量食用生雞蛋蛋白，可能妨礙生物素吸收。",
       "excerpt": "整理摘要（非逐字原文）：文章提醒長期大量食用生雞蛋蛋白，可能妨礙生物素吸收。",
       "excerpt_kind": "editorial_summary_not_verbatim",
@@ -5572,13 +5688,14 @@
       },
       "content_review_decision": "accepted_under_user_policy",
       "professional_name": "劉怡里",
-      "professional_role": "營養師"
+      "professional_role": "營養師",
+      "source_acceptance_basis": "named_professional_or_original_research"
     },
     {
       "knowledge_id": "WEB-115-001--HN-69647",
       "ingredient_id": "FOOD000945",
       "ingredient_name": "蛋黃",
-      "source_version": "web-paper-reviewed-2026-10-30-r2",
+      "source_version": "web-paper-platform-2026-10-30-r3",
       "fact_zh": "文章指出蛋黃本身含脂質，有助脂溶性營養素的吸收與利用。",
       "excerpt": "整理摘要（非逐字原文）：文章指出蛋黃本身含脂質，有助脂溶性營養素的吸收與利用。",
       "excerpt_kind": "editorial_summary_not_verbatim",
@@ -5620,13 +5737,14 @@
       },
       "content_review_decision": "accepted_under_user_policy",
       "professional_name": "莊可鈞",
-      "professional_role": "中醫師"
+      "professional_role": "中醫師",
+      "source_acceptance_basis": "named_professional_or_original_research"
     },
     {
       "knowledge_id": "WEB-119-001--HN-49811",
       "ingredient_id": "FOOD001564",
       "ingredient_name": "雞胸肉",
-      "source_version": "web-paper-reviewed-2026-10-30-r2",
+      "source_version": "web-paper-platform-2026-10-30-r3",
       "fact_zh": "文章將雞胸肉描述為可較長時間維持飽足感的低脂、高蛋白減重食材。",
       "excerpt": "整理摘要（非逐字原文）：文章將雞胸肉描述為可較長時間維持飽足感的低脂、高蛋白減重食材。",
       "excerpt_kind": "editorial_summary_not_verbatim",
@@ -5666,13 +5784,14 @@
         "sheet": "網頁與論文上下整合",
         "row": 127
       },
-      "content_review_decision": "pending_named_professional"
+      "content_review_decision": "accepted_under_user_policy",
+      "source_acceptance_basis": "user_accepted_platform_source"
     },
     {
       "knowledge_id": "WEB-124-001--HN-41279",
       "ingredient_id": "FOOD001435",
       "ingredient_name": "燕麥片",
-      "source_version": "web-paper-reviewed-2026-10-30-r2",
+      "source_version": "web-paper-platform-2026-10-30-r3",
       "fact_zh": "營養師指出燕麥片有助飽足感及排便，但應作主食代換，過量攝取仍可能變胖。",
       "excerpt": "整理摘要（非逐字原文）：營養師指出燕麥片有助飽足感及排便，但應作主食代換，過量攝取仍可能變胖。",
       "excerpt_kind": "editorial_summary_not_verbatim",
@@ -5714,13 +5833,14 @@
       },
       "content_review_decision": "accepted_under_user_policy",
       "professional_name": "蔡玉思",
-      "professional_role": "營養師"
+      "professional_role": "營養師",
+      "source_acceptance_basis": "named_professional_or_original_research"
     },
     {
       "knowledge_id": "WEB-125-001--HN-66269",
       "ingredient_id": "FOOD000316",
       "ingredient_name": "全麥麵包",
-      "source_version": "web-paper-reviewed-2026-10-30-r2",
+      "source_version": "web-paper-platform-2026-10-30-r3",
       "fact_zh": "營養師建議選用含全麥粉的麵包，指出這類麵包消化較慢，可延長飽足感並有助血糖穩定。",
       "excerpt": "整理摘要（非逐字原文）：營養師建議選用含全麥粉的麵包，指出這類麵包消化較慢，可延長飽足感並有助血糖穩定。",
       "excerpt_kind": "editorial_summary_not_verbatim",
@@ -5762,13 +5882,14 @@
       },
       "content_review_decision": "accepted_under_user_policy",
       "professional_name": "吳庭妮",
-      "professional_role": "營養師"
+      "professional_role": "營養師",
+      "source_acceptance_basis": "named_professional_or_original_research"
     },
     {
       "knowledge_id": "WEB-009-001--P33",
       "ingredient_id": "FOOD000588",
       "ingredient_name": "青花菜",
-      "source_version": "web-paper-reviewed-2026-10-30-r2",
+      "source_version": "web-paper-platform-2026-10-30-r3",
       "fact_zh": "對吸菸者，吃青花菜可能有助減少體內發炎反應。",
       "excerpt": "整理摘要（非逐字原文）：對吸菸者，吃青花菜可能有助減少體內發炎反應。",
       "excerpt_kind": "editorial_summary_not_verbatim",
@@ -5810,13 +5931,14 @@
       },
       "content_review_decision": "accepted_under_user_policy",
       "professional_name": "Patrizia Riso 等",
-      "professional_role": "Milano大學食品／人體營養研究者"
+      "professional_role": "Milano大學食品／人體營養研究者",
+      "source_acceptance_basis": "named_professional_or_original_research"
     },
     {
       "knowledge_id": "RAG-FOOD000687--P15",
       "ingredient_id": "FOOD000687",
       "ingredient_name": "韭菜",
-      "source_version": "web-paper-reviewed-2026-10-30-r2",
+      "source_version": "web-paper-platform-2026-10-30-r3",
       "fact_zh": "對容易畏寒的陽虛體質者，吃韭菜可能減輕怕冷的感覺。也可能減輕手腳冰冷等不適。",
       "excerpt": "整理摘要（非逐字原文）：對容易畏寒的陽虛體質者，吃韭菜可能減輕怕冷的感覺。也可能減輕手腳冰冷等不適。",
       "excerpt_kind": "editorial_summary_not_verbatim",
@@ -5858,15 +5980,19 @@
       },
       "content_review_decision": "accepted_under_user_policy",
       "professional_name": "Vương Chí Thạnh；Nguyễn Hữu Đức Minh 等",
-      "professional_role": "胡志明市醫藥大學／復健醫院研究者"
+      "professional_role": "胡志明市醫藥大學／復健醫院研究者",
+      "source_acceptance_basis": "named_professional_or_original_research"
     }
   ],
   "production_ready": false,
-  "note": "123筆皆完成本輪來源核對；96筆符合使用者內容準則、27筆待具名專業依據。未匯入正式庫，未核准或發布索引。",
-  "parent_source_version": "web-paper-2026-10-30-f96fda1e07ce",
+  "note": "123筆完成原文核對並符合使用者來源內容準則，其中27筆依新增平台準則採用；未匯入正式庫，未執行資料庫核准或發布索引。",
+  "parent_source_version": "web-paper-reviewed-2026-10-30-r2",
   "source_review": "knowledge_rag/reviews/web_paper_2026-10-30.json",
   "source_review_counts": {
-    "pending_named_professional": 27,
-    "accepted_under_user_policy": 96
+    "accepted_under_user_policy": 123
+  },
+  "acceptance_basis_counts": {
+    "named_professional_or_original_research": 96,
+    "user_accepted_platform_source": 27
   }
 }
