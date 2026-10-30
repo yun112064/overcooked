@@ -1,0 +1,17 @@
+{
+  "file": "knowledge_rag/candidates/web_paper_2026-10-30.json",
+  "source_version": "web-paper-reviewed-2026-10-30-r2",
+  "records": 123,
+  "ingredients": 76,
+  "web_records": 103,
+  "paper_records": 20,
+  "status": "source_reviewed_not_imported",
+  "database_updated": false,
+  "index_updated": false,
+  "historical_candidates_preserved": true,
+  "review_file": "knowledge_rag/reviews/web_paper_2026-10-30.json",
+  "source_review_counts": {
+    "pending_named_professional": 27,
+    "accepted_under_user_policy": 96
+  }
+}
