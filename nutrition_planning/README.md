@@ -18,6 +18,8 @@
 
 問卷選白飯時，`validate_database_menu(staple='白飯')` 依 [主食設定](../config/staples.json)加入 FOOD000296，指定 TFDA 樣品 A0550601、已熟製、來源方式「電鍋煮」、每 1n 160 克起始及 100～250 克審核範圍，再與菜色一起縮放和檢查熱量、蛋白質 ±10%。新版匯入模式仍須提供同一匯入版本下的 `nutrition_selections['staple:FOOD000296']`，並確認來源樣品 ID；此選擇的 `cooking_method` 須填「電鍋煮」，`preparation` 為 None。缺少選擇、來源或必要營養時回報原因，不以零代替。結果的 `staple_snapshot` 保存設定版本、基準、範圍及可得時的最終克數；`recipe_ids` 僅保留實際選中的資料庫菜色。未選主食須明確傳入 `staple='不需要主食'`。前端問卷接線和畫面缺值提示由後續流程負責。
 
+當匯入資料只有未熟製 TFDA 紀錄時，後端可將 `cooking_estimator` 傳給 `validate_database_menu()`。T12 會把已驗證的 Food_ID、原始 TFDA 營養、烹調方式、匯入版本、nutrition_id 及 nutrition_source_id 綁在 T04 收據，再由 T12 以 Fraction 重新計算。產率或保留率缺失、格式／範圍錯誤、服務未設定、連線錯誤或必要營養缺失時，結果會帶具體 `InputIssue.message` 並阻止採用；估算結果的 `is_estimated`、假設、參考 ID 與版本會保留。未傳入 estimator 時不會自行呼叫外部服務。
+
 驗證：`python -m pytest nutrition_planning/tests --cov=nutrition_planning --cov-report=term-missing -q`。開發依賴見 `requirements-dev.txt`；不需呼叫模型或外部 API。
 
 型別檢查：`python -m pyright --project nutrition_planning/pyrightconfig.json`（本機使用專案 `.venv`）。

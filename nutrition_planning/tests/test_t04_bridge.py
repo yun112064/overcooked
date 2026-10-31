@@ -8,7 +8,7 @@ import pytest
 
 from nutrition_planning import NutritionPolicy, calculate_nutrition
 from nutrition_planning.integration import (RecipeLineProfile, RecipeRows,
-    prepare_database_recipe, recipe_line_digest)
+    prepare_database_recipe, recipe_line_digest, estimate_missing_cooking_with_t04)
 from nutrition_planning.t04_bridge import T04CookingResult, apply_t04_results
 
 
@@ -68,6 +68,44 @@ def test_real_t04_llm_parameters_feed_exact_t12_nutrition(cooked):
     assert resolved.approved_for_adoption is False  # Coefficient policy != whole-system approval.
 
 
+def test_t12_can_request_llm_estimate_for_raw_record(cooked, monkeypatch):
+    rows, profiles, policy, receipt = cooked
+    import sys
+    monkeypatch.setattr(sys.modules['cooked_nutrition_service'].yields, 'get_yield_references',
+                        lambda *a, **k: [{'reference_id': 'test-reference', 'match_type': 'analogy',
+                                          'cooking_yield_pct': 75}])
+    raw_record = {'state': 'raw', 'ingredient_id': 'raw-sample',
+                  'standard_name': '測試食材',
+                  'nutrition_per_100g': {key: F(value) for key, value in {
+                      'energy_kcal': 200, 'protein_g': 20, 'carbohydrate_g': 10,
+                      'fat_g': 2, 'sugars_g': 1, 'sodium_mg': 5,
+                      'dietary_fiber_g': 1}.items()},
+                  'source': {'source_id': 'raw-sample', 'source_version': 'v1'}}
+    estimates, issues = estimate_missing_cooking_with_t04(
+        rows, profiles=profiles, line_records={'line': raw_record},
+        estimator=lambda payload: {'yield_factor': 0.75, 'reference_ids': ['test-reference'],
+            'nutrient_retention_factors': {key: 0.8 for key in ('energy_kcal', 'protein_g', 'carbohydrate_g',
+                                                                  'fat_g', 'sugars_g', 'sodium_mg', 'dietary_fiber_g')},
+            'assumptions': ['test'], 'missing_information': []})
+    assert not issues
+    estimate = estimates['line']
+    assert isinstance(estimate, dict)
+    assert estimate['is_estimated'] is True
+    assert estimate['missing_reason'] is None
+
+
+def test_raw_record_without_cooking_method_is_blocked(cooked):
+    rows, profiles, policy, receipt = cooked
+    profiles = {**profiles, 'line': replace(profiles['line'], cooking_method=None)}
+    record = {'state': 'raw', 'ingredient_id': 'raw-sample', 'standard_name': '測試食材',
+              'nutrition_per_100g': {'energy_kcal': 200, 'protein_g': 20},
+              'source': {'source_id': 'raw-sample', 'source_version': 'v1'}}
+    _, issues = estimate_missing_cooking_with_t04(rows, profiles=profiles,
+                                                   line_records={'line': record}, estimator=lambda _: {})
+    assert issues[0].code == 'cooking_method_unavailable'
+    assert issues[0].message == '烹調方式無法判定'
+
+
 @pytest.mark.parametrize('mutation', ['digest', 'weight', 'method', 'context', 'bad_retention',
                                      'fake_reference', 'missing_retention', 'sample', 'nan',
                                      'reported_weight', 'hidden_estimate'])
@@ -102,3 +140,20 @@ def test_existing_cooked_tfda_nutrition_does_not_receive_llm_retention_again(coo
     result = calculate_nutrition(prepared.recipe, policy=resolved)
     assert result.sources[0]['cooked_edible_weight_g'] == 75
     assert result.totals == {'energy_kcal': F(150), 'protein_g': F(15)}
+
+
+def test_llm_failure_keeps_missing_reason_and_never_fills_zero(cooked, monkeypatch):
+    rows, profiles, policy, receipt = cooked
+    import sys
+    t04 = sys.modules['cooked_nutrition_service']
+    raw = dict(ingredient_id='raw-sample', standard_name='測試食材', state='raw',
+               nutrition_per_100g={'energy_kcal': 200, 'protein_g': None},
+               source={'provider': 'TFDA', 'source_id': 'raw-sample', 'source_version': 'v1'})
+    monkeypatch.setattr(t04.yields, 'get_yield_references', lambda *a, **k: [])
+    result = t04.calculate_cooking('測試食材', 100, '烤', [raw], lambda name: raw,
+                                   cooking_context={}, estimator=lambda payload: {
+                                       'success': False, 'error': 'llm_not_configured'})
+    assert result['cooking_adjustment_complete'] is False
+    assert result['missing_reason'] == 'llm_not_configured'
+    assert result['nutrition']['protein_g'] is None
+    assert result['nutrition']['energy_kcal'] is None

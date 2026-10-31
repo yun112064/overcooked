@@ -74,6 +74,12 @@ def test_white_rice_cannot_be_silently_omitted_from_database_menu(imported_menu)
                               for name in ('main', 'oil', 'salt')})
     assert result.validation is None
     assert any(issue.code == 'staple_nutrition_selection_missing' for issue in result.preparation.issues)
+    issue = next(issue for issue in result.preparation.issues
+                 if issue.code == 'staple_nutrition_selection_missing')
+    assert issue.message == '主食份量／營養依據缺值'
+    assert issue.adoption_blocked
+    assert result.adoption_blocked
+    assert result.input_issues[0]['message'] == '主食份量／營養依據缺值'
 
 
 def test_omitted_staple_choice_is_reported_as_missing(imported_menu):

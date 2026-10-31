@@ -4,6 +4,8 @@
 
 > 2026-11-01 實檔補查：使用者提供的 `C:/Users/BOSS/Downloads/All_Food_ID_1018.xlsx` SHA-256 為 `b1ccb1b9d9e89c559580571af8018608b442919df4136ed61cf737e928a6dd5f`，與本分支 `knowledge_rag/sources/All_Food_ID_1018.xlsx` 相同，仍不同於 main／PR #17 記錄的 `cb0c0f938a26fdd1258cb05b52e3a460d4f146be259048e55d0b7e63e600a959`。此檔 All 第 974 列為 FOOD000296「白飯」，已熟製、電鍋煮，183 kcal／3.1 g 蛋白質每 100 g，計算來源 TFDA_A0550601；「原始來源與判定」第 75 列來源資料 ID A0550601 數值及狀態一致，糖欄留空。All 另有第 1732 列同 FOOD ID 的未判定、食譜推算紀錄，不能取代上述 TFDA 樣品。實檔涵蓋食譜使用的 434 個 FOOD ID，但此檔 1,996 筆 All 紀錄有 312 筆熱量空白、30 筆蛋白質空白、666 筆糖空白；TFDA 原始來源 2,213 筆中蛋白質空白 30 筆、糖空白 1,001 筆。白飯來源方式已納入 T12 回歸，選錯方式會擋下。以上是所提供檔案的觀察值，不能充作 PR #17 新版雜湊的正式驗收。
 
+> 2026-11-01 T12 接線更新：新增 `estimate_missing_cooking_with_t04()`，只對明確選到的未熟製 TFDA 紀錄呼叫後端傳入的 T04 estimator；估算收據綁定匯入版本、nutrition_id 與 nutrition_source_id，T12 仍自行精確計算。`DatabaseMenuResult.input_issues` 提供中文缺值原因與 `adoption_blocked`，未知錯誤也不會轉成 0。正式呼叫端仍須明確注入 estimator；未設定時不呼叫外部服務。
+
 ## 結論與範圍
 
 本輪尚未合併至 main。整合分支 `codex/integrate-t11-t12-audit` 包含 main `007e51d`（含 PR #17）、T11 `9a76f9f`、T12 `801470b`，解決 README／spec 的文字衝突，保留 main 的 YOLO26s 與 T11 地端知識模型決議。沒有使用 `t11-t20-demo`，沒有更新其他人的分支。

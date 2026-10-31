@@ -9,8 +9,9 @@ from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, replace
 import hashlib
 import json
+from decimal import Decimal
 from pathlib import Path
-from typing import Literal, cast
+from typing import Any, Literal, cast
 
 from sqlalchemy import MetaData, Table, select
 from sqlalchemy.engine import Connection
@@ -40,6 +41,37 @@ class InputIssue:
     line_id: str | None = None
     field: str | None = None
     input_digest: str | None = None
+
+    @property
+    def message(self) -> str:
+        labels = {
+            'nutrition_selection_missing': '缺少營養資料選擇',
+            'nutrition_record_not_found_for_import_and_food': '食材營養資料缺失',
+            'nutrition_variant_mismatch': '生熟或烹調方式不符合',
+            'nutrition_state_unknown': '烹調生熟狀態無法判定',
+            'tfda_source_missing_or_ambiguous': 'TFDA 營養來源無法唯一判定',
+            'staple_nutrition_selection_missing': '主食份量／營養依據缺值',
+            'staple_tfda_method_mismatch': '主食烹調方式與營養樣品不一致',
+            'staple_tfda_sample_mismatch': '主食 TFDA 樣品不一致',
+            'staple_policy_unavailable': '主食份量／營養依據缺值',
+            'llm_raw_energy_missing': '缺少生食熱量基礎資料',
+            'llm_raw_protein_missing': '缺少生食蛋白質基礎資料',
+            'llm_not_configured': 'LLM 服務未設定',
+            'llm_provider_error': 'LLM 服務錯誤',
+            'cooked_weight_or_nutrients_unavailable': '缺少熟食產率或營養保留率',
+            'llm_estimation_failed': 'LLM 熟食估算失敗',
+            'cooking_method_unavailable': '烹調方式無法判定',
+            't04_import_snapshot_mismatch': 'LLM 估算與營養資料版本不一致',
+            't04_parameters_missing_invalid_or_sample_mismatch': 'LLM 烹調參數缺失或與食材樣品不一致',
+            'approved_cooking_evidence_missing': '缺少已驗證的烹調依據',
+            'llm_service_unavailable': 'LLM 服務無法使用',
+            'llm_weight_missing': '缺少烹調前重量',
+        }
+        return labels.get(self.code, '營養或烹調依據缺失，無法採用')
+
+    @property
+    def adoption_blocked(self) -> bool:
+        return True
 
 
 @dataclass(frozen=True)
@@ -76,12 +108,89 @@ class DatabaseMenuResult:
     staple_snapshot: Mapping | None = None
 
     @property
+    def input_issues(self) -> tuple[Mapping[str, object], ...]:
+        issues = self.preparation.issues
+        return tuple({'code': issue.code, 'recipe_id': issue.recipe_id,
+                      'line_id': issue.line_id, 'field': issue.field,
+                      'message': issue.message, 'adoption_blocked': issue.adoption_blocked}
+                     for issue in issues)
+
+    @property
+    def adoption_blocked(self) -> bool:
+        return bool(self.preparation.issues or self.validation is None
+                    or not self.validation.nutrition_passed
+                    or self.validation.adoption_blockers)
+
+    @property
     def final_food_ids(self) -> tuple[str, ...]:
         """Only validated final ingredients, for the caller's later RAG step."""
         if not self.validation or not self.validation.nutrition_passed or not self.validation.final_recipe:
             return ()
         return tuple(sorted({line.food_id for line in self.validation.final_recipe.ingredients
                              if exact(line.amount_g) > 0}))
+
+
+def estimate_missing_cooking_with_t04(rows: RecipeRows, *, profiles: Mapping[str, RecipeLineProfile],
+                                      line_records: Mapping[str, Mapping], estimator) -> tuple[Mapping[str, object], tuple[InputIssue, ...]]:
+    """Run the existing T04 estimator only for selected raw records without cooked data.
+
+    The estimator receives TFDA raw values and returns parameters only. T12 still
+    performs all nutrition arithmetic and rejects incomplete receipts.
+    """
+    try:
+        from cooked_nutrition_service import calculate_cooking  # type: ignore[import-not-found]
+    except ImportError:
+        return {}, (InputIssue('llm_service_unavailable', '', field='estimator'),)
+    results: dict[str, object] = {}
+    issues: list[InputIssue] = []
+    for line in rows.ingredients:
+        lid = line['recipe_ingredient_id']
+        record = line_records.get(lid)
+        profile = profiles.get(lid)
+        if not isinstance(record, Mapping) or not isinstance(profile, RecipeLineProfile):
+            continue
+        if record.get('state') != 'raw':
+            continue
+        if not profile.cooking_method:
+            issues.append(InputIssue('cooking_method_unavailable', line['recipe_id'], lid, 'cooking_method'))
+            continue
+        if estimator is None:
+            try:
+                from llm_cooking_estimator import estimate_cooking  # type: ignore[import-not-found]
+                estimator = estimate_cooking
+            except ImportError:
+                issues.append(InputIssue('llm_service_unavailable', line['recipe_id'], lid, 'estimator'))
+                continue
+        raw_source = record.get('source')
+        raw_values = {key: float(value) if value is not None else None
+                      for key, value in dict(record.get('nutrition_per_100g') or {}).items()}
+        raw = {'ingredient_id': record.get('ingredient_id'),
+               'standard_name': record.get('standard_name'), 'state': 'raw',
+               'nutrition_per_100g': raw_values,
+               'source': dict(raw_source) if isinstance(raw_source, Mapping) else {}}
+        if raw['nutrition_per_100g'].get('energy_kcal') is None:
+            issues.append(InputIssue('llm_raw_energy_missing', line['recipe_id'], lid, 'energy_kcal'))
+            continue
+        if raw['nutrition_per_100g'].get('protein_g') is None:
+            issues.append(InputIssue('llm_raw_protein_missing', line['recipe_id'], lid, 'protein_g'))
+            continue
+        try:
+            weight = line.get('weight_g')
+            if not isinstance(weight, (int, float, Decimal)) or isinstance(weight, bool):
+                issues.append(InputIssue('llm_weight_missing', line['recipe_id'], lid, 'weight_g'))
+                continue
+            result = calculate_cooking(raw['standard_name'] or profile.food_id, float(weight), profile.cooking_method,
+                                       [raw], lambda _: raw, cooking_context=profile.cooking_context or {},
+                                       estimator=estimator)
+        except (TypeError, ValueError, KeyError, OSError, TimeoutError):
+            issues.append(InputIssue('llm_estimation_failed', line['recipe_id'], lid, 'cooking'))
+            continue
+        if not result.get('cooking_adjustment_complete'):
+            issues.append(InputIssue(result.get('missing_reason', 'llm_estimation_failed'),
+                                     line['recipe_id'], lid, 'cooking'))
+            continue
+        results[lid] = result
+    return results, tuple(issues)
 
 
 def load_database_recipe_rows(db: Connection, recipe_ids: Sequence[str]) -> RecipeRows:
@@ -220,7 +329,8 @@ def validate_database_menu(db: Connection, recipe_ids: Sequence[str], *, partici
                            food_mapping_path=None,
                            nutrition_source: Literal['imported', 'legacy_tfda'] = 'imported',
                            nutrition_import_id: str | None = None,
-                           nutrition_selections: Mapping | None = None) -> DatabaseMenuResult:
+                           nutrition_selections: Mapping | None = None,
+                           cooking_estimator=None) -> DatabaseMenuResult:
     """Backend participations → exact T03 targets → all DB lines → T12.
 
     Caller retains household authorization, T11 selection/fallback and T14 flow.
@@ -295,6 +405,29 @@ def validate_database_menu(db: Connection, recipe_ids: Sequence[str], *, partici
             return DatabaseMenuResult(targets, PreparedRecipe(None, (
                 InputIssue('staple_tfda_method_mismatch', 'staple', 'staple:FOOD000296', 'cooking_method'),)), None)
         policy = replace(policy, sample_mappings={}, line_nutrition_records=imported.line_records)
+        estimates, estimate_issues = ({}, ())
+        if t04_results is None and cooking_estimator is not None:
+            estimates, estimate_issues = estimate_missing_cooking_with_t04(
+                rows, profiles=profiles, line_records=imported.line_records, estimator=cooking_estimator)
+        if estimate_issues:
+            return DatabaseMenuResult(targets, PreparedRecipe(None, estimate_issues), None)
+        if estimates:
+            from .t04_bridge import T04CookingResult, apply_t04_results
+            receipts = {}
+            for lid, estimate in estimates.items():
+                line = next(row for row in rows.ingredients if row['recipe_ingredient_id'] == lid)
+                profile = profiles[lid]
+                source = imported.line_records[lid]['source']
+                receipts[lid] = T04CookingResult(
+                    profile.input_digest, profile.food_id, profile.weight_basis,
+                    str(line.get('weight_g')), profile.cooking_method or '',
+                    dict(profile.cooking_context or {}), 'T04-auto-estimator', cast(Any, estimate),
+                    source.get('import_id'), source.get('nutrition_id'), source.get('nutrition_source_id'))
+            t04_policy, profiles, t04_issues = apply_t04_results(
+                rows, policy=policy, profiles=profiles, results=receipts)
+            if t04_issues:
+                return DatabaseMenuResult(targets, PreparedRecipe(None, t04_issues), None)
+            policy = t04_policy
     elif nutrition_source == 'legacy_tfda':
         if nutrition_import_id is not None or nutrition_selections is not None:
             raise PlanningInputError('Legacy mode cannot consume imported nutrition selections.')
