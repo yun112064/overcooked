@@ -148,7 +148,7 @@ def prepare_database_recipe(rows: RecipeRows, *, policy: NutritionPolicy,
             required = row.get("is_required")
             if type(required) is not bool:
                 issue("required_flag_unknown", "is_required")
-            sample = policy.sample_mappings.get(row["food_id"])
+            sample = policy.sample_for(lid, row["food_id"])
             if not isinstance(sample, str) or not sample:
                 issue("tfda_mapping_missing", "sample_id")
             profile = profiles.get(lid)
@@ -163,6 +163,11 @@ def prepare_database_recipe(rows: RecipeRows, *, policy: NutritionPolicy,
                 issue("weight_basis_unknown", "weight_basis")
             if type(profile.consumed_as_is) is not bool:
                 issue("consumed_as_is_unknown", "consumed_as_is")
+            if policy.line_nutrition_records is not None:
+                record = policy.line_nutrition_records.get(lid, {})
+                if (record.get('state') == 'cooked' and profile.cooking_method is not None
+                        and record.get('source', {}).get('cooking_method') != profile.cooking_method):
+                    issue('imported_cooking_method_mismatch', 'cooking_method')
             step = number(profile.cooking_step_g, "cooking_step_g", positive=True)
             if profile.reviewed_weight_g is not None:
                 weight_value = profile.reviewed_weight_g
@@ -209,7 +214,10 @@ def validate_database_menu(db: Connection, recipe_ids: Sequence[str], *, partici
                            target_service, policy: NutritionPolicy,
                            profiles: Mapping[str, RecipeLineProfile],
                            t04_results: Mapping | None = None,
-                           food_mapping_path=None) -> DatabaseMenuResult:
+                           food_mapping_path=None,
+                           nutrition_source: Literal['imported', 'legacy_tfda'] = 'imported',
+                           nutrition_import_id: str | None = None,
+                           nutrition_selections: Mapping | None = None) -> DatabaseMenuResult:
     """Backend participations → exact T03 targets → all DB lines → T12.
 
     Caller retains household authorization, T11 selection/fallback and T14 flow.
@@ -217,6 +225,21 @@ def validate_database_menu(db: Connection, recipe_ids: Sequence[str], *, partici
     """
     targets = targets_from_t03(target_service.aggregate_meal_targets(participations))
     rows = load_database_recipe_rows(db, recipe_ids)
+    if nutrition_source == 'imported':
+        if food_mapping_path is not None:
+            raise PlanningInputError('Imported nutrition cannot use a legacy FOOD/TFDA registry.')
+        from .imported_nutrition import load_imported_nutrition
+        imported = load_imported_nutrition(db, rows, import_id=nutrition_import_id,
+                                            selections=nutrition_selections or {})
+        if imported.issues:
+            return DatabaseMenuResult(targets, PreparedRecipe(None, imported.issues), None)
+        policy = replace(policy, sample_mappings={}, line_nutrition_records=imported.line_records)
+    elif nutrition_source == 'legacy_tfda':
+        if nutrition_import_id is not None or nutrition_selections is not None:
+            raise PlanningInputError('Legacy mode cannot consume imported nutrition selections.')
+        policy = replace(policy, line_nutrition_records=None)
+    else:
+        raise PlanningInputError('Unknown nutrition source.')
     if food_mapping_path is not None:
         from nutrition_model.food_id_mapping import load_food_id_mappings
         names = {}

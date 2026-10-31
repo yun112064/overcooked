@@ -66,7 +66,7 @@ def menu(tmp_path):
 
 def test_db_t03_t12_bridge_counts_all_lines_and_preserves_exact_targets(menu):
     db, _, _, _, profiles, policy, service, participations = menu
-    result = validate_database_menu(db, ["R1"], participations=participations,
+    result = validate_database_menu(db, ["R1"], participations=participations, nutrition_source='legacy_tfda',
                                    target_service=service, policy=policy, profiles=profiles)
     assert not result.preparation.issues
     assert result.validation is not None and result.validation.final_estimate is not None
@@ -85,7 +85,7 @@ def test_db_t03_t12_bridge_counts_all_lines_and_preserves_exact_targets(menu):
 def test_missing_mapping_and_profile_are_reported_without_partial_calculation(menu):
     db, _, _, _, profiles, policy, service, participations = menu
     policy = replace(policy, sample_mappings={"FOOD000001": "main"})
-    result = validate_database_menu(db, ["R1"], participations=participations,
+    result = validate_database_menu(db, ["R1"], participations=participations, nutrition_source='legacy_tfda',
                                    target_service=service, policy=policy, profiles={"main": profiles["main"]})
     assert result.validation is None and result.final_food_ids == ()
     assert {(i.line_id, i.code) for i in result.preparation.issues} >= {
@@ -186,7 +186,7 @@ def test_complete_db_target_t04_llm_and_t12_calculation(menu, monkeypatch):
                                   cooking_context=context, estimator=estimator)
     receipt = T04CookingResult(profiles['main'].input_digest, 'FOOD000001', 'raw', '200',
                               '烤', context, 'T04-synthetic+model-v1', result)
-    final = validate_database_menu(db, ['R1'], participations=participations,
+    final = validate_database_menu(db, ['R1'], participations=participations, nutrition_source='legacy_tfda',
         target_service=service, policy=policy, profiles=profiles, t04_results={'main': receipt})
     assert final.validation is not None and final.validation.final_estimate is not None
     assert final.validation.final_recipe is not None
@@ -198,7 +198,7 @@ def test_complete_db_target_t04_llm_and_t12_calculation(menu, monkeypatch):
     assert evidence['yield_factor'] == F(3, 4)
     assert len(final.validation.final_recipe.ingredients) == 3
     invalid = replace(receipt, input_weight_g='wrong')
-    blocked = validate_database_menu(db, ['R1'], participations=participations,
+    blocked = validate_database_menu(db, ['R1'], participations=participations, nutrition_source='legacy_tfda',
         target_service=service, policy=policy, profiles=profiles, t04_results={'main': invalid})
     assert blocked.validation is None and blocked.preparation.issues
 
@@ -211,11 +211,11 @@ def test_registry_is_used_by_database_menu_entry_and_conflicts_do_not_override_p
     registry = tmp_path/'mapping.json'
     registry.write_text(json.dumps(document),encoding='utf-8')
     blank = replace(policy,sample_mappings={})
-    final = validate_database_menu(db,['R1'],participations=participations,target_service=service,
+    final = validate_database_menu(db,['R1'],participations=participations,target_service=service, nutrition_source='legacy_tfda',
         policy=blank,profiles=profiles,food_mapping_path=registry)
     assert final.validation is not None and final.validation.nutrition_passed
     assert final.final_food_ids == ('FOOD000001','FOOD000002','FOOD000003')
     conflict = replace(policy,sample_mappings={'FOOD000001':'different-sample'})
     with pytest.raises(PlanningInputError,match='conflicts'):
-        validate_database_menu(db,['R1'],participations=participations,target_service=service,
+        validate_database_menu(db,['R1'],participations=participations,target_service=service, nutrition_source='legacy_tfda',
             policy=conflict,profiles=profiles,food_mapping_path=registry)

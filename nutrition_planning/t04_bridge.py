@@ -29,6 +29,9 @@ class T04CookingResult:
     cooking_context: Mapping
     source_version: str  # T04 data/code + estimator version, no credentials.
     result: Mapping
+    nutrition_import_id: str | None = None
+    nutrition_id: str | None = None
+    nutrition_source_id: str | None = None
 
 
 def _reported(value):
@@ -65,11 +68,13 @@ def apply_t04_results(rows: RecipeRows, *, policy: NutritionPolicy,
     changed = dict(profiles)
     evidence = dict(policy.approved_evidence)
     issues = []
-    try:
-        with policy.catalog_path.open(encoding='utf-8') as stream:
-            catalog = {item['ingredient_id']: item for item in json.load(stream, parse_float=Decimal)}
-    except (OSError, ValueError, TypeError, KeyError):
-        return policy, changed, (InputIssue('tfda_catalog_unavailable', ''),)
+    catalog = {}
+    if policy.line_nutrition_records is None:
+        try:
+            with policy.catalog_path.open(encoding='utf-8') as stream:
+                catalog = {item['ingredient_id']: item for item in json.load(stream, parse_float=Decimal)}
+        except (OSError, ValueError, TypeError, KeyError):
+            return policy, changed, (InputIssue('tfda_catalog_unavailable', ''),)
     recipes = {r['recipe_id']: r for r in rows.recipes}
     lines = {r['recipe_ingredient_id']: r for r in rows.ingredients}
     for lid, receipt in results.items():
@@ -104,10 +109,19 @@ def apply_t04_results(rows: RecipeRows, *, policy: NutritionPolicy,
                 raise PlanningInputError('T04 result is for another weight')
             context = _context(receipt.cooking_context)
             context['cooking_method'] = receipt.cooking_method
-            sample = policy.sample_mappings.get(row['food_id'])
+            sample = policy.sample_for(lid, row['food_id'])
             if not isinstance(sample, str) or not sample:
                 raise PlanningInputError('T04 sample mapping missing')
-            sample_state = catalog.get(sample, {}).get('state')
+            sample_record = (policy.line_nutrition_records.get(lid, {}) if policy.line_nutrition_records is not None
+                             else catalog.get(sample, {}))
+            if policy.line_nutrition_records is not None:
+                source_snapshot = sample_record.get('source', {})
+                if (receipt.nutrition_import_id != source_snapshot.get('import_id')
+                        or receipt.nutrition_id != source_snapshot.get('nutrition_id')
+                        or receipt.nutrition_source_id != source_snapshot.get('nutrition_source_id')):
+                    bad('t04_import_snapshot_mismatch')
+                    continue
+            sample_state = sample_record.get('state')
             retention = {}
             for nutrient in policy.required_nutrients:
                 item = raw.get('nutrient_sources', {}).get(nutrient, {})

@@ -67,6 +67,17 @@ class NutritionPolicy:
     required_nutrients: tuple[str, ...]
     approved_evidence: Mapping[str, CookingEvidence] = field(default_factory=dict)
     approved_for_adoption: bool = False
+    # None explicitly selects the legacy JSON contract. Even an empty mapping
+    # means imported data only: missing lines never fall back to that JSON.
+    line_nutrition_records: Mapping[str, Mapping] | None = None
+
+    def sample_for(self, line_id: str, food_id: str) -> str | None:
+        if self.line_nutrition_records is None:
+            return self.sample_mappings.get(food_id)
+        record = self.line_nutrition_records.get(line_id)
+        if record is not None and record.get('source', {}).get('food_id') == food_id:
+            return record.get('ingredient_id')
+        return None
 
 
 @dataclass(frozen=True)
@@ -125,12 +136,14 @@ def calculate_nutrition(recipe: RecipeCandidate, *, policy: NutritionPolicy) -> 
         raise PlanningInputError("A mode and nonempty ingredient list are required.")
     if not set(REQUIRED_TARGETS).issubset(policy.required_nutrients):
         raise PlanningInputError("The policy must include energy and protein.")
-    try:
-        with policy.catalog_path.open(encoding="utf-8") as stream:
-            data = json.load(stream, parse_float=Decimal)
-        catalog = {item["ingredient_id"]: item for item in data}
-    except (OSError, ValueError, TypeError, KeyError):
-        return NutritionEstimate({k: None for k in policy.required_nutrients}, ("tfda_catalog_unavailable",), ())
+    catalog = {}
+    if policy.line_nutrition_records is None:
+        try:
+            with policy.catalog_path.open(encoding="utf-8") as stream:
+                data = json.load(stream, parse_float=Decimal)
+            catalog = {item["ingredient_id"]: item for item in data}
+        except (OSError, ValueError, TypeError, KeyError):
+            return NutritionEstimate({k: None for k in policy.required_nutrients}, ("tfda_catalog_unavailable",), ())
     totals: dict[str, Fraction | None] = {k: Fraction(0) for k in policy.required_nutrients}
     missing: list[str] = []
     sources: list[Mapping[str, object]] = []
@@ -147,8 +160,9 @@ def calculate_nutrition(recipe: RecipeCandidate, *, policy: NutritionPolicy) -> 
         amount = exact(line.amount_g)
         if amount < 0 or (line.is_required and amount == 0):
             raise PlanningInputError("Required ingredients must have positive amounts.")
-        record = catalog.get(line.sample_id)
-        if (not record or policy.sample_mappings.get(line.food_id) != line.sample_id
+        record = (policy.line_nutrition_records.get(line.line_id) if policy.line_nutrition_records is not None
+                  else catalog.get(line.sample_id))
+        if (not record or policy.sample_for(line.line_id, line.food_id) != line.sample_id
                 or record.get("source", {}).get("provider") != "TFDA"
                 or record.get("source", {}).get("source_id") != line.sample_id
                 or not record.get("source", {}).get("source_version")):
