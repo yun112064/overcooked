@@ -8,13 +8,15 @@
 
 `validate_database_menu()` 預設讀取新版資料：
 
-1. 指定 `nutrition_import_id`，由 `nutrition_imports` 確認三份檔案名稱／SHA-256 與 `food-nutrition-import-v1`。
+1. 指定 `nutrition_import_id`，由 `nutrition_imports` 確認三份檔案名稱／SHA-256 與 `food-nutrition-import-v1`，依來源匯入器的 hash 合約重算 import_id，並核對 report 的 import_id 與來源檔案一致。
 2. 每個實際食材列指定 `ImportedNutritionSelection`；查詢 `food_nutrition` 的 nutrition_id、同一 import_id、Food_ID，並精確核對生熟、烹調方式及前處理。不自動取最新版本或另一種方式，不依名稱猜樣品。
-3. 透過 `nutrition_source_links` 選實際納入計算的 TFDA 來源。只有一筆時可唯一判定，多筆時須指定 `source_id`；USDA、食譜倒算及排除的來源不能當成 TFDA。讀取選定來源的原始每100g數值，不採用可能混合來源的 All 彙整值。前處理／生熟／方式也必須與該原始來源一致。
+3. 透過 `nutrition_source_links` 取得實際納入計算的 TFDA 來源，另核對 `中文原名`／`來源原文名稱` 和食譜標準食材名稱。唯一相符的官方平均值優先，否則僅接受唯一明確同名樣品；缺名稱、種類不明、別名或多筆同名仍阻擋。`source_id` 只能固定核對該唯一選擇，不能任選一筆解除歧義或跳過官方平均值。USDA、食譜倒算及排除的來源不能當成 TFDA。讀取選定來源的原始每100g數值，不採用可能混合來源的 All 彙整值。前處理／生熟／方式也必須與該原始來源一致。
 4. 把每一列的來源資料直接放進後端 NutritionPolicy 的 `line_nutrition_records`，按原有精確公式計算。相同 Food_ID 可在兩個食材列使用不同的 TFDA 生熟樣品；不會因全域對照表覆寫其中一種。
-5. T04 回傳係數若要接入此路徑，`T04CookingResult` 另外帶相同 `nutrition_import_id`、`nutrition_id`、`nutrition_source_id`，不重用另一批資料的收據。
+5. T04 回傳係數若要接入此路徑，`T04CookingResult` 另外帶相同 `nutrition_import_id`、`nutrition_id`、`nutrition_source_id`，也會核對結果本身的逐營養來源版本與原始生食參考值／熟食值，不只看外層標籤。T04 的 float 參考報值僅以最多兩個 IEEE-754 ULP 容許值校驗機器報值誤差，不拿來進行 T12 營養計算；T12 最終算術和 ±10% 判斷仍為精確 Fraction。
 
 對外介面沒有改變熱量／蛋白質容差、縮放順序或缺資料阻擋規則。所有匯入紀錄均唯讀。新版資料表或連線故障是 `NUTRITION_DATA_UNAVAILABLE`；沒有相符紀錄、來源多義、來源排除或生熟不明是明確的資料問題。缺少任一必要食材的資料，整餐不可當成已驗證。
+
+相容性注意：`validate_database_menu()` 的預設來源已改變。舊呼叫不加參數會得到 `nutrition_import_id_required`，不會沿用舊樣品；歷史重現必須顯式指定 `nutrition_source='legacy_tfda'`。資料讀取依所選 ID 批次查詢，不隨食材數逐筆發送三次 SQL；schema 反射與四張表的讀取均限於本次連線，不跨資料庫快取。
 
 ## 呼叫範例
 

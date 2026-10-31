@@ -58,6 +58,26 @@ def _context(value: Mapping) -> dict[str, str | bool]:
     return result
 
 
+def _matches_reported_amount(value, expected) -> bool:
+    """Verify T04's float reference only, never calculate T12 nutrition from it.
+
+    Two IEEE-754 ULPs cover reporting noise from T04's multiply/divide. This is
+    not a nutritional tolerance and is never applied to the final ±10% check.
+    """
+    actual = _reported(value)
+    if actual == expected:
+        return True
+    if not isinstance(value, float) or not math.isfinite(value):
+        return False
+    try:
+        reference_float = float(expected)
+    except (OverflowError, ValueError):
+        return False
+    if not math.isfinite(reference_float):
+        return False
+    return abs(actual - expected) <= exact(Decimal.from_float(math.ulp(reference_float))) * 2
+
+
 def apply_t04_results(rows: RecipeRows, *, policy: NutritionPolicy,
                       profiles: Mapping[str, RecipeLineProfile], results: Mapping[str, T04CookingResult]):
     """Accept validated T04 LLM coefficients without a second human review.
@@ -122,12 +142,31 @@ def apply_t04_results(rows: RecipeRows, *, policy: NutritionPolicy,
                     bad('t04_import_snapshot_mismatch')
                     continue
             sample_state = sample_record.get('state')
+            if policy.line_nutrition_records is not None:
+                expected_source = sample_record['source']
+                reference = raw.get('raw_reference', {}) if sample_state == 'raw' else raw
+                reported_values = reference.get('nutrition', {})
+                reference_weight = raw.get('raw_weight_g' if sample_state == 'raw' else 'cooked_weight_g')
+                if sample_state == 'raw':
+                    ref_source = reference.get('source', {})
+                    if any(ref_source.get(key) != expected_source.get(key)
+                           for key in ('provider', 'source_id', 'source_version')):
+                        raise PlanningInputError('T04 raw reference uses another source version')
+                for nutrient in policy.required_nutrients:
+                    base_value = sample_record['nutrition_per_100g'].get(nutrient)
+                    if base_value is None or reference_weight is None or not _matches_reported_amount(
+                        reported_values.get(nutrient), exact(base_value) * _reported(reference_weight) / 100
+                    ):
+                        raise PlanningInputError('T04 composition input differs from the imported TFDA snapshot')
             retention = {}
             for nutrient in policy.required_nutrients:
                 item = raw.get('nutrient_sources', {}).get(nutrient, {})
                 source = item.get('source', {})
                 if source.get('provider') != 'TFDA' or source.get('source_id') != sample:
                     raise PlanningInputError('T04 sample does not match T12 policy')
+                if (policy.line_nutrition_records is not None
+                        and source.get('source_version') != sample_record['source'].get('source_version')):
+                    raise PlanningInputError('T04 nutrient source uses another import version')
                 if item.get('basis') == 'raw_tfda_llm_estimate':
                     if sample_state != 'raw':
                         raise PlanningInputError('Raw T04 composition has a cooked T12 sample')
