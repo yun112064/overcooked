@@ -81,6 +81,27 @@ class BudgetTests(unittest.TestCase):
         self.assertEqual((line.packs, line.purchase_price, line.cost), (2, Decimal("120"), Decimal("90")))
         self.assertEqual(result.budget_status, "OK")  # 成本 90 = 預算 90，採購 120 不參與判定
 
+    def test_exact_cost_equal_to_budget_is_not_exceeded_by_division_rounding(self):
+        quote_for, _ = lookup({CABBAGE: quote(CABBAGE, "39", "13")})
+        result = compute_meal_cost([req(CABBAGE, "3")], set(), Decimal("9"), quote_for, now=NOW)
+
+        self.assertEqual(result.lines[0].cost, Decimal("9"))
+        self.assertEqual(result.budget_status, "OK")
+
+    def test_sum_of_repeating_costs_equal_to_budget_is_not_exceeded(self):
+        quote_for, _ = lookup({f"F{i}": quote(f"F{i}", "8", "3") for i in range(3)})
+        lines = [req(f"F{i}", "1") for i in range(3)]  # 每項 8/3 元，合計正好 8 元
+        result = compute_meal_cost(lines, set(), Decimal("8"), quote_for, now=NOW)
+
+        self.assertEqual(result.budget_status, "OK")
+
+    def test_cost_barely_above_budget_is_still_exceeded(self):
+        quote_for, _ = lookup({CABBAGE: quote(CABBAGE, "1", "3")})
+        result = compute_meal_cost([req(CABBAGE, "1")], set(), Decimal("0.3333333333333333333333333333"),
+                                   quote_for, now=NOW)
+
+        self.assertEqual(result.budget_status, "BUDGET_EXCEEDED")  # 1/3 元超過捨入後的預算
+
     def test_far_below_budget_still_passes(self):
         quote_for, _ = lookup({CABBAGE: quote(CABBAGE, "60", "300")})
         result = compute_meal_cost([req(CABBAGE, "10")], set(), Decimal("500"), quote_for, now=NOW)

@@ -265,11 +265,10 @@ def _prices(payload: dict) -> dict:
 
 def _previous_day(payload: dict) -> dict:
     ctx = payload.get("previous_day") or {}
-    exceptions = set(ctx.get("specified_exceptions") or [])
-    repeats = [d["dish_name"] for d in payload["dishes"] if exceptions & meal_history.dish_keys(d)]
     return {"meal_date": ctx.get("meal_date"), "previous_date": ctx.get("previous_date"),
             "has_records": bool(ctx.get("records")), "records": ctx.get("records") or [],
-            "excluded_dishes": ctx.get("excluded_dishes") or [], "specified_repeats": repeats}
+            "excluded_dishes": ctx.get("excluded_dishes") or [],
+            "specified_repeats": meal_history.specified_repeats(ctx, payload["dishes"])}
 
 
 def nutrition_with_people(db: Session, household_id, payload: dict) -> dict:

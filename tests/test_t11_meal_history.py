@@ -149,6 +149,28 @@ class AdoptionRecheckTests(unittest.TestCase):
         ctx = self.context(specified=[tomato["standard_dish_id"]])
         self.assertEqual(self.recheck(ctx, [tomato])["status"], "ok")
 
+    def test_specified_dish_repeating_yesterday_under_its_alias_survives_recheck(self):
+        specified = dish("清炒高麗菜", aliases=["炒高麗菜"])
+        self.adopt(date(2026, 8, 19), [dish("炒高麗菜")])  # 昨日紀錄用別名、沒有別名清單
+        ctx = self.context(specified=[specified["standard_dish_id"]])
+        self.assertEqual(self.recheck(ctx, [specified])["status"], "ok")
+
+    def test_alias_exception_only_covers_the_specified_dish(self):
+        from app.services import meal_history
+        specified = dish("清炒高麗菜", aliases=["炒高麗菜"])
+        other = dish("高麗菜炒蛋", aliases=["炒高麗菜"])
+        self.adopt(date(2026, 8, 19), [dish("炒高麗菜")])
+        ctx = self.context(specified=[specified["standard_dish_id"]])
+        self.assertEqual(meal_history.conflicts(ctx, [specified, other]), [other])
+
+    def test_alias_repeat_is_shown_as_specified_repeat(self):
+        from app.services.meal_results import _previous_day
+        specified = dish("清炒高麗菜", aliases=["炒高麗菜"])
+        self.adopt(date(2026, 8, 19), [dish("炒高麗菜"), dish("麻婆豆腐")])
+        ctx = self.context(specified=[specified["standard_dish_id"]])
+        shown = _previous_day({"previous_day": ctx, "dishes": [specified, dish("番茄炒蛋")]})
+        self.assertEqual(shown["specified_repeats"], ["清炒高麗菜"])
+
 
 if __name__ == "__main__":
     unittest.main()

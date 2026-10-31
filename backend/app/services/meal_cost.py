@@ -17,6 +17,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from decimal import ROUND_CEILING, Decimal
+from fractions import Fraction
 from typing import Callable, Iterable
 
 from sqlalchemy import text
@@ -119,13 +120,20 @@ def compute_meal_cost(
     complete = all(line.cost is not None for line in lines)
     known_purchase = sum((line.purchase_price for line in lines if line.purchase_price is not None), ZERO)
     known_cost = sum((line.cost for line in lines if line.cost is not None), ZERO)
-    if known_cost > budget:
+    if sum(map(_exact_cost, lines), Fraction()) > Fraction(budget):
         status = BUDGET_EXCEEDED  # 即使還有未知價格，已知成本已超預算就不能採用
     elif not complete:
         status = PRICE_INCOMPLETE
     else:
         status = BUDGET_OK
     return MealCost(lines, budget, known_purchase, known_cost, complete, status)
+
+
+def _exact_cost(line: IngredientCost) -> Fraction:
+    """預算判定用精確值：循環小數經 Decimal 捨入後可能略高或略低於預算。"""
+    if line.price_status != "known":
+        return Fraction()
+    return Fraction(line.shortage_grams) * Fraction(line.quote.price) / Fraction(line.quote.package_quantity)
 
 
 def _zero_line(item: IngredientRequirement, status: str) -> IngredientCost:
@@ -137,10 +145,9 @@ def _priced_line(item: IngredientRequirement, quote: PriceQuote | None, now: dat
     reason = _unusable_reason(quote, now)
     if reason is not None:
         return IngredientCost(item.food_id, item.grams, item.grams, "unknown", quote=quote, missing_reason=reason)
-    ratio = item.grams / quote.package_quantity
-    packs = int(ratio.to_integral_value(ROUND_CEILING))
+    packs = int((item.grams / quote.package_quantity).to_integral_value(ROUND_CEILING))
     return IngredientCost(item.food_id, item.grams, item.grams, "known", quote=quote, packs=packs,
-                          purchase_price=packs * quote.price, cost=ratio * quote.price)
+                          purchase_price=packs * quote.price, cost=item.grams * quote.price / quote.package_quantity)
 
 
 def _unusable_reason(quote: PriceQuote | None, now: datetime) -> str | None:

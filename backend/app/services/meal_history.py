@@ -104,8 +104,20 @@ def previous_day_context(db: Session, household_id, meal_date: date, *, specifie
 
 
 def conflicts(context: dict, dishes: list[dict]) -> list[dict]:
-    """菜單中與昨日排除清單同菜的菜色（指定例外已不在排除清單內）。"""
-    return [d for d in dishes if any(same_dish(d, ex) for ex in context["excluded_dishes"])]
+    """菜單中與昨日排除清單同菜的菜色；明確指定的菜（含昨日以其別名記錄者）不算衝突。"""
+    return [d for d in dishes if not _is_specified(d, context)
+            and any(same_dish(d, ex) for ex in context["excluded_dishes"])]
+
+
+def _is_specified(dish: dict, context: dict) -> bool:
+    return bool(dish_keys(dish).intersection(context.get("specified_dish_ids") or []))
+
+
+def specified_repeats(context: dict, dishes: list[dict]) -> list[str]:
+    """菜單中因明確指定而與昨日重複的菜名（含昨日以別名記錄者）。"""
+    exceptions = set(context.get("specified_exceptions") or [])
+    return [d["dish_name"] for d in dishes if exceptions & dish_keys(d) or (
+        _is_specified(d, context) and any(same_dish(d, ex) for ex in context.get("excluded_dishes") or []))]
 
 
 def recheck_previous_day(db: Session, context: dict, dishes: list[dict]) -> dict:
