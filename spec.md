@@ -270,7 +270,7 @@ P_reference = P_target / N
 
 - 前端 React＋TypeScript＋Vite、MUI／Stepper、Router、React Hook Form、Zod、TanStack Query、Axios；Recharts 僅用於本範圍內呈現。
 - 後端 FastAPI、Pydantic、OpenAPI、Argon2、Pillow、Python 版本化規則、Decimal；PostgreSQL、SQLAlchemy、Alembic、pgvector。
-- YOLOv8n 先建基準，再以同一資料比較 v8m。權重、類別、前後處理與模型指標一同固定，不混用不同版本結果。
+- 部署模型固定為 YOLO26s（2026-10-29 規格變更，取代原「YOLOv8n 先建基準，再以同一資料比較 v8m」；理由見 `tickets/05-yolo-model-evaluation.md` 規格變更紀錄）。權重、類別、前後處理與模型指標一同固定，不混用不同版本結果。
 - OpenAI Responses API＋Structured Outputs；候選向量模型 `text-embedding-3-small`、候選生成模型 `gpt-5-mini`，依來源紀錄中的證據及接入測試固定版本。
 - Docker Compose＋Caddy 提供雲端網站、業務 API、結構化食譜與家庭歷史；團隊電腦提供 YOLO 及營養知識 RAG。兩端服務連線需驗證及加密，不公開資料庫。負載含兩端與跨網路延遲；雲端與本機資料分別備份，知識索引可由來源快照重建。
 - Code Root：開發機 `D:/AIPE04期末專題`，雲端 `/opt/meal-planner/code`。
