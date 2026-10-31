@@ -11,6 +11,8 @@ env/
 __pycache__/
 *.py[cod]
 .pytest_cache/
+.test-tmp/
+.coverage
 
 # 例外：T01 已審核、取得授權的食譜工作簿放進 Git，讓隊友啟動時自動匯入同一份資料
 data/*

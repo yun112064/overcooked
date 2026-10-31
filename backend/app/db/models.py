@@ -263,3 +263,29 @@ class Recognition(Base):
     confirmed_items: Mapped[list] = mapped_column(JSONB, nullable=False, default=list, server_default="[]")
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, nullable=False)
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, nullable=False)
+
+
+class AdoptedMealPlan(Base):
+    """T11 已採用餐食紀錄（最小快照）：昨日去重的讀取來源；T16 擴充採用交易與完整快照。
+
+    dishes 為 [{standard_dish_id, dish_name, aliases, source, recipe_id}]，資料庫菜與 AI 菜都保存識別。
+    只有 status='adopted' 才算已採用歷史；生成、查看或未採用的結果不會寫入此處。
+    """
+    __tablename__ = "adopted_meal_plans"
+    __table_args__ = (
+        CheckConstraint("meal_type IN ('breakfast', 'lunch', 'dinner')", name="ck_adopted_meal_type"),
+        CheckConstraint("mode IN ('database_menu', 'ai_generated_menu')", name="ck_adopted_meal_mode"),
+        CheckConstraint("status IN ('adopted', 'superseded')", name="ck_adopted_meal_status"),
+        CheckConstraint("version > 0", name="ck_adopted_meal_version_positive"),
+        Index("ix_adopted_meal_plans_household_date", "household_id", "meal_date"),
+    )
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    household_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("households.id", ondelete="CASCADE"), nullable=False)
+    meal_date: Mapped[date] = mapped_column(Date, nullable=False)
+    meal_type: Mapped[str] = mapped_column(String(20), nullable=False)
+    mode: Mapped[str] = mapped_column(String(30), nullable=False)
+    status: Mapped[str] = mapped_column(String(20), nullable=False, default="adopted")
+    version: Mapped[int] = mapped_column(Integer, nullable=False, default=1, server_default="1")
+    dishes: Mapped[list] = mapped_column(JSONB, nullable=False, default=list, server_default=text("'[]'::jsonb"))
+    adopted_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, nullable=False)

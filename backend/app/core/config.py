@@ -1,5 +1,6 @@
 from decimal import Decimal
 from pathlib import Path
+from typing import Literal
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -51,6 +52,13 @@ class Settings(BaseSettings):
     recognition_timeout_seconds: float = 10.0
     recognition_min_confidence: Decimal = Decimal("0.25")
     recognition_labels_path: Path = PROJECT_ROOT / "config/recognition_labels.json"
+
+    # T11 defaults to team-computer Ollama embeddings; the legacy paid key stays on the cloud.
+    openai_api_key: str | None = None
+    knowledge_provider: Literal['ollama','openai'] = 'ollama'
+    knowledge_service_url: str | None = None
+    knowledge_service_token: str | None = None
+    knowledge_internal_token: str | None = None
 
     model_config = SettingsConfigDict(
         env_file=".env",

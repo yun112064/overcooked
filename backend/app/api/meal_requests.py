@@ -11,6 +11,7 @@ from app.api.errors import ApiError, not_found, version_conflict
 from app.db.models import MealRequest, MealRequestRevision, Member
 from app.db.session import get_db
 from app.services import ingredients
+from app.services import recipe_retrieval
 from app.services import jobs as job_service
 from app.services import meal_request as service
 
@@ -95,6 +96,27 @@ def create_request(draft: service.MealRequestDraft, auth: AuthContext = Depends(
 def get_request(request_id: uuid.UUID, household_id=Depends(current_household_id),
                 db: Session = Depends(get_db)):
     return _out(db, _get_owned(db, household_id, request_id))
+
+
+@router.get("/{request_id}/recipes")
+def retrieve_recipes(request_id: uuid.UUID, household_id=Depends(current_household_id),
+                     db: Session = Depends(get_db)):
+    """T11 preview only; nutrition/budget validation and AI generation belong to T12–T14."""
+    row = _get_owned(db, household_id, request_id)
+    draft = service.load(row.payload)
+    _reject_bad_references(db, household_id, draft)
+    members = _members(db, household_id)
+    issues = service.completeness(draft, members)
+    if issues:
+        raise ApiError(422, "INVALID_INPUT", "請先完成問卷。", {"issues": issues})
+    restrictions = service.restrictions(db, draft, members)
+    try:
+        result = recipe_retrieval.retrieve_database_menu(db, household_id, draft,
+                    excluded_food_ids=restrictions['excluded_food_ids'])
+    except recipe_retrieval.RecipeRetrievalError as exc:
+        raise ApiError(503, exc.code, exc.message) from None
+    return {**result.to_dict(), 'input_version': row.version,
+            'fallback_eligible': result.status == recipe_retrieval.NO_FEASIBLE}
 
 
 @router.put("/{request_id}")
