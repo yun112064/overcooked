@@ -32,6 +32,7 @@ class RecipeRows:
     recipe_ids: tuple[str, ...]
     recipes: tuple[Mapping, ...]
     ingredients: tuple[Mapping, ...]
+    steps: tuple[Mapping, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -213,9 +214,16 @@ def load_database_recipe_rows(db: Connection, recipe_ids: Sequence[str]) -> Reci
         ingredient_rows = tuple(dict(r) for r in db.execute(
             select(ingredients).where(ingredients.c.recipe_id.in_(ids))
             .order_by(ingredients.c.recipe_id, ingredients.c.sequence)).mappings())
+        try:
+            steps = Table("recipe_steps", metadata, autoload_with=db)
+            step_rows = tuple(dict(r) for r in db.execute(
+                select(steps).where(steps.c.recipe_id.in_(ids)).order_by(steps.c.recipe_id, steps.c.step_no)
+            ).mappings())
+        except (SQLAlchemyError, AttributeError):
+            step_rows = ()
     except (SQLAlchemyError, AttributeError):
         raise RecipeDataUnavailable() from None
-    return RecipeRows(ids, recipe_rows, ingredient_rows)
+    return RecipeRows(ids, recipe_rows, ingredient_rows, step_rows)
 
 
 def recipe_line_digest(recipe: Mapping, line: Mapping) -> str:
@@ -375,7 +383,7 @@ def validate_database_menu(db: Connection, recipe_ids: Sequence[str], *, partici
                     'adjustable_min': rice['adjustable_min_g_per_n'],
                     'adjustable_max': rice['adjustable_max_g_per_n']}
         rows = RecipeRows(rows.recipe_ids + ('staple',), rows.recipes + (recipe_row,),
-                          rows.ingredients + (line_row,))
+                          rows.ingredients + (line_row,), rows.steps)
         profiles = {**profiles, lid: RecipeLineProfile(
             rice['food_id'], recipe_line_digest(recipe_row, line_row), 'cooked', True,
             rice['cooking_step_g'], 'user-confirmed-staple', config['version'],

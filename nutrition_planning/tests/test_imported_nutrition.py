@@ -68,7 +68,12 @@ def test_default_menu_reads_feature_import_data_without_reading_old_catalog(impo
 
 def test_multiple_food_id_variants_use_versioned_llm_decision(imported_menu):
     from app.models.nutrition import FoodNutrition, NutritionSource, NutritionSourceLink
+    from app.models.recipe import RecipeStep
     db, _, _, _, profiles, policy, service, participations = imported_menu
+    cast(Table, RecipeStep.__table__).create(db)
+    db.execute(insert(RecipeStep), dict(step_id='S1', recipe_id='R1', step_no=1,
+                                        instruction_clean='先以小火煎熟主食材，再加入配料。',
+                                        cooking_method='煎', method_status='reviewed', review_status='approved'))
     db.execute(insert(FoodNutrition), dict(nutrition_id='n-main-second', import_id=IMPORT_ID,
         food_id='FOOD000001', source_row=99, standard_name='main', cooking_state='已熟製',
         cooking_method=None, preparation=None, calculation_method='source', energy_kcal=D('687.14364'),
@@ -82,6 +87,8 @@ def test_multiple_food_id_variants_use_versioned_llm_decision(imported_menu):
                                                   included_in_calculation=True))
     def resolver(request):
         if request['line']['recipe_ingredient_id'] == 'main':
+            assert request['recipe']['recipe_id'] == 'R1'
+            assert request['steps'][0]['instruction_clean'] == '先以小火煎熟主食材，再加入配料。'
             return ImportedNutritionSelection('n-main-second', '已熟製', None,
                 decision_basis='食譜步驟提及第二樣品的烹調描述', decision_version='llm-method-v1')
         raise AssertionError('only the ambiguous main line should need LLM')

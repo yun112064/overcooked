@@ -74,6 +74,10 @@ def resolve_imported_selections(db: Connection, rows: RecipeRows, *, import_id: 
     except (SQLAlchemyError, AttributeError):
         raise NutritionDataUnavailable() from None
     issues: list[InputIssue] = []
+    recipes = {row['recipe_id']: dict(row) for row in rows.recipes}
+    steps_by_recipe: dict[str, list[Mapping]] = {}
+    for step in rows.steps:
+        steps_by_recipe.setdefault(step['recipe_id'], []).append(dict(step))
     for line in rows.ingredients:
         lid, fid, rid = line['recipe_ingredient_id'], line['food_id'], line['recipe_id']
         if lid in selected:
@@ -96,7 +100,9 @@ def resolve_imported_selections(db: Connection, rows: RecipeRows, *, import_id: 
         if variant_resolver is None:
             issues.append(InputIssue('nutrition_variant_decision_required', rid, lid, 'cooking_method'))
             continue
-        decision = variant_resolver({'line': dict(line), 'candidates': [dict(row) for row in compatible],
+        decision = variant_resolver({'recipe': recipes.get(rid), 'line': dict(line),
+                                     'steps': steps_by_recipe.get(rid, []),
+                                     'candidates': [dict(row) for row in compatible],
                                      'cooking_method': method})
         if not isinstance(decision, ImportedNutritionSelection) or not decision.decision_basis or not decision.decision_version:
             issues.append(InputIssue('llm_variant_decision_invalid', rid, lid, 'cooking_method'))
