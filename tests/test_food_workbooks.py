@@ -14,7 +14,8 @@ from sqlalchemy.orm import Session
 
 from app.db.base import Base
 from app.models import (Allergen, FoodNutrition, IngredientAlias, NutritionImport, NutritionSource,
-                        NutritionSourceLink, Recipe, RecipeIngredient, RecipeStep, SourceArchive)
+                        NutritionSourceLink, Recipe, RecipeDataRelease, RecipeIngredient,
+                        RecipeStep, SourceArchive)
 from app.services.nutrition_import import (NUTRIENT_COLUMNS, find_nutrition_candidates,
                                           import_nutrition_bundle, parse_nutrition_workbooks)
 from app.services.recipe_import import WorkbookValidationError
@@ -67,9 +68,20 @@ class FoodWorkbookTests(unittest.TestCase):
         def foreign_keys(connection, _):
             connection.execute("PRAGMA foreign_keys=ON")
         self.addCleanup(self.engine.dispose)
-        models = [SourceArchive, IngredientAlias, Allergen, Recipe, RecipeStep, RecipeIngredient,
+        models = [RecipeDataRelease, SourceArchive, IngredientAlias, Allergen,
+                  Recipe, RecipeStep, RecipeIngredient,
                   NutritionImport, NutritionSource, FoodNutrition, NutritionSourceLink]
         Base.metadata.create_all(self.engine, tables=[m.__table__ for m in models])
+        with Session(self.engine) as session, session.begin():
+            session.add(RecipeDataRelease(
+                release_id="legacy-1017",
+                dataset_version="synthetic-test",
+                source_sha256="0" * 64,
+                schema_version="synthetic-test",
+                source_kind="legacy",
+                row_counts={},
+                active=False,
+            ))
 
     def parse(self):
         write_book(self.nutrition, {"All": self.rows, "原始來源與判定": self.sources})

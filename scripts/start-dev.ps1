@@ -9,7 +9,7 @@
     - package-lock.json 有變 → npm ci
     - 資料庫容器不存在 → 建立（資料存在具名 volume）；已存在 → 啟動
     - alembic upgrade head 套用新的 migration
-    - 資料庫沒有食譜 → 從工作簿匯入
+    - 缺少正式食譜版本 → 安裝已驗證的 SQL seed
   所有服務都在同一個視窗執行，輸出以 [backend]、[frontend] 等前綴區分；
   在該視窗按 Ctrl+C 或執行 scripts/stop-dev.ps1 全部關閉。
   只有新增「獨立程序」（例如 T11 的知識 RAG 服務）時才需要修改這支腳本。
@@ -117,7 +117,7 @@ New-Item -ItemType Directory -Force $DataRoot | Out-Null
 $env:PROJECT_DATA_ROOT = $DataRoot
 # 其餘設定（例如之後新增的 API key）原樣傳下去；DEV_ 開頭與腳本專用的不傳
 foreach ($k in $Cfg.Keys) {
-    if ($k -like 'DEV_*' -or $k -in @('PROJECT_DATA_ROOT', 'YOLO_PYTHON', 'RECIPE_WORKBOOK', 'INFERENCE_WEIGHTS')) { continue }
+    if ($k -like 'DEV_*' -or $k -in @('PROJECT_DATA_ROOT', 'YOLO_PYTHON', 'INFERENCE_WEIGHTS')) { continue }
     Set-Item "env:$k" $Cfg[$k]
 }
 $Weights = Resolve-FromRoot (Cfg 'INFERENCE_WEIGHTS' 'inference/models/yolo26s-food41-denoise-seed45-50e.pt')
@@ -147,23 +147,14 @@ if ($UseYolo) {
     $env:RECOGNITION_SERVICE_TOKEN = Cfg 'INFERENCE_TOKEN'
 }
 
-# ---------- 6. 資料表與食譜 ----------
+# ---------- 6. 資料表與 SQL 食譜資料 ----------
 Step '套用資料庫 migration'
 & $Py -m alembic -c alembic.ini upgrade head
 if ($LASTEXITCODE -ne 0) { Fail 'alembic upgrade 失敗。' }
 
-$count = docker exec $Db psql -U postgres -d $DbName -tAc 'SELECT count(*) FROM recipes'
-if ("$count".Trim() -eq '0') {
-    $Workbook = Resolve-FromRoot (Cfg 'RECIPE_WORKBOOK' 'data/recipe_dataset_1017.xlsx')
-    if (Test-Path $Workbook) {
-        Step '資料庫沒有食譜，從工作簿匯入（約一分鐘）'
-        & $Py scripts/import_recipes.py --excel $Workbook --reviews config/recipe_reviews.json `
-            --sources config/recipe_sources.json --report (Join-Path $StateDir 'import-report.json') | Out-Null
-        if ($LASTEXITCODE -ne 0) { Fail '食譜匯入失敗，報告見 .dev\import-report.json。' }
-    } else {
-        Write-Host "    找不到食譜工作簿 $Workbook，先略過匯入（食材搜尋會是空的）。" -ForegroundColor Yellow
-    }
-}
+Step '驗證並安裝食譜 SQL 資料版本'
+& $Py scripts/bootstrap_recipe_data.py
+if ($LASTEXITCODE -ne 0) { Fail '食譜 SQL 資料安裝或驗證失敗。' }
 
 # ---------- 7. 啟動各服務 ----------
 $Running = @{}

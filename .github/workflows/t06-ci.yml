@@ -39,7 +39,7 @@ jobs:
           cache: pip
 
       - name: Install dependencies
-        run: pip install -r requirements.txt
+        run: pip install -r requirements.txt -r requirements-data-tools.txt
 
       - name: Check Python syntax
         run: python -m compileall -q backend migrations tests nutrition_target nutrition_model
@@ -64,6 +64,9 @@ jobs:
         run: |
           alembic -c alembic.ini upgrade head
           alembic -c alembic.ini current
+
+      - name: Install and reconcile recipe SQL release
+        run: python scripts/bootstrap_recipe_data.py
 
       - name: Check database health and pgvector
         env:

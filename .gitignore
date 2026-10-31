@@ -12,9 +12,10 @@ __pycache__/
 *.py[cod]
 .pytest_cache/
 
-# 例外：T01 已審核、取得授權的食譜工作簿放進 Git，讓隊友啟動時自動匯入同一份資料
+# 執行環境只使用版本化 SQL 種子；原始 Excel 不進 Git、也不在啟動時讀取
 data/*
-!data/recipe_dataset_1017.xlsx
+!data/recipe_data_manifest.json
+!data/recipe_data_1027.sql.gz
 outputs/
 logs/
 

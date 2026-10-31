@@ -3,18 +3,15 @@
 全聯頁面皆為假 HTTP 客戶端回傳的合成資料，不對外連線。
 """
 import json
-import tempfile
 import unittest
 from datetime import date, datetime, timedelta
 from decimal import Decimal
-from pathlib import Path
 from zoneinfo import ZoneInfo
 
 import httpx
 from sqlalchemy import create_engine, text
 
 from db_support import TEST_DATABASE_URL, migrate_fresh, requires_db, truncate_all
-from recipe_workbook import build, ingredient, recipe
 
 TZ = ZoneInfo("Asia/Taipei")
 
@@ -110,10 +107,14 @@ class CollectionLockTests(unittest.TestCase):
         truncate_all()
         self.engine = create_engine(TEST_DATABASE_URL, pool_size=1, max_overflow=0)
         self.addCleanup(self.engine.dispose)
-        folder = tempfile.TemporaryDirectory()
-        self.addCleanup(folder.cleanup)
-        self.workbook = build(Path(folder.name) / "book.xlsx", [
-            recipe("R001", "清炒高麗菜", ingredients=[ingredient("FOOD000005", "高麗菜", 300)])])
+        from app.source_adapters.price_models import IngredientQuery
+        self.ingredients = [
+            IngredientQuery(
+                canonical_name="高麗菜",
+                food_ids=["FOOD000005"],
+                aliases=["甘藍"],
+            )
+        ]
 
     def advisory_locks(self):
         probe = create_engine(TEST_DATABASE_URL)
@@ -126,7 +127,8 @@ class CollectionLockTests(unittest.TestCase):
     def service(self, repository):
         from app.source_adapters.price_collection import PriceCollectionService
         return PriceCollectionService(
-            workbook_path=self.workbook, repository=repository,
+            repository=repository,
+            ingredient_loader=lambda: list(self.ingredients),
             adapter_factory=lambda: adapter(page(product("高麗菜 1顆", "45")), retries=0)[0],
             delay_seconds=0, sleep=lambda s: None)
 
@@ -185,12 +187,14 @@ class CollectionLockTests(unittest.TestCase):
     def test_exempt_ingredients_are_not_priced(self):
         from app.source_adapters.price_collection import PriceCollectionService
         from app.source_adapters.pricing_repository import PricingRepository
-        folder = tempfile.TemporaryDirectory()
-        self.addCleanup(folder.cleanup)
-        book = build(Path(folder.name) / "water.xlsx", [recipe("R001", "清炒高麗菜", ingredients=[
-            ingredient("FOOD000005", "高麗菜", 300), ingredient("FOOD000119", "水", 100)])])
+        from app.source_adapters.price_models import IngredientQuery
+        ingredients = [
+            *self.ingredients,
+            IngredientQuery(canonical_name="水", food_ids=["FOOD000119"], aliases=[]),
+        ]
         source, client = adapter(page(product("高麗菜 1顆", "45")), retries=0)
-        service = PriceCollectionService(workbook_path=book, repository=PricingRepository(self.engine),
+        service = PriceCollectionService(repository=PricingRepository(self.engine),
+                                         ingredient_loader=lambda: ingredients,
                                          adapter_factory=lambda: source, delay_seconds=0, sleep=lambda s: None,
                                          exempt_food_ids={"FOOD000119"})
         result = service.run(trigger_type="manual", scheduled_for=datetime(2026, 10, 19, 3, tzinfo=TZ), run_key="w1")

@@ -16,7 +16,6 @@ from urllib.parse import quote as url_quote
 
 from app.core.logging_config import scheduler_logger
 
-from .ingredient_workbook import load_ingredient_queries
 from .price_models import (
     IngredientQuery,
     PriceQuote,
@@ -81,13 +80,10 @@ class PriceCollectionService:
     def __init__(
         self,
         *,
-        workbook_path: str | Path,
         repository: PricingRepository,
         adapter_factory: Callable[[], PxMartAdapter],
         delay_seconds: float = 1.5,
-        ingredient_loader: Callable[[str | Path], list[IngredientQuery]] = (
-            load_ingredient_queries
-        ),
+        ingredient_loader: Callable[[], list[IngredientQuery]] | None = None,
         sleep: Callable[[float], None] = time.sleep,
         exempt_food_ids: set[str] | None = None,
         synonym_groups: list[set[str]] | None = None,
@@ -97,10 +93,13 @@ class PriceCollectionService:
             synonym_groups = confirmed_groups()
         self.synonym_groups = synonym_groups
         self.exempt_food_ids = load_price_exempt() if exempt_food_ids is None else set(exempt_food_ids)
-        self.workbook_path = Path(workbook_path)
         self.repository = repository
         self.adapter_factory = adapter_factory
         self.delay_seconds = delay_seconds
+        if ingredient_loader is None:
+            from .ingredient_database import load_ingredient_queries
+
+            ingredient_loader = lambda: load_ingredient_queries(repository.engine)
         self.ingredient_loader = ingredient_loader
         self.sleep = sleep
 
@@ -165,7 +164,7 @@ class PriceCollectionService:
             review_count = estimate_count
             failure_count = missing_count
 
-            ingredients = merge_confirmed_synonyms(self.ingredient_loader(self.workbook_path), self.synonym_groups)
+            ingredients = merge_confirmed_synonyms(self.ingredient_loader(), self.synonym_groups)
             # 不計價食材（如水）不送去查價，成本為已知 0；在執行摘要中另計
             exempt = [i for i in ingredients if i.food_ids and set(i.food_ids) <= self.exempt_food_ids]
             if exempt:
@@ -185,7 +184,7 @@ class PriceCollectionService:
                 for index, ingredient in enumerate(remaining):
                     representative = None
                     if ingredient.mapping_missing_reason:
-                        price_quote = self._workbook_mapping_error_quote(
+                        price_quote = self._database_mapping_error_quote(
                             ingredient
                         )
                     else:
@@ -329,18 +328,18 @@ class PriceCollectionService:
             raise
 
     @staticmethod
-    def _workbook_mapping_error_quote(
+    def _database_mapping_error_quote(
         ingredient: IngredientQuery,
     ) -> PriceQuote:
         return PriceQuote(
             canonical_name=ingredient.canonical_name,
             food_ids=ingredient.food_ids,
-            source="recipe workbook Food_ID mapping",
-            source_url="data/recipe_dataset_1017.xlsx#recipe_ingredients",
+            source="active SQL recipe Food_ID mapping",
+            source_url="database:active_recipe_ingredients",
             queried_at=datetime.now(timezone.utc),
             status=QuoteStatus.NOT_FOUND,
             missing_reason=ingredient.mapping_missing_reason,
-            selection_method="workbook_mapping",
+            selection_method="database_mapping",
         )
 
     @staticmethod

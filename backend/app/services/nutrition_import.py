@@ -7,7 +7,6 @@ import hashlib
 import json
 from pathlib import Path
 
-from openpyxl import load_workbook
 from sqlalchemy import insert, select
 from sqlalchemy.orm import Session
 
@@ -48,6 +47,9 @@ def _hash(*values):
 
 
 def _rows(path, sheet, required):
+    # Offline data-release tooling only; the application runtime reads PostgreSQL.
+    from openpyxl import load_workbook
+
     book = load_workbook(path, read_only=True, data_only=True)
     try:
         if sheet not in book.sheetnames:

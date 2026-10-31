@@ -11,7 +11,6 @@ import json
 import os
 from dataclasses import asdict, dataclass
 from datetime import datetime
-from pathlib import Path
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from apscheduler.schedulers.blocking import BlockingScheduler
@@ -37,7 +36,6 @@ class SchedulerSettings:
     hour: int
     minute: int
     timezone_name: str
-    workbook_path: Path
     delay_seconds: float
     timeout_seconds: float
     retries: int
@@ -60,12 +58,6 @@ class SchedulerSettings:
             minute=int(os.getenv("PRICE_SCHEDULER_MINUTE", "0")),
             timezone_name=os.getenv(
                 "PRICE_SCHEDULER_TIMEZONE", "Asia/Taipei"
-            ),
-            workbook_path=Path(
-                os.getenv(
-                    "PRICE_WORKBOOK_PATH",
-                    "data/recipe_dataset_1017.xlsx",
-                )
             ),
             delay_seconds=float(
                 os.getenv("PRICE_COLLECTION_DELAY_SECONDS", "1.5")
@@ -93,9 +85,9 @@ class SchedulerSettings:
 
 
 def create_service(settings: SchedulerSettings) -> PriceCollectionService:
+    repository = PricingRepository()
     return PriceCollectionService(
-        workbook_path=settings.workbook_path,
-        repository=PricingRepository(),
+        repository=repository,
         adapter_factory=lambda: PxMartAdapter(
             timeout=settings.timeout_seconds,
             retries=settings.retries,

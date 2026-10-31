@@ -1,0 +1,3 @@
+# Offline source-conversion and synthetic workbook tests only.
+# Production, Docker and scripts/start-dev.ps1 do not install or read Excel.
+openpyxl==3.1.5

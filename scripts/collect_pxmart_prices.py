@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import csv
 import json
+import os
 import sys
 import time
 from collections import Counter
@@ -17,14 +18,20 @@ BACKEND = ROOT / "backend"
 if str(BACKEND) not in sys.path:
     sys.path.insert(0, str(BACKEND))
 
-from app.source_adapters.ingredient_workbook import load_ingredient_queries
+from sqlalchemy import create_engine
+
+from app.source_adapters.ingredient_database import load_ingredient_queries
 from app.source_adapters.price_models import IngredientQuery, PriceQuote, QuoteStatus
 from app.source_adapters.pxmart import PxMartAdapter, SEARCH_URL
 
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--input", type=Path, required=True, help="input .xlsx path")
+    parser.add_argument(
+        "--database-url",
+        default=os.getenv("DATABASE_URL"),
+        help="SQLAlchemy database URL; defaults to DATABASE_URL",
+    )
     parser.add_argument("--output", type=Path, required=True, help="output .json/.csv file or directory")
     parser.add_argument("--format", choices=("json", "csv"), default="json")
     parser.add_argument("--limit", type=int, help="only process the first N deduplicated ingredient work items")
@@ -69,12 +76,12 @@ def _mapping_error_quote(ingredient: IngredientQuery) -> PriceQuote:
     return PriceQuote(
         canonical_name=ingredient.canonical_name,
         food_ids=ingredient.food_ids,
-        source="recipe workbook Food_ID mapping",
-        source_url="data/recipe_dataset_1017.xlsx#recipe_ingredients",
+        source="active SQL recipe Food_ID mapping",
+        source_url="database:active_recipe_ingredients",
         queried_at=datetime.now(timezone.utc),
         status=QuoteStatus.NOT_FOUND,
         missing_reason=ingredient.mapping_missing_reason,
-        selection_method="workbook_mapping",
+        selection_method="database_mapping",
     )
 
 
@@ -143,7 +150,13 @@ def main() -> int:
     if args.batch_size is not None and args.batch_size < 1:
         raise SystemExit("--batch-size must be at least 1")
 
-    ingredients = load_ingredient_queries(args.input)
+    if not args.database_url:
+        raise SystemExit("--database-url or DATABASE_URL is required")
+    engine = create_engine(args.database_url, pool_pre_ping=True)
+    try:
+        ingredients = load_ingredient_queries(engine)
+    finally:
+        engine.dispose()
     scope = _scope_counts(ingredients)
     selected = ingredients[: args.limit] if args.limit else ingredients
     print(f"recipe_ingredients 唯一 Food_ID: {scope['food_id_total']}", flush=True)

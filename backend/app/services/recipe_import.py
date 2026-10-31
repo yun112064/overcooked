@@ -12,7 +12,6 @@ from difflib import SequenceMatcher
 from pathlib import Path
 from typing import Any, Iterable
 
-from openpyxl import load_workbook
 from sqlalchemy import delete, func, select
 from sqlalchemy.orm import Session
 
@@ -624,6 +623,9 @@ def load_source_rights(path: str | Path) -> dict[str, dict]:
 
 def parse_recipe_workbook(path: str | Path, source_rights: dict[str, dict] | None = None,
                           review_record: dict[str, Any] | None = None) -> ImportBundle:
+    # Offline release-building compatibility only; production never calls this path.
+    from openpyxl import load_workbook
+
     workbook_path = Path(path).resolve()
     if not workbook_path.is_file():
         raise FileNotFoundError(workbook_path)

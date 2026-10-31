@@ -36,6 +36,13 @@ class SourceArchive(Base):
     )
 
     raw_id: Mapped[str] = mapped_column(String(32), primary_key=True)
+    recipe_release_id: Mapped[str] = mapped_column(
+        ForeignKey("recipe_data_releases.release_id", ondelete="RESTRICT"),
+        nullable=False,
+        default="legacy-1017",
+        server_default="legacy-1017",
+        index=True,
+    )
     source_name: Mapped[str] = mapped_column(String(200), nullable=False)
     source_url: Mapped[str] = mapped_column(Text, nullable=False)
     source_recipe_id: Mapped[str] = mapped_column(String(200), nullable=False)
@@ -62,6 +69,26 @@ class SourceArchive(Base):
     )
 
 
+class RecipeDataRelease(Base):
+    __tablename__ = "recipe_data_releases"
+
+    release_id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    dataset_version: Mapped[str] = mapped_column(String(64), unique=True, nullable=False)
+    source_sha256: Mapped[str] = mapped_column(String(64), nullable=False)
+    schema_version: Mapped[str] = mapped_column(String(64), nullable=False)
+    source_kind: Mapped[str] = mapped_column(String(24), nullable=False)
+    source_uri: Mapped[str | None] = mapped_column(Text)
+    row_counts: Mapped[dict[str, Any]] = mapped_column(
+        JSON, nullable=False, default=dict, server_default=text("'{}'")
+    )
+    active: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=False, server_default=text("false")
+    )
+    imported_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=text("CURRENT_TIMESTAMP")
+    )
+
+
 class Recipe(Base):
     __tablename__ = "recipes"
     __table_args__ = (
@@ -71,6 +98,13 @@ class Recipe(Base):
     )
 
     recipe_id: Mapped[str] = mapped_column(String(32), primary_key=True)
+    recipe_release_id: Mapped[str] = mapped_column(
+        ForeignKey("recipe_data_releases.release_id", ondelete="RESTRICT"),
+        nullable=False,
+        default="legacy-1017",
+        server_default="legacy-1017",
+        index=True,
+    )
     raw_id: Mapped[str] = mapped_column(
         ForeignKey("source_archive.raw_id", ondelete="RESTRICT"), unique=True, nullable=False
     )
@@ -128,6 +162,13 @@ class RecipeStep(Base):
     )
 
     step_id: Mapped[str] = mapped_column(String(32), primary_key=True)
+    recipe_release_id: Mapped[str] = mapped_column(
+        ForeignKey("recipe_data_releases.release_id", ondelete="RESTRICT"),
+        nullable=False,
+        default="legacy-1017",
+        server_default="legacy-1017",
+        index=True,
+    )
     recipe_id: Mapped[str] = mapped_column(
         ForeignKey("recipes.recipe_id", ondelete="CASCADE"), nullable=False, index=True
     )
@@ -146,6 +187,13 @@ class IngredientAlias(Base):
     __tablename__ = "ingredient_aliases"
 
     food_id: Mapped[str] = mapped_column(String(32), primary_key=True)
+    recipe_release_id: Mapped[str] = mapped_column(
+        ForeignKey("recipe_data_releases.release_id", ondelete="RESTRICT"),
+        nullable=False,
+        default="legacy-1017",
+        server_default="legacy-1017",
+        index=True,
+    )
     canonical_name: Mapped[str] = mapped_column(Text, nullable=False)
     aliases: Mapped[list[Any]] = mapped_column(
         JSON, nullable=False, default=_json_list_default, server_default=text("'[]'")
@@ -165,6 +213,13 @@ class Allergen(Base):
     __tablename__ = "allergens"
 
     allergen_id: Mapped[str] = mapped_column(String(32), primary_key=True)
+    recipe_release_id: Mapped[str] = mapped_column(
+        ForeignKey("recipe_data_releases.release_id", ondelete="RESTRICT"),
+        nullable=False,
+        default="legacy-1017",
+        server_default="legacy-1017",
+        index=True,
+    )
     allergen_name: Mapped[str] = mapped_column(String(200), unique=True, nullable=False)
     reference: Mapped[str] = mapped_column(Text, nullable=False)
     source_version: Mapped[str | None] = mapped_column(String(200))
@@ -193,6 +248,13 @@ class RecipeIngredient(Base):
     )
 
     recipe_ingredient_id: Mapped[str] = mapped_column(String(32), primary_key=True)
+    recipe_release_id: Mapped[str] = mapped_column(
+        ForeignKey("recipe_data_releases.release_id", ondelete="RESTRICT"),
+        nullable=False,
+        default="legacy-1017",
+        server_default="legacy-1017",
+        index=True,
+    )
     recipe_id: Mapped[str] = mapped_column(
         ForeignKey("recipes.recipe_id", ondelete="CASCADE"), nullable=False, index=True
     )

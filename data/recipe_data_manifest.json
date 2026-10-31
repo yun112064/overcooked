@@ -1,0 +1,18 @@
+{
+  "release_id": "recipe-1027-e61bbd81",
+  "dataset_version": "recipe-2026-10-27",
+  "source_file": "recipe_dataset_1027.xlsx",
+  "source_sha256": "e61bbd814682fd9d95e5a3cd705728d0a4c062dcdc211aaa4af62db732d2e1ca",
+  "schema_version": "recipe-sql-seed-v1",
+  "seed_file": "recipe_data_1027.sql.gz",
+  "seed_sha256": "bbbe72f9800233405081852fe388e0a11cccbbb5d811f2d41434b794ff390598",
+  "counts": {
+    "source_archive": 293,
+    "recipes": 293,
+    "recipe_steps": 1471,
+    "recipe_ingredients": 2403,
+    "ingredient_aliases": 1992,
+    "allergens": 15
+  },
+  "step_review_status": "pending"
+}
