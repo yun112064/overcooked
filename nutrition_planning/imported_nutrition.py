@@ -42,12 +42,70 @@ class ImportedNutritionSelection:
     cooking_method: str | None
     source_id: str | None = None
     preparation: str | None = None
+    decision_basis: str | None = None
+    decision_version: str | None = None
 
 
 @dataclass(frozen=True)
 class ImportedNutritionData:
     line_records: Mapping[str, Mapping]
     issues: tuple[InputIssue, ...]
+
+
+def resolve_imported_selections(db: Connection, rows: RecipeRows, *, import_id: str | None,
+                                selections: Mapping[str, ImportedNutritionSelection] | None,
+                                profiles: Mapping | None = None, variant_resolver=None) -> tuple[Mapping[str, ImportedNutritionSelection], tuple[InputIssue, ...]]:
+    """Resolve nutrition by Food_ID and recipe cooking facts before calling an LLM.
+
+    A resolver is called only if more than one compatible variant remains. Its
+    returned selection must record the LLM decision basis and version.
+    """
+    selected = dict(selections or {})
+    if not isinstance(import_id, str) or not import_id.strip():
+        return selected, (InputIssue('nutrition_import_id_required', '', field='import_id'),)
+    try:
+        meta = MetaData()
+        observations = Table('food_nutrition', meta, autoload_with=db)
+        ids = {line['food_id'] for line in rows.ingredients}
+        available: dict[str, list] = {}
+        for row in db.execute(select(observations).where(observations.c.import_id == import_id,
+                                                          observations.c.food_id.in_(ids))).mappings():
+            available.setdefault(row['food_id'], []).append(row)
+    except (SQLAlchemyError, AttributeError):
+        raise NutritionDataUnavailable() from None
+    issues: list[InputIssue] = []
+    for line in rows.ingredients:
+        lid, fid, rid = line['recipe_ingredient_id'], line['food_id'], line['recipe_id']
+        if lid in selected:
+            continue
+        candidates = available.get(fid, [])
+        if not candidates:
+            issues.append(InputIssue('nutrition_food_id_missing', rid, lid, 'food_id'))
+            continue
+        profile = (profiles or {}).get(lid)
+        method = getattr(profile, 'cooking_method', None)
+        cooked = [row for row in candidates if row['cooking_state'] == '已熟製'
+                  and (method is None or row['cooking_method'] == method)]
+        raw = [row for row in candidates if row['cooking_state'] == '未熟製']
+        compatible = cooked or raw
+        if len(compatible) == 1:
+            row = compatible[0]
+            selected[lid] = ImportedNutritionSelection(row['nutrition_id'], row['cooking_state'],
+                                                        row['cooking_method'], preparation=row['preparation'])
+            continue
+        if variant_resolver is None:
+            issues.append(InputIssue('nutrition_variant_decision_required', rid, lid, 'cooking_method'))
+            continue
+        decision = variant_resolver({'line': dict(line), 'candidates': [dict(row) for row in compatible],
+                                     'cooking_method': method})
+        if not isinstance(decision, ImportedNutritionSelection) or not decision.decision_basis or not decision.decision_version:
+            issues.append(InputIssue('llm_variant_decision_invalid', rid, lid, 'cooking_method'))
+            continue
+        if decision.nutrition_id not in {row['nutrition_id'] for row in compatible}:
+            issues.append(InputIssue('llm_variant_decision_mismatch', rid, lid, 'nutrition'))
+            continue
+        selected[lid] = decision
+    return selected, tuple(issues)
 
 
 def _text(value):
@@ -119,7 +177,8 @@ def load_imported_nutrition(db: Connection, rows: RecipeRows, *, import_id: str 
         or not isinstance(value.nutrition_id, str) or not value.nutrition_id.strip()
         or not isinstance(value.cooking_state, str) or not value.cooking_state.strip()
         or any(item is not None and (not isinstance(item, str) or not item.strip())
-               for item in (value.cooking_method, value.preparation, value.source_id))
+               for item in (value.cooking_method, value.preparation, value.source_id,
+                            value.decision_basis, value.decision_version))
         for key, value in selections.items()
     ):
         raise PlanningInputError('Explicit nutrition selection IDs and conditions are required.')
@@ -238,6 +297,10 @@ def load_imported_nutrition(db: Connection, rows: RecipeRows, *, import_id: str 
                     'observation_source_row': observation['source_row'],
                     'cooking_state': selection.cooking_state, 'cooking_method': selection.cooking_method,
                     'preparation': selection.preparation, 'source_files': deepcopy(files),
+                    'variant_decision': ({'basis': selection.decision_basis,
+                                          'version': selection.decision_version,
+                                          'is_estimated': True}
+                                         if selection.decision_basis else None),
                     'raw_source': deepcopy(raw), 'observation_values': {
                         field: observation[field] for field in NUTRIENT_COLUMNS.values()},
                     'observation_quality_issues': deepcopy(observation['quality_issues']),

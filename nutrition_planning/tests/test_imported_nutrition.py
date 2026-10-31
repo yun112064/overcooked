@@ -5,6 +5,7 @@ from copy import deepcopy
 from decimal import Decimal as D
 from fractions import Fraction as F
 from typing import cast
+from collections.abc import Mapping
 
 import pytest
 from sqlalchemy import Table, insert, select, update
@@ -55,8 +56,7 @@ def test_default_menu_reads_feature_import_data_without_reading_old_catalog(impo
     policy.catalog_path.unlink()
     result = validate_database_menu(db, ['R1'], staple="不需要主食", participations=participations, target_service=service,
         policy=policy, profiles=profiles, nutrition_import_id=IMPORT_ID,
-        nutrition_selections={name: ImportedNutritionSelection('n-' + name, '已熟製', None)
-                              for name in ('main', 'oil', 'salt')})
+        nutrition_selections={})
     assert result.validation is not None and result.validation.nutrition_passed
     assert result.validation.final_estimate is not None
     assert result.validation.final_estimate.totals == result.targets.target
@@ -66,20 +66,51 @@ def test_default_menu_reads_feature_import_data_without_reading_old_catalog(impo
     assert source['source_id'] == 'new-main'
 
 
-def test_white_rice_cannot_be_silently_omitted_from_database_menu(imported_menu):
+def test_multiple_food_id_variants_use_versioned_llm_decision(imported_menu):
+    from app.models.nutrition import FoodNutrition, NutritionSource, NutritionSourceLink
+    db, _, _, _, profiles, policy, service, participations = imported_menu
+    db.execute(insert(FoodNutrition), dict(nutrition_id='n-main-second', import_id=IMPORT_ID,
+        food_id='FOOD000001', source_row=99, standard_name='main', cooking_state='已熟製',
+        cooking_method=None, preparation=None, calculation_method='source', energy_kcal=D('687.14364'),
+        protein_g=D('30.8'), nutrition_complete=False, quality_issues=[], raw_data={}))
+    db.execute(insert(NutritionSource), dict(source_id='s-main-second', import_id=IMPORT_ID,
+        source_key='TFDA_main_second', provider='TFDA', source_record_id='second-main',
+        source_url='https://example.invalid/synthetic', source_sheet='原始來源與判定', source_row=99,
+        raw_data={'中文原名': 'main', '來源原文名稱': 'main', '熱量(kcal/100g)': '687.14364',
+                  '蛋白質(g/100g)': '30.8', '熟製狀態': '已熟製', '烹飪方式': None, '食用前處理': None}))
+    db.execute(insert(NutritionSourceLink), dict(nutrition_id='n-main-second', source_id='s-main-second',
+                                                  included_in_calculation=True))
+    def resolver(request):
+        if request['line']['recipe_ingredient_id'] == 'main':
+            return ImportedNutritionSelection('n-main-second', '已熟製', None,
+                decision_basis='食譜步驟提及第二樣品的烹調描述', decision_version='llm-method-v1')
+        raise AssertionError('only the ambiguous main line should need LLM')
+    result = validate_database_menu(db, ['R1'], staple='不需要主食', participations=participations,
+        target_service=service, policy=policy, profiles=profiles, nutrition_import_id=IMPORT_ID,
+        nutrition_selections={}, variant_resolver=resolver)
+    assert result.validation is not None and result.validation.nutrition_passed
+    assert result.validation.final_estimate is not None
+    source = next(cast(Mapping, item['source']) for item in result.validation.final_estimate.sources
+                  if isinstance(item.get('source'), dict)
+                  and cast(Mapping, item['source']).get('food_id') == 'FOOD000001')
+    assert isinstance(source, dict)
+    assert source['variant_decision']['version'] == 'llm-method-v1'
+
+
+def test_white_rice_missing_from_import_is_reported_by_food_id(imported_menu):
     db, _, _, _, profiles, policy, service, participations = imported_menu
     result = validate_database_menu(db, ['R1'], staple='白飯', participations=participations,
         target_service=service, policy=policy, profiles=profiles, nutrition_import_id=IMPORT_ID,
         nutrition_selections={name: ImportedNutritionSelection('n-' + name, '已熟製', None)
                               for name in ('main', 'oil', 'salt')})
     assert result.validation is None
-    assert any(issue.code == 'staple_nutrition_selection_missing' for issue in result.preparation.issues)
+    assert any(issue.code == 'nutrition_food_id_missing' for issue in result.preparation.issues)
     issue = next(issue for issue in result.preparation.issues
-                 if issue.code == 'staple_nutrition_selection_missing')
-    assert issue.message == '主食份量／營養依據缺值'
+                 if issue.code == 'nutrition_food_id_missing')
+    assert issue.message == '食材營養資料缺失'
     assert issue.adoption_blocked
     assert result.adoption_blocked
-    assert result.input_issues[0]['message'] == '主食份量／營養依據缺值'
+    assert result.input_issues[0]['message'] == '食材營養資料缺失'
 
 
 def test_omitted_staple_choice_is_reported_as_missing(imported_menu):
@@ -128,7 +159,7 @@ def test_white_rice_food_296_is_aligned_with_dishes_and_counted(imported_menu):
         cooking_method='電鍋煮', preparation=None, calculation_method='source',
         energy_kcal=D('183'), protein_g=D('3.1'), nutrition_complete=False, quality_issues=[], raw_data={}))
     db.execute(insert(NutritionSource), dict(source_id='s-rice', import_id=IMPORT_ID,
-        source_key='TFDA_rice', provider='TFDA', source_record_id='A0550601',
+        source_key='TFDA_rice', provider='TFDA', source_record_id='RICE-ALT-SOURCE',
         source_url='https://example.invalid/tfda', source_sheet='原始來源與判定', source_row=50,
         raw_data={'中文原名': '白飯', '來源原文名稱': '白飯', '熱量(kcal/100g)': '183',
                   '蛋白質(g/100g)': '3.1', '熟製狀態': '已熟製', '烹飪方式': '電鍋煮', '食用前處理': None}))
@@ -146,7 +177,7 @@ def test_white_rice_food_296_is_aligned_with_dishes_and_counted(imported_menu):
     rice = next(line for line in result.validation.final_recipe.ingredients if line.food_id == 'FOOD000296')
     assert F(100) * result.targets.total_n <= F(rice.amount_g) <= F(250) * result.targets.total_n
     assert F(rice.amount_g) < F(160) * result.targets.total_n
-    assert rice.sample_id == 'A0550601'
+    assert rice.sample_id == 'RICE-ALT-SOURCE'
     assert result.staple_snapshot is not None
     assert result.staple_snapshot['grams_per_n'] == '160'
     assert result.staple_snapshot['source_cooking_method'] == '電鍋煮'
@@ -166,8 +197,8 @@ def test_white_rice_food_296_is_aligned_with_dishes_and_counted(imported_menu):
         target_service=service, policy=policy, profiles=profiles, nutrition_import_id=IMPORT_ID,
         nutrition_selections={**selections, 'staple:FOOD000296':
                               ImportedNutritionSelection('n-rice', '已熟製', '蒸')})
-    assert changed_source_method.validation is None
-    assert changed_source_method.preparation.issues[0].code == 'staple_tfda_method_mismatch'
+    assert changed_source_method.validation is not None
+    assert changed_source_method.validation.nutrition_passed
     db.execute(update(FoodNutrition).where(FoodNutrition.nutrition_id == 'n-rice').values(cooking_method='電鍋煮'))
     db.execute(update(NutritionSource).where(NutritionSource.source_id == 's-rice').values(
         raw_data={**rice_source['raw_data'], '蛋白質(g/100g)': None}))
@@ -194,8 +225,7 @@ def test_import_id_is_required_and_no_implicit_latest_or_legacy_fallback(importe
         assert result.validation is None
         assert result.preparation.issues[0].code == expected
     result = run_menu(imported_menu, selections={})
-    assert result.validation is None
-    assert {issue.code for issue in result.preparation.issues} == {'nutrition_selection_missing'}
+    assert result.validation is not None and result.validation.nutrition_passed
 
 
 def test_missing_schema_is_not_reported_as_missing_nutrition_or_legacy_success(menu):

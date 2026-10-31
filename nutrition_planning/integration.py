@@ -47,6 +47,10 @@ class InputIssue:
         labels = {
             'nutrition_selection_missing': '缺少營養資料選擇',
             'nutrition_record_not_found_for_import_and_food': '食材營養資料缺失',
+            'nutrition_food_id_missing': '食材營養資料缺失',
+            'nutrition_variant_decision_required': '烹調方式有多種營養資料，等待 LLM 判斷',
+            'llm_variant_decision_invalid': 'LLM 烹調方式判斷格式無效',
+            'llm_variant_decision_mismatch': 'LLM 烹調方式判斷與 Food_ID 或營養資料不一致',
             'nutrition_variant_mismatch': '生熟或烹調方式不符合',
             'nutrition_state_unknown': '烹調生熟狀態無法判定',
             'tfda_source_missing_or_ambiguous': 'TFDA 營養來源無法唯一判定',
@@ -330,7 +334,7 @@ def validate_database_menu(db: Connection, recipe_ids: Sequence[str], *, partici
                            nutrition_source: Literal['imported', 'legacy_tfda'] = 'imported',
                            nutrition_import_id: str | None = None,
                            nutrition_selections: Mapping | None = None,
-                           cooking_estimator=None) -> DatabaseMenuResult:
+                           cooking_estimator=None, variant_resolver=None) -> DatabaseMenuResult:
     """Backend participations → exact T03 targets → all DB lines → T12.
 
     Caller retains household authorization, T11 selection/fallback and T14 flow.
@@ -362,9 +366,6 @@ def validate_database_menu(db: Connection, recipe_ids: Sequence[str], *, partici
         staple_snapshot = {'version': config['version'], 'review_status': config['review_status'],
                            **rice, 'selection': staple}
         lid = 'staple:FOOD000296'
-        if nutrition_source == 'imported' and (nutrition_selections is None or lid not in nutrition_selections):
-            return DatabaseMenuResult(targets, PreparedRecipe(None, (
-                InputIssue('staple_nutrition_selection_missing', 'staple', lid, 'nutrition'),)), None)
         recipe_row = {'recipe_id': 'staple', 'original_servings': 1,
                       'review_status': 'approved', 'is_eligible': True}
         line_row = {'recipe_ingredient_id': lid, 'recipe_id': 'staple', 'sequence': 1,
@@ -392,18 +393,16 @@ def validate_database_menu(db: Connection, recipe_ids: Sequence[str], *, partici
     if nutrition_source == 'imported':
         if food_mapping_path is not None:
             raise PlanningInputError('Imported nutrition cannot use a legacy FOOD/TFDA registry.')
-        from .imported_nutrition import load_imported_nutrition
+        from .imported_nutrition import load_imported_nutrition, resolve_imported_selections
+        resolved_selections, selection_issues = resolve_imported_selections(
+            db, rows, import_id=nutrition_import_id, selections=nutrition_selections,
+            profiles=profiles, variant_resolver=variant_resolver)
+        if selection_issues:
+            return DatabaseMenuResult(targets, PreparedRecipe(None, selection_issues), None)
         imported = load_imported_nutrition(db, rows, import_id=nutrition_import_id,
-                                            selections=nutrition_selections or {})
+                                            selections=resolved_selections)
         if imported.issues:
             return DatabaseMenuResult(targets, PreparedRecipe(None, imported.issues), None)
-        if staple == '白飯' and imported.line_records['staple:FOOD000296']['ingredient_id'] != 'A0550601':
-            return DatabaseMenuResult(targets, PreparedRecipe(None, (
-                InputIssue('staple_tfda_sample_mismatch', 'staple', 'staple:FOOD000296', 'sample_id'),)), None)
-        if (staple == '白飯' and imported.line_records['staple:FOOD000296']['source']['cooking_method']
-                != rice['source_cooking_method']):
-            return DatabaseMenuResult(targets, PreparedRecipe(None, (
-                InputIssue('staple_tfda_method_mismatch', 'staple', 'staple:FOOD000296', 'cooking_method'),)), None)
         policy = replace(policy, sample_mappings={}, line_nutrition_records=imported.line_records)
         estimates, estimate_issues = ({}, ())
         if t04_results is None and cooking_estimator is not None:

@@ -4,7 +4,7 @@
 
 `targets_from_t03()` 接受 T03 `aggregate_meal_targets()` 的 `total_n`、`target`、`reference_exact`，以 Fraction 保留循環小數。`align_baseline()` 將每道來源食譜的 `original_servings` 換算為 1n 基準，資料庫模式只調整已審核範圍；AI 模式驗證候選，不捏造資料庫來源。`scale_to_cooking_units()` 按各食材明確提供的克數步長調整；`validate_meal()` 再次計算及分別比較熱量與蛋白質。
 
-2026-10-31 起，`validate_database_menu()` 預設使用 `feature/data-import` 的 `nutrition_imports`、`food_nutrition`、`nutrition_sources`、`nutrition_source_links`。必須指定 `nutrition_import_id`，並為全部食材列提供 `ImportedNutritionSelection`（營養紀錄 ID、生熟、方式、前處理；source_id 可固定核對唯一符合的來源，不能任選解除歧義）。同名同狀態的唯一官方平均值優先，原始名稱不明或對映有歧義仍阻擋。相同 FOOD 可以在不同食材列選擇不同營養紀錄，不再以 FOOD→單一舊樣品表推定全部狀態。資料表不存在會回報 `NUTRITION_DATA_UNAVAILABLE`，缺值／歧義則列出原因，均不回退舊 JSON。詳見 [接線與資料來源紀錄](../docs/T12-feature-data-import.md)。
+2026-10-31 起，`validate_database_menu()` 預設使用 `feature/data-import` 的 `nutrition_imports`、`food_nutrition`、`nutrition_sources`、`nutrition_source_links`。必須指定 `nutrition_import_id`。Food_ID 是食譜與營養表的主鍵：程式會依食譜生熟、烹調方式與前處理自動選取唯一資料；有多筆相符資料時可由 `variant_resolver` 回傳附帶判斷依據與版本的 `ImportedNutritionSelection`。來源樣品 ID 只供追溯與版本核對，不是計算入口或固定 FOOD→樣品對映。同名同狀態的唯一官方平均值優先，原始名稱不明或 LLM 判斷不一致仍阻擋。資料表不存在會回報 `NUTRITION_DATA_UNAVAILABLE`，缺值／歧義則列出原因，均不回退舊 JSON。詳見 [接線與資料來源紀錄](../docs/T12-feature-data-import.md)。
 
 `calculate_nutrition()` 以這批匯入資料所連結、實際納入計算的 TFDA 原始來源每 100g 欄位精確重算。All 彙整可能包含 USDA 或食譜倒算，不能將其數值冒充 TFDA；無可唯一判定的 TFDA 來源時不可計算。必要欄位缺失仍為 None，真實 0 保留，保存匯入版本、nutrition_id、原始樣品 ID、來源列、來源檔雜湊、原始欄位及來源關聯快照。依 2026-10-30 使用者決議，`t04_bridge.py` 可直接接收 T04 已驗證的 LLM 產率／保留係數，不要求逐筆人工核准；除了輸入、樣品與烹調條件，現在還必須綁定相同的匯入版本、營養紀錄及來源 ID。已有食材、油與調味料均須列入菜單，熟食不重複套保留率。
 
@@ -16,7 +16,7 @@
 
 新增的 SQLite 測試使用 feature/data-import 的實際營養 ORM 結構，測試新版資料表→TFDA 來源→T03／T04→T12 的串接；合成數值不冒充正式匯入資料。分支未包含完整新版 Excel 或匯入後資料庫，目前本機同名 All_Food 檔案的雜湊與該分支紀錄不同，仍待取得新版資料庫／來源檔後做實際資料驗證。PostgreSQL、網站端到端與 G03／G04 完整驗收也不由此測試代替。必要營養欄位的正式採用政策仍需跨 Ticket 對齊。
 
-問卷選白飯時，`validate_database_menu(staple='白飯')` 依 [主食設定](../config/staples.json)加入 FOOD000296，指定 TFDA 樣品 A0550601、已熟製、來源方式「電鍋煮」、每 1n 160 克起始及 100～250 克審核範圍，再與菜色一起縮放和檢查熱量、蛋白質 ±10%。新版匯入模式仍須提供同一匯入版本下的 `nutrition_selections['staple:FOOD000296']`，並確認來源樣品 ID；此選擇的 `cooking_method` 須填「電鍋煮」，`preparation` 為 None。缺少選擇、來源或必要營養時回報原因，不以零代替。結果的 `staple_snapshot` 保存設定版本、基準、範圍及可得時的最終克數；`recipe_ids` 僅保留實際選中的資料庫菜色。未選主食須明確傳入 `staple='不需要主食'`。前端問卷接線和畫面缺值提示由後續流程負責。
+問卷選白飯時，`validate_database_menu(staple='白飯')` 依 [主食設定](../config/staples.json)加入 FOOD000296，以 Food_ID 自動尋找可用營養資料。設定保留既有樣品與烹調資訊供追溯，但不要求特定樣品 ID；每 1n 160 克起始及 100～250 克審核範圍會與菜色一起縮放，再檢查熱量、蛋白質 ±10%。缺少資料或 LLM 判斷／估算失敗時回報原因，不以零代替。結果的 `staple_snapshot` 保存設定版本、基準、範圍及可得時的最終克數；`recipe_ids` 僅保留實際選中的資料庫菜色。未選主食須明確傳入 `staple='不需要主食'`。前端問卷接線和畫面缺值提示由後續流程負責。
 
 當匯入資料只有未熟製 TFDA 紀錄時，後端可將 `cooking_estimator` 傳給 `validate_database_menu()`。T12 會把已驗證的 Food_ID、原始 TFDA 營養、烹調方式、匯入版本、nutrition_id 及 nutrition_source_id 綁在 T04 收據，再由 T12 以 Fraction 重新計算。產率或保留率缺失、格式／範圍錯誤、服務未設定、連線錯誤或必要營養缺失時，結果會帶具體 `InputIssue.message` 並阻止採用；估算結果的 `is_estimated`、假設、參考 ID 與版本會保留。未傳入 estimator 時不會自行呼叫外部服務。
 
