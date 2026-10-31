@@ -19,6 +19,7 @@ from app.services.recipe_import import (  # noqa: E402
     load_review_record,
     load_source_rights,
     parse_recipe_workbook,
+    select_unique_recipe_bundle,
     write_quality_report,
 )
 
@@ -52,14 +53,15 @@ def main() -> int:
     args = build_parser().parse_args()
     source_rights = load_source_rights(args.sources) if args.sources else None
     review_record = load_review_record(args.reviews) if args.reviews else None
-    bundle = parse_recipe_workbook(args.excel, source_rights, review_record)
+    bundle = select_unique_recipe_bundle(parse_recipe_workbook(args.excel, source_rights, review_record))
     if review_record and not (bundle.report.get("review_record") or {}).get("applied"):
         print("WARNING: review record not applied: " + str((bundle.report.get("review_record") or {}).get("reason")),
               file=sys.stderr)
     if args.report:
         write_quality_report(bundle.report, args.report)
 
-    result: dict[str, object] = {"quality": bundle.report["counts"]}
+    result: dict[str, object] = {"quality": bundle.report["counts"],
+                                "import_selection": bundle.report["import_selection"]}
     if args.dry_run:
         result["database"] = "not_written"
     else:
