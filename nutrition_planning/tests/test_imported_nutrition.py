@@ -119,18 +119,18 @@ def test_white_rice_food_296_is_aligned_with_dishes_and_counted(imported_menu):
         raw_data={**source['raw_data'], '熱量(kcal/100g)': '500', '蛋白質(g/100g)': '26.5'}))
     db.execute(insert(FoodNutrition), dict(nutrition_id='n-rice', import_id=IMPORT_ID,
         food_id='FOOD000296', source_row=50, standard_name='白飯', cooking_state='已熟製',
-        cooking_method=None, preparation=None, calculation_method='source',
+        cooking_method='電鍋煮', preparation=None, calculation_method='source',
         energy_kcal=D('183'), protein_g=D('3.1'), nutrition_complete=False, quality_issues=[], raw_data={}))
     db.execute(insert(NutritionSource), dict(source_id='s-rice', import_id=IMPORT_ID,
         source_key='TFDA_rice', provider='TFDA', source_record_id='A0550601',
         source_url='https://example.invalid/tfda', source_sheet='原始來源與判定', source_row=50,
         raw_data={'中文原名': '白飯', '來源原文名稱': '白飯', '熱量(kcal/100g)': '183',
-                  '蛋白質(g/100g)': '3.1', '熟製狀態': '已熟製', '烹飪方式': None, '食用前處理': None}))
+                  '蛋白質(g/100g)': '3.1', '熟製狀態': '已熟製', '烹飪方式': '電鍋煮', '食用前處理': None}))
     db.execute(insert(NutritionSourceLink), dict(nutrition_id='n-rice', source_id='s-rice',
                                                   included_in_calculation=True))
     selections = {name: ImportedNutritionSelection('n-' + name, '已熟製', None)
                   for name in ('main', 'oil', 'salt')}
-    selections['staple:FOOD000296'] = ImportedNutritionSelection('n-rice', '已熟製', None)
+    selections['staple:FOOD000296'] = ImportedNutritionSelection('n-rice', '已熟製', '電鍋煮')
     result = validate_database_menu(db, ['R1'], staple='白飯', participations=participations,
         target_service=service, policy=policy, profiles=profiles, nutrition_import_id=IMPORT_ID,
         nutrition_selections=selections)
@@ -143,9 +143,26 @@ def test_white_rice_food_296_is_aligned_with_dishes_and_counted(imported_menu):
     assert rice.sample_id == 'A0550601'
     assert result.staple_snapshot is not None
     assert result.staple_snapshot['grams_per_n'] == '160'
-    assert result.staple_snapshot['version'] == 'staples-2026-11-01-v1'
+    assert result.staple_snapshot['source_cooking_method'] == '電鍋煮'
+    assert result.staple_snapshot['version'] == 'staples-2026-11-01-v2'
     assert result.staple_snapshot['final_grams'] == str(rice.amount_g)
+    wrong_method = validate_database_menu(db, ['R1'], staple='白飯', participations=participations,
+        target_service=service, policy=policy, profiles=profiles, nutrition_import_id=IMPORT_ID,
+        nutrition_selections={**selections, 'staple:FOOD000296':
+                              ImportedNutritionSelection('n-rice', '已熟製', None)})
+    assert wrong_method.validation is None
+    assert any(issue.code == 'nutrition_variant_mismatch' for issue in wrong_method.preparation.issues)
     rice_source = db.execute(select(NutritionSource).where(NutritionSource.source_id == 's-rice')).mappings().one()
+    db.execute(update(FoodNutrition).where(FoodNutrition.nutrition_id == 'n-rice').values(cooking_method='蒸'))
+    db.execute(update(NutritionSource).where(NutritionSource.source_id == 's-rice').values(
+        raw_data={**rice_source['raw_data'], '烹飪方式': '蒸'}))
+    changed_source_method = validate_database_menu(db, ['R1'], staple='白飯', participations=participations,
+        target_service=service, policy=policy, profiles=profiles, nutrition_import_id=IMPORT_ID,
+        nutrition_selections={**selections, 'staple:FOOD000296':
+                              ImportedNutritionSelection('n-rice', '已熟製', '蒸')})
+    assert changed_source_method.validation is None
+    assert changed_source_method.preparation.issues[0].code == 'staple_tfda_method_mismatch'
+    db.execute(update(FoodNutrition).where(FoodNutrition.nutrition_id == 'n-rice').values(cooking_method='電鍋煮'))
     db.execute(update(NutritionSource).where(NutritionSource.source_id == 's-rice').values(
         raw_data={**rice_source['raw_data'], '蛋白質(g/100g)': None}))
     missing = validate_database_menu(db, ['R1'], staple='白飯', participations=participations,

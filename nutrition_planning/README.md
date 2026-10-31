@@ -16,7 +16,7 @@
 
 新增的 SQLite 測試使用 feature/data-import 的實際營養 ORM 結構，測試新版資料表→TFDA 來源→T03／T04→T12 的串接；合成數值不冒充正式匯入資料。分支未包含完整新版 Excel 或匯入後資料庫，目前本機同名 All_Food 檔案的雜湊與該分支紀錄不同，仍待取得新版資料庫／來源檔後做實際資料驗證。PostgreSQL、網站端到端與 G03／G04 完整驗收也不由此測試代替。必要營養欄位的正式採用政策仍需跨 Ticket 對齊。
 
-問卷選白飯時，`validate_database_menu(staple='白飯')` 依 [主食設定](../config/staples.json)加入 FOOD000296，指定 TFDA 樣品 A0550601、已熟製、每 1n 160 克起始及 100～250 克審核範圍，再與菜色一起縮放和檢查熱量、蛋白質 ±10%。新版匯入模式仍須提供同一匯入版本下的 `nutrition_selections['staple:FOOD000296']`，並確認來源樣品 ID；缺少選擇、來源或必要營養時回報原因，不以零代替。結果的 `staple_snapshot` 保存設定版本、基準、範圍及可得時的最終克數；`recipe_ids` 僅保留實際選中的資料庫菜色。未選主食須明確傳入 `staple='不需要主食'`。前端問卷接線和畫面缺值提示由後續流程負責。
+問卷選白飯時，`validate_database_menu(staple='白飯')` 依 [主食設定](../config/staples.json)加入 FOOD000296，指定 TFDA 樣品 A0550601、已熟製、來源方式「電鍋煮」、每 1n 160 克起始及 100～250 克審核範圍，再與菜色一起縮放和檢查熱量、蛋白質 ±10%。新版匯入模式仍須提供同一匯入版本下的 `nutrition_selections['staple:FOOD000296']`，並確認來源樣品 ID；此選擇的 `cooking_method` 須填「電鍋煮」，`preparation` 為 None。缺少選擇、來源或必要營養時回報原因，不以零代替。結果的 `staple_snapshot` 保存設定版本、基準、範圍及可得時的最終克數；`recipe_ids` 僅保留實際選中的資料庫菜色。未選主食須明確傳入 `staple='不需要主食'`。前端問卷接線和畫面缺值提示由後續流程負責。
 
 驗證：`python -m pytest nutrition_planning/tests --cov=nutrition_planning --cov-report=term-missing -q`。開發依賴見 `requirements-dev.txt`；不需呼叫模型或外部 API。
 

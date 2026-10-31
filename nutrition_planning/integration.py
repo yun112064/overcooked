@@ -239,10 +239,11 @@ def validate_database_menu(db: Connection, recipe_ids: Sequence[str], *, partici
             return DatabaseMenuResult(targets, PreparedRecipe(None, (
                 InputIssue('staple_policy_unavailable', 'staple', field='policy'),)), None)
         expected_rice = {'name': '白飯', 'food_id': 'FOOD000296', 'tfda_sample_id': 'A0550601',
-                         'weight_basis': 'cooked', 'grams_per_n': '160',
+                         'weight_basis': 'cooked', 'source_cooking_method': '電鍋煮',
+                         'grams_per_n': '160',
                          'adjustable_min_g_per_n': '100', 'adjustable_max_g_per_n': '250',
                          'cooking_step_g': '1'}
-        if (not isinstance(config, dict) or config.get('version') != 'staples-2026-11-01-v1'
+        if (not isinstance(config, dict) or config.get('version') != 'staples-2026-11-01-v2'
                 or config.get('review_status') != 'user_confirmed'
                 or config.get('white_rice') != expected_rice):
             return DatabaseMenuResult(targets, PreparedRecipe(None, (
@@ -289,6 +290,10 @@ def validate_database_menu(db: Connection, recipe_ids: Sequence[str], *, partici
         if staple == '白飯' and imported.line_records['staple:FOOD000296']['ingredient_id'] != 'A0550601':
             return DatabaseMenuResult(targets, PreparedRecipe(None, (
                 InputIssue('staple_tfda_sample_mismatch', 'staple', 'staple:FOOD000296', 'sample_id'),)), None)
+        if (staple == '白飯' and imported.line_records['staple:FOOD000296']['source']['cooking_method']
+                != rice['source_cooking_method']):
+            return DatabaseMenuResult(targets, PreparedRecipe(None, (
+                InputIssue('staple_tfda_method_mismatch', 'staple', 'staple:FOOD000296', 'cooking_method'),)), None)
         policy = replace(policy, sample_mappings={}, line_nutrition_records=imported.line_records)
     elif nutrition_source == 'legacy_tfda':
         if nutrition_import_id is not None or nutrition_selections is not None:
