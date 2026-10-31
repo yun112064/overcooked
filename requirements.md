@@ -105,7 +105,7 @@
 
 - 前端：React、TypeScript、MUI、MUI Stepper、React Router、React Hook Form、Zod、TanStack Query、Axios、Recharts、檔案／拍照輸入。
 - 應用服務：FastAPI、Pydantic、OpenAPI、HttpOnly Cookie、Argon2、UploadFile、Pillow、Python 版本化營養規則、Decimal 成本計算、交易與冪等控制。
-- 影像：YOLOv8n 先建立基準，以相同資料比較 YOLOv8m，使用 Ultralytics／PyTorch，依準確率與速度決定部署模型。
+- 影像：使用 Ultralytics／PyTorch，部署模型為 YOLO26s（2026-10-29 變更，原為 YOLOv8n／v8m 比較；依準確率與速度決定，理由見 T05 規格變更紀錄）。
 - 生成：OpenAI Responses API／Structured Outputs；食譜由雲端 PostgreSQL 結構化查詢，營養知識才用團隊電腦 PostgreSQL＋pgvector 與 OpenAI 向量化，來源及版本經接入驗證固定。
 - 外部資料：國健署 DRIs、TFDA 食品營養資料；農業部行情與合法零售資料分開使用，不把批發行情當包裝售價。
 - 排程與連線：APScheduler、httpx。
