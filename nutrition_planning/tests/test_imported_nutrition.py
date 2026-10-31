@@ -291,3 +291,16 @@ def test_unique_official_average_is_used_and_cannot_be_overridden(imported_menu)
     rejected = run_menu(imported_menu, selections=selections)
     assert rejected.validation is None
     assert rejected.preparation.issues[0].code == 'tfda_official_average_required'
+
+
+def test_excluded_official_average_does_not_silently_fall_back_to_another_sample(imported_menu):
+    from app.models.nutrition import NutritionSource, NutritionSourceLink
+    db = imported_menu[0]
+    original = dict(db.execute(select(NutritionSource).where(NutritionSource.source_id == 's-main')).mappings().one())
+    db.execute(insert(NutritionSource), {**original, 'source_id': 'average', 'source_key': 'average',
+        'source_record_id': 'TFDA-average', 'raw_data': {**original['raw_data'],
+            '中文原名': 'main平均值', '來源原文名稱': 'main平均值'}})
+    db.execute(insert(NutritionSourceLink), dict(nutrition_id='n-main', source_id='average', included_in_calculation=False))
+    result = run_menu(imported_menu)
+    assert result.validation is None
+    assert result.preparation.issues[0].code == 'tfda_official_average_excluded'

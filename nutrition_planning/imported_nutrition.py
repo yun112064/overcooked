@@ -59,13 +59,25 @@ def _name(value):
     return unicodedata.normalize('NFKC', text) if text is not None else None
 
 
+def _same_variant(source, selection: ImportedNutritionSelection):
+    raw = source['raw_data']
+    return (isinstance(raw, dict) and _text(raw.get('熟製狀態')) == selection.cooking_state
+            and _text(raw.get('烹飪方式')) == selection.cooking_method
+            and _text(raw.get('食用前處理')) == selection.preparation)
+
+
+def _source_name(source):
+    if not isinstance(source['raw_data'], dict):
+        return None
+    names = {_name(source['raw_data'].get(key)) for key in ('中文原名', '來源原文名稱')}
+    names.discard(None)
+    return next(iter(names)) if len(names) == 1 else None
+
+
 def _choose_source(candidates: list, canonical_name, selection: ImportedNutritionSelection):
     if not candidates:
         return None, 'tfda_source_missing_or_ambiguous'
-    matching = [s for s in candidates if isinstance(s['raw_data'], dict)
-                and _text(s['raw_data'].get('熟製狀態')) == selection.cooking_state
-                and _text(s['raw_data'].get('烹飪方式')) == selection.cooking_method
-                and _text(s['raw_data'].get('食用前處理')) == selection.preparation]
+    matching = [s for s in candidates if _same_variant(s, selection)]
     if not matching:
         return None, 'tfda_source_variant_mismatch'
     canonical = _name(canonical_name)
@@ -73,11 +85,10 @@ def _choose_source(candidates: list, canonical_name, selection: ImportedNutritio
         return None, 'tfda_food_identity_unverified'
     named = []
     for source in matching:
-        names = {_name(source['raw_data'].get(key)) for key in ('中文原名', '來源原文名稱')}
-        names.discard(None)
-        if len(names) != 1:
+        name = _source_name(source)
+        if name is None:
             return None, 'tfda_food_identity_unverified'
-        named.append((source, next(iter(names))))
+        named.append((source, name))
     averages = [s for s, name in named if name == canonical + '平均值']
     exact_names = [s for s, name in named if name == canonical]
     eligible = averages if averages else exact_names
@@ -178,6 +189,15 @@ def load_imported_nutrition(db: Connection, rows: RecipeRows, *, import_id: str 
                 issue('nutrition_source_links_invalid')
                 continue
             included_ids = {link['source_id'] for link in source_links if link['included_in_calculation'] is True}
+            canonical = _name(line.get('canonical_name'))
+            known_averages = [s for s in all_sources if s['provider'] == 'TFDA' and _same_variant(s, selection)
+                              and canonical is not None and _source_name(s) == canonical + '平均值']
+            if len(known_averages) > 1:
+                issue('tfda_source_missing_or_ambiguous')
+                continue
+            if known_averages and known_averages[0]['source_id'] not in included_ids:
+                issue('tfda_official_average_excluded')
+                continue
             candidates = [s for s in all_sources if s['source_id'] in included_ids and s['provider'] == 'TFDA']
             source, source_error = _choose_source(candidates, line.get('canonical_name'), selection)
             if source_error is not None:

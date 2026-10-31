@@ -16,6 +16,8 @@
 
 對外介面沒有改變熱量／蛋白質容差、縮放順序或缺資料阻擋規則。所有匯入紀錄均唯讀。新版資料表或連線故障是 `NUTRITION_DATA_UNAVAILABLE`；沒有相符紀錄、來源多義、來源排除或生熟不明是明確的資料問題。缺少任一必要食材的資料，整餐不可當成已驗證。
 
+如果來源關聯中有唯一相符的官方平均值卻被排除，回報 `tfda_official_average_excluded`，不改用普通樣品，也不把被排除值重新納入。
+
 相容性注意：`validate_database_menu()` 的預設來源已改變。舊呼叫不加參數會得到 `nutrition_import_id_required`，不會沿用舊樣品；歷史重現必須顯式指定 `nutrition_source='legacy_tfda'`。資料讀取依所選 ID 批次查詢，不隨食材數逐筆發送三次 SQL；schema 反射與四張表的讀取均限於本次連線，不跨資料庫快取。
 
 ## 呼叫範例
