@@ -1,5 +1,9 @@
 # T11：結構化食譜查詢與地端營養知識RAG
 
+本機 `start-dev` 若設定 `KNOWLEDGE_DATABASE_URL` 與 `KNOWLEDGE_SERVICE_TOKEN`，會在 8091（可用 `KNOWLEDGE_PORT` 調整）啟動知識服務，並將網址交給後端。知識服務只提供食材說明，菜單生成改用 API 時仍由生成流程決定是否呼叫，不影響營養計算。未設定時回傳 `NOT_CONFIGURED`，使用者畫面須顯示知識不可用。
+
+2026-10-31 使用者同意將現有 123 筆逐筆內容審核紀錄作為核准依據。先以 `python -m knowledge_rag.apply_reviewed` 核對候選與審核檔；在指定 `KNOWLEDGE_DATABASE_URL` 的獨立知識庫執行 `python -m knowledge_rag.apply_reviewed --apply`，確認版本後，再執行 `python -m knowledge_rag.admin index --index-version <版本>` 建立索引。僅有來源核准不會自動發布索引；未設資料庫或 Ollama embeddinggemma 時明確顯示不可用。
+
 更新：2026-10-30。程式來源版本為G5-T11 `a84b68c`，本次新增123筆網頁／論文知識、食材ID對照及逐筆來源審核結果。沒有新增T11測試程式、測試資料、原始驗收輸出或模型評比檔。
 
 ## 分支基底與合併順序

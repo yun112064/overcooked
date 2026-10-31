@@ -194,9 +194,18 @@ function Start-Service-Here($name, $port, $command) {
 }
 
 Step '啟動服務（全部在這個視窗，輸出以 [服務名稱] 區分）'
+if ((Cfg 'KNOWLEDGE_DATABASE_URL') -and (Cfg 'KNOWLEDGE_SERVICE_TOKEN')) {
+    $KnowledgePort = Cfg 'KNOWLEDGE_PORT' '8091'
+    $env:KNOWLEDGE_SERVICE_URL = "http://127.0.0.1:$KnowledgePort"
+}
 Start-Service-Here 'backend' 8000 "& '$Py' -m uvicorn app.main:app --app-dir backend --host 127.0.0.1 --port 8000 --reload --reload-dir backend"
 Start-Service-Here 'worker' $null "& '$Py' -m app.jobs.worker"
 Start-Service-Here 'frontend' 5173 'npm --prefix frontend run dev -- --host 127.0.0.1 --port 5173 --strictPort'
+if ((Cfg 'KNOWLEDGE_DATABASE_URL') -and (Cfg 'KNOWLEDGE_SERVICE_TOKEN')) {
+    Start-Service-Here 'knowledge' $KnowledgePort "& '$Py' -m uvicorn knowledge_rag.server:create_app --factory --host 127.0.0.1 --port $KnowledgePort"
+} else {
+    Write-Host '    食材知識服務未設定；知識結果會顯示不可用及缺少設定。' -ForegroundColor Yellow
+}
 if ($UseYolo) {
     Start-Service-Here 'yolo' $YoloPort "& '$YoloPy' inference/server.py"
 } else {
