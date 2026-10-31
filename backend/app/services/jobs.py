@@ -3,26 +3,38 @@
 狀態對應問卷：queued→queued、running→running、succeeded→result_ready、failed→failed。
 每個生成工作最多自動嘗試 max_attempts（預設 2）次；回退或知識說明不重置次數。
 """
-import hashlib
 from datetime import datetime, timedelta, timezone
 
 from sqlalchemy import func, select, text
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, sessionmaker
 
-from app.api.errors import ApiError
+from app.api.errors import ApiError, already_adopted, idempotency_conflict
 from app.core.config import settings
 from app.core.logging_config import process_logger, scheduler_logger
 from app.db.models import BackgroundJob, MealRequest, UsageReservation
-from app.services import spend
+from app.services import idempotency, spend
 
 GENERATION = "meal_generation"
+# T15 結果重試工作：以來源結果版本為基礎產生新版本（不改菜、份量或 TFDA 數值），不改問卷的生成狀態
+KNOWLEDGE_RETRY = "knowledge_retry"
+PRICE_RETRY = "price_retry"
+RESULT_RETRY_KINDS = (KNOWLEDGE_RETRY, PRICE_RETRY)
 MAX_ATTEMPTS = 2
+CONFLICT_MESSAGE = "這個送出識別碼已用於不同的問卷內容，請重新送出。"
 REQUEST_STATUS = {"queued": "queued", "running": "running", "succeeded": "result_ready", "failed": "failed"}
 
 
 class RetryableJobError(Exception):
-    """確定沒有產生費用的暫時性失敗，可在次數內自動重試。"""
+    """可在次數內自動重試的失敗（未產生費用，或費用已結算、重試不會重複計費）。
+
+    code／user_message 可選：未達上限時排入重試，達上限即以此錯誤碼與說明失敗。
+    """
+
+    def __init__(self, message: str = "", *, code: str | None = None, user_message: str | None = None):
+        super().__init__(message)
+        self.code = code
+        self.user_message = user_message
 
 
 class JobFailure(Exception):
@@ -37,7 +49,7 @@ def _now() -> datetime:
 
 
 def request_hash(kind: str, meal_request_id, version: int) -> str:
-    return hashlib.sha256(f"{kind}:{meal_request_id}:{version}".encode()).hexdigest()
+    return idempotency.request_hash(kind, meal_request_id, version)
 
 
 def _log(event: str, job: BackgroundJob, error_code: str | None = None, *, logger=process_logger) -> None:
@@ -52,16 +64,16 @@ def submit_generation(db: Session, *, household_id, meal_request: MealRequest, v
                       idempotency_key: str, complete: bool) -> tuple[BackgroundJob, bool]:
     """建立生成工作；回傳 (工作, 是否新建立)。呼叫端負責 commit。"""
     digest = request_hash(GENERATION, meal_request.id, version)
-    existing = db.scalar(select(BackgroundJob).where(
-        BackgroundJob.household_id == household_id, BackgroundJob.idempotency_key == idempotency_key))
+    existing = idempotency.find_by_key(db, BackgroundJob, household_id, idempotency_key, digest,
+                                       message=CONFLICT_MESSAGE)
     if existing is not None:
-        if existing.request_hash != digest:
-            raise ApiError(409, "IDEMPOTENCY_CONFLICT", "這個送出識別碼已用於不同的問卷內容，請重新送出。")
         return existing, False
     if meal_request.version != version:
         raise ApiError(409, "VERSION_CONFLICT", "問卷已更新，請確認最新內容後再送出。")
     if meal_request.status in ("queued", "running"):
         raise ApiError(409, "VERSION_CONFLICT", "此問卷正在生成中，請等待結果。", {"reason": "ALREADY_RUNNING"})
+    if meal_request.status == "confirmed":
+        raise already_adopted()
     if not complete:
         raise ApiError(422, "INVALID_INPUT", "問卷尚未填寫完整，無法送出。", {"reason": "INCOMPLETE"})
     since = _now() - timedelta(days=1)
@@ -87,16 +99,83 @@ def submit_generation(db: Session, *, household_id, meal_request: MealRequest, v
         raced = db.scalar(select(BackgroundJob).where(
             BackgroundJob.household_id == household_id, BackgroundJob.idempotency_key == idempotency_key))
         if raced is None or raced.request_hash != digest:
-            raise ApiError(409, "IDEMPOTENCY_CONFLICT", "這個送出識別碼已用於不同的問卷內容，請重新送出。") from None
+            raise idempotency_conflict(CONFLICT_MESSAGE) from None
         return raced, False
     meal_request.status = "queued"
     return job, True
 
 
-def _mirror(db: Session, job: BackgroundJob) -> None:
+def submit_result_retry(db: Session, *, household_id, meal_request: MealRequest, source, kind: str,
+                        request_version: int, idempotency_key: str, params: dict | None = None,
+                        paid: bool) -> tuple[BackgroundJob, bool]:
+    """建立結果重試工作（只重試知識說明／缺價定向查價）；回傳 (工作, 是否新建立)。呼叫端負責 commit。
+
+    冪等鍵同生成；同一來源版本同種重試已在排隊或執行中時回傳該工作。問卷狀態不變（不擋查看與決定）。
+    """
+    digest = request_hash(kind, source.id, request_version)
+    existing = idempotency.find_by_key(db, BackgroundJob, household_id, idempotency_key, digest,
+                                       message=CONFLICT_MESSAGE)
+    if existing is not None:
+        return existing, False
+    if meal_request.status == "confirmed":
+        raise already_adopted()
+    if meal_request.status in ("queued", "running"):
+        raise ApiError(409, "VERSION_CONFLICT", "此問卷正在生成中，請等待結果。", {"reason": "GENERATION_IN_PROGRESS"})
+    if request_version != meal_request.version or source.request_version != meal_request.version:
+        raise ApiError(409, "VERSION_CONFLICT", "問卷已在此結果產生後修改，請重新生成。")
+    active = db.scalar(select(BackgroundJob).where(
+        BackgroundJob.household_id == household_id, BackgroundJob.kind == kind,
+        BackgroundJob.status.in_(("queued", "running")),
+        BackgroundJob.params["source_result_id"].astext == str(source.id)))
+    if active is not None:
+        return active, False
+    window, limit = RETRY_LIMITS[kind]()
+    recent = db.scalar(select(func.count(BackgroundJob.id)).where(
+        BackgroundJob.household_id == household_id, BackgroundJob.kind == kind,
+        BackgroundJob.created_at >= _now() - window))
+    if recent >= limit:
+        raise ApiError(429, "RATE_LIMITED", f"這項重試每個家庭每 {int(window.total_seconds() // 3600)} 小時最多 {limit} 次，"
+                                            "請稍後再試。")
+    if paid and spend.remaining_twd(db) <= 0:
+        raise ApiError(503, "SERVICE_BUDGET_EXHAUSTED", "本月外部服務額度已用完，暫停需要付費服務的重試。")
+    job = BackgroundJob(
+        household_id=household_id, kind=kind, idempotency_key=idempotency_key, request_hash=digest,
+        meal_request_id=meal_request.id, input_version=request_version, status="queued", attempts=0,
+        max_attempts=MAX_ATTEMPTS, available_at=_now(), stage="queued",
+        params={"source_result_id": str(source.id), "source_result_version": source.result_version, **(params or {})},
+    )
+    db.add(job)
+    try:
+        with db.begin_nested():
+            db.flush()
+    except IntegrityError:
+        raced = db.scalar(select(BackgroundJob).where(
+            BackgroundJob.household_id == household_id, BackgroundJob.idempotency_key == idempotency_key))
+        if raced is None or raced.request_hash != digest:
+            raise idempotency_conflict(CONFLICT_MESSAGE) from None
+        return raced, False
+    return job, True
+
+
+RETRY_LIMITS = {
+    KNOWLEDGE_RETRY: lambda: (timedelta(days=1), settings.knowledge_retry_daily_limit),
+    PRICE_RETRY: lambda: (timedelta(hours=1), settings.price_retry_hourly_limit),
+}
+
+
+def latest_retry(db: Session, source_result_id, kind: str) -> BackgroundJob | None:
+    return db.scalar(select(BackgroundJob).where(
+        BackgroundJob.kind == kind, BackgroundJob.params["source_result_id"].astext == str(source_result_id))
+        .order_by(BackgroundJob.created_at.desc()).limit(1))
+
+
+def _mirror(db: Session, job: BackgroundJob, status: str | None = None) -> None:
+    # 只有生成工作同步問卷狀態；結果重試工作的完成狀態由其 persist 依最新版本更新
+    if job.kind != GENERATION:
+        return
     if job.meal_request_id:
         db.execute(text("UPDATE meal_requests SET status = :s, updated_at = now() WHERE id = :id"),
-                   {"s": REQUEST_STATUS[job.status], "id": job.meal_request_id})
+                   {"s": status or REQUEST_STATUS[job.status], "id": job.meal_request_id})
 
 
 def claim(factory: sessionmaker, owner: str) -> BackgroundJob | None:
@@ -143,16 +222,21 @@ def set_stage(factory: sessionmaker, job_id, owner: str, stage: str) -> bool:
         return True
 
 
-def complete(factory: sessionmaker, job_id, owner: str, result: dict) -> bool:
+def complete(factory: sessionmaker, job_id, owner: str, result: dict, persist=None) -> bool:
+    """persist(db, job, result) -> (工作摘要, 結果版本)：在同一交易、確認租約後寫入結果表（T14）。"""
     with factory() as db, db.begin():
         job = _owned(db, job_id, owner)
         if job is None:
             return False
+        version = job.attempts
+        if persist is not None:
+            result, version = persist(db, job, result)
         job.status, job.stage, job.result = "succeeded", "result_ready", result
-        job.result_version = job.attempts
+        job.result_version = version
         job.lease_owner = job.lease_expires_at = None
         job.finished_at = job.updated_at = _now()
-        _mirror(db, job)
+        # T15：結果需要使用者決定（缺價／缺必要營養）時問卷進入 awaiting_decision
+        _mirror(db, job, result.get("request_status") if isinstance(result, dict) else None)
     _log("job_succeeded", job)
     return True
 
@@ -190,18 +274,11 @@ def recover_expired(factory: sessionmaker) -> int:
             .with_for_update(skip_locked=True)
         ).all()
         for job in jobs:
-            in_flight = db.scalars(select(UsageReservation).where(
-                UsageReservation.job_id == job.id, UsageReservation.status == "reserved")).all()
-            for row in in_flight:
-                row.status = "uncertain"
-                row.note = "worker lease expired during paid call; reconcile with provider usage"
+            in_flight = _mark_in_flight_uncertain(db, job, "worker lease expired during paid call")
             job.lease_owner = job.lease_expires_at = None
             job.updated_at = _now()
             if in_flight:
-                job.status, job.stage = "failed", "needs_manual_retry"
-                job.error_code = "NEEDS_MANUAL_RETRY"
-                job.error_message = "外部呼叫結果不明，為避免重複計費不自動重送；問卷已保留，請確認後重新送出。"
-                job.finished_at = _now()
+                _fail_needs_manual_retry(job)
             elif job.attempts < job.max_attempts:
                 job.status, job.stage = "queued", "recovered"
                 job.available_at = _now()
@@ -216,6 +293,104 @@ def recover_expired(factory: sessionmaker) -> int:
     return recovered
 
 
+MANUAL_RETRY_MESSAGE = "外部呼叫結果不明，為避免重複計費不自動重送；問卷已保留，請確認後重新送出。"
+ATTEMPT_TIMEOUT = "ATTEMPT_TIMEOUT"
+QUEUE_TIMEOUT = "QUEUE_TIMEOUT"
+CANCELLED = "CANCELLED"
+
+
+def _mark_in_flight_uncertain(db: Session, job: BackgroundJob, note: str) -> bool:
+    """進行中的付費呼叫無法確定是否已計費：標為 uncertain 待對帳。回傳是否有這種呼叫。"""
+    in_flight = db.scalars(select(UsageReservation).where(
+        UsageReservation.job_id == job.id, UsageReservation.status == "reserved")).all()
+    for row in in_flight:
+        row.status = "uncertain"
+        row.note = f"{note}; reconcile with provider usage"
+    return bool(in_flight)
+
+
+def _fail_needs_manual_retry(job: BackgroundJob) -> None:
+    job.status, job.stage = "failed", "needs_manual_retry"
+    job.error_code, job.error_message = "NEEDS_MANUAL_RETRY", MANUAL_RETRY_MESSAGE
+    job.finished_at = _now()
+
+
+def _minutes(seconds: int) -> str:
+    return f"{seconds // 60} 分鐘" if seconds % 60 == 0 else f"{seconds} 秒"
+
+
+def abort_attempt(factory: sessionmaker, job_id, owner: str) -> bool:
+    """嘗試超過硬性上限（job_attempt_timeout_seconds）：直接失敗、不自動重試（重試只會讓使用者再等一輪），
+    問卷解鎖。仍持有租約才處理；回傳 False 代表工作已完成、取消或被回收，呼叫端不必中止程序。"""
+    with factory() as db, db.begin():
+        job = _owned(db, job_id, owner)
+        if job is None:
+            return False
+        job.lease_owner = job.lease_expires_at = None
+        job.updated_at = _now()
+        if _mark_in_flight_uncertain(db, job, "attempt timed out during paid call"):
+            _fail_needs_manual_retry(job)
+        else:
+            job.status, job.stage = "failed", "failed"
+            job.error_code = ATTEMPT_TIMEOUT
+            job.error_message = (f"生成超過 {_minutes(settings.job_attempt_timeout_seconds)}仍未完成，已中止；"
+                                 "問卷已保留，可調整後重新送出（例如減少菜數）。")
+            job.finished_at = _now()
+        _mirror(db, job)
+    _log("job_attempt_timeout", job, job.error_code)
+    return True
+
+
+def expire_queued(factory: sessionmaker) -> int:
+    """排隊超過 job_queue_timeout_seconds 仍未開始：判逾時失敗並解鎖問卷（排程器每分鐘執行）。"""
+    limit = settings.job_queue_timeout_seconds
+    expired = 0
+    with factory() as db, db.begin():
+        stale = db.scalars(
+            select(BackgroundJob)
+            .where(BackgroundJob.status == "queued", BackgroundJob.available_at < _now() - timedelta(seconds=limit))
+            .with_for_update(skip_locked=True)
+        ).all()
+        for job in stale:
+            job.status, job.stage = "failed", "failed"
+            job.error_code = QUEUE_TIMEOUT
+            job.error_message = (f"排隊超過 {_minutes(limit)}仍未開始（系統忙碌中）；問卷已保留，請稍後重新送出。")
+            job.finished_at = job.updated_at = _now()
+            _mirror(db, job)
+            expired += 1
+            _log("job_queue_timeout", job, QUEUE_TIMEOUT, logger=scheduler_logger)
+    return expired
+
+
+def cancel_generation(db: Session, meal_request: MealRequest) -> BackgroundJob | None:
+    """使用者取消排隊中或執行中的生成：工作改為已取消，問卷回到送出前的狀態（同版本已有結果就回到結果，
+    否則回草稿）。執行中的工作程序會在下一個階段發現租約已失效而停止，結果不會寫入。
+    呼叫端需先鎖定問卷並 commit。沒有進行中的工作回傳 None。"""
+    job = db.scalar(
+        select(BackgroundJob)
+        .where(BackgroundJob.meal_request_id == meal_request.id, BackgroundJob.kind == GENERATION,
+               BackgroundJob.status.in_(("queued", "running")))
+        .order_by(BackgroundJob.created_at.desc()).limit(1).with_for_update())
+    if job is None:
+        return None
+    job.status, job.stage = "failed", "cancelled"
+    job.error_code, job.error_message = CANCELLED, "已取消生成；問卷已保留，可修改後重新送出。"
+    job.lease_owner = job.lease_expires_at = None
+    job.finished_at = job.updated_at = _now()
+    previous = db.scalar(
+        select(BackgroundJob)
+        .where(BackgroundJob.meal_request_id == meal_request.id, BackgroundJob.kind == GENERATION,
+               BackgroundJob.status == "succeeded", BackgroundJob.input_version == job.input_version)
+        .order_by(BackgroundJob.finished_at.desc()).limit(1))
+    if previous is not None and isinstance(previous.result, dict):
+        meal_request.status = previous.result.get("request_status") or "result_ready"
+    else:
+        meal_request.status = "draft"
+    meal_request.updated_at = _now()
+    _log("job_cancelled", job, CANCELLED)
+    return job
+
+
 def public_view(job: BackgroundJob) -> dict:
     return {
         "id": str(job.id),
@@ -226,8 +401,16 @@ def public_view(job: BackgroundJob) -> dict:
         "max_attempts": job.max_attempts,
         "meal_request_id": str(job.meal_request_id) if job.meal_request_id else None,
         "input_version": job.input_version,
+        "source_result_version": (job.params or {}).get("source_result_version"),
         "result_version": job.result_version,
         "error": {"code": job.error_code, "message": job.error_message} if job.error_code else None,
+        # T14：成功的生成工作附結果摘要（結果版本、模式與「AI 生成菜單」標示）；完整結果在 generation_results
+        "result_summary": (job.result if job.status == "succeeded" and isinstance(job.result, dict)
+                           and "generation_result_id" in job.result else None),
         "created_at": job.created_at.isoformat(),
         "updated_at": job.updated_at.isoformat(),
+        # 前端顯示等待時間與自動中止上限（伺服器端計算，不依賴使用者裝置時鐘）
+        "waited_seconds": max(0, int((_now() - job.created_at).total_seconds())),
+        "timeout_seconds": {"queued": settings.job_queue_timeout_seconds,
+                            "running": settings.job_attempt_timeout_seconds}.get(job.status),
     }

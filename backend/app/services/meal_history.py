@@ -1,7 +1,8 @@
 """T11 MealHistoryService：家庭已採用餐食紀錄與前一日菜色比對（R13）。
 
-比對日期一律是「本次規劃的餐食日期減一個日曆日」，讀取同家庭當日全部餐別；
-沒有紀錄就是沒有，不往更早日期回溯。同菜以標準菜色 ID／別名判定。
+比對範圍：「本次規劃的餐食日期減一個日曆日」的全部餐別，加上同一天其他餐別已採用的菜
+（2026-10-26 使用者決定：同一天午餐、晚餐也不重複）；沒有紀錄就是沒有，不往更早日期回溯。
+同菜以標準菜色 ID／別名判定。
 """
 import uuid
 from datetime import date, timedelta
@@ -14,6 +15,7 @@ from app.services.recipe_import import standard_dish_id
 
 MODES = ("database_menu", "ai_generated_menu")
 CONFLICT_CODE = "PREVIOUS_DAY_DISH_CONFLICT"
+MEAL_LABELS = {"breakfast": "早餐", "lunch": "午餐", "dinner": "晚餐"}
 
 
 def dish_keys(dish: dict) -> set[str]:
@@ -53,14 +55,19 @@ def record_adopted(db: Session, household_id, meal_date: date, meal_type: str, *
     return row
 
 
-def previous_day_context(db: Session, household_id, meal_date: date, *, specified_dish_ids: list[str]) -> dict:
-    """回傳可保存的 PreviousDayContext；指定菜只豁免它自己。"""
+def previous_day_context(db: Session, household_id, meal_date: date, *, specified_dish_ids: list[str],
+                         meal_type: str | None = None) -> dict:
+    """回傳可保存的 PreviousDayContext；指定菜只豁免它自己。
+
+    給了 meal_type 時，同一天其他餐別已採用的菜也排除（同餐別重新規劃不算）。
+    """
     previous = meal_date - timedelta(days=1)
+    same_day = (AdoptedMealPlan.meal_date == meal_date) & (AdoptedMealPlan.meal_type != meal_type)
+    scope = (AdoptedMealPlan.meal_date == previous) | same_day if meal_type else AdoptedMealPlan.meal_date == previous
     rows = db.scalars(
         select(AdoptedMealPlan)
-        .where(AdoptedMealPlan.household_id == household_id, AdoptedMealPlan.meal_date == previous,
-               AdoptedMealPlan.status == "adopted")
-        .order_by(AdoptedMealPlan.adopted_at, AdoptedMealPlan.id)
+        .where(AdoptedMealPlan.household_id == household_id, scope, AdoptedMealPlan.status == "adopted")
+        .order_by(AdoptedMealPlan.meal_date, AdoptedMealPlan.adopted_at, AdoptedMealPlan.id)
     ).all()
     specified = list(dict.fromkeys(specified_dish_ids))
     excluded: list[dict] = []
@@ -72,10 +79,7 @@ def previous_day_context(db: Session, household_id, meal_date: date, *, specifie
             if hit:
                 exceptions.extend(s for s in hit if s not in exceptions)
                 continue
-            # Do not merge distinct historical dishes merely because they share a
-            # generic alias; recipe retrieval resolves those against the catalog.
-            seen = next((s for s in excluded if s['standard_dish_id'] == dish['standard_dish_id']
-                         or standard_dish_id(s['dish_name']) == standard_dish_id(dish['dish_name'])), None)
+            seen = next((s for s in excluded if same_dish(dish, s)), None)
             if seen is not None:
                 # 同一道菜昨天出現多次：合併成一筆，保留所有別名
                 for name in (dish["dish_name"], *(dish.get("aliases") or [])):
@@ -83,12 +87,16 @@ def previous_day_context(db: Session, household_id, meal_date: date, *, specifie
                         seen["aliases"].append(name)
                 continue
             excluded.append({"standard_dish_id": dish["standard_dish_id"], "dish_name": dish["dish_name"],
-                             "aliases": list(dish.get("aliases") or [])})
+                             "aliases": list(dish.get("aliases") or []),
+                             # 來源：昨日或同一天哪一餐（畫面說明用）
+                             "from": "previous_day" if row.meal_date == previous else row.meal_type})
     return {
         "household_id": str(household_id),
         "meal_date": meal_date.isoformat(),
         "previous_date": previous.isoformat(),
-        "records": [{"id": str(r.id), "version": r.version, "meal_type": r.meal_type} for r in rows],
+        "meal_type": meal_type,
+        "records": [{"id": str(r.id), "version": r.version, "meal_type": r.meal_type,
+                     "meal_date": r.meal_date.isoformat()} for r in rows],
         "excluded_dishes": excluded,
         "specified_dish_ids": specified,
         "specified_exceptions": exceptions,
@@ -96,33 +104,30 @@ def previous_day_context(db: Session, household_id, meal_date: date, *, specifie
 
 
 def conflicts(context: dict, dishes: list[dict]) -> list[dict]:
-    """菜單中與昨日排除清單同菜的菜色（指定例外已不在排除清單內）。"""
-    return [d for d in dishes if any(
-        ex['resolved_standard_dish_id'] == d['resolved_standard_dish_id']
-        if ex.get('resolved_standard_dish_id') and d.get('resolved_standard_dish_id') else same_dish(d, ex)
-        for ex in context["excluded_dishes"])]
+    """菜單中與昨日排除清單同菜的菜色；明確指定的菜（含昨日以其別名記錄者）不算衝突。"""
+    return [d for d in dishes if not _is_specified(d, context)
+            and any(same_dish(d, ex) for ex in context["excluded_dishes"])]
+
+
+def _is_specified(dish: dict, context: dict) -> bool:
+    return bool(dish_keys(dish).intersection(context.get("specified_dish_ids") or []))
+
+
+def specified_repeats(context: dict, dishes: list[dict]) -> list[str]:
+    """菜單中因明確指定而與昨日重複的菜名（含昨日以別名記錄者）。"""
+    exceptions = set(context.get("specified_exceptions") or [])
+    return [d["dish_name"] for d in dishes if exceptions & dish_keys(d) or (
+        _is_specified(d, context) and any(same_dish(d, ex) for ex in context.get("excluded_dishes") or []))]
 
 
 def recheck_previous_day(db: Session, context: dict, dishes: list[dict]) -> dict:
     """採用前重新讀取歷史：歷史變動使菜單撞昨日菜時回報衝突，不採用過時結果。"""
-    resolved = context.get('identity_resolution') == 'catalog-v1'
     fresh = previous_day_context(db, uuid.UUID(context["household_id"]), date.fromisoformat(context["meal_date"]),
-                                 specified_dish_ids=[] if resolved else context.get("specified_dish_ids", []))
-    if resolved:
-        from app.services.recipe_retrieval import resolve_previous_day_context, resolve_menu_identities
-        fresh['specified_dish_ids'] = context.get('specified_dish_ids', [])
-        fresh = resolve_previous_day_context(db, fresh)
-        if fresh['identity_errors']:
-            return {'status': 'conflict', 'code': 'DISH_IDENTITY_UNRESOLVED', 'context': fresh}
-        proposed, errors = resolve_menu_identities(db, dishes)
-        if errors:
-            return {'status': 'conflict', 'code': 'DISH_IDENTITY_UNRESOLVED',
-                    'identity_errors': errors, 'context': fresh}
-    else:
-        proposed = dishes
+                                 specified_dish_ids=context.get("specified_dish_ids", []),
+                                 meal_type=context.get("meal_type"))
     changed = ([(r["id"], r["version"]) for r in fresh["records"]]
-               != [(r["id"], r["version"]) for r in context["records"]])
-    clash = [original for original, identity in zip(dishes, proposed) if conflicts(fresh, [identity])]
+               != [(r["id"], r["version"]) for r in context["records"]])  # 舊結果沒有 meal_type：只比前一日，行為不變
+    clash = conflicts(fresh, dishes)
     if clash:
         return {"status": "conflict", "code": CONFLICT_CODE, "conflicting_dishes": clash,
                 "history_changed": changed, "context": fresh}

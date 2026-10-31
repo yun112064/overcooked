@@ -622,6 +622,44 @@ def _reviewed_distinct_pairs(review_applied: dict[str, Any] | None) -> set[froze
     return pairs
 
 
+CATEGORY_OVERRIDES_PATH = Path(__file__).resolve().parents[3] / "config" / "recipe_category_overrides.json"
+
+
+def load_category_overrides(path: str | Path = CATEGORY_OVERRIDES_PATH) -> dict[str, dict]:
+    """Load reviewed category corrections without changing the source release."""
+    overrides = json.loads(Path(path).read_text(encoding="utf-8"))["overrides"]
+    for recipe_id, entry in overrides.items():
+        if not all(_text(entry.get(key)) for key in ("category", "reason", "decided_at")):
+            raise WorkbookValidationError(
+                f"Category override {recipe_id} needs category, reason and decided_at"
+            )
+    return overrides
+
+
+def apply_category_overrides(session: Session, overrides: dict[str, dict], *, dry_run: bool = False) -> dict:
+    """Apply reviewed corrections idempotently to recipes already loaded from SQL."""
+    changed, unchanged, missing = [], [], []
+    for recipe_id in sorted(overrides):
+        entry = overrides[recipe_id]
+        recipe = session.get(Recipe, recipe_id)
+        if recipe is None:
+            missing.append(recipe_id)
+        elif recipe.category == entry["category"]:
+            unchanged.append(recipe_id)
+        else:
+            changed.append({
+                "recipe_id": recipe_id,
+                "from": recipe.category,
+                "to": entry["category"],
+                "reason": entry["reason"],
+                "decided_at": entry["decided_at"],
+            })
+            if not dry_run:
+                recipe.category = entry["category"]
+    session.flush()
+    return {"changed": changed, "unchanged": unchanged, "missing_recipe_ids": missing, "dry_run": dry_run}
+
+
 def load_source_rights(path: str | Path) -> dict[str, dict]:
     data = json.loads(Path(path).read_text(encoding="utf-8"))
     return {name: entry for name, entry in data["sources"].items()}

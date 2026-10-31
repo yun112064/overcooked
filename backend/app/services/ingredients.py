@@ -1,16 +1,13 @@
 """共用標準食材字典（FOOD 編號），供過敏、禁吃、已有食材種類與辨識結果對映。
 
-來源為 active SQL 食譜 release 的 ingredient_aliases，與
-recipe_ingredients.food_id 使用同一套編號。一般使用者不能改寫共用字典。
+來源為 T01 匯入的 ingredient_aliases 資料表（recipe_dataset 工作簿的「標準食材整合」
+與食材別名），與食譜的 recipe_ingredients.food_id 同一套編號。一般使用者不能改寫
+共用字典，只能透過匯入工具更新。
 """
 from sqlalchemy import String, cast, or_, select
 from sqlalchemy.orm import Session
 
-from app.models.recipe import IngredientAlias, RecipeDataRelease
-
-
-def _active_catalog():
-    return IngredientAlias.recipe_release_id == RecipeDataRelease.release_id
+from app.models.recipe import IngredientAlias
 
 
 def names(db: Session, ingredient_ids: list[str]) -> dict[str, str]:
@@ -18,8 +15,6 @@ def names(db: Session, ingredient_ids: list[str]) -> dict[str, str]:
         return {}
     rows = db.execute(
         select(IngredientAlias.food_id, IngredientAlias.canonical_name)
-        .join(RecipeDataRelease, _active_catalog())
-        .where(RecipeDataRelease.active.is_(True))
         .where(IngredientAlias.food_id.in_(set(ingredient_ids)))
     ).all()
     return dict(rows)
@@ -38,11 +33,7 @@ def describe(db: Session, ingredient_ids: list[str]) -> list[dict]:
 def search(db: Session, query: str, limit: int = 20) -> list[dict]:
     """依標準名稱或無歧義別名搜尋；完全相符 → 開頭相符 → 包含。"""
     q = query.strip()
-    stmt = (
-        select(IngredientAlias.food_id, IngredientAlias.canonical_name, IngredientAlias.aliases)
-        .join(RecipeDataRelease, _active_catalog())
-        .where(RecipeDataRelease.active.is_(True))
-    )
+    stmt = select(IngredientAlias.food_id, IngredientAlias.canonical_name, IngredientAlias.aliases)
     if q:
         pattern = f"%{q.replace('%', '').replace('_', '')}%"
         stmt = stmt.where(or_(

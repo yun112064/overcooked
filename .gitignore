@@ -11,6 +11,7 @@ env/
 __pycache__/
 *.py[cod]
 .pytest_cache/
+mock_store.sqlite3
 .test-tmp/
 .coverage
 

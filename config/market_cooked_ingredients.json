@@ -1,0 +1,25 @@
+{
+  "version": "market-cooked-2026-10-21",
+  "decision": "decisions #51（擴充 #35）",
+  "note": "市售即為熟品的食材：食譜食材（以 FOOD 編號或標準名稱比對）對照到的 TFDA 樣本為熟樣本（state=cooked）時，工作簿克數（WORKBOOK_RAW_CONVENTION）與 AI 宣告克數（MODEL_DECLARED）都視為熟重，以熟樣本組成計算、不再套烹調方式（trace.weight_basis_source=market_cooked_cooked_sample）。對照到生樣本時不受影響。清單可人工增修，每筆附理由。",
+  "ingredients": [
+    {
+      "food_id": "FOOD000728",
+      "name": "桂竹筍",
+      "tfda_sample_id": "E1100101",
+      "reason": "市售桂竹筍為產地煮熟後真空包裝販售（熟桂竹筍），買回只需切片炒煮，工作簿克數即熟品重量。"
+    },
+    {
+      "food_id": "FOOD001642",
+      "name": "鹹蛋黃",
+      "tfda_sample_id": "K0214801",
+      "reason": "市售鹹蛋黃為醃製後烤熟或蒸熟的成品（TFDA 鴨鹹蛋黃為熟樣本），食譜克數即成品重量。"
+    },
+    {
+      "food_id": "FOOD000388",
+      "name": "杏仁果",
+      "tfda_sample_id": "C0110201",
+      "reason": "市售杏仁果多為烘烤過的熟品（TFDA 甘扁桃仁(熟)），直接加入料理，克數即熟品重量。"
+    }
+  ]
+}

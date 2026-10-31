@@ -1,0 +1,248 @@
+{
+  "rule_version": "hpa-dri8-mvp-0.4.0",
+  "rule_status": "user_confirmed_mvp",
+  "source_verification": "text_verified_pdf_visual_check_pending",
+  "product_scope": "adult_equation_from_19_minor_dri_table_under_19_adult_goals_from_19",
+  "energy": {
+    "equation_id": "hpa-dri8-wei1",
+    "intercept": "28.2437",
+    "male_coefficient": "2.4275",
+    "age_coefficient": "-0.02277",
+    "weight_coefficient": "-0.1234",
+    "pal": {
+      "sedentary": "1.3",
+      "low_active": "1.5",
+      "active": "1.7",
+      "highly_active": "1.9"
+    }
+  },
+  "protein": {
+    "rule_id": "mvp-adult-uniform-1.1",
+    "g_per_kg": "1.1",
+    "age_adjustments_enabled": false
+  },
+  "goal_adjustments": {
+    "general": {
+      "energy_multiplier": "1",
+      "energy_offset_kcal": "0"
+    },
+    "maintain": {
+      "energy_multiplier": "1",
+      "energy_offset_kcal": "0"
+    },
+    "muscle_gain": {
+      "energy_multiplier": "1.05",
+      "energy_offset_kcal": "0"
+    },
+    "fat_loss": {
+      "energy_multiplier": "1",
+      "energy_offset_kcal": "-500",
+      "minimum_daily_energy_kcal": "1200"
+    }
+  },
+  "allowed_portions": [
+    "0.7",
+    "0.85",
+    "1",
+    "1.15",
+    "1.3"
+  ],
+  "meal_ratios": {
+    "breakfast": "0.3",
+    "lunch": "0.3",
+    "dinner": "0.4"
+  },
+  "source": {
+    "publisher": "衛生福利部國民健康署",
+    "title": "國人膳食營養素參考攝取量及其說明",
+    "edition": "8",
+    "publication_date": "2023-12",
+    "energy_printed_pages": [
+      37,
+      38,
+      40,
+      41
+    ],
+    "original_energy_scope": "adults_age_19_and_above",
+    "url": "https://www.hpa.gov.tw/Pages/Detail.aspx?id=549&nodeid=4248&pid=12285",
+    "checked_on": "2026-10-05",
+    "protein_printed_pages": [
+      116,
+      117
+    ]
+  },
+  "decision_date": "2026-10-26",
+  "adjustment_sources": [
+    {
+      "id": "hpa-weight-management",
+      "url": "https://health.hpa.gov.tw/hpa/info/print.aspx?enc=ms8UXTGwISDdpLhTR1JPDA%3D%3D",
+      "use": "500 kcal deficit and 1200 kcal floor; product applicability per user MVP decision"
+    },
+    {
+      "id": "helms-2023",
+      "url": "https://link.springer.com/article/10.1186/s40798-023-00651-y",
+      "use": "5 percent surplus candidate approved by user; trial population had resistance training"
+    }
+  ],
+  "goal_eligibility": {
+    "adult_goals_min_age_years": 19,
+    "restricted_goals": [
+      "maintain",
+      "muscle_gain",
+      "fat_loss"
+    ]
+  },
+  "minor_targets": {
+    "applies_below_age_years": 19,
+    "source": {
+      "publisher": "衛生福利部國民健康署",
+      "title": "國人膳食營養素參考攝取量（DRIs）第八版總表",
+      "edition": "8",
+      "publication_date": "2022-10-20",
+      "url": "https://www.hpa.gov.tw/Pages/Detail.aspx?id=549&nodeid=4248&pid=12285",
+      "checked_on": "2026-10-26",
+      "verification": "自國健署官網總表 PDF 擷取文字逐列核對"
+    },
+    "note": "未滿 19 歲不套用成人能量公式（其來源只涵蓋 19 歲以上），改查國健署 DRIs 分齡表：熱量依年齡層×性別×生活活動強度，蛋白質為該年齡層 RDA（公克／日）。1–15 歲表上只有「稍低」「適度」兩級，本系統的低活動對應稍低、高活動對應適度；16–18 歲四級齊全。0 歲（未滿 1 歲）以 7–12 個月每公斤值計算。未滿 19 歲只能選一般目標，不做增減肌調整。",
+    "infant": {
+      "age_max": 0,
+      "energy_kcal_per_kg": "90",
+      "protein_g_per_kg": "2.1",
+      "source_row": "7-12 月"
+    },
+    "bands": [
+      {
+        "age_min": 1,
+        "age_max": 3,
+        "energy_kcal": {
+          "M": {
+            "sedentary": "1150",
+            "low_active": "1150",
+            "active": "1350",
+            "highly_active": "1350"
+          },
+          "F": {
+            "sedentary": "1150",
+            "low_active": "1150",
+            "active": "1350",
+            "highly_active": "1350"
+          }
+        },
+        "protein_g": {
+          "M": "20",
+          "F": "20"
+        }
+      },
+      {
+        "age_min": 4,
+        "age_max": 6,
+        "energy_kcal": {
+          "M": {
+            "sedentary": "1550",
+            "low_active": "1550",
+            "active": "1800",
+            "highly_active": "1800"
+          },
+          "F": {
+            "sedentary": "1400",
+            "low_active": "1400",
+            "active": "1650",
+            "highly_active": "1650"
+          }
+        },
+        "protein_g": {
+          "M": "30",
+          "F": "30"
+        }
+      },
+      {
+        "age_min": 7,
+        "age_max": 9,
+        "energy_kcal": {
+          "M": {
+            "sedentary": "1800",
+            "low_active": "1800",
+            "active": "2100",
+            "highly_active": "2100"
+          },
+          "F": {
+            "sedentary": "1650",
+            "low_active": "1650",
+            "active": "1900",
+            "highly_active": "1900"
+          }
+        },
+        "protein_g": {
+          "M": "40",
+          "F": "40"
+        }
+      },
+      {
+        "age_min": 10,
+        "age_max": 12,
+        "energy_kcal": {
+          "M": {
+            "sedentary": "2050",
+            "low_active": "2050",
+            "active": "2350",
+            "highly_active": "2350"
+          },
+          "F": {
+            "sedentary": "1950",
+            "low_active": "1950",
+            "active": "2250",
+            "highly_active": "2250"
+          }
+        },
+        "protein_g": {
+          "M": "55",
+          "F": "50"
+        }
+      },
+      {
+        "age_min": 13,
+        "age_max": 15,
+        "energy_kcal": {
+          "M": {
+            "sedentary": "2400",
+            "low_active": "2400",
+            "active": "2800",
+            "highly_active": "2800"
+          },
+          "F": {
+            "sedentary": "2050",
+            "low_active": "2050",
+            "active": "2350",
+            "highly_active": "2350"
+          }
+        },
+        "protein_g": {
+          "M": "70",
+          "F": "60"
+        }
+      },
+      {
+        "age_min": 16,
+        "age_max": 18,
+        "energy_kcal": {
+          "M": {
+            "sedentary": "2150",
+            "low_active": "2500",
+            "active": "2900",
+            "highly_active": "3350"
+          },
+          "F": {
+            "sedentary": "1650",
+            "low_active": "1900",
+            "active": "2250",
+            "highly_active": "2550"
+          }
+        },
+        "protein_g": {
+          "M": "75",
+          "F": "55"
+        }
+      }
+    ]
+  }
+}

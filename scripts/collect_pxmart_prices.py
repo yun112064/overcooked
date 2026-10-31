@@ -1,4 +1,4 @@
-"""Collect PX Mart price candidates for the workbook's canonical ingredients."""
+"""Collect PX Mart price candidates for the active SQL recipe release."""
 
 from __future__ import annotations
 
