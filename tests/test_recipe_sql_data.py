@@ -113,6 +113,22 @@ class RecipeSqlDataTests(unittest.TestCase):
         self.assertEqual(set(), recognition_ids - active_food_ids)
         self.assertEqual(set(), synonym_ids - active_food_ids)
 
+    def test_reviewed_spicy_dish_keeps_distinct_identity(self) -> None:
+        self._bootstrap()
+        with self.engine.connect() as connection:
+            rows = connection.execute(
+                text(
+                    "SELECT recipe_id, category, standard_dish_id, name_aliases "
+                    "FROM recipes WHERE recipe_id IN ('R0180', 'R0182')"
+                )
+            ).mappings().all()
+        recipes = {row["recipe_id"]: row for row in rows}
+        spicy, plain = recipes["R0180"], recipes["R0182"]
+        self.assertEqual("主菜", spicy["category"])
+        self.assertEqual("主菜", plain["category"])
+        self.assertNotEqual(spicy["standard_dish_id"], plain["standard_dish_id"])
+        self.assertNotIn("桂竹筍炒肉絲", spicy["name_aliases"])
+
 
 if __name__ == "__main__":
     unittest.main()

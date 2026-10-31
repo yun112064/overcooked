@@ -9,6 +9,9 @@ RUN pip install --no-cache-dir -r /app/requirements.txt
 COPY backend /app/backend
 # T07 起後端直接使用 T03 版本化規則；標準食材字典（FOOD 編號）由 T01 匯入資料庫
 COPY nutrition_target /app/nutrition_target
+# T12 exact calculations and the versioned TFDA catalog/mapping dependencies.
+COPY nutrition_planning /app/nutrition_planning
+COPY nutrition_model /app/nutrition_model
 # T10 付費呼叫預留與結算用的模型價格表
 COPY config/model_pricing.json /app/config/model_pricing.json
 # T09 YOLO 類別名稱對照（待 T05 定版）
@@ -21,6 +24,7 @@ COPY config/ingredient_synonyms.json /app/config/ingredient_synonyms.json
 COPY data/recipe_data_manifest.json /app/recipe_seed/recipe_data_manifest.json
 COPY data/recipe_data_1027.sql.gz /app/recipe_seed/recipe_data_1027.sql.gz
 COPY scripts/bootstrap_recipe_data.py /app/scripts/bootstrap_recipe_data.py
+COPY config/staples.json /app/config/staples.json
 ENV PYTHONPATH=/app
 COPY alembic.ini /app/alembic.ini
 COPY migrations /app/migrations

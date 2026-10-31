@@ -1,0 +1,15 @@
+{
+  "version": "staples-2026-11-01-v2",
+  "review_status": "user_confirmed",
+  "white_rice": {
+    "name": "白飯",
+    "food_id": "FOOD000296",
+    "tfda_sample_id": "A0550601",
+    "weight_basis": "cooked",
+    "source_cooking_method": "電鍋煮",
+    "grams_per_n": "160",
+    "adjustable_min_g_per_n": "100",
+    "adjustable_max_g_per_n": "250",
+    "cooking_step_g": "1"
+  }
+}

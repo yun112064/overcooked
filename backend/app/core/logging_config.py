@@ -89,6 +89,7 @@ SAFE_LOG_EVENTS = {
     "job_succeeded": ("process", "Background job succeeded"),
     "job_failed": ("process", "Background job failed"),
     "job_retry_scheduled": ("process", "Background job retry scheduled"),
+    "knowledge_retrieval_failed": ("process", "Knowledge retrieval failed"),
     "job_recovered": ("scheduler", "Expired background job recovered"),
     "scheduler_started": ("scheduler", "Scheduler started"),
     "scheduler_lock_held": ("scheduler", "Another scheduler instance is running"),

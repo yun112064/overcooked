@@ -29,5 +29,7 @@
     "R0219": ["拌"],
     "R0285": ["炒"]
   },
+  "recipe_categories": {"R0180": "主菜"},
+  "excluded_name_aliases": {"R0180": ["桂竹筍炒肉絲"]},
   "quantity_policy":"「適量／少許」等無數字用量，依資料整理時填入的 amount 欄作為參考用量（quantity_status=reference_amount）"
 }

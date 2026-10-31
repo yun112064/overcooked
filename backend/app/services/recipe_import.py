@@ -245,7 +245,7 @@ def _split_list(value: Any) -> list[str]:
 
 
 def normalize_name(value: str) -> str:
-    normalized = unicodedata.normalize("NFKC", value).lower()
+    normalized = unicodedata.normalize("NFKC", value).lower().translate(str.maketrans("蕃臺葱麪", "番台蔥麵"))
     return "".join(character for character in normalized if character.isalnum())
 
 
@@ -593,6 +593,10 @@ def _apply_review_record(raw_sheets: dict[str, list[dict[str, Any]]], record: di
     # 步驟文字找不到關鍵字時，人工指定的烹調方式；工作簿已填者優先。
     methods_by_recipe = record.get("recipe_cooking_methods") or {}
     recipes_by_id = {_text(row.get("recipe_id")): row for row in raw_sheets["recipes"]}
+    for recipe_id, category in (record.get("recipe_categories") or {}).items():
+        if recipe_id not in recipes_by_id or category not in {"主菜", "主食", "湯", "點心"}:
+            raise WorkbookValidationError(f"Invalid reviewed category: {recipe_id}: {category!r}")
+        recipes_by_id[recipe_id]["category"] = category
     for recipe_id, methods in methods_by_recipe.items():
         if recipe_id not in recipes_by_id or not methods or set(methods) - set(METHOD_KEYWORDS):
             raise WorkbookValidationError(f"Invalid cooking methods in review record: {recipe_id}: {methods!r}")
@@ -600,6 +604,8 @@ def _apply_review_record(raw_sheets: dict[str, list[dict[str, Any]]], record: di
             recipes_by_id[recipe_id]["cooking_methods"] = "；".join(methods)
     return {**summary, "applied": True, "approvals": record.get("approvals"),
             "recipe_cooking_methods": methods_by_recipe,
+            "recipe_categories": record.get("recipe_categories") or {},
+            "excluded_name_aliases": record.get("excluded_name_aliases") or {},
             "distinct_recipe_pairs": record.get("distinct_recipe_pairs") or []}
 
 
@@ -914,6 +920,10 @@ def parse_recipe_workbook(path: str | Path, source_rights: dict[str, dict] | Non
         normalized_groups[normalized].append(recipe_id)
         raw_name = _text(source["recipe_name_raw"])
         name_aliases = [raw_name] if raw_name and raw_name != recipe_name else []
+        excluded_aliases = (review_applied or {}).get("excluded_name_aliases", {}).get(recipe_id, [])
+        if not isinstance(excluded_aliases, list):
+            raise WorkbookValidationError(f"Invalid excluded aliases for {recipe_id}")
+        name_aliases = [alias for alias in name_aliases if alias not in excluded_aliases]
         supplied_methods = _split_list(row.get("cooking_methods"))
         methods = supplied_methods or _method_candidates(instructions_by_recipe.get(recipe_id, []))
         method_status = (_text(row.get("cooking_method_status")) or "unreviewed").lower()
