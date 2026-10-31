@@ -97,13 +97,26 @@ def resolve_imported_selections(db: Connection, rows: RecipeRows, *, import_id: 
             selected[lid] = ImportedNutritionSelection(row['nutrition_id'], row['cooking_state'],
                                                         row['cooking_method'], preparation=row['preparation'])
             continue
+        request = {'recipe': recipes.get(rid), 'line': dict(line),
+                   'steps': steps_by_recipe.get(rid, []),
+                   'candidates': [dict(row) for row in compatible], 'cooking_method': method}
         if variant_resolver is None:
-            issues.append(InputIssue('nutrition_variant_decision_required', rid, lid, 'cooking_method'))
-            continue
-        decision = variant_resolver({'recipe': recipes.get(rid), 'line': dict(line),
-                                     'steps': steps_by_recipe.get(rid, []),
-                                     'candidates': [dict(row) for row in compatible],
-                                     'cooking_method': method})
+            try:
+                from llm_cooking_estimator import resolve_nutrition_variant  # type: ignore[import-not-found]
+                llm = resolve_nutrition_variant(request)
+            except ImportError:
+                issues.append(InputIssue('llm_service_unavailable', rid, lid, 'cooking_method'))
+                continue
+            if not llm.get('success'):
+                issues.append(InputIssue(str(llm.get('error', 'llm_variant_decision_invalid')), rid, lid,
+                                         'cooking_method'))
+                continue
+            chosen = next(row for row in compatible if row['nutrition_id'] == llm['nutrition_id'])
+            decision = ImportedNutritionSelection(chosen['nutrition_id'], chosen['cooking_state'],
+                chosen['cooking_method'], preparation=chosen['preparation'],
+                decision_basis=llm['basis'], decision_version=llm['version'])
+        else:
+            decision = variant_resolver(request)
         if not isinstance(decision, ImportedNutritionSelection) or not decision.decision_basis or not decision.decision_version:
             issues.append(InputIssue('llm_variant_decision_invalid', rid, lid, 'cooking_method'))
             continue
