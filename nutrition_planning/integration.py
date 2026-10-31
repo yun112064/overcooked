@@ -9,6 +9,7 @@ from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, replace
 import hashlib
 import json
+from pathlib import Path
 from typing import Literal, cast
 
 from sqlalchemy import MetaData, Table, select
@@ -72,6 +73,7 @@ class DatabaseMenuResult:
     targets: MealTargets
     preparation: PreparedRecipe
     validation: MealValidationResult | None
+    staple_snapshot: Mapping | None = None
 
     @property
     def final_food_ids(self) -> tuple[str, ...]:
@@ -213,6 +215,7 @@ def prepare_database_recipe(rows: RecipeRows, *, policy: NutritionPolicy,
 def validate_database_menu(db: Connection, recipe_ids: Sequence[str], *, participations: list,
                            target_service, policy: NutritionPolicy,
                            profiles: Mapping[str, RecipeLineProfile],
+                           staple: str | None = None,
                            t04_results: Mapping | None = None,
                            food_mapping_path=None,
                            nutrition_source: Literal['imported', 'legacy_tfda'] = 'imported',
@@ -225,6 +228,56 @@ def validate_database_menu(db: Connection, recipe_ids: Sequence[str], *, partici
     """
     targets = targets_from_t03(target_service.aggregate_meal_targets(participations))
     rows = load_database_recipe_rows(db, recipe_ids)
+    if staple is None:
+        return DatabaseMenuResult(targets, PreparedRecipe(None, (
+            InputIssue('staple_selection_required', 'staple', field='staple'),)), None)
+    staple_snapshot = None
+    if staple == '白飯':
+        try:
+            config = json.loads((Path(__file__).resolve().parents[1] / 'config/staples.json').read_text(encoding='utf-8'))
+        except (OSError, ValueError):
+            return DatabaseMenuResult(targets, PreparedRecipe(None, (
+                InputIssue('staple_policy_unavailable', 'staple', field='policy'),)), None)
+        expected_rice = {'name': '白飯', 'food_id': 'FOOD000296', 'tfda_sample_id': 'A0550601',
+                         'weight_basis': 'cooked', 'grams_per_n': '160',
+                         'adjustable_min_g_per_n': '100', 'adjustable_max_g_per_n': '250',
+                         'cooking_step_g': '1'}
+        if (not isinstance(config, dict) or config.get('version') != 'staples-2026-11-01-v1'
+                or config.get('review_status') != 'user_confirmed'
+                or config.get('white_rice') != expected_rice):
+            return DatabaseMenuResult(targets, PreparedRecipe(None, (
+                InputIssue('staple_policy_unreviewed_or_changed', 'staple', field='policy'),)), None)
+        rice = expected_rice
+        staple_snapshot = {'version': config['version'], 'review_status': config['review_status'],
+                           **rice, 'selection': staple}
+        lid = 'staple:FOOD000296'
+        if nutrition_source == 'imported' and (nutrition_selections is None or lid not in nutrition_selections):
+            return DatabaseMenuResult(targets, PreparedRecipe(None, (
+                InputIssue('staple_nutrition_selection_missing', 'staple', lid, 'nutrition'),)), None)
+        recipe_row = {'recipe_id': 'staple', 'original_servings': 1,
+                      'review_status': 'approved', 'is_eligible': True}
+        line_row = {'recipe_ingredient_id': lid, 'recipe_id': 'staple', 'sequence': 1,
+                    'food_id': rice['food_id'], 'canonical_name': rice['name'],
+                    'weight_g': rice['grams_per_n'], 'weight_status': 'source_explicit',
+                    'unit': 'g', 'is_required': True, 'adjustment_status': 'approved',
+                    'adjustable_min': rice['adjustable_min_g_per_n'],
+                    'adjustable_max': rice['adjustable_max_g_per_n']}
+        rows = RecipeRows(rows.recipe_ids + ('staple',), rows.recipes + (recipe_row,),
+                          rows.ingredients + (line_row,))
+        profiles = {**profiles, lid: RecipeLineProfile(
+            rice['food_id'], recipe_line_digest(recipe_row, line_row), 'cooked', True,
+            rice['cooking_step_g'], 'user-confirmed-staple', config['version'],
+            review_status='approved')}
+        if nutrition_source == 'legacy_tfda':
+            existing_sample = policy.sample_mappings.get(rice['food_id'])
+            if existing_sample is not None and existing_sample != rice['tfda_sample_id']:
+                return DatabaseMenuResult(targets, PreparedRecipe(None, (
+                    InputIssue('staple_sample_mapping_conflict', 'staple', lid, 'sample_id'),)), None)
+            policy = replace(policy, sample_mappings={**policy.sample_mappings,
+                rice['food_id']: rice['tfda_sample_id']})
+    elif staple not in ('不需要主食', '無主食', '沒有主食'):
+        return DatabaseMenuResult(targets, PreparedRecipe(None, (
+            InputIssue('staple_not_supported', 'staple', field='staple'),)), None)
     if nutrition_source == 'imported':
         if food_mapping_path is not None:
             raise PlanningInputError('Imported nutrition cannot use a legacy FOOD/TFDA registry.')
@@ -233,6 +286,9 @@ def validate_database_menu(db: Connection, recipe_ids: Sequence[str], *, partici
                                             selections=nutrition_selections or {})
         if imported.issues:
             return DatabaseMenuResult(targets, PreparedRecipe(None, imported.issues), None)
+        if staple == '白飯' and imported.line_records['staple:FOOD000296']['ingredient_id'] != 'A0550601':
+            return DatabaseMenuResult(targets, PreparedRecipe(None, (
+                InputIssue('staple_tfda_sample_mismatch', 'staple', 'staple:FOOD000296', 'sample_id'),)), None)
         policy = replace(policy, sample_mappings={}, line_nutrition_records=imported.line_records)
     elif nutrition_source == 'legacy_tfda':
         if nutrition_import_id is not None or nutrition_selections is not None:
@@ -260,5 +316,13 @@ def validate_database_menu(db: Connection, recipe_ids: Sequence[str], *, partici
         if issues:
             return DatabaseMenuResult(targets, PreparedRecipe(None, issues), None)
     preparation = prepare_database_recipe(rows, policy=policy, profiles=profiles)
+    if staple == '白飯' and preparation.recipe is not None:
+        preparation = PreparedRecipe(replace(preparation.recipe, recipe_ids=tuple(recipe_ids)), ())
     result = validate_meal(preparation.recipe, targets, policy=policy) if preparation.recipe else None
-    return DatabaseMenuResult(targets, preparation, result)
+    if staple_snapshot is not None and result and result.final_recipe:
+        rice_line = next((line for line in result.final_recipe.ingredients
+                          if line.line_id == 'staple:FOOD000296'), None)
+        if rice_line is not None:
+            staple_snapshot = {**staple_snapshot, 'final_grams': str(rice_line.amount_g),
+                               'total_n': str(targets.total_n)}
+    return DatabaseMenuResult(targets, preparation, result, staple_snapshot)

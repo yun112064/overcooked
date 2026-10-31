@@ -3,6 +3,7 @@ from datetime import datetime, timezone
 from dataclasses import replace
 from copy import deepcopy
 from decimal import Decimal as D
+from fractions import Fraction as F
 from typing import cast
 
 import pytest
@@ -52,7 +53,7 @@ def imported_menu(menu, monkeypatch):
 def test_default_menu_reads_feature_import_data_without_reading_old_catalog(imported_menu):
     db, _, _, _, profiles, policy, service, participations = imported_menu
     policy.catalog_path.unlink()
-    result = validate_database_menu(db, ['R1'], participations=participations, target_service=service,
+    result = validate_database_menu(db, ['R1'], staple="不需要主食", participations=participations, target_service=service,
         policy=policy, profiles=profiles, nutrition_import_id=IMPORT_ID,
         nutrition_selections={name: ImportedNutritionSelection('n-' + name, '已熟製', None)
                               for name in ('main', 'oil', 'salt')})
@@ -65,9 +66,100 @@ def test_default_menu_reads_feature_import_data_without_reading_old_catalog(impo
     assert source['source_id'] == 'new-main'
 
 
+def test_white_rice_cannot_be_silently_omitted_from_database_menu(imported_menu):
+    db, _, _, _, profiles, policy, service, participations = imported_menu
+    result = validate_database_menu(db, ['R1'], staple='白飯', participations=participations,
+        target_service=service, policy=policy, profiles=profiles, nutrition_import_id=IMPORT_ID,
+        nutrition_selections={name: ImportedNutritionSelection('n-' + name, '已熟製', None)
+                              for name in ('main', 'oil', 'salt')})
+    assert result.validation is None
+    assert any(issue.code == 'staple_nutrition_selection_missing' for issue in result.preparation.issues)
+
+
+def test_omitted_staple_choice_is_reported_as_missing(imported_menu):
+    db, _, _, _, profiles, policy, service, participations = imported_menu
+    result = validate_database_menu(db, ['R1'], participations=participations,
+        target_service=service, policy=policy, profiles=profiles, nutrition_import_id=IMPORT_ID)
+    assert result.validation is None
+    assert any(issue.code == 'staple_selection_required' for issue in result.preparation.issues)
+
+
+def test_changed_staple_policy_is_reported_instead_of_trusted(imported_menu, monkeypatch):
+    from pathlib import Path
+    original = Path.read_text
+    def changed_policy(path, *args, **kwargs):
+        content = original(path, *args, **kwargs)
+        if path.name == 'staples.json':
+            return content.replace('"grams_per_n": "160"', '"grams_per_n": "180"')
+        return content
+    monkeypatch.setattr(Path, 'read_text', changed_policy)
+    db, _, _, _, profiles, policy, service, participations = imported_menu
+    result = validate_database_menu(db, ['R1'], staple='白飯', participations=participations,
+        target_service=service, policy=policy, profiles=profiles, nutrition_import_id=IMPORT_ID)
+    assert result.validation is None
+    assert result.preparation.issues[0].code == 'staple_policy_unreviewed_or_changed'
+
+
+def test_white_rice_rejects_conflicting_legacy_sample(imported_menu):
+    db, _, _, _, profiles, policy, service, participations = imported_menu
+    conflict = replace(policy, sample_mappings={**policy.sample_mappings,
+                                                'FOOD000296': 'OTHER_SAMPLE'})
+    result = validate_database_menu(db, ['R1'], staple='白飯', participations=participations,
+        target_service=service, policy=conflict, profiles=profiles,
+        nutrition_source='legacy_tfda')
+    assert result.validation is None
+    assert result.preparation.issues[0].code == 'staple_sample_mapping_conflict'
+
+
+def test_white_rice_food_296_is_aligned_with_dishes_and_counted(imported_menu):
+    from app.models.nutrition import FoodNutrition, NutritionSource, NutritionSourceLink
+    db, _, _, _, profiles, policy, service, participations = imported_menu
+    source = db.execute(select(NutritionSource).where(NutritionSource.source_id == 's-main')).mappings().one()
+    db.execute(update(NutritionSource).where(NutritionSource.source_id == 's-main').values(
+        raw_data={**source['raw_data'], '熱量(kcal/100g)': '500', '蛋白質(g/100g)': '26.5'}))
+    db.execute(insert(FoodNutrition), dict(nutrition_id='n-rice', import_id=IMPORT_ID,
+        food_id='FOOD000296', source_row=50, standard_name='白飯', cooking_state='已熟製',
+        cooking_method=None, preparation=None, calculation_method='source',
+        energy_kcal=D('183'), protein_g=D('3.1'), nutrition_complete=False, quality_issues=[], raw_data={}))
+    db.execute(insert(NutritionSource), dict(source_id='s-rice', import_id=IMPORT_ID,
+        source_key='TFDA_rice', provider='TFDA', source_record_id='A0550601',
+        source_url='https://example.invalid/tfda', source_sheet='原始來源與判定', source_row=50,
+        raw_data={'中文原名': '白飯', '來源原文名稱': '白飯', '熱量(kcal/100g)': '183',
+                  '蛋白質(g/100g)': '3.1', '熟製狀態': '已熟製', '烹飪方式': None, '食用前處理': None}))
+    db.execute(insert(NutritionSourceLink), dict(nutrition_id='n-rice', source_id='s-rice',
+                                                  included_in_calculation=True))
+    selections = {name: ImportedNutritionSelection('n-' + name, '已熟製', None)
+                  for name in ('main', 'oil', 'salt')}
+    selections['staple:FOOD000296'] = ImportedNutritionSelection('n-rice', '已熟製', None)
+    result = validate_database_menu(db, ['R1'], staple='白飯', participations=participations,
+        target_service=service, policy=policy, profiles=profiles, nutrition_import_id=IMPORT_ID,
+        nutrition_selections=selections)
+    assert result.validation is not None and result.validation.nutrition_passed
+    assert result.validation.final_recipe is not None
+    assert result.validation.final_recipe.recipe_ids == ('R1',)
+    rice = next(line for line in result.validation.final_recipe.ingredients if line.food_id == 'FOOD000296')
+    assert F(100) * result.targets.total_n <= F(rice.amount_g) <= F(250) * result.targets.total_n
+    assert F(rice.amount_g) < F(160) * result.targets.total_n
+    assert rice.sample_id == 'A0550601'
+    assert result.staple_snapshot is not None
+    assert result.staple_snapshot['grams_per_n'] == '160'
+    assert result.staple_snapshot['version'] == 'staples-2026-11-01-v1'
+    assert result.staple_snapshot['final_grams'] == str(rice.amount_g)
+    rice_source = db.execute(select(NutritionSource).where(NutritionSource.source_id == 's-rice')).mappings().one()
+    db.execute(update(NutritionSource).where(NutritionSource.source_id == 's-rice').values(
+        raw_data={**rice_source['raw_data'], '蛋白質(g/100g)': None}))
+    missing = validate_database_menu(db, ['R1'], staple='白飯', participations=participations,
+        target_service=service, policy=policy, profiles=profiles, nutrition_import_id=IMPORT_ID,
+        nutrition_selections=selections)
+    assert missing.validation is not None and not missing.validation.nutrition_passed
+    assert missing.validation.final_estimate is None
+    assert any('staple:FOOD000296:protein_g' in item
+               for item in missing.validation.missing)
+
+
 def run_menu(menu, *, selections=None, import_id: str | None = IMPORT_ID, profiles=None, policy=None):
     db, _, _, _, original_profiles, original_policy, service, participations = menu
-    return validate_database_menu(db, ['R1'], participations=participations, target_service=service,
+    return validate_database_menu(db, ['R1'], staple="不需要主食", participations=participations, target_service=service,
         policy=policy or original_policy, profiles=profiles or original_profiles, nutrition_import_id=import_id,
         nutrition_selections=selections if selections is not None else {
             name: ImportedNutritionSelection('n-' + name, '已熟製', None) for name in ('main', 'oil', 'salt')})
@@ -230,13 +322,13 @@ def test_imported_raw_tfda_and_t04_coefficients_work_without_legacy_catalog(impo
     selections = {name: ImportedNutritionSelection('n-' + name, '已熟製', None) for name in ('main', 'oil', 'salt')}
     selections['main'] = ImportedNutritionSelection('n-main', '未熟製', None)
     policy.catalog_path.unlink()
-    result = validate_database_menu(db, ['R1'], participations=imported_menu[7], target_service=imported_menu[6],
+    result = validate_database_menu(db, ['R1'], staple="不需要主食", participations=imported_menu[7], target_service=imported_menu[6],
         policy=policy, profiles=profiles, nutrition_import_id=IMPORT_ID, nutrition_selections=selections,
         t04_results={'main': receipt})
     assert result.validation is not None and result.validation.nutrition_passed
     assert result.validation.final_estimate is not None
     assert result.validation.final_estimate.totals == result.targets.target
-    stale = validate_database_menu(db, ['R1'], participations=imported_menu[7], target_service=imported_menu[6],
+    stale = validate_database_menu(db, ['R1'], staple="不需要主食", participations=imported_menu[7], target_service=imported_menu[6],
         policy=policy, profiles=profiles, nutrition_import_id=IMPORT_ID, nutrition_selections=selections,
         t04_results={'main': replace(receipt, nutrition_import_id='different-batch')})
     assert stale.validation is None
@@ -247,7 +339,7 @@ def test_imported_raw_tfda_and_t04_coefficients_work_without_legacy_catalog(impo
             old_result['nutrient_sources']['protein_g']['source']['source_version'] = 'old-version'
         else:
             old_result['raw_reference']['nutrition']['protein_g'] = 9999
-        old = validate_database_menu(db, ['R1'], participations=imported_menu[7], target_service=imported_menu[6],
+        old = validate_database_menu(db, ['R1'], staple="不需要主食", participations=imported_menu[7], target_service=imported_menu[6],
             policy=policy, profiles=profiles, nutrition_import_id=IMPORT_ID, nutrition_selections=selections,
             t04_results={'main': replace(receipt, result=old_result)})
         assert old.validation is None

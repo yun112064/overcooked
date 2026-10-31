@@ -111,6 +111,7 @@ class MealValidationResult:
     nutrition_passed: bool
     adoption_blockers: tuple[str, ...]
     reason: str | None = None
+    missing: tuple[str, ...] = ()
 
 
 def _approved_evidence(line: IngredientQuantity, policy: NutritionPolicy) -> CookingEvidence | None:
@@ -436,7 +437,8 @@ def validate_meal(recipe: RecipeCandidate, targets: MealTargets, *, policy: Nutr
     if not policy.approved_for_adoption:
         blockers.append("nutrition_policy_not_approved")
     if alignment.recipe is None:
-        return MealValidationResult(alignment.check, None, None, None, False, tuple(blockers), alignment.reason)
+        return MealValidationResult(alignment.check, None, None, None, False, tuple(blockers),
+                                    alignment.reason, alignment.estimate.missing)
     try:
         final_recipe = scale_to_cooking_units(alignment.recipe, targets.total_n)
     except PlanningInputError:
@@ -457,9 +459,10 @@ def validate_meal(recipe: RecipeCandidate, targets: MealTargets, *, policy: Nutr
         alternative, reason = _search_cookable(alignment.recipe, targets.total_n, targets, policy)
         if alternative is None:
             return MealValidationResult(alignment.check, final_recipe, final, final_check, False,
-                                        tuple(blockers), reason)
+                                        tuple(blockers), reason, final.missing)
         final_recipe = alternative
         final = calculate_nutrition(final_recipe, policy=policy)
         final_check = check_tolerance(final, targets.target)
     return MealValidationResult(alignment.check, final_recipe, final, final_check, final_check.passed,
-                                tuple(blockers), None if final_check.passed else "final_nutrition_outside_tolerance_or_incomplete")
+                                tuple(blockers), None if final_check.passed else "final_nutrition_outside_tolerance_or_incomplete",
+                                final.missing)
