@@ -5,7 +5,7 @@ import json
 import re
 import unicodedata
 from collections import Counter, defaultdict
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import date, datetime, timezone
 from decimal import Decimal, InvalidOperation
 from difflib import SequenceMatcher
@@ -591,7 +591,30 @@ def _apply_review_record(raw_sheets: dict[str, list[dict[str, Any]]], record: di
         for row in raw_sheets[sheet]:
             if _text(row.get(field)) is None:
                 row[field] = status
-    return {**summary, "applied": True, "approvals": record.get("approvals")}
+    # 步驟文字找不到關鍵字時，人工指定的烹調方式；工作簿已填者優先。
+    methods_by_recipe = record.get("recipe_cooking_methods") or {}
+    recipes_by_id = {_text(row.get("recipe_id")): row for row in raw_sheets["recipes"]}
+    for recipe_id, methods in methods_by_recipe.items():
+        if recipe_id not in recipes_by_id or not methods or set(methods) - set(METHOD_KEYWORDS):
+            raise WorkbookValidationError(f"Invalid cooking methods in review record: {recipe_id}: {methods!r}")
+        if _text(recipes_by_id[recipe_id].get("cooking_methods")) is None:
+            recipes_by_id[recipe_id]["cooking_methods"] = "；".join(methods)
+    return {**summary, "applied": True, "approvals": record.get("approvals"),
+            "recipe_cooking_methods": methods_by_recipe,
+            "distinct_recipe_pairs": record.get("distinct_recipe_pairs") or []}
+
+
+def _reviewed_distinct_pairs(review_applied: dict[str, Any] | None) -> set[frozenset[str]]:
+    """人工確認「不是重複」的疑似重複配對；只在審核紀錄符合工作簿時生效。"""
+    if not (review_applied or {}).get("applied"):
+        return set()
+    pairs = set()
+    for pair in review_applied["distinct_recipe_pairs"]:
+        ids = frozenset(_text(recipe_id) for recipe_id in pair)
+        if len(pair) != 2 or len(ids) != 2 or None in ids:
+            raise WorkbookValidationError(f"Invalid distinct recipe pair in review record: {pair!r}")
+        pairs.add(ids)
+    return pairs
 
 
 def load_source_rights(path: str | Path) -> dict[str, dict]:
@@ -937,6 +960,7 @@ def parse_recipe_workbook(path: str | Path, source_rights: dict[str, dict] | Non
         recipe_rows.append(recipe_row)
         recipe_by_id[recipe_id] = recipe_row
 
+    input_recipe_by_id = {_text(row["recipe_id"]): row for row in recipe_input}
     exact_duplicate_groups: list[dict[str, Any]] = []
     for normalized_name, ids in sorted(normalized_groups.items()):
         if len(ids) <= 1:
@@ -948,6 +972,17 @@ def parse_recipe_workbook(path: str | Path, source_rights: dict[str, dict] | Non
                 "recipe_ids": ids,
                 "primary_recipe_id": primary_id,
                 "status": "manual_review_required",
+                "records": [
+                    {
+                        "recipe_id": recipe_id,
+                        "raw_id": recipe_by_id[recipe_id]["raw_id"],
+                        "recipe_name": recipe_by_id[recipe_id]["recipe_name"],
+                        "recipes_row": input_recipe_by_id[recipe_id]["__row__"],
+                        "source_archive_row": source_by_raw_id[recipe_by_id[recipe_id]["raw_id"]]["__row__"],
+                        "source_url": recipe_by_id[recipe_id]["source_url"],
+                    }
+                    for recipe_id in ids
+                ],
             }
         )
         for recipe_id in ids:
@@ -961,8 +996,12 @@ def parse_recipe_workbook(path: str | Path, source_rights: dict[str, dict] | Non
                 # 同一道菜只保留 primary 可計入合格，其餘不能拿來補足 150 道
                 recipe_by_id[recipe_id]["quality_issues"].append("duplicate_not_primary")
 
+    distinct_pairs = _reviewed_distinct_pairs(review_applied)
     suspected_pairs = _suspected_duplicates(recipe_rows, ingredients_by_recipe)
     for pair in suspected_pairs:
+        if frozenset((pair["recipe_id_a"], pair["recipe_id_b"])) in distinct_pairs:
+            pair["status"] = "reviewed_distinct"
+            continue
         left = recipe_by_id[pair["recipe_id_a"]]
         right = recipe_by_id[pair["recipe_id_b"]]
         if left["duplicate_status"] == "unique_candidate":
@@ -1130,6 +1169,64 @@ def parse_recipe_workbook(path: str | Path, source_rights: dict[str, dict] | Non
     )
 
 
+def select_unique_recipe_bundle(bundle: ImportBundle) -> ImportBundle:
+    """Import one source for each exact normalized name; keep the lowest recipe ID.
+
+    Full parsing and nutrition provenance still use the unfiltered workbook. Only
+    the recipe import view is filtered, with the source rows recorded for audit.
+    Similar names are not treated as confirmed duplicates.
+    """
+    groups: dict[str, list[dict[str, Any]]] = defaultdict(list)
+    for row in bundle.recipes:
+        groups[normalize_name(row["recipe_name"])].append(row)
+    skipped_ids = {row["recipe_id"] for rows in groups.values()
+                   for row in sorted(rows, key=lambda r: r["recipe_id"])[1:]}
+    if not skipped_ids and "import_selection" in bundle.report:
+        return bundle
+    locations = {
+        record["recipe_id"]: record
+        for group in bundle.report.get("duplicate_review", {}).get("exact_name_groups", [])
+        for record in group.get("records", [])
+    }
+
+    def describe(row):
+        return {key: row[key] for key in ("recipe_id", "raw_id", "recipe_name", "source_url")} | locations.get(row["recipe_id"], {})
+
+    selections = []
+    for name, rows in sorted(groups.items()):
+        if len(rows) > 1:
+            ordered = sorted(rows, key=lambda row: row["recipe_id"])
+            selections.append({"normalized_name": name, "kept": describe(ordered[0]),
+                               "skipped": [describe(row) for row in ordered[1:]]})
+    selected = []
+    for row in bundle.recipes:
+        if row["recipe_id"] in skipped_ids:
+            continue
+        values = {**row, "duplicate_candidate_recipe_ids": [
+            key for key in row["duplicate_candidate_recipe_ids"] if key not in skipped_ids]}
+        if len(groups[normalize_name(row["recipe_name"])]) > 1:
+            values["duplicate_status"] = "selected_exact_name_duplicate"
+            values["quality_issues"] = [issue for issue in row["quality_issues"]
+                                        if issue != "exact_name_duplicate_review_required"]
+        selected.append(values)
+    selected_ids = {row["recipe_id"] for row in selected}
+    skipped_raw_ids = {row["raw_id"] for row in bundle.recipes if row["recipe_id"] in skipped_ids}
+    sources = [row for row in bundle.source_archive if row["raw_id"] not in skipped_raw_ids]
+    steps = [row for row in bundle.recipe_steps if row["recipe_id"] in selected_ids]
+    ingredients = [row for row in bundle.recipe_ingredients if row["recipe_id"] in selected_ids]
+    selection = {
+        "policy": "exact_normalized_name_keep_lowest_recipe_id",
+        "input_recipes": len(bundle.recipes), "imported_recipes": len(selected),
+        "skipped_duplicate_recipes": len(skipped_ids), "imported_sources": len(sources),
+        "imported_steps": len(steps), "imported_ingredients": len(ingredients),
+        "imported_qualified_recipes": sum(row["is_eligible"] for row in selected),
+        "imported_not_qualified_recipes": sum(not row["is_eligible"] for row in selected),
+        "selections": selections,
+    }
+    return replace(bundle, recipes=selected, source_archive=sources, recipe_steps=steps,
+                   recipe_ingredients=ingredients, report={**bundle.report, "import_selection": selection})
+
+
 def _upsert_rows(
     session: Session, model: type[Any], rows: Iterable[dict[str, Any]], primary_key: str
 ) -> dict[str, int]:
@@ -1182,6 +1279,7 @@ def import_recipe_bundle(session: Session, bundle: ImportBundle) -> dict[str, di
     do not linger in the database.
     """
 
+    bundle = select_unique_recipe_bundle(bundle)
     results: dict[str, dict[str, int]] = {}
     # 工作簿已刪除的整道食譜：連同步驟、食材一併刪除（子表為 ON DELETE CASCADE），
     # 指向它的 duplicate_of 會變成 NULL；工作簿是食譜庫的唯一來源。
