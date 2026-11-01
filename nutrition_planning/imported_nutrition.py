@@ -67,6 +67,23 @@ class ImportedNutritionData:
     issues: tuple[InputIssue, ...]
 
 
+def current_nutrition_import_id(db: Connection) -> str | None:
+    """Return the single current nutrition batch when callers do not pin one.
+
+    The newest `imported_at` record is the application's current data by
+    policy.  A caller can still provide an ID for replay/testing, but browser
+    requests never choose a historical batch.
+    """
+    try:
+        meta = MetaData()
+        batches = Table('nutrition_imports', meta, autoload_with=db)
+        row = db.execute(select(batches.c.import_id).order_by(
+            batches.c.imported_at.desc(), batches.c.import_id.desc()).limit(1)).mappings().first()
+    except (SQLAlchemyError, AttributeError):
+        raise NutritionDataUnavailable() from None
+    return row['import_id'] if row is not None else None
+
+
 def resolve_imported_selections(db: Connection, rows: RecipeRows, *, import_id: str | None,
                                 selections: Mapping[str, ImportedNutritionSelection] | None,
                                 profiles: Mapping | None = None, variant_resolver=None) -> tuple[Mapping[str, ImportedNutritionSelection], tuple[InputIssue, ...]]:
@@ -76,8 +93,10 @@ def resolve_imported_selections(db: Connection, rows: RecipeRows, *, import_id: 
     returned selection must record the LLM decision basis and version.
     """
     selected = dict(selections or {})
+    if import_id is None:
+        import_id = current_nutrition_import_id(db)
     if not isinstance(import_id, str) or not import_id.strip():
-        return selected, (InputIssue('nutrition_import_id_required', '', field='import_id'),)
+        return selected, (InputIssue('nutrition_data_current_batch_missing', '', field='import_id'),)
     try:
         meta = MetaData()
         observations = Table('food_nutrition', meta, autoload_with=db)
@@ -205,8 +224,10 @@ def load_imported_nutrition(db: Connection, rows: RecipeRows, *, import_id: str 
     closed. Source values, including NULL and real zero, remain separate from
     the workbook's mixed aggregate values.
     """
+    if import_id is None:
+        import_id = current_nutrition_import_id(db)
     if not isinstance(import_id, str) or not import_id.strip():
-        return ImportedNutritionData({}, (InputIssue('nutrition_import_id_required', '', field='import_id'),))
+        return ImportedNutritionData({}, (InputIssue('nutrition_data_current_batch_missing', '', field='import_id'),))
     if not isinstance(selections, Mapping) or any(
         not isinstance(key, str) or not isinstance(value, ImportedNutritionSelection)
         or not isinstance(value.nutrition_id, str) or not value.nutrition_id.strip()

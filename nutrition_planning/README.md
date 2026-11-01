@@ -4,7 +4,7 @@
 
 `targets_from_t03()` 接受 T03 `aggregate_meal_targets()` 的 `total_n`、`target`、`reference_exact`，以 Fraction 保留循環小數。`align_baseline()` 將每道來源食譜的 `original_servings` 換算為 1n 基準，資料庫模式只調整已審核範圍；AI 模式驗證候選，不捏造資料庫來源。`scale_to_cooking_units()` 按各食材明確提供的克數步長調整；`validate_meal()` 再次計算及分別比較熱量與蛋白質。
 
-2026-10-31 起，`validate_database_menu()` 預設使用 `feature/data-import` 的 `nutrition_imports`、`food_nutrition`、`nutrition_sources`、`nutrition_source_links`。必須指定 `nutrition_import_id`。Food_ID 是食譜與營養表的主鍵：程式會依食譜生熟、烹調方式與前處理自動選取唯一資料；有多筆相符資料時，預設 LLM 判斷器會收到食譜、完整步驟、食材列和候選資料，只能回傳候選清單中的 `nutrition_id`。呼叫端也可提供 `variant_resolver`，但都必須保存判斷依據與版本。來源樣品 ID 只供追溯與版本核對，不是計算入口或固定 FOOD→樣品對映。同名同狀態的唯一官方平均值優先，原始名稱不明或 LLM 判斷不一致仍阻擋。資料表不存在會回報 `NUTRITION_DATA_UNAVAILABLE`，缺值／歧義則列出原因，均不回退舊 JSON。詳見 [接線與資料來源紀錄](../docs/T12-feature-data-import.md)。
+`validate_database_menu()` 使用資料庫現行的 `nutrition_imports`、`food_nutrition`、`nutrition_sources`、`nutrition_source_links` 資料：未傳入 `nutrition_import_id` 時，自動選擇 `imported_at` 最新的一批；傳入 ID 僅供重播／測試。Food_ID 是食譜與營養表的主鍵：程式會依食譜生熟、烹調方式與前處理自動選取唯一資料；有多筆相符資料時，預設 LLM 判斷器會收到食譜、完整步驟、食材列和候選資料，只能回傳候選清單中的 `nutrition_id`。呼叫端也可提供 `variant_resolver`，但都必須保存判斷依據與版本。來源樣品 ID 只供追溯與版本核對，不是計算入口或固定 FOOD→樣品對映。同名同狀態的唯一官方平均值優先，原始名稱不明或 LLM 判斷不一致仍阻擋。資料表不存在會回報 `NUTRITION_DATA_UNAVAILABLE`，缺值／歧義則列出原因，均不回退舊 JSON。詳見 [接線與資料來源紀錄](../docs/T12-feature-data-import.md)。
 
 `calculate_nutrition()` 以這批匯入資料所連結、實際納入計算的 TFDA 原始來源每 100g 欄位精確重算。All 彙整可能包含 USDA 或食譜倒算，不能將其數值冒充 TFDA；無可唯一判定的 TFDA 來源時不可計算。必要欄位缺失仍為 None，真實 0 保留，保存匯入版本、nutrition_id、原始樣品 ID、來源列、來源檔雜湊、原始欄位及來源關聯快照。依 2026-10-30 使用者決議，`t04_bridge.py` 可直接接收 T04 已驗證的 LLM 產率／保留係數，不要求逐筆人工核准；除了輸入、樣品與烹調條件，現在還必須綁定相同的匯入版本、營養紀錄及來源 ID。已有食材、油與調味料均須列入菜單，熟食不重複套保留率。
 

@@ -12,7 +12,8 @@ from sqlalchemy import Table, insert, select, update
 
 from nutrition_planning import (ImportedNutritionSelection, NutritionDataUnavailable, PlanningInputError,
                                  validate_database_menu, load_database_recipe_rows, load_imported_nutrition,
-                                 resolve_imported_selections, audit_food_id_coverage, InputIssue)
+                                 resolve_imported_selections, audit_food_id_coverage, InputIssue,
+                                 current_nutrition_import_id)
 from nutrition_planning.tests.test_integration import menu  # shared real SQL fixture
 
 SOURCE_FILES = {key: {'name': key + '.xlsx', 'sha256': str(i) * 64}
@@ -65,6 +66,16 @@ def test_default_menu_reads_feature_import_data_without_reading_old_catalog(impo
     assert isinstance(source, dict)
     assert source['import_id'] == IMPORT_ID
     assert source['source_id'] == 'new-main'
+
+
+def test_current_database_batch_is_used_when_no_import_id_is_supplied(imported_menu):
+    db, _, _, _, profiles, policy, service, participations = imported_menu
+    policy.catalog_path.unlink()
+    assert current_nutrition_import_id(db) == IMPORT_ID
+    result = validate_database_menu(db, ['R1'], staple='不需要主食', participations=participations,
+        target_service=service, policy=policy, profiles=profiles, nutrition_import_id=None,
+        nutrition_selections={})
+    assert result.validation is not None and result.validation.nutrition_passed
 
 
 def test_cooked_food_data_has_priority_over_undetermined_food_id_data(imported_menu):
@@ -329,11 +340,12 @@ def run_menu(menu, *, selections=None, import_id: str | None = IMPORT_ID, profil
             name: ImportedNutritionSelection('n-' + name, '已熟製', None) for name in ('main', 'oil', 'salt')})
 
 
-def test_import_id_is_required_and_no_implicit_latest_or_legacy_fallback(imported_menu):
-    for import_id, expected in ((None, 'nutrition_import_id_required'), ('unknown', 'nutrition_import_not_found')):
-        result = run_menu(imported_menu, import_id=import_id)
-        assert result.validation is None
-        assert result.preparation.issues[0].code == expected
+def test_current_import_is_implicit_but_unknown_explicit_import_is_rejected(imported_menu):
+    current = run_menu(imported_menu, import_id=None)
+    assert current.validation is not None and current.validation.nutrition_passed
+    result = run_menu(imported_menu, import_id='unknown')
+    assert result.validation is None
+    assert result.preparation.issues[0].code == 'nutrition_import_not_found'
     result = run_menu(imported_menu, selections={})
     assert result.validation is not None and result.validation.nutrition_passed
 

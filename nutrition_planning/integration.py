@@ -47,6 +47,7 @@ class InputIssue:
     def message(self) -> str:
         labels = {
             'nutrition_selection_missing': '缺少營養資料選擇',
+            'nutrition_data_current_batch_missing': '目前沒有可用的營養資料批次',
             'nutrition_record_not_found_for_import_and_food': '食材營養資料缺失',
             'nutrition_food_id_missing': '食材營養資料缺失',
             'nutrition_variant_decision_required': '烹調方式有多種營養資料，等待 LLM 判斷',
@@ -450,7 +451,13 @@ def validate_database_menu(db: Connection, recipe_ids: Sequence[str], *, partici
     if nutrition_source == 'imported':
         if food_mapping_path is not None:
             raise PlanningInputError('Imported nutrition cannot use a legacy FOOD/TFDA registry.')
-        from .imported_nutrition import load_imported_nutrition, resolve_imported_selections
+        from .imported_nutrition import (current_nutrition_import_id,
+                                         load_imported_nutrition, resolve_imported_selections)
+        if nutrition_import_id is None:
+            nutrition_import_id = current_nutrition_import_id(db)
+        if nutrition_import_id is None:
+            return DatabaseMenuResult(targets, PreparedRecipe(None, (
+                InputIssue('nutrition_data_current_batch_missing', '', field='import_id'),)), None)
         resolved_selections, selection_issues = resolve_imported_selections(
             db, rows, import_id=nutrition_import_id, selections=nutrition_selections,
             profiles=profiles, variant_resolver=variant_resolver)
