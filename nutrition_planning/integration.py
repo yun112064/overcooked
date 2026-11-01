@@ -344,10 +344,14 @@ def prepare_database_recipe(rows: RecipeRows, *, policy: NutritionPolicy,
                         and record.get('source', {}).get('cooking_method') != profile.cooking_method):
                     issue('imported_cooking_method_mismatch', 'cooking_method')
             step = number(profile.cooking_step_g, "cooking_step_g", positive=True)
-            if profile.reviewed_weight_g is not None:
-                weight_value = profile.reviewed_weight_g
-            elif row.get("weight_status") == "source_explicit":
+            # PR17's recipe workbook has manually reviewed `weight_g` for
+            # every row.  Unit text remains provenance/display only: T12 must
+            # use this stored gram value and never re-convert or ask an LLM to
+            # infer a cup/spoon/piece weight.
+            if row.get("weight_g") is not None:
                 weight_value = row.get("weight_g")
+            elif profile.reviewed_weight_g is not None:
+                weight_value = profile.reviewed_weight_g
             else:
                 weight_value = None
                 issue("reviewed_gram_conversion_missing", "weight_g")

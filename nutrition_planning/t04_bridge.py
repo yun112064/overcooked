@@ -112,7 +112,10 @@ def apply_t04_results(rows: RecipeRows, *, policy: NutritionPolicy,
             continue
         try:
             raw = receipt.result
-            weight = profile.reviewed_weight_g if profile.reviewed_weight_g is not None else row.get('weight_g')
+            # T12's reviewed recipe grams are the only calculation weight.
+            # Original units and older profile conversion fallbacks are
+            # traceability, never a replacement for recipe_ingredients.weight_g.
+            weight = row.get('weight_g') if row.get('weight_g') is not None else profile.reviewed_weight_g
             if (receipt.input_digest != digest or receipt.food_id != row['food_id']
                     or not isinstance(receipt.cooking_method, str) or not receipt.cooking_method.strip()
                     or receipt.weight_basis != profile.weight_basis

@@ -118,17 +118,15 @@ def test_unreviewed_missing_or_mismatched_data_never_get_defaults(menu, field, v
     assert result.recipe is None and any(i.code == code for i in result.issues)
 
 
-def test_unverified_spoon_weight_needs_explicit_reviewed_grams(menu):
+def test_reviewed_database_grams_are_used_even_when_original_unit_is_spoon(menu):
     db, _, lines, _, profiles, policy, _, _ = menu
     db.execute(update(lines).where(lines.c.recipe_ingredient_id == "oil").values(
-        unit="大匙", weight_g=None, weight_status="unverified_conversion",
+        unit="大匙", weight_g=20, weight_status="unverified_conversion",
         adjustment_status="approved", adjustable_min=1, adjustable_max=2))
     rows = load_database_recipe_rows(db, ["R1"])
     row = next(r for r in rows.ingredients if r["recipe_ingredient_id"] == "oil")
     profiles["oil"] = replace(profiles["oil"], input_digest=recipe_line_digest(rows.recipes[0], row))
-    result = prepare_database_recipe(rows, policy=policy, profiles=profiles)
-    assert any(i.code == "reviewed_gram_conversion_missing" for i in result.issues)
-    profiles["oil"] = replace(profiles["oil"], reviewed_weight_g=20, reviewed_min_g=10, reviewed_max_g=30)
+    profiles["oil"] = replace(profiles["oil"], reviewed_weight_g=99, reviewed_min_g=10, reviewed_max_g=30)
     result = prepare_database_recipe(rows, policy=policy, profiles=profiles)
     assert not result.issues
     assert result.recipe is not None
