@@ -224,6 +224,7 @@ class FallbackCollectionTests(unittest.TestCase):
     def service(self):
         from app.source_adapters.price_collection import PriceCollectionService
         from app.source_adapters.pricing_repository import PricingRepository
+        from app.source_adapters.price_models import IngredientQuery
         from app.source_adapters.pxmart import PxMartAdapter
 
         def uni_factory():
@@ -232,7 +233,12 @@ class FallbackCollectionTests(unittest.TestCase):
             return source
 
         return PriceCollectionService(
-            workbook_path=self.workbook, repository=PricingRepository(self.engine),
+            repository=PricingRepository(self.engine),
+            ingredient_loader=lambda: [
+                IngredientQuery(canonical_name="高麗菜", food_ids=["FOOD000867"], aliases=["甘藍"]),
+                IngredientQuery(canonical_name="雞蛋", food_ids=["FOOD001566"], aliases=["蛋"]),
+                IngredientQuery(canonical_name="胡蘿蔔", food_ids=["FOOD000678"], aliases=["紅蘿蔔"]),
+            ],
             adapter_factory=lambda: PxMartAdapter(client=FakeClient(self.px), retries=0, retry_delay=0,
                                                   sleep=lambda s: None),
             fallback_adapter_factory=uni_factory, delay_seconds=0, sleep=lambda s: None,
@@ -286,10 +292,16 @@ class FallbackCollectionTests(unittest.TestCase):
     def test_rerun_is_idempotent_and_backfills_an_already_completed_px_run(self):
         from app.source_adapters.price_collection import PriceCollectionService
         from app.source_adapters.pricing_repository import PricingRepository
+        from app.source_adapters.price_models import IngredientQuery
         from app.source_adapters.pxmart import PxMartAdapter
         # 先前只跑過全聯（沒有第二來源）
         PriceCollectionService(
-            workbook_path=self.workbook, repository=PricingRepository(self.engine),
+            repository=PricingRepository(self.engine),
+            ingredient_loader=lambda: [
+                IngredientQuery(canonical_name="高麗菜", food_ids=["FOOD000867"], aliases=["甘藍"]),
+                IngredientQuery(canonical_name="雞蛋", food_ids=["FOOD001566"], aliases=["蛋"]),
+                IngredientQuery(canonical_name="胡蘿蔔", food_ids=["FOOD000678"], aliases=["紅蘿蔔"]),
+            ],
             adapter_factory=lambda: PxMartAdapter(client=FakeClient(self.px), retries=0, retry_delay=0,
                                                   sleep=lambda s: None),
             delay_seconds=0, sleep=lambda s: None, exempt_food_ids=set(), synonym_groups=[],
