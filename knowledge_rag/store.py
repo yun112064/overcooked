@@ -3,6 +3,7 @@ import json
 import math
 from pathlib import Path
 import re
+from datetime import date, datetime, timezone
 from typing import Any, LiteralString, cast
 from urllib.parse import urlparse
 
@@ -16,6 +17,7 @@ DIMENSIONS = 1536
 TEMPLATE = 't11-direct-ingredient-v1'
 FIELDS = ('knowledge_id','ingredient_id','source_version','excerpt','source_url','rights','conditions')
 FOOD = re.compile(r'FOOD\d{6}\Z')
+LICENSE_UNCONFIRMED = 'third_party_unconfirmed'
 
 class KnowledgeStoreError(Exception):
     def __init__(self, code):
@@ -30,10 +32,14 @@ def validate_record(record):
         raise ValueError('Knowledge requires IDs, source, text, rights and conditions')
     if not FOOD.fullmatch(record['ingredient_id']):
         raise ValueError('Expected final FOOD ID')
+    quote = record.get('evidence_quote')
+    if quote is not None and (not isinstance(quote, str) or quote not in record['excerpt']):
+        raise ValueError('Evidence quote must be an exact excerpt from the stored passage')
     parsed = urlparse(record['source_url'])
     if parsed.scheme not in ('https', 'http') or not parsed.netloc:
         raise ValueError('Invalid source URL')
-    return {k: v for k, v in record.items() if k not in ('status', 'reviewer', 'review_note', 'reviewed_at')}
+    payload = {k: v for k, v in record.items() if k not in ('status', 'reviewer', 'review_note', 'reviewed_at')}
+    return json.loads(json.dumps(payload, ensure_ascii=False, default=_json_default))
 
 def vector(value, dimensions=DIMENSIONS):
     if (not isinstance(value,list) or len(value)!=dimensions
@@ -41,6 +47,16 @@ def vector(value, dimensions=DIMENSIONS):
             or not any(value)):
         raise ValueError(f'Expected {dimensions} finite, nonzero vector components')
     return json.dumps(value)
+
+
+def _json_default(value):
+    if isinstance(value, (date, datetime)):
+        return value.isoformat()
+    raise TypeError(f'Unsupported JSON value: {type(value).__name__}')
+
+
+def _jsonb(value):
+    return Jsonb(value, dumps=lambda obj: json.dumps(obj, ensure_ascii=False, default=_json_default))
 
 class KnowledgeStore:
     def __init__(self, dsn, *, embedding_model=MODEL):
@@ -73,11 +89,178 @@ class KnowledgeStore:
         payload = validate_record(record)
         try:
             with self.connect() as conn:
-                conn.execute('INSERT INTO knowledge_records (knowledge_id,source_version,ingredient_id,payload) '
-                             'VALUES (%s,%s,%s,%s)',
-                             (record['knowledge_id'],record['source_version'],record['ingredient_id'],Jsonb(payload)))
+                self._insert_record(conn, record, payload)
         except psycopg.errors.UniqueViolation:
             raise ValueError('Immutable version already exists; use a new source_version') from None
+
+    @staticmethod
+    def _insert_record(conn, record, payload):
+        conn.execute('''INSERT INTO knowledge_records
+            (knowledge_id,source_version,ingredient_id,payload,excerpt,source_url,rights,conditions,nutrition_fact,
+             evidence_quote,fetched_at,content_provider,authorization_ref,classification,classification_reason,
+             article_id,content_hash,published_at,source_name,title,license_status)
+            VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)''',
+            (record['knowledge_id'], record['source_version'], record['ingredient_id'], _jsonb(payload),
+             record['excerpt'], record['source_url'], record['rights'], record['conditions'],
+             record.get('nutrition_fact'), record.get('evidence_quote'), record.get('fetched_at'),
+             record.get('content_provider'), record.get('authorization_ref'), record.get('classification'),
+             record.get('classification_reason'), record.get('article_id'), record.get('content_hash'),
+             record.get('published_at'), record.get('source_name'), record.get('title'), record.get('license_status')))
+
+    @staticmethod
+    def _record(row):
+        if row is None:
+            return None
+        published_at = row.get('published_at')
+        if isinstance(published_at, datetime):
+            published_at = published_at.astimezone(timezone.utc)
+        return dict(row['payload'], knowledge_id=row['knowledge_id'], source_version=row['source_version'],
+                    ingredient_id=row['ingredient_id'], status=row['status'], reviewer=row['reviewer'],
+                    review_note=row['review_note'], reviewed_at=row['reviewed_at'].isoformat() if row['reviewed_at'] else None,
+                    excerpt=row.get('excerpt') or row['payload'].get('excerpt'),
+                    source_url=row.get('source_url') or row['payload'].get('source_url'),
+                    rights=row.get('rights') or row['payload'].get('rights'),
+                    conditions=row.get('conditions') or row['payload'].get('conditions'),
+                    nutrition_fact=row.get('nutrition_fact') or row['payload'].get('nutrition_fact'),
+                    evidence_quote=row.get('evidence_quote') or row['payload'].get('evidence_quote'),
+                    fetched_at=row.get('fetched_at') or row['payload'].get('fetched_at'),
+                    content_provider=row.get('content_provider') or row['payload'].get('content_provider'),
+                    authorization_ref=row.get('authorization_ref') or row['payload'].get('authorization_ref'),
+                    classification=row.get('classification') or row['payload'].get('classification'),
+                    classification_reason=row.get('classification_reason') or row['payload'].get('classification_reason'),
+                    published_at=published_at,
+                    source_name=row.get('source_name') or row['payload'].get('source_name'),
+                    title=row.get('title') or row['payload'].get('title'),
+                    article_id=row.get('article_id') or row['payload'].get('article_id'),
+                    content_hash=row.get('content_hash') or row['payload'].get('content_hash'),
+                    license_status=row.get('license_status') or row['payload'].get('license_status'),
+                    imported_at=row['imported_at'].isoformat() if row.get('imported_at') else None)
+
+    def get_record(self, kid):
+        with self.connect() as conn:
+            row = conn.execute("SELECT * FROM (SELECT DISTINCT ON (knowledge_id) * FROM knowledge_records "
+                               "WHERE knowledge_id=%s ORDER BY knowledge_id,seq DESC) current", (kid,)).fetchone()
+        return self._record(row)
+
+    def list_versions(self, kid):
+        with self.connect() as conn:
+            rows = conn.execute("SELECT * FROM knowledge_records WHERE knowledge_id=%s ORDER BY seq", (kid,)).fetchall()
+        return [self._record(row) for row in rows]
+
+    def list_records(self, *, status=None, limit=1000):
+        if isinstance(limit, bool) or not isinstance(limit, int) or not 1 <= limit <= 100_000:
+            raise ValueError('limit must be 1-100000')
+        with self.connect() as conn:
+            rows = conn.execute("SELECT * FROM (SELECT DISTINCT ON (knowledge_id) * FROM knowledge_records "
+                                "ORDER BY knowledge_id,seq DESC) current "
+                                "WHERE (%s::text IS NULL OR status=%s) ORDER BY knowledge_id LIMIT %s",
+                                (status, status, limit)).fetchall()
+        return [self._record(row) for row in rows]
+
+    def records_for_classification(self, *, reclassify=False, limit=1000):
+        limit = 1000 if limit is None else limit
+        return [row for row in self.list_records(limit=limit)
+                if row['status'] in ('pending', 'approved')
+                and (reclassify or row.get('classification') is None)]
+
+    def approved_non_nutrition(self):
+        return [row for row in self.list_records(status='approved', limit=100_000)
+                if row.get('classification') in ('not_nutrition', 'invalid')]
+
+    def save_classification(self, kid, version, outcome, *, model, prompt_version):
+        if outcome.get('classification') not in ('nutrition', 'not_nutrition', 'invalid'):
+            raise ValueError('Invalid classification')
+        with self.connect() as conn:
+            row = conn.execute("UPDATE knowledge_records SET payload=payload || %s, classification=%s, "
+                "classification_reason=%s, classified_at=now(), classifier_model=%s, classifier_prompt_version=%s, "
+                "status=CASE WHEN status='pending' AND %s <> 'nutrition' THEN 'rejected' ELSE status END, "
+                "reviewer=CASE WHEN status='pending' AND %s <> 'nutrition' THEN 'classifier' ELSE reviewer END, "
+                "review_note=CASE WHEN status='pending' AND %s <> 'nutrition' THEN %s ELSE review_note END, "
+                "reviewed_at=CASE WHEN status='pending' AND %s <> 'nutrition' THEN now() ELSE reviewed_at END "
+                "WHERE knowledge_id=%s AND source_version=%s AND status IN ('pending','approved') RETURNING status",
+                (_jsonb({'classification': outcome['classification'], 'classification_reason': outcome.get('reason'),
+                        'nutrition_fact': outcome.get('nutrition_fact'), 'evidence_quote': outcome.get('evidence_quote'),
+                        'classifier_model': model, 'classifier_prompt_version': prompt_version}),
+                 outcome['classification'], outcome.get('reason'), model, prompt_version,
+                 outcome['classification'], outcome['classification'], outcome['classification'],
+                 'automatic rejection: ' + str(outcome.get('reason') or 'not nutrition'),
+                 outcome['classification'], kid, version)).fetchone()
+        if row is None:
+            raise ValueError('Knowledge version not found or no longer classifiable')
+        return row
+
+    def revoke_approval(self, kid, version, *, reason):
+        with self.connect() as conn:
+            current = conn.execute("SELECT reviewer,review_note FROM knowledge_records WHERE knowledge_id=%s "
+                                   "AND source_version=%s AND status='approved' FOR UPDATE", (kid, version)).fetchone()
+            if current is None:
+                raise ValueError('Only an approved version can be revoked')
+            note = f'{reason}；撤回原核准者={current["reviewer"]}；原核准紀錄={current["review_note"]}'
+            conn.execute("UPDATE knowledge_records SET status='rejected',reviewer='classifier',review_note=%s,"
+                         "reviewed_at=now() WHERE knowledge_id=%s AND source_version=%s AND status='approved'",
+                         (note, kid, version))
+            return {'status': 'rejected'}
+
+    def save_article(self, article):
+        required = ('source_name', 'article_id', 'url', 'status')
+        if not isinstance(article, dict) or any(not isinstance(article.get(key), str) or not article[key]
+                                                for key in required):
+            raise ValueError('Article source, ID, URL and status are required')
+        with self.connect() as conn:
+            conn.execute("INSERT INTO source_articles (source_name,article_id,url,title,published_at,modified_at,"
+                         "content_hash,status,matched_food_ids) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s) "
+                         "ON CONFLICT (source_name,article_id) DO UPDATE SET url=EXCLUDED.url,title=EXCLUDED.title,"
+                         "published_at=EXCLUDED.published_at,modified_at=EXCLUDED.modified_at,"
+                         "content_hash=EXCLUDED.content_hash,status=EXCLUDED.status,"
+                         "matched_food_ids=EXCLUDED.matched_food_ids,last_fetched_at=now(),"
+                         "last_changed_at=CASE WHEN source_articles.content_hash IS DISTINCT FROM EXCLUDED.content_hash "
+                         "THEN now() ELSE source_articles.last_changed_at END",
+                         (article['source_name'], article['article_id'], article['url'], article.get('title'),
+                          article.get('published_at'), article.get('modified_at'), article.get('content_hash'),
+                          article['status'], article.get('matched_food_ids') or []))
+
+    def known_article_ids(self, source_name):
+        with self.connect() as conn:
+            rows = conn.execute("SELECT article_id FROM source_articles WHERE source_name=%s "
+                                "AND status IN ('matched','no_match')", (source_name,)).fetchall()
+        return {row['article_id'] for row in rows}
+
+    def status_summary(self):
+        with self.connect() as conn:
+            counts = conn.execute("SELECT status,count(*) AS n FROM (SELECT DISTINCT ON (knowledge_id) status "
+                                  "FROM knowledge_records ORDER BY knowledge_id,seq DESC) q GROUP BY status").fetchall()
+            index = conn.execute("SELECT index_version,embedding_model,template_version,record_count FROM knowledge_indexes "
+                                 "WHERE status='active'").fetchone()
+            articles = conn.execute("SELECT status,count(*) AS n FROM source_articles GROUP BY status").fetchall()
+            license_holds = conn.execute("SELECT count(*) AS n FROM knowledge_records WHERE status='pending' "
+                                         "AND license_status=%s", (LICENSE_UNCONFIRMED,)).fetchone()['n']
+        records = {'pending': 0, 'approved': 0, 'rejected': 0}
+        records.update({row['status']: row['n'] for row in counts})
+        return {'records': records, 'active_index': dict(index) if index else None,
+                'articles': {row['status']: row['n'] for row in articles}, 'license_holds': license_holds}
+
+    def ingredient_coverage(self, food_ids):
+        if not isinstance(food_ids, (list, tuple)) or any(not isinstance(fid, str) or not FOOD.fullmatch(fid)
+                                                          for fid in food_ids):
+            raise ValueError('Final FOOD IDs required')
+        coverage = {fid: {'pending': 0, 'approved': 0} for fid in sorted(set(food_ids))}
+        if not coverage:
+            return coverage
+        with self.connect() as conn:
+            rows = conn.execute('''SELECT ingredient_id,status,count(*) AS n FROM
+                (SELECT DISTINCT ON (knowledge_id) ingredient_id,status FROM knowledge_records
+                 ORDER BY knowledge_id,seq DESC) current
+                WHERE ingredient_id=ANY(%s) AND status IN ('pending','approved')
+                GROUP BY ingredient_id,status''', (list(coverage),)).fetchall()
+        for row in rows:
+            coverage[row['ingredient_id']][row['status']] = row['n']
+        return coverage
+
+    def active_index(self):
+        with self.connect() as conn:
+            row = conn.execute("SELECT index_version,embedding_model,template_version,record_count "
+                               "FROM knowledge_indexes WHERE status='active'").fetchone()
+        return dict(row) if row else None
 
     def import_records(self, records):
         """Atomic file import: identical versions are skipped, changed ones fail."""
@@ -85,11 +268,19 @@ class KnowledgeStore:
         imported = 0
         with self.connect() as conn:
             for record, payload in prepared:
-                inserted = conn.execute(
-                    'INSERT INTO knowledge_records (knowledge_id,source_version,ingredient_id,payload) '
-                    'VALUES (%s,%s,%s,%s) ON CONFLICT (knowledge_id,source_version) DO NOTHING '
-                    'RETURNING knowledge_id',
-                    (record['knowledge_id'], record['source_version'], record['ingredient_id'], Jsonb(payload))).fetchone()
+                inserted = conn.execute('''INSERT INTO knowledge_records
+                    (knowledge_id,source_version,ingredient_id,payload,excerpt,source_url,rights,conditions,
+                     nutrition_fact,evidence_quote,fetched_at,content_provider,authorization_ref,classification,
+                     classification_reason,article_id,content_hash,published_at,source_name,title,license_status)
+                    VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
+                    ON CONFLICT (knowledge_id,source_version) DO NOTHING RETURNING knowledge_id''',
+                    (record['knowledge_id'], record['source_version'], record['ingredient_id'], _jsonb(payload),
+                     record['excerpt'], record['source_url'], record['rights'], record['conditions'],
+                     record.get('nutrition_fact'), record.get('evidence_quote'), record.get('fetched_at'),
+                     record.get('content_provider'), record.get('authorization_ref'), record.get('classification'),
+                     record.get('classification_reason'), record.get('article_id'), record.get('content_hash'),
+                     record.get('published_at'), record.get('source_name'), record.get('title'),
+                     record.get('license_status'))).fetchone()
                 if inserted:
                     imported += 1
                 else:
@@ -100,13 +291,26 @@ class KnowledgeStore:
                         raise ValueError('Immutable version changed; use a new source_version')
         return dict(imported=imported, unchanged=len(prepared)-imported, status='pending')
 
-    def review(self, kid, version, *, reviewer, approved, note):
+    def review(self, kid, version, *, reviewer, approved, note, confirm_third_party_license=False):
         if not isinstance(approved,bool) or not all(isinstance(x,str) and x.strip() for x in (reviewer,note)):
             raise ValueError('Reviewer, decision and source-check note required')
         with self.connect() as conn:
-            row = conn.execute('UPDATE knowledge_records SET status=%s,reviewer=%s,review_note=%s,reviewed_at=now() '
-                               "WHERE knowledge_id=%s AND source_version=%s AND status='pending' RETURNING status",
-                               ('approved' if approved else 'rejected',reviewer,note,kid,version)).fetchone()
+            current = conn.execute("SELECT payload,license_status FROM knowledge_records WHERE knowledge_id=%s "
+                                   "AND source_version=%s AND status='pending' FOR UPDATE", (kid, version)).fetchone()
+            if current is None:
+                raise ValueError('Only an existing pending version can be reviewed')
+            license_status = current['license_status'] or current['payload'].get('license_status')
+            if approved and license_status == LICENSE_UNCONFIRMED and not confirm_third_party_license:
+                raise ValueError('third-party license confirmation is required; use --confirm-third-party-license')
+            approved_license = 'third_party_confirmed' if approved and license_status == LICENSE_UNCONFIRMED else license_status
+            review_note = note
+            if approved_license == 'third_party_confirmed':
+                provider = current['payload'].get('content_provider')
+                review_note = f'{note}；已確認第三方授權涵蓋轉載內容' + (f'（{provider}）' if provider else '')
+            conn.execute('UPDATE knowledge_records SET status=%s,reviewer=%s,review_note=%s,reviewed_at=now(),'
+                         'license_status=%s WHERE knowledge_id=%s AND source_version=%s AND status=\'pending\'',
+                         ('approved' if approved else 'rejected', reviewer, review_note, approved_license, kid, version))
+            row = {'status': 'approved' if approved else 'rejected'}
             if row is None:
                 raise ValueError('Only an existing pending version can be reviewed')
             return row
@@ -119,7 +323,9 @@ class KnowledgeStore:
             raise ValueError('batch_size must be 1-100')
         with self.connect() as conn:
             rows = conn.execute("SELECT * FROM (SELECT DISTINCT ON (knowledge_id) * FROM knowledge_records "
-                                "ORDER BY knowledge_id,seq DESC) c WHERE status='approved' ORDER BY knowledge_id").fetchall()
+                                "ORDER BY knowledge_id,seq DESC) c WHERE status='approved' "
+                                "AND (classification IS NULL OR classification='nutrition') "
+                                "ORDER BY knowledge_id").fetchall()
             conn.execute('INSERT INTO knowledge_indexes VALUES (%s,%s,%s,%s,0)',
                          (index_version,embedding_model,self.template,'building'))
         encoded=[]

@@ -5,6 +5,8 @@ OpenAI 向量化以假轉接器取代（不呼叫付費 API），額度預留／
 """
 import threading
 import unittest
+import socket
+import time
 from decimal import Decimal
 from http.server import ThreadingHTTPServer
 from unittest.mock import patch
@@ -20,10 +22,30 @@ TOKEN = "test-knowledge-token"
 
 
 def serve(store, token=TOKEN):
-    from knowledge_rag.server import make_handler
-    server = ThreadingHTTPServer(("127.0.0.1", 0), make_handler(store, token))
-    threading.Thread(target=server.serve_forever, daemon=True).start()
-    return server, f"http://127.0.0.1:{server.server_address[1]}"
+    import uvicorn
+    from knowledge_rag.server import make_app
+    sock = socket.socket()
+    sock.bind(("127.0.0.1", 0))
+    port = sock.getsockname()[1]
+    sock.close()
+    server = uvicorn.Server(uvicorn.Config(make_app(store, token), host="127.0.0.1", port=port,
+                                           log_level="critical", lifespan="off"))
+    thread = threading.Thread(target=server.run, daemon=True)
+    thread.start()
+    deadline = time.monotonic() + 5
+    while not server.started and thread.is_alive() and time.monotonic() < deadline:
+        time.sleep(0.01)
+    if not server.started:
+        raise RuntimeError("knowledge service failed to start")
+    class Harness:
+        def shutdown(self):
+            server.should_exit = True
+            thread.join(timeout=5)
+
+        def server_close(self):
+            pass
+
+    return Harness(), f"http://127.0.0.1:{port}"
 
 
 def paid_call_for(factory, prefix="job-1:1"):

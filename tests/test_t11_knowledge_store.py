@@ -130,7 +130,7 @@ class KnowledgeStoreTests(unittest.TestCase):
         from knowledge_rag.store import KnowledgeStore, KnowledgeStoreError
         broken = KnowledgeStore("postgresql://nobody:wrong@127.0.0.1:1/none?connect_timeout=2")
         with self.assertRaises(KnowledgeStoreError) as caught:
-            broken.search([BOKCHOY], [0.0] * 1536, "text-embedding-3-small")
+            broken.search([BOKCHOY], [0.1] * 1536, "text-embedding-3-small")
         self.assertEqual(caught.exception.code, "STORE_UNAVAILABLE")
 
 
