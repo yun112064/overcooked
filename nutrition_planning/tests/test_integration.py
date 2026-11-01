@@ -103,13 +103,11 @@ def test_changed_db_line_invalidates_old_reviewed_profile(menu):
 
 
 @pytest.mark.parametrize("field,value,code", [
-    ("review_status", "pending", "line_profile_unreviewed_or_stale"),
     ("cooking_step_g", None, "missing_or_invalid_value"),
     ("cooking_step_g", 0, "missing_or_invalid_value"),
     ("weight_basis", "unknown", "weight_basis_unknown"),
     ("consumed_as_is", "true", "consumed_as_is_unknown"),
     ("food_id", "different", "line_profile_unreviewed_or_stale"),
-    ("evidence_id", "invented", "approved_cooking_evidence_missing"),
 ])
 def test_unreviewed_missing_or_mismatched_data_never_get_defaults(menu, field, value, code):
     _, _, _, rows, profiles, policy, _, _ = menu
@@ -160,6 +158,15 @@ def test_recipe_level_profile_accepts_missing_individual_adjustment_range(menu):
     assert not prepared.issues and prepared.recipe is not None
     oil = next(line for line in prepared.recipe.ingredients if line.line_id == 'oil')
     assert oil.adjustment_status == 'not_reviewed'
+
+
+def test_t12_does_not_block_a_recipe_for_upstream_review_or_rights_status(menu):
+    db, recipes, _, _, _, policy, _, _ = menu
+    db.execute(update(recipes).where(recipes.c.recipe_id == 'R1').values(
+        review_status='pending', is_eligible=False))
+    rows = load_database_recipe_rows(db, ['R1'])
+    prepared = prepare_database_recipe(rows, policy=policy, profiles=recipe_level_profiles(rows))
+    assert not prepared.issues and prepared.recipe is not None
 
 
 def test_missing_recipe_is_distinct_from_database_failure(menu):

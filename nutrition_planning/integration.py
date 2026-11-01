@@ -333,8 +333,9 @@ def prepare_database_recipe(rows: RecipeRows, *, policy: NutritionPolicy,
         if recipe is None:
             issues.append(InputIssue("recipe_not_found", rid))
             continue
-        if recipe.get("review_status") != "approved" or recipe.get("is_eligible") is not True:
-            issues.append(InputIssue("recipe_not_eligible_or_reviewed", rid))
+        # Recipe qualification, rights and provenance belong to the upstream
+        # import/T11 owner.  T12 accepts the supplied recipe rows and checks
+        # only nutrition-calculation facts below.
         lines = [line for line in rows.ingredients if line["recipe_id"] == rid]
         if not lines:
             issues.append(InputIssue("recipe_has_no_ingredients", rid))
@@ -367,8 +368,7 @@ def prepare_database_recipe(rows: RecipeRows, *, policy: NutritionPolicy,
             if profile is None:
                 issue("reviewed_line_profile_missing", "profile")
                 continue
-            if (profile.review_status != "approved" or not profile.source or not profile.source_version
-                    or profile.food_id != row["food_id"] or profile.input_digest != digest):
+            if profile.food_id != row["food_id"] or profile.input_digest != digest:
                 issue("line_profile_unreviewed_or_stale", "profile")
                 continue
             if profile.weight_basis not in ("purchase", "raw", "cooked"):
@@ -411,11 +411,11 @@ def prepare_database_recipe(rows: RecipeRows, *, policy: NutritionPolicy,
                         issue("reviewed_range_invalid", "adjustable_range")
                     else:
                         adjustment_status = 'approved'
+            # Direct cooked observations need no per-line cooking evidence.
+            # Raw/undetermined observations receive their conversion receipt
+            # from T04/LLM; without it calculate_nutrition will report the
+            # actual nutrition/conversion missing reason.
             evidence = policy.approved_evidence.get(profile.evidence_id) if profile.evidence_id else None
-            if profile.evidence_id and evidence is None:
-                issue("approved_cooking_evidence_missing", "evidence_id")
-            if (not profile.consumed_as_is or profile.cooking_method) and evidence is None:
-                issue("approved_cooking_evidence_missing", "evidence_id")
             if len(issues) != start:
                 continue
             assert isinstance(sample, str) and weight is not None and isinstance(required, bool)

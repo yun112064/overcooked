@@ -1,5 +1,6 @@
 """T08：當餐問卷、便當與手動食材草稿（AC03、AC09）。成員皆為合成測試資料。"""
 import unittest
+from unittest.mock import patch
 
 from db_support import seed_foods, make_client, migrate_fresh, requires_db, truncate_all
 
@@ -114,6 +115,18 @@ class T08ApiTests(unittest.TestCase):
         expected_protein = 77 * 0.4 * 1.3 + 77 * 0.3 * 1.3 + 28 * 1.1 * 0.4 * 0.7
         self.assertAlmostEqual(float(preview["target"]["protein_g"]), expected_protein, places=9)
         self.assertFalse(preview["approved_for_adoption"])
+
+    def test_nutrition_preview_uses_stored_questionnaire_and_only_recipe_ids(self):
+        created = self.create(full_draft([{"member_id": self.a["id"]}]))
+        expected = {"nutrition_passed": False, "input_issues": [{"message": "食材營養資料缺失"}]}
+        with patch("app.api.meal_requests.t12_planning.preview", return_value=expected) as preview:
+            response = self.client.post(f"/meal-requests/{created['id']}/nutrition-preview",
+                                        json={"recipe_ids": ["R001"]})
+        self.assertEqual(response.status_code, 200, response.text)
+        self.assertEqual(response.json(), expected)
+        kwargs = preview.call_args.kwargs
+        self.assertEqual(kwargs["recipe_ids"], ["R001"])
+        self.assertEqual(kwargs["draft"].staple, "白飯")
 
     def test_breakfast_ratio_is_thirty_percent(self):
         created = self.create(full_draft([{"member_id": self.a["id"]}], meal_type="breakfast"))

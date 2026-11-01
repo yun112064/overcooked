@@ -14,6 +14,8 @@ PR17 的 `recipe_dataset_1017.xlsx` 已人工確認所有食材列的 `weight_g`
 
 烹調方式採食譜層級：T12 讀取 `recipes.cooking_methods` 及 `recipe_steps.cooking_method`。唯一方式用於熟食觀測選擇與未判定資料的 LLM 估算；多種方式則把完整步驟交給 LLM 判斷。T12 不要求每筆食材另存烹調方式、產率、烹調依據或可調範圍；相符熟食資料直接按已審核克數計算，未判定資料才由 T04／LLM 回傳產率與保留率。沒有個別可調範圍時，食譜克數固定依原份數與總 n 精確縮放，無法達到熱量或蛋白質 ±10% 就明確回報無可行解。
 
+食譜授權、來源取得時間、來源版本、權利驗證與上游合格狀態由食譜匯入／T11 負責；T12 不重複審核或因這些欄位缺少而阻擋。T12 只回報實際營養計算必要資料不足：Food_ID、`weight_g`、原始份數、食譜層級烹調方式，或可對應的每 100g 營養資料。
+
 `nutrition_model/data/food_id_tfda_mapping.json` 與 `ingredient_master.json` 保留供歷史重現。只有明確設定 `nutrition_source='legacy_tfda'` 才會在資料庫接線使用這條舊路徑；不能同時傳入新版選擇或在新版路徑套用舊對照。T14 使用 `validate_database_menu()` 接線時須提供所選匯入資料及既有逐列單位／烹調依據；模型呼叫、價格、過敏、權限、採用交易仍由對應 Ticket 負責。
 
 新增的 SQLite 測試使用 feature/data-import 的實際營養 ORM 結構，測試新版資料表→TFDA 來源→T03／T04→T12 的串接；合成數值不冒充正式匯入資料。分支未包含完整新版 Excel 或匯入後資料庫，目前本機同名 All_Food 檔案的雜湊與該分支紀錄不同，仍待取得新版資料庫／來源檔後做實際資料驗證。PostgreSQL、網站端到端與 G03／G04 完整驗收也不由此測試代替。必要營養欄位的正式採用政策仍需跨 Ticket 對齊。
