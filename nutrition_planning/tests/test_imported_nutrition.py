@@ -12,7 +12,7 @@ from sqlalchemy import Table, insert, select, update
 
 from nutrition_planning import (ImportedNutritionSelection, NutritionDataUnavailable, PlanningInputError,
                                  validate_database_menu, load_database_recipe_rows, load_imported_nutrition,
-                                 resolve_imported_selections)
+                                 resolve_imported_selections, audit_food_id_coverage)
 from nutrition_planning.tests.test_integration import menu  # shared real SQL fixture
 
 SOURCE_FILES = {key: {'name': key + '.xlsx', 'sha256': str(i) * 64}
@@ -159,6 +159,35 @@ def test_white_rice_missing_from_import_is_reported_by_food_id(imported_menu):
     assert result.input_issues[0]['message'] == '食材營養資料缺失'
 
 
+def test_t12_backend_payload_exposes_blocking_reason_without_zero_values(imported_menu):
+    db, _, _, _, profiles, policy, service, participations = imported_menu
+    result = validate_database_menu(db, ['R1'], staple='白飯', participations=participations,
+        target_service=service, policy=policy, profiles=profiles, nutrition_import_id=IMPORT_ID,
+        nutrition_selections={})
+    payload = result.to_dict()
+    assert payload['adoption_blocked'] is True
+    issues = cast(tuple[Mapping[str, object], ...], payload['input_issues'])
+    assert issues[0]['message'] == '食材營養資料缺失'
+    assert '0' not in cast(str, issues[0]['message'])
+
+
+def test_food_id_audit_reports_coverage_variants_and_unknown_states(imported_menu):
+    from app.models.nutrition import FoodNutrition
+    db = imported_menu[0]
+    report = audit_food_id_coverage(db, import_id=IMPORT_ID)
+    assert report.get('recipe_food_id_count') == 3
+    assert report.get('missing_food_ids') == []
+    assert report.get('ready_for_food_id_resolution') is True
+    db.execute(insert(FoodNutrition), dict(nutrition_id='n-main-unknown-state', import_id=IMPORT_ID,
+        food_id='FOOD000001', source_row=99, standard_name='main', cooking_state='等待確認',
+        cooking_method=None, preparation=None, calculation_method='source', energy_kcal=D('1'),
+        protein_g=D('1'), nutrition_complete=False, quality_issues=[], raw_data={}))
+    changed = audit_food_id_coverage(db, import_id=IMPORT_ID)
+    assert changed.get('multi_observation_food_ids') == ['FOOD000001']
+    assert changed.get('unknown_cooking_states') == ['等待確認']
+    assert changed.get('ready_for_food_id_resolution') is False
+
+
 def test_omitted_staple_choice_is_reported_as_missing(imported_menu):
     db, _, _, _, profiles, policy, service, participations = imported_menu
     result = validate_database_menu(db, ['R1'], participations=participations,
@@ -183,15 +212,13 @@ def test_changed_staple_policy_is_reported_instead_of_trusted(imported_menu, mon
     assert result.preparation.issues[0].code == 'staple_policy_unreviewed_or_changed'
 
 
-def test_white_rice_rejects_conflicting_legacy_sample(imported_menu):
+def test_white_rice_legacy_catalog_never_injects_fixed_tfda_sample(imported_menu):
     db, _, _, _, profiles, policy, service, participations = imported_menu
-    conflict = replace(policy, sample_mappings={**policy.sample_mappings,
-                                                'FOOD000296': 'OTHER_SAMPLE'})
     result = validate_database_menu(db, ['R1'], staple='白飯', participations=participations,
-        target_service=service, policy=conflict, profiles=profiles,
+        target_service=service, policy=policy, profiles=profiles,
         nutrition_source='legacy_tfda')
     assert result.validation is None
-    assert result.preparation.issues[0].code == 'staple_sample_mapping_conflict'
+    assert result.preparation.issues[0].code == 'staple_nutrition_selection_missing'
 
 
 def test_white_rice_food_296_is_aligned_with_dishes_and_counted(imported_menu):

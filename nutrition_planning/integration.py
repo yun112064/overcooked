@@ -135,6 +135,19 @@ class DatabaseMenuResult:
         return tuple(sorted({line.food_id for line in self.validation.final_recipe.ingredients
                              if exact(line.amount_g) > 0}))
 
+    def to_dict(self) -> Mapping[str, object]:
+        """Stable backend payload; missing values are issues, never zeroes."""
+        validation = self.validation
+        return {
+            'targets': {key: str(value) for key, value in self.targets.target.items()},
+            'input_issues': self.input_issues,
+            'adoption_blocked': self.adoption_blocked,
+            'final_food_ids': self.final_food_ids,
+            'staple': dict(self.staple_snapshot) if self.staple_snapshot else None,
+            'nutrition_passed': bool(validation and validation.nutrition_passed),
+            'adoption_blockers': tuple(validation.adoption_blockers) if validation else (),
+        }
+
 
 def estimate_missing_cooking_with_t04(rows: RecipeRows, *, profiles: Mapping[str, RecipeLineProfile],
                                       line_records: Mapping[str, Mapping], estimator) -> tuple[Mapping[str, object], tuple[InputIssue, ...]]:
@@ -143,10 +156,6 @@ def estimate_missing_cooking_with_t04(rows: RecipeRows, *, profiles: Mapping[str
     The estimator receives TFDA raw values and returns parameters only. T12 still
     performs all nutrition arithmetic and rejects incomplete receipts.
     """
-    try:
-        from cooked_nutrition_service import calculate_cooking  # type: ignore[import-not-found]
-    except ImportError:
-        return {}, (InputIssue('llm_service_unavailable', '', field='estimator'),)
     results: dict[str, object] = {}
     issues: list[InputIssue] = []
     for line in rows.ingredients:
@@ -159,6 +168,14 @@ def estimate_missing_cooking_with_t04(rows: RecipeRows, *, profiles: Mapping[str
             continue
         if not profile.cooking_method:
             issues.append(InputIssue('cooking_method_unavailable', line['recipe_id'], lid, 'cooking_method'))
+            continue
+        # Only raw/undetermined observations need T04.  A menu whose selected
+        # observations are already cooked must not fail merely because the
+        # optional T04 module is unavailable.
+        try:
+            from cooked_nutrition_service import calculate_cooking  # type: ignore[import-not-found]
+        except ImportError:
+            issues.append(InputIssue('llm_service_unavailable', line['recipe_id'], lid, 'estimator'))
             continue
         if estimator is None:
             try:
@@ -390,12 +407,10 @@ def validate_database_menu(db: Connection, recipe_ids: Sequence[str], *, partici
             rice['cooking_step_g'], 'user-confirmed-staple', config['version'],
             review_status='approved')}
         if nutrition_source == 'legacy_tfda':
-            existing_sample = policy.sample_mappings.get(rice['food_id'])
-            if existing_sample is not None and existing_sample != rice['tfda_sample_id']:
-                return DatabaseMenuResult(targets, PreparedRecipe(None, (
-                    InputIssue('staple_sample_mapping_conflict', 'staple', lid, 'sample_id'),)), None)
-            policy = replace(policy, sample_mappings={**policy.sample_mappings,
-                rice['food_id']: rice['tfda_sample_id']})
+            # The legacy catalog has no Food_ID selection path.  In particular,
+            # never inject A0550601 as a required white-rice sample.
+            return DatabaseMenuResult(targets, PreparedRecipe(None, (
+                InputIssue('staple_nutrition_selection_missing', 'staple', lid, 'food_id'),)), None)
     elif staple not in ('不需要主食', '無主食', '沒有主食'):
         return DatabaseMenuResult(targets, PreparedRecipe(None, (
             InputIssue('staple_not_supported', 'staple', field='staple'),)), None)
@@ -414,7 +429,7 @@ def validate_database_menu(db: Connection, recipe_ids: Sequence[str], *, partici
             return DatabaseMenuResult(targets, PreparedRecipe(None, imported.issues), None)
         policy = replace(policy, sample_mappings={}, line_nutrition_records=imported.line_records)
         estimates, estimate_issues = ({}, ())
-        if t04_results is None and cooking_estimator is not None:
+        if t04_results is None:
             estimates, estimate_issues = estimate_missing_cooking_with_t04(
                 rows, profiles=profiles, line_records=imported.line_records, estimator=cooking_estimator)
         if estimate_issues:

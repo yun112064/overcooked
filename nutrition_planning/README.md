@@ -1,6 +1,6 @@
 # T12 基準份量與營養估算
 
-此模組提供可獨立測試的 Python 計算介面及可信後端接線，並非 HTTP API 或採用交易。輸入包含 T03 合計、完整菜單食材、FOOD→TFDA 對應和 T04 烹調依據。規則、樣品對應及逐列資料不可直接採信 AI 或瀏覽器輸入。
+此模組提供可獨立測試的 Python 計算介面及可信後端接線，並非採用交易。輸入包含 T03 合計、完整菜單食材、Food_ID 營養觀測值和 T04 烹調依據。規則、樣品對應及逐列資料不可直接採信 AI 或瀏覽器輸入。`DatabaseMenuResult.to_dict()` 是後端交給前端的穩定結果格式：缺值一律在 `input_issues` 以中文原因呈現，絕不以 0 代替。
 
 `targets_from_t03()` 接受 T03 `aggregate_meal_targets()` 的 `total_n`、`target`、`reference_exact`，以 Fraction 保留循環小數。`align_baseline()` 將每道來源食譜的 `original_servings` 換算為 1n 基準，資料庫模式只調整已審核範圍；AI 模式驗證候選，不捏造資料庫來源。`scale_to_cooking_units()` 按各食材明確提供的克數步長調整；`validate_meal()` 再次計算及分別比較熱量與蛋白質。
 
@@ -18,7 +18,9 @@
 
 問卷選白飯時，`validate_database_menu(staple='白飯')` 依 [主食設定](../config/staples.json)加入 FOOD000296，以 Food_ID 自動尋找可用營養資料。設定保留既有樣品與烹調資訊供追溯，但不要求特定樣品 ID；每 1n 160 克起始及 100～250 克審核範圍會與菜色一起縮放，再檢查熱量、蛋白質 ±10%。缺少資料或 LLM 判斷／估算失敗時回報原因，不以零代替。結果的 `staple_snapshot` 保存設定版本、基準、範圍及可得時的最終克數；`recipe_ids` 僅保留實際選中的資料庫菜色。未選主食須明確傳入 `staple='不需要主食'`。前端問卷接線和畫面缺值提示由後續流程負責。
 
-當匯入資料只有未熟製 TFDA 紀錄時，後端可將 `cooking_estimator` 傳給 `validate_database_menu()`。T12 會把已驗證的 Food_ID、原始 TFDA 營養、烹調方式、匯入版本、nutrition_id 及 nutrition_source_id 綁在 T04 收據，再由 T12 以 Fraction 重新計算。產率或保留率缺失、格式／範圍錯誤、服務未設定、連線錯誤或必要營養缺失時，結果會帶具體 `InputIssue.message` 並阻止採用；估算結果的 `is_estimated`、假設、參考 ID 與版本會保留。未傳入 estimator 時不會自行呼叫外部服務。
+當匯入資料只有未熟製或未判定 TFDA 紀錄時，`validate_database_menu()` 會使用已設定的 LLM provider 交給 T04 估算；呼叫端可用 `cooking_estimator` 明確覆寫它以利測試或替代供應商。T12 會把已驗證的 Food_ID、原始 TFDA 營養、烹調方式、匯入版本、nutrition_id 及 nutrition_source_id 綁在 T04 收據，再由 T12 以 Fraction 重新計算。產率或保留率缺失、格式／範圍錯誤、服務未設定、連線錯誤或必要營養缺失時，結果會帶具體 `InputIssue.message` 並阻止採用；估算結果的 `is_estimated`、假設、參考 ID 與版本會保留。
+
+正式匯入批次可用 `python scripts/audit_t12_food_ids.py --database-url ... --import-id ...` 進行唯讀稽核。報告會列出食譜 Food_ID 總數、沒有營養觀測值的 ID、多筆觀測值與未知生熟狀態；資料庫尚未提供時不會虛構「434 筆已通過」的結果。
 
 若沒有相符熟食資料，Food_ID 的 `未判定` 營養紀錄可作為 LLM 烹調估算的基準。它會保留原始來源狀態並以 raw pipeline 計算產率與保留率；沒有生食／未判定基準、熱量或蛋白質空白、LLM 未回傳產率、回傳格式錯誤或估算後仍缺必要欄位時，會顯示具體原因且不能採用。熟製、即食、加工、調味、醃漬與飲品資料可直接使用；FOOD000281 白米飯列為明確的即食主食資料。
 

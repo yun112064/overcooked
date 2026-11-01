@@ -94,6 +94,33 @@ def test_t12_can_request_llm_estimate_for_raw_record(cooked, monkeypatch):
     assert estimate['missing_reason'] is None
 
 
+def test_t12_uses_configured_llm_estimator_when_no_override_is_supplied(cooked, monkeypatch):
+    """A raw Food_ID record uses the configured provider without a caller hook."""
+    import sys
+    import types
+    rows, profiles, _, _ = cooked
+    t04 = sys.modules['cooked_nutrition_service']
+    monkeypatch.setattr(t04.yields, 'get_yield_references', lambda *a, **k: [
+        {'reference_id': 'test-reference', 'match_type': 'analogy'}])
+    calls = []
+    def configured(payload):
+        calls.append(payload)
+        return {'yield_factor': 0.75, 'reference_ids': ['test-reference'],
+                'nutrient_retention_factors': {key: 0.8 for key in t04.NUTRIENTS},
+                'assumptions': ['test'], 'missing_information': []}
+    monkeypatch.setitem(sys.modules, 'llm_cooking_estimator',
+                        types.SimpleNamespace(estimate_cooking=configured))
+    record = {'state': 'raw', 'ingredient_id': 'raw-sample', 'standard_name': '測試食材',
+              'nutrition_per_100g': {key: F(value) for key, value in {
+                  'energy_kcal': 200, 'protein_g': 20, 'carbohydrate_g': 10,
+                  'fat_g': 2, 'sugars_g': 1, 'sodium_mg': 5, 'dietary_fiber_g': 1}.items()},
+              'source': {'source_id': 'raw-sample', 'source_version': 'v1'}}
+    estimates, issues = estimate_missing_cooking_with_t04(
+        rows, profiles=profiles, line_records={'line': record}, estimator=None)
+    assert not issues and calls
+    assert isinstance(estimates['line'], dict) and estimates['line']['is_estimated'] is True
+
+
 def test_raw_record_without_cooking_method_is_blocked(cooked):
     rows, profiles, policy, receipt = cooked
     profiles = {**profiles, 'line': replace(profiles['line'], cooking_method=None)}

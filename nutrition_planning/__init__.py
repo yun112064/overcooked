@@ -16,6 +16,7 @@ from .t04_bridge import T04CookingResult, apply_t04_results
 from .imported_nutrition import (ImportedNutritionSelection, ImportedNutritionData,
                                  NutritionDataUnavailable, load_imported_nutrition,
                                  resolve_imported_selections)
+from .audit import audit_food_id_coverage
 
 __all__ = ["MealTargets", "PlanningInputError", "targets_from_t03", "CookingEvidence",
            "IngredientQuantity", "NutritionPolicy", "RecipeCandidate", "NutritionEstimate",
@@ -26,4 +27,4 @@ __all__ = ["MealTargets", "PlanningInputError", "targets_from_t03", "CookingEvid
            "prepare_database_recipe", "validate_database_menu", "estimate_missing_cooking_with_t04",
            "T04CookingResult", "apply_t04_results",
            "ImportedNutritionSelection", "ImportedNutritionData", "NutritionDataUnavailable", "load_imported_nutrition",
-           "resolve_imported_selections"]
+           "resolve_imported_selections", "audit_food_id_coverage"]
