@@ -25,20 +25,9 @@ from app.services.recipe_steps import ingredient_group
 
 REQUIRED_NUTRIENTS = ("energy_kcal", "protein_g")
 LOWER, UPPER = Fraction(9, 10), Fraction(11, 10)
-# 2026-10-28 放寬蛋白質上限：蛋白質略高於目標不是營養問題，上限取「目標 ×1.1」與「每份目標熱量的 20%」
-# （國人膳食營養素參考攝取量 DRIs：蛋白質占熱量 10–20%）較高者；下限與熱量仍為 ±10%。
-PROTEIN_MAX_ENERGY_SHARE = Fraction(1, 5)
-KCAL_PER_G_PROTEIN = 4
-
-
 def nutrient_bounds(references: dict) -> dict:
     """每個必要營養的 (下限, 上限)；references 為 energy_kcal／protein_g 參考值（Fraction）。"""
-    out = {k: (LOWER * references[k], UPPER * references[k]) for k in REQUIRED_NUTRIENTS}
-    energy, protein = references.get("energy_kcal"), references.get("protein_g")
-    if energy is not None and protein is not None:
-        out["protein_g"] = (LOWER * protein,
-                            max(UPPER * protein, Fraction(energy) * PROTEIN_MAX_ENERGY_SHARE / KCAL_PER_G_PROTEIN))
-    return out
+    return {k: (LOWER * references[k], UPPER * references[k]) for k in REQUIRED_NUTRIENTS}
 
 
 @dataclass(frozen=True)

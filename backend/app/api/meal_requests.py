@@ -121,13 +121,13 @@ def update_request(request_id: uuid.UUID, body: DraftUpdate, auth: AuthContext =
                    household_id=Depends(current_household_id), db: Session = Depends(get_db)):
     row = get_owned_request(db, household_id, request_id, lock=True)
     payload = service.dump(body.draft)
+    if row.status in ("queued", "running"):
+        raise ApiError(409, "VERSION_CONFLICT", "此問卷正在生成中，請等待結果後再修改。",
+                       {"reason": "GENERATION_IN_PROGRESS"})
     if row.version == body.version and payload == row.payload:
         # 內容沒變（例如回看問卷）：不升版、不改狀態，已有的結果與採用都保留
         db.rollback()
         return _out(db, row)
-    if row.status in ("queued", "running"):
-        raise ApiError(409, "VERSION_CONFLICT", "此問卷正在生成中，請等待結果後再修改。",
-                       {"reason": "GENERATION_IN_PROGRESS"})
     if row.status == "confirmed":
         raise already_adopted()
     if row.version != body.version:

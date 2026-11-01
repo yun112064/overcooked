@@ -151,6 +151,8 @@ class FoodWorkbookTests(unittest.TestCase):
         self.assertIsNone(result["nutrition"]["sugars_g"])
         self.assertEqual(result["nutrition"]["sodium_mg"], Decimal("0.00"))
         self.assertEqual(result["missing_fields"], ["sugars_g"])
+        self.assertFalse(result["cooking_conversion_applied"])
+        self.assertTrue(result["weight_basis_matches_observation"])
         self.assertEqual(result["sources"][0]["provider"], "TFDA")
         self.assertTrue(result["sources"][0]["included_in_calculation"])
 

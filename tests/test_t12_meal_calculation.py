@@ -18,6 +18,11 @@ D = Decimal
 
 
 class TargetCompositionTests(unittest.TestCase):
+    def test_v2_default_t03_rule_matches_frozen_040_digest(self):
+        from app.services.household import target_service
+
+        self.assertEqual(target_service().rule_version, "hpa-dri8-mvp-0.4.0")
+
     def test_600_30_with_n_1_3_gives_final_target_780_39(self):
         targets = mc.compose_targets([mc.ParticipationBaseline("a:dining", D("600"), D("30"), D("1.3"))])
         self.assertEqual(targets.total_n, Fraction(13, 10))
@@ -223,17 +228,27 @@ class BoundaryTests(unittest.TestCase):
                 codes = [(r["code"], r.get("nutrient")) for r in result["block_reasons"]]
                 self.assertIn(("NUTRITION_OUT_OF_RANGE", nutrient), codes)
 
-    def test_protein_upper_bound_is_at_least_20_percent_of_energy(self):
-        # 2026-10-28：目標 600 kcal、蛋白質 15 g → 上限取 max(16.5, 600×20%÷4 = 30)；下限仍為 90%
-        targets = mc.compose_targets([mc.ParticipationBaseline("a", D("600"), D("15"), D("1"))])
-        for protein, ok in (("30", True), ("30.01", False), ("13.5", True), ("13.49", False)):
+    def test_600_kcal_20g_protein_uses_specified_plus_minus_10_percent(self):
+        targets = mc.compose_targets([mc.ParticipationBaseline("a", D("600"), D("20"), D("1"))])
+        for protein, ok in (("22", True), ("22.01", False), ("18", True), ("17.99", False)):
             with self.subTest(protein=protein):
                 result = mc.calculate_meal(sugar_protein("150", protein), targets, mode="ai",
                                            calculator=FakeCalculator())
                 self.assertEqual(result["adoptable"], ok)
-        bounds = mc.nutrient_bounds({"energy_kcal": Fraction(600), "protein_g": Fraction(15)})
-        self.assertEqual(bounds["protein_g"], (Fraction(27, 2), Fraction(30)))
+        bounds = mc.nutrient_bounds({"energy_kcal": Fraction(600), "protein_g": Fraction(20)})
+        self.assertEqual(bounds["protein_g"], (Fraction(18), Fraction(22)))
         self.assertEqual(bounds["energy_kcal"], (Fraction(540), Fraction(660)))
+
+    def test_scaled_target_uses_same_ten_percent_window(self):
+        targets = mc.compose_targets([mc.ParticipationBaseline("a", D("600"), D("20"), D("1.3"))])
+        self.assertEqual(targets.energy_target, Fraction(780))
+        self.assertEqual(targets.protein_target, Fraction(26))
+        result = mc.calculate_meal(sugar_protein("150", "20"), targets, mode="ai",
+                                   calculator=FakeCalculator())
+        self.assertTrue(result["adoptable"])
+        rejected = mc.calculate_meal(sugar_protein("150", "22.01"), targets, mode="ai",
+                                     calculator=FakeCalculator())
+        self.assertFalse(rejected["adoptable"])
 
     def test_non_terminating_reference_is_compared_exactly(self):
         # 三人各 1n、基準合計 1000 kcal → 參考值 333.33…；0.9 倍 = 300 整

@@ -1,6 +1,6 @@
 {
-  "version": "staples-2026-10-21b",
-  "review_status": "pending_review",
+  "version": "staples-2026-11-01-v2",
+  "review_status": "user_confirmed",
   "note": "主食選項（decisions #16）：每個選項對應一個 TFDA 食材，給每人（1n）預設份量與可調範圍（克）。計入營養與 ±10% 驗證、資料庫模式與菜色一起對齊調整；不計價格與缺料。份量與範圍為開發者先填的合理值，待營養審核者確認（review_status=pending_review）。food_id 是食譜工作簿的 FOOD 編號，用於過敏／禁吃檢查。 生重主食（糙米飯、五穀飯、胚芽米飯）以生米克數計算，display_name 與 cooked_grams_per_n 只供畫面說明「約煮成 X g」。新增選項的預設份量依熱量與白飯 150 g（274.5 kcal）相當先填（decisions #50、#52）。none_values 之外，含「主食」且帶否定字（不、無、免、沒）的寫法也視為不需要主食。",
   "none_values": [
     "不需要主食",
@@ -34,11 +34,12 @@
       "tfda_sample_id": "A0550601",
       "weight_basis": "cooked",
       "consumed_as_is": false,
-      "default_grams_per_n": "150",
+      "default_grams_per_n": "160",
       "adjustable_min": "100",
       "adjustable_max": "250",
       "basis_note": "熟重；TFDA 熟食樣品（粳米飯），不再套烹調係數",
-      "display_name": "白飯"
+      "display_name": "白飯",
+      "review_status": "user_confirmed"
     },
     "糙米飯": {
       "aliases": [
@@ -185,5 +186,18 @@
       "display_name": "玉米（可食部分）",
       "basis_note": "可食部分生重：TFDA 甜玉米 A0400301；蒸煮不另加油，營養以生玉米組成計。250 g（267.5 kcal）與白飯 150 g 熱量相當。待營養審核者確認。"
     }
+  },
+  "white_rice": {
+    "name": "白飯",
+    "food_id": "FOOD000296",
+    "tfda_sample_id": "A0550601",
+    "weight_basis": "cooked",
+    "grams_per_n": "160",
+    "adjustable_min_g_per_n": "100",
+    "adjustable_max_g_per_n": "250",
+    "cooking_step_g": "1",
+    "version": "staples-2026-11-01-v2",
+    "review_status": "user_confirmed",
+    "source_cooking_method": "電鍋煮"
   }
 }

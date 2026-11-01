@@ -365,13 +365,16 @@ def validate_database_menu(db: Connection, recipe_ids: Sequence[str], *, partici
                          'grams_per_n': '160',
                          'adjustable_min_g_per_n': '100', 'adjustable_max_g_per_n': '250',
                          'cooking_step_g': '1'}
-        if (not isinstance(config, dict) or config.get('version') != 'staples-2026-11-01-v2'
-                or config.get('review_status') != 'user_confirmed'
-                or config.get('white_rice') != expected_rice):
+        rice_policy = config.get('white_rice') if isinstance(config, dict) else None
+        if (not isinstance(rice_policy, dict)
+                or rice_policy.get('version') != 'staples-2026-11-01-v2'
+                or rice_policy.get('review_status') != 'user_confirmed'
+                or {key: value for key, value in rice_policy.items() if key not in {'version', 'review_status'}}
+                != expected_rice):
             return DatabaseMenuResult(targets, PreparedRecipe(None, (
                 InputIssue('staple_policy_unreviewed_or_changed', 'staple', field='policy'),)), None)
         rice = expected_rice
-        staple_snapshot = {'version': config['version'], 'review_status': config['review_status'],
+        staple_snapshot = {'version': rice_policy['version'], 'review_status': rice_policy['review_status'],
                            **rice, 'selection': staple}
         lid = 'staple:FOOD000296'
         recipe_row = {'recipe_id': 'staple', 'original_servings': 1,
