@@ -192,19 +192,10 @@ def target_preview(draft: MealRequestDraft, members: dict) -> dict:
     entries = items(draft)
     if not entries or draft.meal_date is None:
         return {"status": "incomplete"}
-    participations = []
-    for entry in entries:
-        member = members.get(uuid.UUID(entry["member_id"]))
-        if member is None:
-            return {"status": "incomplete"}
-        fields = {c: getattr(member, c) for c in ("birth_date", "equation_sex", "weight_kg", "activity_category", "goal")}
-        participations.append({
-            "participation_id": entry["participation_id"],
-            "kind": entry["kind"],
-            "meal": entry["meal"],
-            "n": household_service.plain_decimal(member.portion),
-            "member": household_service.target_input(fields, member_id=entry["member_id"], on=draft.meal_date),
-        })
+    try:
+        participations = target_participations(draft, members)
+    except (TargetInputError, ValueError):
+        return {"status": "incomplete"}
     try:
         result = household_service.target_service().aggregate_meal_targets(participations)
     except TargetInputError as exc:
@@ -223,3 +214,24 @@ def target_preview(draft: MealRequestDraft, members: dict) -> dict:
         ],
         "approved_for_adoption": False,
     }
+
+
+def target_participations(draft: MealRequestDraft, members: dict) -> list[dict]:
+    """Trusted T03 inputs derived from the stored questionnaire and members."""
+    if draft.meal_date is None:
+        raise ValueError('meal_date is required')
+    entries = items(draft)
+    participations = []
+    for entry in entries:
+        member = members.get(uuid.UUID(entry["member_id"]))
+        if member is None:
+            raise ValueError('member is unavailable')
+        fields = {c: getattr(member, c) for c in ("birth_date", "equation_sex", "weight_kg", "activity_category", "goal")}
+        participations.append({
+            "participation_id": entry["participation_id"],
+            "kind": entry["kind"],
+            "meal": entry["meal"],
+            "n": household_service.plain_decimal(member.portion),
+            "member": household_service.target_input(fields, member_id=entry["member_id"], on=draft.meal_date),
+        })
+    return participations

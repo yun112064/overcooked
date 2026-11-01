@@ -12,7 +12,7 @@ from nutrition_target import NutritionTargetService
 from nutrition_planning import NutritionPolicy, PlanningInputError, calculate_nutrition
 from nutrition_planning.integration import (
     RecipeDataUnavailable, RecipeLineProfile, load_database_recipe_rows,
-    prepare_database_recipe, recipe_line_digest, validate_database_menu,
+    RecipeRows, prepare_database_recipe, recipe_level_profiles, recipe_line_digest, validate_database_menu,
 )
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -132,6 +132,34 @@ def test_reviewed_database_grams_are_used_even_when_original_unit_is_spoon(menu)
     assert result.recipe is not None
     oil = next(r for r in result.recipe.ingredients if r.line_id == "oil")
     assert (oil.amount_g, oil.adjustable_min_g, oil.adjustable_max_g) == (20, 10, 30)
+
+
+def test_recipe_level_method_and_reviewed_grams_build_profiles_without_line_reviews():
+    recipe = {'recipe_id': 'R-boil', 'original_servings': 1, 'review_status': 'approved',
+              'is_eligible': True, 'cooking_methods': ['水煮']}
+    line = {'recipe_ingredient_id': 'chicken', 'recipe_id': 'R-boil', 'food_id': 'FOOD001564',
+            'weight_g': D('300'), 'unit': '份'}
+    rows = RecipeRows(('R-boil',), (recipe,), (line,), (
+        {'recipe_id': 'R-boil', 'step_no': 1, 'cooking_method': '水煮'},))
+    profiles = recipe_level_profiles(rows)
+    profile = profiles['chicken']
+    assert profile.cooking_method == '水煮'
+    assert profile.weight_basis == 'cooked'
+    assert profile.reviewed_weight_g is None
+    assert profile.input_digest == recipe_line_digest(recipe, line)
+
+
+def test_recipe_level_profile_accepts_missing_individual_adjustment_range(menu):
+    db, _, lines, _, profiles, policy, _, _ = menu
+    db.execute(update(lines).where(lines.c.recipe_ingredient_id == 'oil').values(
+        adjustment_status='approved', adjustable_min=None, adjustable_max=None))
+    rows = load_database_recipe_rows(db, ['R1'])
+    oil_row = next(row for row in rows.ingredients if row['recipe_ingredient_id'] == 'oil')
+    profiles['oil'] = replace(profiles['oil'], input_digest=recipe_line_digest(rows.recipes[0], oil_row))
+    prepared = prepare_database_recipe(rows, policy=policy, profiles=profiles)
+    assert not prepared.issues and prepared.recipe is not None
+    oil = next(line for line in prepared.recipe.ingredients if line.line_id == 'oil')
+    assert oil.adjustment_status == 'not_reviewed'
 
 
 def test_missing_recipe_is_distinct_from_database_failure(menu):

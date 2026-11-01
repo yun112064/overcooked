@@ -105,6 +105,43 @@ class RecipeLineProfile:
     reviewed_max_g: Number | None = None
 
 
+def recipe_level_profiles(rows: RecipeRows) -> Mapping[str, RecipeLineProfile]:
+    """Build T12 input profiles from the reviewed recipe-level cooking facts.
+
+    PR17 supplies a reviewed gram weight on every ingredient row.  Cooking is a
+    property of the recipe: a unique recipe/step method is applied to its
+    ingredient rows; several methods are left for the variant LLM together
+    with the ordered steps.  No per-ingredient unit conversion, yield, range,
+    or cooking-evidence record is required at this boundary.
+    """
+    recipes = {recipe['recipe_id']: recipe for recipe in rows.recipes}
+    step_methods: dict[str, set[str]] = {}
+    for step in rows.steps:
+        method = step.get('cooking_method')
+        if isinstance(method, str) and method.strip():
+            step_methods.setdefault(step['recipe_id'], set()).add(method.strip())
+    result: dict[str, RecipeLineProfile] = {}
+    for line in rows.ingredients:
+        recipe = recipes.get(line['recipe_id'], {})
+        methods = set(step_methods.get(line['recipe_id'], set()))
+        source_methods = recipe.get('cooking_methods')
+        if isinstance(source_methods, (list, tuple)):
+            methods.update(method.strip() for method in source_methods
+                           if isinstance(method, str) and method.strip())
+        method = next(iter(methods)) if len(methods) == 1 else None
+        result[line['recipe_ingredient_id']] = RecipeLineProfile(
+            food_id=line['food_id'], input_digest=recipe_line_digest(recipe, line),
+            # The selected observation later determines raw versus cooked.
+            # Recipe grams are stored to six decimal places.  In the absence
+            # of a separately reviewed cooking unit, preserve that exact
+            # recipe precision instead of inventing a coarser unit.
+            weight_basis='cooked', consumed_as_is=True, cooking_step_g=Decimal('0.000001'),
+            source='recipe-level-cooking', source_version='pr17-reviewed-weights-v1',
+            review_status='approved', cooking_method=method,
+            cooking_context={'method': method} if method else None)
+    return result
+
+
 @dataclass(frozen=True)
 class PreparedRecipe:
     recipe: RecipeCandidate | None
@@ -357,16 +394,23 @@ def prepare_database_recipe(rows: RecipeRows, *, policy: NutritionPolicy,
                 issue("reviewed_gram_conversion_missing", "weight_g")
             weight = number(weight_value, "weight_g", positive=required is not False)
             minimum = maximum = None
+            adjustment_status = 'not_reviewed'
             if row.get("adjustment_status") == "approved":
                 if row.get("unit") == "g":
                     low, high = row.get("adjustable_min"), row.get("adjustable_max")
                 else:
                     low, high = profile.reviewed_min_g, profile.reviewed_max_g
-                minimum = number(low, "adjustable_min_g")
-                maximum = number(high, "adjustable_max_g")
-                if (minimum is not None and maximum is not None and weight is not None
-                        and not minimum <= weight <= maximum):
-                    issue("reviewed_range_invalid", "adjustable_range")
+                # R06 works with fixed recipe grams when no reviewed range is
+                # stored.  Existing explicit ranges remain an optional
+                # constraint; their absence is not a data error.
+                if low is not None and high is not None:
+                    minimum = number(low, "adjustable_min_g")
+                    maximum = number(high, "adjustable_max_g")
+                    if (minimum is not None and maximum is not None and weight is not None
+                            and not minimum <= weight <= maximum):
+                        issue("reviewed_range_invalid", "adjustable_range")
+                    else:
+                        adjustment_status = 'approved'
             evidence = policy.approved_evidence.get(profile.evidence_id) if profile.evidence_id else None
             if profile.evidence_id and evidence is None:
                 issue("approved_cooking_evidence_missing", "evidence_id")
@@ -381,7 +425,7 @@ def prepare_database_recipe(rows: RecipeRows, *, policy: NutritionPolicy,
                 weight_basis=cast(Literal['purchase', 'raw', 'cooked'], profile.weight_basis),
                 consumed_as_is=profile.consumed_as_is,
                 cooking_step_g=step, cooking_method=profile.cooking_method, evidence=evidence,
-                is_required=required, adjustment_status=row.get("adjustment_status", "not_reviewed"),
+                is_required=required, adjustment_status=adjustment_status,
                 adjustable_min_g=minimum, adjustable_max_g=maximum, original_servings=servings,
                 cooking_context=dict(profile.cooking_context or {})))
     if issues:
@@ -391,7 +435,7 @@ def prepare_database_recipe(rows: RecipeRows, *, policy: NutritionPolicy,
 
 def validate_database_menu(db: Connection, recipe_ids: Sequence[str], *, participations: list,
                            target_service, policy: NutritionPolicy,
-                           profiles: Mapping[str, RecipeLineProfile],
+                           profiles: Mapping[str, RecipeLineProfile] | None = None,
                            staple: str | None = None,
                            t04_results: Mapping | None = None,
                            food_mapping_path=None,
@@ -406,6 +450,8 @@ def validate_database_menu(db: Connection, recipe_ids: Sequence[str], *, partici
     """
     targets = targets_from_t03(target_service.aggregate_meal_targets(participations))
     rows = load_database_recipe_rows(db, recipe_ids)
+    using_recipe_level_profiles = profiles is None
+    profiles = dict(profiles) if profiles is not None else dict(recipe_level_profiles(rows))
     if staple is None:
         return DatabaseMenuResult(targets, PreparedRecipe(None, (
             InputIssue('staple_selection_required', 'staple', field='staple'),)), None)
@@ -472,6 +518,18 @@ def validate_database_menu(db: Connection, recipe_ids: Sequence[str], *, partici
         if imported.issues:
             return DatabaseMenuResult(targets, PreparedRecipe(None, imported.issues), None)
         policy = replace(policy, sample_mappings={}, line_nutrition_records=imported.line_records)
+        # Selection uses the recipe-level method.  A matching cooked sample is
+        # already food after the recipe process, so its reviewed recipe grams
+        # are consumed directly; raw/undetermined data keeps the recipe method
+        # and enters the T04/LLM yield-retention path below.
+        if using_recipe_level_profiles:
+            profiles = {lid: replace(profile,
+                         weight_basis=('raw' if record.get('state') == 'raw' else 'cooked'),
+                         consumed_as_is=record.get('state') != 'raw',
+                         cooking_method=(profile.cooking_method if record.get('state') == 'raw' else None),
+                         cooking_context=(profile.cooking_context if record.get('state') == 'raw' else None))
+                        for lid, profile in profiles.items()
+                        for record in (imported.line_records.get(lid, {}),)}
         estimates, estimate_issues = ({}, ())
         if t04_results is None:
             estimates, estimate_issues = estimate_missing_cooking_with_t04(

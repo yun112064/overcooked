@@ -78,6 +78,15 @@ def test_current_database_batch_is_used_when_no_import_id_is_supplied(imported_m
     assert result.validation is not None and result.validation.nutrition_passed
 
 
+def test_database_menu_can_use_recipe_level_profiles_without_line_profile_input(imported_menu):
+    db, _, _, _, _, policy, service, participations = imported_menu
+    policy.catalog_path.unlink()
+    result = validate_database_menu(db, ['R1'], staple='不需要主食', participations=participations,
+        target_service=service, policy=policy, profiles=None, nutrition_import_id=None,
+        nutrition_selections={})
+    assert result.validation is not None and result.validation.nutrition_passed
+
+
 def test_cooked_food_data_has_priority_over_undetermined_food_id_data(imported_menu):
     from app.models.nutrition import FoodNutrition, NutritionSource, NutritionSourceLink
     db, _, _, _, profiles, _, _, _ = imported_menu

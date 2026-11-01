@@ -14,6 +14,7 @@ from app.services import ingredients
 from app.services import recipe_retrieval
 from app.services import jobs as job_service
 from app.services import meal_request as service
+from app.services import t12_planning
 
 router = APIRouter(prefix="/meal-requests", tags=["meal-requests"], dependencies=[Depends(verify_origin)])
 
@@ -21,6 +22,10 @@ router = APIRouter(prefix="/meal-requests", tags=["meal-requests"], dependencies
 class DraftUpdate(BaseModel):
     version: int = Field(ge=1)
     draft: service.MealRequestDraft
+
+
+class NutritionPreviewBody(BaseModel):
+    recipe_ids: list[str] = Field(min_length=1, max_length=10)
 
 
 def _members(db: Session, household_id) -> dict:
@@ -117,6 +122,22 @@ def retrieve_recipes(request_id: uuid.UUID, household_id=Depends(current_househo
         raise ApiError(503, exc.code, exc.message) from None
     return {**result.to_dict(), 'input_version': row.version,
             'fallback_eligible': result.status == recipe_retrieval.NO_FEASIBLE}
+
+
+@router.post("/{request_id}/nutrition-preview")
+def nutrition_preview(request_id: uuid.UUID, body: NutritionPreviewBody,
+                      household_id=Depends(current_household_id), db: Session = Depends(get_db)):
+    """T12 result for selected T11 recipe IDs; never accepts client nutrition facts."""
+    row = _get_owned(db, household_id, request_id)
+    draft = service.load(row.payload)
+    members = _members(db, row.household_id)
+    issues = service.completeness(draft, members)
+    if issues:
+        raise ApiError(422, 'INVALID_INPUT', '請先完成問卷。', {'issues': issues})
+    try:
+        return t12_planning.preview(db, draft=draft, members=members, recipe_ids=body.recipe_ids)
+    except t12_planning.T12PlanningUnavailable as exc:
+        raise ApiError(503, exc.code, exc.message) from None
 
 
 @router.put("/{request_id}")

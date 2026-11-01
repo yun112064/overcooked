@@ -10,7 +10,7 @@ from .service import (
 from .integration import (
     RecipeDataUnavailable, RecipeRows, InputIssue, RecipeLineProfile, PreparedRecipe,
     DatabaseMenuResult, load_database_recipe_rows, recipe_line_digest,
-    prepare_database_recipe, validate_database_menu, estimate_missing_cooking_with_t04,
+    recipe_level_profiles, prepare_database_recipe, validate_database_menu, estimate_missing_cooking_with_t04,
 )
 from .t04_bridge import T04CookingResult, apply_t04_results
 from .imported_nutrition import (ImportedNutritionSelection, ImportedNutritionData,
@@ -24,7 +24,7 @@ __all__ = ["MealTargets", "PlanningInputError", "targets_from_t03", "CookingEvid
            "check_tolerance", "align_baseline", "scale_to_cooking_units", "validate_meal",
            "RecipeDataUnavailable", "RecipeRows", "InputIssue", "RecipeLineProfile", "PreparedRecipe",
            "DatabaseMenuResult", "load_database_recipe_rows", "recipe_line_digest",
-           "prepare_database_recipe", "validate_database_menu", "estimate_missing_cooking_with_t04",
+           "recipe_level_profiles", "prepare_database_recipe", "validate_database_menu", "estimate_missing_cooking_with_t04",
            "T04CookingResult", "apply_t04_results",
            "ImportedNutritionSelection", "ImportedNutritionData", "NutritionDataUnavailable", "load_imported_nutrition",
            "resolve_imported_selections", "current_nutrition_import_id", "FoodIdAuditReport", "audit_food_id_coverage"]
