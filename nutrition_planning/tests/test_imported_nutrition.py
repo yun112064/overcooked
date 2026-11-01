@@ -12,7 +12,7 @@ from sqlalchemy import Table, insert, select, update
 
 from nutrition_planning import (ImportedNutritionSelection, NutritionDataUnavailable, PlanningInputError,
                                  validate_database_menu, load_database_recipe_rows, load_imported_nutrition,
-                                 resolve_imported_selections, audit_food_id_coverage)
+                                 resolve_imported_selections, audit_food_id_coverage, InputIssue)
 from nutrition_planning.tests.test_integration import menu  # shared real SQL fixture
 
 SOURCE_FILES = {key: {'name': key + '.xlsx', 'sha256': str(i) * 64}
@@ -105,6 +105,29 @@ def test_undetermined_food_data_becomes_llm_cooking_baseline(imported_menu):
     assert imported.line_records['main']['state'] == 'raw'
 
 
+def test_explicit_ready_to_eat_food_id_stays_cooked_when_workbook_state_is_raw(imported_menu):
+    from app.models.nutrition import FoodNutrition, NutritionSource
+    from app.models.recipe import IngredientAlias
+    db, _, lines, _, profiles, _, _, _ = imported_menu
+    db.execute(insert(IngredientAlias), dict(food_id='FOOD000281', canonical_name='白米飯',
+        aliases=[], ambiguous_aliases=[], review_status='approved', quality_issues=[]))
+    db.execute(lines.update().where(lines.c.recipe_ingredient_id == 'main').values(
+        food_id='FOOD000281', canonical_name='白米飯'))
+    db.execute(update(FoodNutrition).where(FoodNutrition.nutrition_id == 'n-main').values(
+        food_id='FOOD000281', standard_name='白米飯', cooking_state='未熟製'))
+    source = db.execute(select(NutritionSource).where(NutritionSource.source_id == 's-main')).mappings().one()
+    db.execute(update(NutritionSource).where(NutritionSource.source_id == 's-main').values(raw_data={
+        **source['raw_data'], '中文原名': '白米飯', '來源原文名稱': '白米飯', '熟製狀態': '未熟製'}))
+    profiles = {**profiles, 'main': replace(profiles['main'], food_id='FOOD000281')}
+    rows = load_database_recipe_rows(db, ['R1'])
+    choices, issues = resolve_imported_selections(db, rows, import_id=IMPORT_ID,
+        selections={}, profiles=profiles)
+    assert not issues
+    imported = load_imported_nutrition(db, rows, import_id=IMPORT_ID, selections=choices)
+    assert not imported.issues
+    assert imported.line_records['main']['state'] == 'cooked'
+
+
 def test_multiple_food_id_variants_use_versioned_llm_decision(imported_menu):
     from app.models.nutrition import FoodNutrition, NutritionSource, NutritionSourceLink
     from app.models.recipe import RecipeStep
@@ -169,6 +192,20 @@ def test_t12_backend_payload_exposes_blocking_reason_without_zero_values(importe
     issues = cast(tuple[Mapping[str, object], ...], payload['input_issues'])
     assert issues[0]['message'] == '食材營養資料缺失'
     assert '0' not in cast(str, issues[0]['message'])
+
+
+def test_t12_backend_payload_has_exact_nutrition_totals_difference_and_sources(imported_menu):
+    result = run_menu(imported_menu)
+    payload = result.to_dict()
+    nutrition = cast(Mapping[str, object], payload['nutrition'])
+    assert nutrition['totals'] == {'energy_kcal': '252571683/250000', 'protein_g': '1001/25'}
+    assert isinstance(nutrition['difference'], dict)
+    assert isinstance(nutrition['sources'], list) and nutrition['sources']
+
+
+def test_llm_format_error_has_a_concrete_user_message():
+    issue = InputIssue('invalid_llm_estimate', 'R1', 'line')
+    assert issue.message == 'LLM 回傳格式錯誤，缺少有效產率或營養保留率'
 
 
 def test_food_id_audit_reports_coverage_variants_and_unknown_states(imported_menu):

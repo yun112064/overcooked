@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 from collections import Counter
-from collections.abc import Mapping
+from typing import TypedDict
 
 from sqlalchemy import MetaData, Table, select
 from sqlalchemy.engine import Connection
@@ -11,7 +11,18 @@ from sqlalchemy.exc import SQLAlchemyError
 from .imported_nutrition import STATES, NutritionDataUnavailable
 
 
-def audit_food_id_coverage(db: Connection, *, import_id: str) -> Mapping[str, object]:
+class FoodIdAuditReport(TypedDict):
+    import_id: str
+    recipe_food_id_count: int
+    nutrition_food_id_count: int
+    missing_food_ids: list[str]
+    multi_observation_food_ids: list[str]
+    cooking_state_counts: dict[str, int]
+    unknown_cooking_states: list[str]
+    ready_for_food_id_resolution: bool
+
+
+def audit_food_id_coverage(db: Connection, *, import_id: str) -> FoodIdAuditReport:
     """Report whether every recipe Food_ID has imported nutrition observations.
 
     This deliberately does not change data or silently classify unknown states.

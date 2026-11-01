@@ -321,8 +321,15 @@ def load_imported_nutrition(db: Connection, rows: RecipeRows, *, import_id: str 
             except PlanningInputError:
                 issue('invalid_tfda_source_nutrient')
                 continue
+            # Some product-ready foods are explicitly approved as consumed
+            # cooked even when the workbook's broad state says 未熟製.
+            # Keep the resolver and calculation state identical.
+            state = _state_kind(observation)
+            if state is None:
+                issue('nutrition_state_unknown')
+                continue
             result[lid] = {
-                'ingredient_id': source['source_record_id'], 'state': STATES[selection.cooking_state],
+                'ingredient_id': source['source_record_id'], 'state': state,
                 'standard_name': observation['standard_name'], 'nutrition_per_100g': values,
                 'source': {'provider': 'TFDA', 'source_id': source['source_record_id'],
                     'source_version': import_id, 'source_url': source['source_url'],

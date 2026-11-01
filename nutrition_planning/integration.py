@@ -64,6 +64,10 @@ class InputIssue:
             'llm_raw_protein_missing': '缺少生食蛋白質基礎資料',
             'llm_not_configured': 'LLM 服務未設定',
             'llm_provider_error': 'LLM 服務錯誤',
+            'invalid_llm_estimate': 'LLM 回傳格式錯誤，缺少有效產率或營養保留率',
+            'invalid_llm_endpoint': 'LLM 服務網址設定錯誤',
+            'invalid_llm_model': 'LLM 模型設定錯誤',
+            'invalid_llm_provider': 'LLM 服務供應者設定錯誤',
             'cooked_weight_or_nutrients_unavailable': '缺少熟食產率或營養保留率',
             'llm_estimation_failed': 'LLM 熟食估算失敗',
             'cooking_method_unavailable': '烹調方式無法判定',
@@ -138,6 +142,27 @@ class DatabaseMenuResult:
     def to_dict(self) -> Mapping[str, object]:
         """Stable backend payload; missing values are issues, never zeroes."""
         validation = self.validation
+        estimate = validation.final_estimate if validation else None
+        check = validation.final_check if validation else None
+
+        def wire(value: Any) -> Any:
+            """Make exact Fraction/Decimal receipts JSON-safe without rounding."""
+            if isinstance(value, (Decimal,)) or hasattr(value, 'numerator') and hasattr(value, 'denominator'):
+                return str(value)
+            if isinstance(value, Mapping):
+                return {str(key): wire(item) for key, item in value.items()}
+            if isinstance(value, (tuple, list)):
+                return [wire(item) for item in value]
+            return value
+
+        sources = wire(estimate.sources) if estimate else []
+        def is_estimated_source(source: Mapping[str, object]) -> bool:
+            provenance = source.get('source')
+            evidence = source.get('cooking_evidence')
+            return (isinstance(provenance, Mapping) and bool(provenance.get('variant_decision'))
+                    or isinstance(evidence, Mapping) and evidence.get('is_estimated') is True)
+        estimated = any(isinstance(source, Mapping) and is_estimated_source(source)
+                        for source in estimate.sources) if estimate else False
         return {
             'targets': {key: str(value) for key, value in self.targets.target.items()},
             'input_issues': self.input_issues,
@@ -146,6 +171,14 @@ class DatabaseMenuResult:
             'staple': dict(self.staple_snapshot) if self.staple_snapshot else None,
             'nutrition_passed': bool(validation and validation.nutrition_passed),
             'adoption_blockers': tuple(validation.adoption_blockers) if validation else (),
+            'nutrition': {
+                'totals': wire(estimate.totals) if estimate else None,
+                'missing': list(estimate.missing) if estimate else [],
+                'difference': wire(check.difference) if check else None,
+                'bounds': wire(check.bounds) if check else None,
+                'sources': sources,
+                'is_llm_estimated': estimated,
+            },
         }
 
 
