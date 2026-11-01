@@ -52,6 +52,7 @@ class InputIssue:
             'nutrition_variant_decision_required': '烹調方式有多種營養資料，等待 LLM 判斷',
             'llm_variant_decision_invalid': 'LLM 烹調方式判斷格式無效',
             'llm_variant_decision_mismatch': 'LLM 烹調方式判斷與 Food_ID 或營養資料不一致',
+            'invalid_llm_variant_decision': 'LLM 回傳格式錯誤',
             'nutrition_variant_mismatch': '生熟或烹調方式不符合',
             'nutrition_state_unknown': '烹調生熟狀態無法判定',
             'tfda_source_missing_or_ambiguous': 'TFDA 營養來源無法唯一判定',

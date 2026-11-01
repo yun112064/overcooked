@@ -20,6 +20,8 @@
 
 當匯入資料只有未熟製 TFDA 紀錄時，後端可將 `cooking_estimator` 傳給 `validate_database_menu()`。T12 會把已驗證的 Food_ID、原始 TFDA 營養、烹調方式、匯入版本、nutrition_id 及 nutrition_source_id 綁在 T04 收據，再由 T12 以 Fraction 重新計算。產率或保留率缺失、格式／範圍錯誤、服務未設定、連線錯誤或必要營養缺失時，結果會帶具體 `InputIssue.message` 並阻止採用；估算結果的 `is_estimated`、假設、參考 ID 與版本會保留。未傳入 estimator 時不會自行呼叫外部服務。
 
+若沒有相符熟食資料，Food_ID 的 `未判定` 營養紀錄可作為 LLM 烹調估算的基準。它會保留原始來源狀態並以 raw pipeline 計算產率與保留率；沒有生食／未判定基準、熱量或蛋白質空白、LLM 未回傳產率、回傳格式錯誤或估算後仍缺必要欄位時，會顯示具體原因且不能採用。熟製、即食、加工、調味、醃漬與飲品資料可直接使用；FOOD000281 白米飯列為明確的即食主食資料。
+
 驗證：`python -m pytest nutrition_planning/tests --cov=nutrition_planning --cov-report=term-missing -q`。開發依賴見 `requirements-dev.txt`；不需呼叫模型或外部 API。
 
 型別檢查：`python -m pyright --project nutrition_planning/pyrightconfig.json`（本機使用專案 `.venv`）。

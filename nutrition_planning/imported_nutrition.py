@@ -27,7 +27,22 @@ NUTRIENT_COLUMNS = {
     '脂肪(g/100g)': 'fat_g', '碳水化合物(g/100g)': 'carbohydrate_g',
     '糖(g/100g)': 'sugars_g', '鈉(mg/100g)': 'sodium_mg', '膳食纖維(g/100g)': 'dietary_fiber_g',
 }
-STATES = {'未熟製': 'raw', '已熟製': 'cooked'}
+STATES = {
+    '未熟製': 'raw', '未判定': 'raw',
+    '已熟製': 'cooked', '熟製／即食成品': 'cooked', '熟製／加工成品': 'cooked',
+    '已熟製成品': 'cooked', '熟製成品': 'cooked', '加工／調味／飲品': 'cooked',
+    '加工／醃漬／調理品': 'cooked', '加工飲品／沖調品': 'cooked',
+    '調味／醃漬加工品': 'cooked', '沖泡加工品': 'cooked', '醃製蛋品': 'cooked',
+    '即食穀物加工品': 'cooked',
+}
+READY_TO_EAT_FOOD_IDS = {'FOOD000281'}
+
+
+def _state_kind(row):
+    state = row['cooking_state']
+    if row['food_id'] in READY_TO_EAT_FOOD_IDS:
+        return 'cooked'
+    return STATES.get(state)
 
 
 class NutritionDataUnavailable(RecipeDataUnavailable):
@@ -88,10 +103,11 @@ def resolve_imported_selections(db: Connection, rows: RecipeRows, *, import_id: 
             continue
         profile = (profiles or {}).get(lid)
         method = getattr(profile, 'cooking_method', None)
-        cooked = [row for row in candidates if row['cooking_state'] == '已熟製'
-                  and (method is None or row['cooking_method'] == method)]
-        raw = [row for row in candidates if row['cooking_state'] == '未熟製']
-        compatible = cooked or raw
+        cooked = [row for row in candidates if _state_kind(row) == 'cooked'
+                  and (method is None or row['cooking_method'] in (None, method))]
+        baseline = [row for row in candidates if row['cooking_state'] == '未判定']
+        raw = [row for row in candidates if _state_kind(row) == 'raw' and row['cooking_state'] != '未判定']
+        compatible = cooked or baseline or raw
         if len(compatible) == 1:
             row = compatible[0]
             selected[lid] = ImportedNutritionSelection(row['nutrition_id'], row['cooking_state'],

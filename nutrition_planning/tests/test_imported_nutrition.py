@@ -11,7 +11,8 @@ import pytest
 from sqlalchemy import Table, insert, select, update
 
 from nutrition_planning import (ImportedNutritionSelection, NutritionDataUnavailable, PlanningInputError,
-                                 validate_database_menu, load_database_recipe_rows, load_imported_nutrition)
+                                 validate_database_menu, load_database_recipe_rows, load_imported_nutrition,
+                                 resolve_imported_selections)
 from nutrition_planning.tests.test_integration import menu  # shared real SQL fixture
 
 SOURCE_FILES = {key: {'name': key + '.xlsx', 'sha256': str(i) * 64}
@@ -64,6 +65,44 @@ def test_default_menu_reads_feature_import_data_without_reading_old_catalog(impo
     assert isinstance(source, dict)
     assert source['import_id'] == IMPORT_ID
     assert source['source_id'] == 'new-main'
+
+
+def test_cooked_food_data_has_priority_over_undetermined_food_id_data(imported_menu):
+    from app.models.nutrition import FoodNutrition, NutritionSource, NutritionSourceLink
+    db, _, _, _, profiles, _, _, _ = imported_menu
+    db.execute(insert(FoodNutrition), dict(nutrition_id='n-main-undetermined', import_id=IMPORT_ID,
+        food_id='FOOD000001', source_row=98, standard_name='main', cooking_state='未判定',
+        cooking_method=None, preparation=None, calculation_method='source', energy_kcal=D('500'),
+        protein_g=D('20'), nutrition_complete=False, quality_issues=[], raw_data={}))
+    db.execute(insert(NutritionSource), dict(source_id='s-main-undetermined', import_id=IMPORT_ID,
+        source_key='TFDA_main_unknown', provider='TFDA', source_record_id='unknown-main',
+        source_url='https://example.invalid/synthetic', source_sheet='原始來源與判定', source_row=98,
+        raw_data={'中文原名': 'main', '來源原文名稱': 'main', '熱量(kcal/100g)': '500',
+                  '蛋白質(g/100g)': '20', '熟製狀態': '未判定', '烹飪方式': None, '食用前處理': None}))
+    db.execute(insert(NutritionSourceLink), dict(nutrition_id='n-main-undetermined',
+                                                  source_id='s-main-undetermined', included_in_calculation=True))
+    choices, issues = resolve_imported_selections(db, load_database_recipe_rows(db, ['R1']),
+        import_id=IMPORT_ID, selections={}, profiles=profiles)
+    assert not issues
+    assert choices['main'].nutrition_id == 'n-main'
+
+
+def test_undetermined_food_data_becomes_llm_cooking_baseline(imported_menu):
+    from app.models.nutrition import FoodNutrition, NutritionSource
+    db, _, _, _, profiles, _, _, _ = imported_menu
+    db.execute(update(FoodNutrition).where(FoodNutrition.nutrition_id == 'n-main').values(cooking_state='未判定'))
+    source = db.execute(select(NutritionSource).where(NutritionSource.source_id == 's-main')).mappings().one()
+    db.execute(update(NutritionSource).where(NutritionSource.source_id == 's-main').values(
+        raw_data={**source['raw_data'], '熟製狀態': '未判定'}))
+    profiles = {**profiles, 'main': replace(profiles['main'], weight_basis='raw', consumed_as_is=False,
+                                            cooking_method='水煮')}
+    rows = load_database_recipe_rows(db, ['R1'])
+    choices, issues = resolve_imported_selections(db, rows, import_id=IMPORT_ID,
+        selections={}, profiles=profiles)
+    assert not issues and choices['main'].cooking_state == '未判定'
+    imported = load_imported_nutrition(db, rows, import_id=IMPORT_ID, selections=choices)
+    assert not imported.issues
+    assert imported.line_records['main']['state'] == 'raw'
 
 
 def test_multiple_food_id_variants_use_versioned_llm_decision(imported_menu):
