@@ -112,6 +112,16 @@ class MealValidationResult:
     adoption_blockers: tuple[str, ...]
     reason: str | None = None
     missing: tuple[str, ...] = ()
+    # One-serving nutrition of the recipe as written (before scaling), kept so
+    # a preview can show computed values even when no scaling meets the target.
+    baseline_estimate: NutritionEstimate | None = None
+
+
+# Representation precision for exact recipe grams (not a cooking unit).
+PRECISION_G = Fraction(1, 10 ** 6)
+
+# Providers allowed as nutrition sources; supplements are T12-only and labelled.
+NUTRITION_PROVIDERS = frozenset({'TFDA', 'USDA', 'MEXT', 'MANUFACTURER_LABEL', 'USER_CONFIRMED'})
 
 
 def _approved_evidence(line: IngredientQuantity, policy: NutritionPolicy) -> CookingEvidence | None:
@@ -164,7 +174,7 @@ def calculate_nutrition(recipe: RecipeCandidate, *, policy: NutritionPolicy) -> 
         record = (policy.line_nutrition_records.get(line.line_id) if policy.line_nutrition_records is not None
                   else catalog.get(line.sample_id))
         if (not record or policy.sample_for(line.line_id, line.food_id) != line.sample_id
-                or record.get("source", {}).get("provider") != "TFDA"
+                or record.get("source", {}).get("provider") not in NUTRITION_PROVIDERS
                 or record.get("source", {}).get("source_id") != line.sample_id
                 or not record.get("source", {}).get("source_version")):
             missing.append(f"{line.line_id}:tfda_mapping_or_source")
@@ -380,9 +390,20 @@ def _reviewed_quantities_hold(baseline: RecipeCandidate, final: RecipeCandidate,
                 return False
             if not exact(base.adjustable_min_g) <= normalized <= exact(base.adjustable_max_g):
                 return False
-        elif normalized != exact(base.amount_g):
-            return False
+        else:
+            # A fixed line is never changed by a cooking unit.  Only the
+            # representation of a non-terminating exact amount (10 g / 3
+            # servings) may differ, by under half a microgram; the final
+            # ±10% check uses the rounded grams.
+            step = exact(base.cooking_step_g) if base.cooking_step_g is not None else Fraction(0)
+            if abs(exact(cooked.amount_g) - exact(base.amount_g) * total_n) * 2 > min(step, PRECISION_G):
+                return False
     return True
+
+
+def _round_to_unit(value: Fraction, step: Fraction) -> Fraction:
+    units = value / step
+    return ((2 * units.numerator + units.denominator) // (2 * units.denominator)) * step
 
 
 def _search_cookable(baseline: RecipeCandidate, total_n: Fraction, targets: MealTargets,
@@ -410,8 +431,9 @@ def _search_cookable(baseline: RecipeCandidate, total_n: Fraction, targets: Meal
             preferred = exact(line.amount_g) * total_n
             choices.append(sorted((count * step for count in counts), key=lambda value: abs(value - preferred)))
         else:
-            scaled = exact(line.amount_g) * total_n
-            if (scaled / step).denominator != 1:
+            exact_amount = exact(line.amount_g) * total_n
+            scaled = _round_to_unit(exact_amount, step)
+            if (line.is_required and scaled == 0) or abs(scaled - exact_amount) * 2 > min(step, PRECISION_G):
                 return None, "no_feasible_cooking_units"
             choices.append([scaled])
         one = calculate_nutrition(replace(baseline, ingredients=(replace(line, amount_g=1),)), policy=policy)
@@ -438,20 +460,22 @@ def validate_meal(recipe: RecipeCandidate, targets: MealTargets, *, policy: Nutr
         blockers.append("nutrition_policy_not_approved")
     if alignment.recipe is None:
         return MealValidationResult(alignment.check, None, None, None, False, tuple(blockers),
-                                    alignment.reason, alignment.estimate.missing)
+                                    alignment.reason, alignment.estimate.missing, alignment.estimate)
     try:
         final_recipe = scale_to_cooking_units(alignment.recipe, targets.total_n)
     except PlanningInputError:
         if recipe.mode == "database_menu":
             alternative, reason = _search_cookable(alignment.recipe, targets.total_n, targets, policy)
             if alternative is None:
-                return MealValidationResult(alignment.check, None, None, None, False, tuple(blockers), reason)
+                return MealValidationResult(alignment.check, None, None, None, False, tuple(blockers), reason,
+                                            baseline_estimate=alignment.estimate)
             final_recipe = alternative
         else:
             missing_step = any(line.cooking_step_g is None or exact(line.cooking_step_g) <= 0
                                for line in alignment.recipe.ingredients)
             reason = "missing_cooking_unit" if missing_step else "required_ingredient_rounds_to_zero"
-            return MealValidationResult(alignment.check, None, None, None, False, tuple(blockers), reason)
+            return MealValidationResult(alignment.check, None, None, None, False, tuple(blockers), reason,
+                                        baseline_estimate=alignment.estimate)
     final = calculate_nutrition(final_recipe, policy=policy)
     final_check = check_tolerance(final, targets.target)
     if recipe.mode == "database_menu" and (not final_check.passed or not _reviewed_quantities_hold(
@@ -459,10 +483,10 @@ def validate_meal(recipe: RecipeCandidate, targets: MealTargets, *, policy: Nutr
         alternative, reason = _search_cookable(alignment.recipe, targets.total_n, targets, policy)
         if alternative is None:
             return MealValidationResult(alignment.check, final_recipe, final, final_check, False,
-                                        tuple(blockers), reason, final.missing)
+                                        tuple(blockers), reason, final.missing, alignment.estimate)
         final_recipe = alternative
         final = calculate_nutrition(final_recipe, policy=policy)
         final_check = check_tolerance(final, targets.target)
     return MealValidationResult(alignment.check, final_recipe, final, final_check, final_check.passed,
                                 tuple(blockers), None if final_check.passed else "final_nutrition_outside_tolerance_or_incomplete",
-                                final.missing)
+                                final.missing, alignment.estimate)

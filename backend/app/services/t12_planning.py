@@ -27,7 +27,10 @@ def preview(db: Session, *, draft: meal_request.MealRequestDraft, members: dict,
             # is never read in imported mode.
             policy=NutritionPolicy(Path(settings.nutrition_rules_path), {}, ('energy_kcal', 'protein_g')),
             profiles=None, staple=draft.staple, nutrition_source='imported',
-            nutrition_import_id=None, nutrition_selections=None)
+            nutrition_import_id=None, nutrition_selections=None,
+            # 2026-11-01: recipe grams × raw composition, factor 1 for
+            # energy/protein; TFDA first, labelled USDA fallback.
+            conversion='factor_one')
     except (RecipeDataUnavailable, NutritionDataUnavailable) as exc:
         raise T12PlanningUnavailable(exc.code, '營養或食譜資料暫時無法讀取，請稍後重試。') from None
     return result.to_dict()

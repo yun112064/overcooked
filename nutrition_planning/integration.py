@@ -77,6 +77,18 @@ class InputIssue:
             'approved_cooking_evidence_missing': '缺少已驗證的烹調依據',
             'llm_service_unavailable': 'LLM 服務無法使用',
             'llm_weight_missing': '缺少烹調前重量',
+            'nutrition_recipe_derived_only': '此食材只有食譜網站營養（沒有熱量），需對照 TFDA 品項',
+            'nutrition_cooked_only_needs_raw_mapping': '此食材只有熟食版本營養，需對照 TFDA 生食品項',
+            'tfda_food_identity_unverified': 'TFDA 品項名稱無法對應，需確認是哪一種',
+            'tfda_official_average_excluded': 'TFDA 官方平均值被排除，原因不是重複計算',
+            'usda_source_ambiguous': 'USDA 有多筆資料，無法唯一判定',
+            'reviewed_gram_conversion_missing': '缺少食材克數',
+            'staple_not_supported': '目前只有白飯、糙米飯有已確認的份量與營養依據',
+            'staple_selection_required': '尚未選擇主食',
+            'nutrition_mapping_invalid': '營養對照設定檔格式錯誤，未套用',
+            'nutrition_mapping_target_missing': '營養對照指定的 Food_ID 或 TFDA 品項在目前資料中找不到',
+            'nutrition_mapping_mismatch': '營養對照與食材 Food_ID 不一致',
+            'nutrition_supplement_invalid': '營養補充資料檔格式錯誤，未套用',
         }
         return labels.get(self.code, '營養或烹調依據缺失，無法採用')
 
@@ -103,6 +115,79 @@ class RecipeLineProfile:
     reviewed_weight_g: Number | None = None
     reviewed_min_g: Number | None = None
     reviewed_max_g: Number | None = None
+
+
+FACTOR_ONE_ASSUMPTION = 'raw_weight_energy_protein_factor_one'
+# Selection reasons that an approved T12 supplement may resolve.
+SUPPLEMENTABLE_CODES = frozenset({'nutrition_recipe_derived_only', 'nutrition_cooked_only_needs_raw_mapping',
+                                  'nutrition_food_id_missing', 'nutrition_state_unknown'})
+
+
+BROWN_RICE_VERSION = 'staples-brown-rice-2026-11-02-v1'
+_BROWN_RICE_FIELDS = {'name': '糙米飯', 'food_id': 'FOOD001487', 'weight_basis': 'cooked',
+                      'grams_per_n': '160', 'adjustable_min_g_per_n': '100',
+                      'adjustable_max_g_per_n': '250', 'cooking_step_g': '1'}
+
+
+def _brown_rice_policy(conversion: str, nutrition_source: str) -> tuple[Mapping | None, InputIssue | None]:
+    """Reviewed brown-rice staple (factor-one imported preview only)."""
+    if conversion != 'factor_one' or nutrition_source != 'imported':
+        return None, InputIssue('staple_not_supported', 'staple', field='staple')
+    try:
+        config = json.loads((Path(__file__).resolve().parents[1] / 'config/staples.json').read_text(encoding='utf-8'))
+    except (OSError, ValueError):
+        return None, InputIssue('staple_policy_unavailable', 'staple', field='policy')
+    brown = config.get('brown_rice') if isinstance(config, dict) else None
+    nutrition = brown.get('nutrition') if isinstance(brown, dict) else None
+    values = nutrition.get('values') if isinstance(nutrition, dict) else None
+    if (not isinstance(brown, dict) or brown.get('version') != BROWN_RICE_VERSION
+            or brown.get('review_status') != 'user_confirmed'
+            or any(brown.get(key) != value for key, value in _BROWN_RICE_FIELDS.items())
+            or not brown.get('approved_by') or not brown.get('approved_on')
+            or not isinstance(nutrition, dict) or nutrition.get('provider') not in ('TFDA', 'USDA', 'MEXT')
+            or nutrition.get('state') != 'cooked'
+            or not all(nutrition.get(key) for key in ('source_record_id', 'source_name', 'source_url',
+                                                       'retrieved_on', 'basis'))
+            or not isinstance(values, dict) or not {'energy_kcal', 'protein_g'} <= set(values)):
+        return None, InputIssue('staple_policy_unreviewed_or_changed', 'staple', field='policy')
+    try:
+        if any(exact(value) < 0 for value in values.values()):
+            raise ValueError
+    except (ValueError, TypeError, PlanningInputError):
+        return None, InputIssue('staple_policy_unreviewed_or_changed', 'staple', field='policy')
+    return brown, None
+
+
+def _supplement_record(line: Mapping, supplement) -> Mapping:
+    """Line record built only from an approved T12 supplement entry."""
+    return {
+        'ingredient_id': supplement.record_id, 'state': supplement.state,
+        'standard_name': supplement.name or line.get('canonical_name'),
+        'nutrition_per_100g': {key: exact(value) for key, value in supplement.values.items()},
+        'source': {'provider': supplement.provider, 'source_id': supplement.record_id,
+                   'source_version': supplement.version, 'food_id': line['food_id'],
+                   'source_url': supplement.source_url, 'retrieved_on': supplement.retrieved_on,
+                   'value_basis': ('user_confirmed_per_100g' if supplement.provider == 'USER_CONFIRMED'
+                                   else 'public_supplement_per_100g'),
+                   'supplement': supplement.provenance},
+    }
+
+
+def _apply_fill(record: Mapping, fills: Mapping) -> Mapping:
+    """Fill only blank cells of the record's own nutrition Food_ID."""
+    source = record.get('source') or {}
+    mapping = source.get('nutrition_mapping') or {}
+    food = mapping.get('nutrition_food_id') or source.get('food_id')
+    fill = fills.get(food)
+    if fill is None:
+        return record
+    values = dict(record.get('nutrition_per_100g') or {})
+    filled = {key: value for key, value in fill.values.items() if values.get(key) is None}
+    if not filled:
+        return record
+    values.update({key: exact(value) for key, value in filled.items()})
+    return {**record, 'nutrition_per_100g': values,
+            'source': {**source, 'filled_values': {**fill.provenance, 'filled': sorted(filled)}}}
 
 
 def recipe_level_profiles(rows: RecipeRows) -> Mapping[str, RecipeLineProfile]:
@@ -154,6 +239,8 @@ class DatabaseMenuResult:
     preparation: PreparedRecipe
     validation: MealValidationResult | None
     staple_snapshot: Mapping | None = None
+    dish_portions: Mapping | None = None
+    unscaled_baseline: Any = None
 
     @property
     def input_issues(self) -> tuple[Mapping[str, object], ...]:
@@ -193,15 +280,35 @@ class DatabaseMenuResult:
                 return [wire(item) for item in value]
             return value
 
-        sources = wire(estimate.sources) if estimate else []
+        source_estimate = estimate or (validation.baseline_estimate if validation else None)
+        sources = wire(source_estimate.sources) if source_estimate else []
         def is_estimated_source(source: Mapping[str, object]) -> bool:
             provenance = source.get('source')
             evidence = source.get('cooking_evidence')
             return (isinstance(provenance, Mapping) and bool(provenance.get('variant_decision'))
                     or isinstance(evidence, Mapping) and evidence.get('is_estimated') is True)
         estimated = any(isinstance(source, Mapping) and is_estimated_source(source)
-                        for source in estimate.sources) if estimate else False
+                        for source in source_estimate.sources) if source_estimate else False
+        baseline = self.unscaled_baseline or (validation.baseline_estimate if validation else None)
+        baseline_complete = bool(baseline and not baseline.missing
+                                 and all(value is not None for value in baseline.totals.values()))
+        # Three different outcomes must not look alike in the preview:
+        # data missing (cannot calculate), calculated but outside the ±10%
+        # window, and calculated and passed.  Adoption-policy approval is
+        # reported separately in `adoption_blockers`.
+        if self.preparation.issues or validation is None or not baseline_complete:
+            status = 'calculation_incomplete'
+        elif validation.nutrition_passed:
+            status = 'nutrition_passed'
+        else:
+            status = 'outside_tolerance'
         return {
+            'status': status,
+            'status_message': {'calculation_incomplete': '營養資料不足，無法完成計算',
+                               'outside_tolerance': '營養已計算，但無法在 ±10% 內達成目標',
+                               'nutrition_passed': ('營養計算通過（已調整菜餚份量）' if self.dish_portions
+                                                    else '營養計算通過')}[status],
+            'dish_portions': dict(self.dish_portions) if self.dish_portions else None,
             'targets': {key: str(value) for key, value in self.targets.target.items()},
             'input_issues': self.input_issues,
             'adoption_blocked': self.adoption_blocked,
@@ -211,11 +318,27 @@ class DatabaseMenuResult:
             'adoption_blockers': tuple(validation.adoption_blockers) if validation else (),
             'nutrition': {
                 'totals': wire(estimate.totals) if estimate else None,
+                'baseline_per_serving': wire(baseline.totals) if baseline else None,
                 'missing': list(estimate.missing) if estimate else [],
                 'difference': wire(check.difference) if check else None,
                 'bounds': wire(check.bounds) if check else None,
                 'sources': sources,
                 'is_llm_estimated': estimated,
+                'conversion_assumptions': sorted({str(item['source'].get('conversion_assumption'))
+                                                  for item in sources if isinstance(item, Mapping)
+                                                  and isinstance(item.get('source'), Mapping)
+                                                  and item['source'].get('conversion_assumption')}),
+                'nutrition_mappings': sorted({str(item['source']['nutrition_mapping']['mapping_version'])
+                                              for item in sources if isinstance(item, Mapping)
+                                              and isinstance(item.get('source'), Mapping)
+                                              and isinstance(item['source'].get('nutrition_mapping'), Mapping)}),
+                'supplements': sorted({str(item['source'].get('supplement', {}).get('supplement_version')
+                                           or item['source'].get('filled_values', {}).get('supplement_version'))
+                                       for item in sources if isinstance(item, Mapping)
+                                       and isinstance(item.get('source'), Mapping)
+                                       and (item['source'].get('supplement') or item['source'].get('filled_values'))}),
+                'providers': sorted({str(item['source'].get('provider')) for item in sources
+                                     if isinstance(item, Mapping) and isinstance(item.get('source'), Mapping)}),
             },
         }
 
@@ -359,6 +482,10 @@ def prepare_database_recipe(rows: RecipeRows, *, policy: NutritionPolicy,
                     return None
             servings = number(recipe.get("original_servings"), "original_servings", positive=True)
             required = row.get("is_required")
+            if required is None:
+                # The PR17 workbook has no is_required column; every listed
+                # ingredient is used with its recipe grams (never dropped to 0).
+                required = True
             if type(required) is not bool:
                 issue("required_flag_unknown", "is_required")
             sample = policy.sample_for(lid, row["food_id"])
@@ -385,7 +512,15 @@ def prepare_database_recipe(rows: RecipeRows, *, policy: NutritionPolicy,
             # every row.  Unit text remains provenance/display only: T12 must
             # use this stored gram value and never re-convert or ask an LLM to
             # infer a cup/spoon/piece weight.
-            if row.get("weight_g") is not None:
+            # User decision 2026-11-01/02: the workbook `weight_g` column (kept
+            # by the importer as `source_weight_g`) is the recipe author's
+            # gram value, and their back-calculated nutrition uses it.  The
+            # importer's `weight_g` copies the `amount` column when the unit
+            # is g, which disagrees with the workbook in 205 rows (e.g. 冬瓜
+            # 2大片: amount 50 g, weight_g 750).  Use the workbook column.
+            if row.get("source_weight_g") is not None:
+                weight_value = row.get("source_weight_g")
+            elif row.get("weight_g") is not None:
                 weight_value = row.get("weight_g")
             elif profile.reviewed_weight_g is not None:
                 weight_value = profile.reviewed_weight_g
@@ -442,7 +577,10 @@ def validate_database_menu(db: Connection, recipe_ids: Sequence[str], *, partici
                            nutrition_source: Literal['imported', 'legacy_tfda'] = 'imported',
                            nutrition_import_id: str | None = None,
                            nutrition_selections: Mapping | None = None,
-                           cooking_estimator=None, variant_resolver=None) -> DatabaseMenuResult:
+                           cooking_estimator=None, variant_resolver=None,
+                           conversion: Literal['t04', 'factor_one'] = 't04',
+                           nutrition_mappings: Mapping | None = None,
+                           nutrition_supplements=None) -> DatabaseMenuResult:
     """Backend participations → exact T03 targets → all DB lines → T12.
 
     Caller retains household authorization, T11 selection/fallback and T14 flow.
@@ -456,7 +594,39 @@ def validate_database_menu(db: Connection, recipe_ids: Sequence[str], *, partici
         return DatabaseMenuResult(targets, PreparedRecipe(None, (
             InputIssue('staple_selection_required', 'staple', field='staple'),)), None)
     staple_snapshot = None
-    if staple == '白飯':
+    staple_line_id = None
+    staple_record = None
+    if staple == '糙米飯':
+        # User decision 2026-11-02: TFDA has no cooked brown rice, so the
+        # reviewed USDA medium-grain cooked value is used for the staple only.
+        brown, issue = _brown_rice_policy(conversion, nutrition_source)
+        if issue is not None:
+            return DatabaseMenuResult(targets, PreparedRecipe(None, (issue,)), None)
+        staple_line_id = f"staple:{brown['food_id']}"
+        staple_snapshot = {key: value for key, value in brown.items() if key != 'nutrition'}
+        staple_snapshot.update({'selection': staple, 'nutrition_provider': brown['nutrition']['provider'],
+                                'nutrition_source_id': brown['nutrition']['source_record_id']})
+        recipe_row = {'recipe_id': 'staple', 'original_servings': 1,
+                      'review_status': 'approved', 'is_eligible': True}
+        line_row = {'recipe_ingredient_id': staple_line_id, 'recipe_id': 'staple', 'sequence': 1,
+                    'food_id': brown['food_id'], 'canonical_name': brown['name'],
+                    'weight_g': brown['grams_per_n'], 'weight_status': 'source_explicit',
+                    'unit': 'g', 'is_required': True, 'adjustment_status': 'approved',
+                    'adjustable_min': brown['adjustable_min_g_per_n'],
+                    'adjustable_max': brown['adjustable_max_g_per_n']}
+        rows = RecipeRows(rows.recipe_ids + ('staple',), rows.recipes + (recipe_row,),
+                          rows.ingredients + (line_row,), rows.steps)
+        profiles = {**profiles, staple_line_id: RecipeLineProfile(
+            brown['food_id'], recipe_line_digest(recipe_row, line_row), 'cooked', True,
+            brown['cooking_step_g'], 'user-confirmed-staple', brown['version'],
+            review_status='approved')}
+        from .nutrition_supplement import NutritionSupplement
+        n = brown['nutrition']
+        staple_record = _supplement_record(line_row, NutritionSupplement(
+            brown['food_id'], brown['name'], 'values', n['state'], dict(n['values']), n['provider'],
+            n['source_name'], n['source_record_id'], n['source_url'], n['retrieved_on'], n['basis'],
+            brown['approved_by'], brown['approved_on'], brown['version']))
+    elif staple == '白飯':
         try:
             config = json.loads((Path(__file__).resolve().parents[1] / 'config/staples.json').read_text(encoding='utf-8'))
         except (OSError, ValueError):
@@ -475,7 +645,7 @@ def validate_database_menu(db: Connection, recipe_ids: Sequence[str], *, partici
         rice = expected_rice
         staple_snapshot = {'version': config['version'], 'review_status': config['review_status'],
                            **rice, 'selection': staple}
-        lid = 'staple:FOOD000296'
+        lid = staple_line_id = 'staple:FOOD000296'
         recipe_row = {'recipe_id': 'staple', 'original_servings': 1,
                       'review_status': 'approved', 'is_eligible': True}
         line_row = {'recipe_ingredient_id': lid, 'recipe_id': 'staple', 'sequence': 1,
@@ -508,21 +678,86 @@ def validate_database_menu(db: Connection, recipe_ids: Sequence[str], *, partici
         if nutrition_import_id is None:
             return DatabaseMenuResult(targets, PreparedRecipe(None, (
                 InputIssue('nutrition_data_current_batch_missing', '', field='import_id'),)), None)
+        if nutrition_mappings is None and conversion == 'factor_one':
+            from .nutrition_mapping import NutritionMappingInvalid, load_nutrition_mappings
+            try:
+                nutrition_mappings = load_nutrition_mappings()
+            except NutritionMappingInvalid:
+                return DatabaseMenuResult(targets, PreparedRecipe(None, (
+                    InputIssue('nutrition_mapping_invalid', '', field='nutrition_mapping'),)), None)
+        resolve_rows = rows if staple_record is None else RecipeRows(
+            rows.recipe_ids, rows.recipes,
+            tuple(row for row in rows.ingredients if row['recipe_ingredient_id'] != staple_line_id), rows.steps)
         resolved_selections, selection_issues = resolve_imported_selections(
-            db, rows, import_id=nutrition_import_id, selections=nutrition_selections,
-            profiles=profiles, variant_resolver=variant_resolver)
+            db, resolve_rows, import_id=nutrition_import_id, selections=nutrition_selections,
+            profiles=profiles, variant_resolver=variant_resolver, conversion=conversion,
+            mappings=nutrition_mappings)
+        supplement_lines: dict[str, Mapping] = {}
+        if staple_record is not None:
+            supplement_lines[staple_line_id] = staple_record
+        if conversion == 'factor_one':
+            if nutrition_supplements is None:
+                from .nutrition_supplement import NutritionSupplementInvalid, load_nutrition_supplements
+                try:
+                    nutrition_supplements = load_nutrition_supplements()
+                except NutritionSupplementInvalid:
+                    return DatabaseMenuResult(targets, PreparedRecipe(None, (
+                        InputIssue('nutrition_supplement_invalid', '', field='nutrition_supplement'),)), None)
+            # A line whose Food_ID has no usable record may take approved
+            # supplement values; everything else keeps its reported reason.
+            remaining = []
+            for issue in selection_issues:
+                line = next((row for row in rows.ingredients
+                             if row['recipe_ingredient_id'] == issue.line_id), None)
+                supplement = (nutrition_supplements.values.get(line['food_id'])
+                              if line is not None and issue.code in SUPPLEMENTABLE_CODES else None)
+                if supplement is None:
+                    remaining.append(issue)
+                else:
+                    supplement_lines[issue.line_id] = _supplement_record(line, supplement)
+            selection_issues = tuple(remaining)
         if selection_issues:
             return DatabaseMenuResult(targets, PreparedRecipe(None, selection_issues), None)
-        imported = load_imported_nutrition(db, rows, import_id=nutrition_import_id,
-                                            selections=resolved_selections)
+        loaded_rows = rows if not supplement_lines else RecipeRows(
+            rows.recipe_ids, rows.recipes,
+            tuple(row for row in rows.ingredients if row['recipe_ingredient_id'] not in supplement_lines),
+            rows.steps)
+        imported = load_imported_nutrition(db, loaded_rows, import_id=nutrition_import_id,
+                                            selections=resolved_selections,
+                                            allow_usda=conversion == 'factor_one')
         if imported.issues:
             return DatabaseMenuResult(targets, PreparedRecipe(None, imported.issues), None)
+        if conversion == 'factor_one' and nutrition_supplements is not None:
+            records = {lid: _apply_fill(record, nutrition_supplements.fills)
+                       for lid, record in imported.line_records.items()}
+            records.update(supplement_lines)
+            imported = replace(imported, line_records=records)
         policy = replace(policy, sample_mappings={}, line_nutrition_records=imported.line_records)
         # Selection uses the recipe-level method.  A matching cooked sample is
         # already food after the recipe process, so its reviewed recipe grams
         # are consumed directly; raw/undetermined data keeps the recipe method
         # and enters the T04/LLM yield-retention path below.
-        if using_recipe_level_profiles:
+        if using_recipe_level_profiles and conversion == 'factor_one':
+            # User decision 2026-11-01: recipe grams are pre-cooking weights.
+            # Energy and protein are not lost by water evaporation, so raw
+            # composition x recipe grams is used with factor 1 (no yield or
+            # retention estimate, no LLM).  The assumption is recorded on
+            # every affected source.  Cooked/as-eaten records keep their basis.
+            records = {}
+            for lid, record in imported.line_records.items():
+                record = dict(record)
+                if record.get('state') == 'raw':
+                    record['source'] = {**record['source'],
+                                        'conversion_assumption': FACTOR_ONE_ASSUMPTION}
+                records[lid] = record
+            imported = replace(imported, line_records=records)
+            policy = replace(policy, line_nutrition_records=imported.line_records)
+            profiles = {lid: replace(profile,
+                         weight_basis=('raw' if record.get('state') == 'raw' else 'cooked'),
+                         consumed_as_is=True, cooking_method=None, cooking_context=None)
+                        for lid, profile in profiles.items()
+                        for record in (imported.line_records.get(lid, {}),)}
+        elif using_recipe_level_profiles:
             profiles = {lid: replace(profile,
                          weight_basis=('raw' if record.get('state') == 'raw' else 'cooked'),
                          consumed_as_is=record.get('state') != 'raw',
@@ -531,7 +766,7 @@ def validate_database_menu(db: Connection, recipe_ids: Sequence[str], *, partici
                         for lid, profile in profiles.items()
                         for record in (imported.line_records.get(lid, {}),)}
         estimates, estimate_issues = ({}, ())
-        if t04_results is None:
+        if t04_results is None and conversion != 'factor_one':
             estimates, estimate_issues = estimate_missing_cooking_with_t04(
                 rows, profiles=profiles, line_records=imported.line_records, estimator=cooking_estimator)
         if estimate_issues:
@@ -579,13 +814,31 @@ def validate_database_menu(db: Connection, recipe_ids: Sequence[str], *, partici
         if issues:
             return DatabaseMenuResult(targets, PreparedRecipe(None, issues), None)
     preparation = prepare_database_recipe(rows, policy=policy, profiles=profiles)
-    if staple == '白飯' and preparation.recipe is not None:
+    if staple_line_id is not None and preparation.recipe is not None:
         preparation = PreparedRecipe(replace(preparation.recipe, recipe_ids=tuple(recipe_ids)), ())
     result = validate_meal(preparation.recipe, targets, policy=policy) if preparation.recipe else None
+    dish_portions = None
+    unscaled_baseline = None
+    if (conversion == 'factor_one' and result is not None and not result.nutrition_passed
+            and result.baseline_estimate is not None and not result.baseline_estimate.missing):
+        # User decision 2026-11-02: when the unchanged menu misses ±10%, each
+        # dish may be served at 0.5–1.0 recipe serving (whole dish, same
+        # factor on every line).  The tolerance itself is not relaxed.
+        from .portion_fit import POLICY_VERSION, candidate_factors, scale_dishes
+        line_dish = {row['recipe_ingredient_id']: row['recipe_id'] for row in rows.ingredients
+                     if row['recipe_id'] != 'staple'}
+        for factors in candidate_factors(preparation.recipe, line_dish, targets, policy):
+            scaled = validate_meal(scale_dishes(preparation.recipe, line_dish, factors), targets, policy=policy)
+            if scaled.nutrition_passed:
+                unscaled_baseline = result.baseline_estimate
+                result = scaled
+                dish_portions = {'policy_version': POLICY_VERSION, 'range': ['0.5', '1.0'], 'step': '0.1',
+                                 'factors': {rid: str(f) for rid, f in sorted(factors.items())}}
+                break
     if staple_snapshot is not None and result and result.final_recipe:
         rice_line = next((line for line in result.final_recipe.ingredients
-                          if line.line_id == 'staple:FOOD000296'), None)
+                          if line.line_id == staple_line_id), None)
         if rice_line is not None:
             staple_snapshot = {**staple_snapshot, 'final_grams': str(rice_line.amount_g),
                                'total_n': str(targets.total_n)}
-    return DatabaseMenuResult(targets, preparation, result, staple_snapshot)
+    return DatabaseMenuResult(targets, preparation, result, staple_snapshot, dish_portions, unscaled_baseline)

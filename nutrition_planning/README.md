@@ -28,6 +28,20 @@ PR17 的 `recipe_dataset_1017.xlsx` 已人工確認所有食材列的 `weight_g`
 
 若沒有相符熟食資料，Food_ID 的 `未判定` 營養紀錄可作為 LLM 烹調估算的基準。它會保留原始來源狀態並以 raw pipeline 計算產率與保留率；沒有生食／未判定基準、熱量或蛋白質空白、LLM 未回傳產率、回傳格式錯誤或估算後仍缺必要欄位時，會顯示具體原因且不能採用。熟製、即食、加工、調味、醃漬與飲品資料可直接使用；FOOD000281 白米飯列為明確的即食主食資料。
 
+## 2026-11-01 真實資料決議（`nutrition-preview` 目前採用）
+
+以 PR17 真實食譜與 `All_Food_ID_1018.xlsx` 重測後，使用者決定下列規則。`backend/app/services/t12_planning.py` 以 `conversion='factor_one'` 呼叫 `validate_database_menu()`；本文件上方描述的 T04／LLM 熟食估算仍保留在 `conversion='t04'`（預設值，供測試與日後計算其他營養素）。
+
+1. **克數**：計算一律用工作簿已填好的克數。匯入程式在單位不是 g 時把它存在 `source_weight_g`（`weight_status` 為 `unverified_conversion` 或 `source_range`），T12 在 `weight_g` 空白時讀取它；不重新換算、不交給 LLM。工作簿沒有 `is_required` 欄，空白視為必要。
+2. **係數 1**：工作簿克數是下鍋前重量，熱量、蛋白質以「生食每 100g 值 × 克數」計算，不估產率或保留率，不呼叫 LLM；來源標示 `conversion_assumption = raw_weight_energy_protein_factor_one`。選擇順序：生食紀錄 → 加工／即食（無特定烹調方式）→ 本身就是熟食的食材（目前只有白飯 FOOD000296）。只有特定方式熟食紀錄（如 USDA 水煮洋蔥）時回報 `nutrition_cooked_only_needs_raw_mapping`；只有食譜反推資料時回報 `nutrition_recipe_derived_only`。
+3. **來源**：TFDA 優先；同一變體沒有 TFDA 時，使用唯一的 USDA 來源並標示 `provider=USDA`、`value_basis=usda_fallback_per_100g`。工作簿因「同組已有子項，排除重複官方平均」而未納入平均的 TFDA 官方平均值可以使用；其他排除原因仍阻擋。
+4. **生熟狀態**：`cooking_state_kind()` 明列工作簿全部 27 種狀態；以「；」連接的複合值須各部分一致，未知或矛盾一律回報 `nutrition_state_unknown`，不猜測。
+5. **營養對照（做法一）**：`config/t12_nutrition_mappings.json` 只供 T12 使用，例如食譜「薑」FOOD001496 的營養改取自 TFDA 老薑 FOOD000359，或在同一 Food_ID 指定 TFDA 樣品（如甘藍平均值 E30001）。**食譜 Food_ID 不變**，T07 禁忌、T11 知識、T13 價格不受影響。只套用 `status=approved` 且有核准人、日期、依據的項目；格式錯誤時回報 `nutrition_mapping_invalid` 而不計算。結果在每個來源保存 `nutrition_mapping` 與版本。可由已填寫的食材問題試算表產生：`python scripts/t12_mapping_from_sheet.py --sheet <xlsx> --all-food <All_Food_ID_1018.xlsx> --approved-by <核准人> --version <新版本>`。
+6. **公開資料補充（2026-11-02）**：`config/t12_nutrition_supplements.json` 同樣只供 T12 使用，分兩種：`values` 為 All 表沒有任何 TFDA／USDA 資料的食譜 Food_ID 提供每 100 g 數值（使用者確認的水 = 0，或 USDA FoodData Central 等公開資料，必附來源網址、紀錄編號、查詢日期）；`fill` 只補既有紀錄的空白欄位（例如香油、冰糖的蛋白質確認為 0），不覆寫已有數值。來源分別標示 `provider`（`USER_CONFIRMED`、`USDA` 等）與 `value_basis`（`user_confirmed_per_100g`、`public_supplement_per_100g`），結果的 `nutrition.supplements` 列出使用的版本。對照表優先於補充；格式錯誤時回報 `nutrition_supplement_invalid`。
+7. **預覽狀態**：`to_dict()` 新增 `status`（`calculation_incomplete`、`outside_tolerance`、`nutrition_passed`）、`status_message`、`nutrition.baseline_per_serving`、`nutrition.providers`、`nutrition.conversion_assumptions`、`nutrition.nutrition_mappings`。資料不足、未達 ±10%、政策未核准（`adoption_blockers`）三者分開呈現；原有欄位不變。
+8. **菜餚份量（2026-11-02）**：原份量無法達到 ±10% 時，`portion_fit.py` 讓每道菜以 0.5–1.0 份（每 0.1 份一級）供應；同一道菜所有食材乘同一係數，比例不變，主食仍用已核准範圍。候選依「改動最少」排序，並再經 `validate_meal()` 精確驗證，±10% 標準不變。結果的 `dish_portions` 記錄版本與各菜係數，`baseline_per_serving` 仍是原份量。半份仍超過範圍的菜照常回報 `outside_tolerance`。
+9. **精確克數**：食譜克數除以份數（如 10 g ÷ 3 人份）無法以 0.000001 g 精確表示時，固定食材只允許小於半微克的表示誤差；以烹調單位改變固定食材的情況仍被拒絕。最終 ±10% 以取整後克數計算。
+
 驗證：`python -m pytest nutrition_planning/tests --cov=nutrition_planning --cov-report=term-missing -q`。開發依賴見 `requirements-dev.txt`；不需呼叫模型或外部 API。
 
 型別檢查：`python -m pyright --project nutrition_planning/pyrightconfig.json`（本機使用專案 `.venv`）。

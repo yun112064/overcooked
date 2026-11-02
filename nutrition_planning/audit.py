@@ -8,7 +8,7 @@ from sqlalchemy import MetaData, Table, select
 from sqlalchemy.engine import Connection
 from sqlalchemy.exc import SQLAlchemyError
 
-from .imported_nutrition import STATES, NutritionDataUnavailable
+from .imported_nutrition import NutritionDataUnavailable, cooking_state_kind
 
 
 class FoodIdAuditReport(TypedDict):
@@ -44,7 +44,7 @@ def audit_food_id_coverage(db: Connection, *, import_id: str) -> FoodIdAuditRepo
         raise NutritionDataUnavailable() from exc
     nutrition_food_ids = {row['food_id'] for row in rows}
     states = Counter(str(row['cooking_state']) for row in rows)
-    unknown_states = sorted({state for state in states if state not in STATES})
+    unknown_states = sorted({state for state in states if cooking_state_kind(state) is None})
     per_food = Counter(row['food_id'] for row in rows)
     return {
         'import_id': import_id,
