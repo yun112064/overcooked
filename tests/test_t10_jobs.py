@@ -167,20 +167,26 @@ class T10Tests(unittest.TestCase):
 
     # --- 工作程序 ---
 
-    def test_default_handler_reports_generation_not_available_and_keeps_draft(self):
+    def test_default_handler_reports_generation_failure_and_keeps_draft(self):
         from app.jobs.worker import run_once
         job_id = self.submit().json()["job"]["id"]
         run_once(self.factory, "worker-a")
         job = self.client.get(f"/jobs/{job_id}").json()
         self.assertEqual(job["status"], "failed")
-        self.assertEqual(job["error"]["code"], "GENERATION_NOT_AVAILABLE")
+        # No configured active nutrition release means fail closed before generation;
+        # the worker must preserve the draft and never fall back to legacy JSON.
+        self.assertEqual(job["error"]["code"], "STAPLE_NUTRITION_UNAVAILABLE")
         self.assertEqual(job["attempts"], 1)
         self.assertEqual(self.request_status(), "failed")
         reread = self.client.get(f"/meal-requests/{self.request['id']}").json()
         self.assertEqual(reread["draft"]["budget"], "300")
+        changed = draft(self.member_id)
+        changed["budget"] = "301"
         edited = self.client.put(f"/meal-requests/{self.request['id']}",
-                                 json={"version": 1, "draft": draft(self.member_id)})
+                                 json={"version": 1, "draft": changed})
+        self.assertEqual(edited.status_code, 200)
         self.assertEqual(edited.json()["status"], "draft")
+        self.assertEqual(edited.json()["version"], 2)
         # 未呼叫任何付費服務
         self.assertEqual(self.ledger().reserved_twd + self.ledger().spent_twd, 0)
 

@@ -8,8 +8,7 @@
     - 沒有 .venv → 建立；requirements.txt 有變 → 重新安裝
     - package-lock.json 有變 → npm ci
     - 資料庫容器不存在 → 建立（資料存在具名 volume）；已存在 → 啟動
-    - alembic upgrade head 套用新的 migration
-    - 資料庫沒有食譜 → 從工作簿匯入
+    - 僅檢查 schema；1102_V3 不會自動遷移或匯入來源資料
   所有服務都在同一個視窗執行，輸出以 [backend]、[frontend] 等前綴區分；
   在該視窗按 Ctrl+C 或執行 scripts/stop-dev.ps1 全部關閉。
   只有新增「獨立程序」（例如 T11 的知識 RAG 服務）時才需要修改這支腳本。
@@ -147,23 +146,10 @@ if ($UseYolo) {
     $env:RECOGNITION_SERVICE_TOKEN = Cfg 'INFERENCE_TOKEN'
 }
 
-# ---------- 6. 資料表與食譜 ----------
-Step '套用資料庫 migration'
-& $Py -m alembic -c alembic.ini upgrade head
-if ($LASTEXITCODE -ne 0) { Fail 'alembic upgrade 失敗。' }
-
-$count = docker exec $Db psql -U postgres -d $DbName -tAc 'SELECT count(*) FROM recipes'
-if ("$count".Trim() -eq '0') {
-    $Workbook = Resolve-FromRoot (Cfg 'RECIPE_WORKBOOK' 'data/recipe_dataset_1017.xlsx')
-    if (Test-Path $Workbook) {
-        Step '資料庫沒有食譜，從工作簿匯入（約一分鐘）'
-        & $Py scripts/import_recipes.py --excel $Workbook --reviews config/recipe_reviews.json `
-            --sources config/recipe_sources.json --report (Join-Path $StateDir 'import-report.json') | Out-Null
-        if ($LASTEXITCODE -ne 0) { Fail '食譜匯入失敗，報告見 .dev\import-report.json。' }
-    } else {
-        Write-Host "    找不到食譜工作簿 $Workbook，先略過匯入（食材搜尋會是空的）。" -ForegroundColor Yellow
-    }
-}
+# ---------- 6. 僅檢查既有資料表，不遷移、不匯入 ----------
+Step '檢查資料庫 schema（1102_V3 資料整合待確認）'
+& $Py -m app.core.schema_gate
+if ($LASTEXITCODE -ne 0) { Fail '資料庫尚未準備完成。請先查閱 docs/1102_V3/DATABASE.md；此分支不會自動遷移或匯入。' }
 
 # ---------- 7. 啟動各服務 ----------
 $Running = @{}

@@ -1,0 +1,389 @@
+.......ss..FFF...FFFFFF......sss.......................FFFssssssssssssss [  8%]
+ssssssssssssssssssssss........................ssssss....F....sssssssssss [ 17%]
+ssssssssssssss........................sssssssF......F......F...........F [ 25%]
+F.FFFF...........................ssssss.....ssssss..........sssssssss... [ 34%]
+ssssssssssssssssssssssssssssss.....sssssssssss.sssssssssssssssssss.FFssF [ 42%]
+FFFFssssssssssssssssss.F....ssssssssssssssssssssssssssssssssssssssssssss [ 51%]
+sssssFFssssss...............FFF.......F................................. [ 59%]
+........sss................FFF.....ssssss...............sssssss.....F... [ 68%]
+........................................F.......FF.....FF............... [ 76%]
+........................................................................ [ 85%]
+........F.F............................................................. [ 93%]
+...................................................                      [100%]
+================================== FAILURES ===================================
+________ CategoryZeroRuleTests.test_meat_seafood_and_egg_fiber_is_zero ________
+tests\test_category_zero_fill.py:64: in test_meat_seafood_and_egg_fiber_is_zero
+    self.assertIsNotNone(cz.zero_rule(sample, "dietary_fiber_g"))
+E   AssertionError: unexpectedly None
+_ CategoryZeroRuleTests.test_refined_oil_has_no_sodium_sugar_fiber_or_carbohydrate _
+tests\test_category_zero_fill.py:73: in test_refined_oil_has_no_sodium_sugar_fiber_or_carbohydrate
+    self.assertIsNotNone(cz.zero_rule("M1100101", nutrient))
+E   AssertionError: unexpectedly None
+______________ CategoryZeroRuleTests.test_refined_sugar_and_salt ______________
+tests\test_category_zero_fill.py:80: in test_refined_sugar_and_salt
+    self.assertIsNotNone(cz.zero_rule("N0100101", nutrient))
+E   AssertionError: unexpectedly None
+_ CategoryZeroCalculatorTests.test_fill_for_a_category_zero_nutrient_is_ignored _
+tests\test_category_zero_fill.py:143: in test_fill_for_a_category_zero_nutrient_is_ignored
+    self.assertEqual(oil.nutrients["sodium_mg"], D(0))
+E   AssertionError: Decimal('0.5') != Decimal('0')
+_ CategoryZeroCalculatorTests.test_oil_blank_sodium_is_category_zero_and_traced _
+tests\test_category_zero_fill.py:103: in test_oil_blank_sodium_is_category_zero_and_traced
+    self.assertEqual(oil.nutrients[key], D(0), key)
+E   AssertionError: None != Decimal('0') : sodium_mg
+_______ CategoryZeroCalculatorTests.test_raw_sample_with_cooking_factor _______
+tests\test_category_zero_fill.py:128: in test_raw_sample_with_cooking_factor
+    self.assertEqual(pork.nutrients["dietary_fiber_g"], D(0))
+E   AssertionError: None != Decimal('0')
+___ CategoryZeroCalculatorTests.test_tfda_value_wins_over_the_category_rule ___
+tests\test_category_zero_fill.py:113: in test_tfda_value_wins_over_the_category_rule
+    self.assertEqual(set(salt.trace["category_zero"]), {"dietary_fiber_g"})
+E   AssertionError: Items in the second set but not the first:
+E   'dietary_fiber_g'
+__________ MenuLikeMealTests.test_whole_meal_has_all_seven_nutrients __________
+tests\test_category_zero_fill.py:168: in test_whole_meal_has_all_seven_nutrients
+    self.assertIsNotNone(final["protein_g"])
+E   AssertionError: unexpectedly None
+________ CheckFillTests.test_category_zero_and_tfda_values_are_refused ________
+tests\test_category_zero_fill.py:211: in test_category_zero_and_tfda_values_are_refused
+    self.assertIn("category", store.check_fill("M1100101", "sodium_mg", D("0")))
+E   TypeError: argument of type 'NoneType' is not iterable
+____ AdjustmentFileTests.test_every_adjustment_has_a_reason_and_sane_parts ____
+tests\test_intake_adjustments.py:65: in test_every_adjustment_has_a_reason_and_sane_parts
+    data = json.loads((PROJECT_ROOT / "config/recipe_intake_adjustments.json").read_text(encoding="utf-8"))
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+..\..\AppData\Local\Programs\Python\Python312\Lib\pathlib.py:1027: in read_text
+    with self.open(mode='r', encoding=encoding, errors=errors) as f:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+..\..\AppData\Local\Programs\Python\Python312\Lib\pathlib.py:1013: in open
+    return io.open(self, mode, buffering, encoding, errors, newline)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   FileNotFoundError: [Errno 2] No such file or directory: 'C:\\Users\\linzi\\Desktop\\overcooked\\config\\recipe_intake_adjustments.json'
+_____ AdjustmentFileTests.test_loader_returns_parts_by_recipe_ingredient ______
+tests\test_intake_adjustments.py:75: in test_loader_returns_parts_by_recipe_ingredient
+    self.assertEqual(loaded["RI002005"], (("FOOD001642", "鹹蛋黃", Decimal("0.3")),))
+                     ^^^^^^^^^^^^^^^^^^
+E   KeyError: 'RI002005'
+_ AdjustmentFileTests.test_weight_corrections_have_reasons_and_positive_values _
+tests\test_intake_adjustments.py:79: in test_weight_corrections_have_reasons_and_positive_values
+    data = json.loads((PROJECT_ROOT / "config/recipe_weight_corrections.json").read_text(encoding="utf-8"))
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+..\..\AppData\Local\Programs\Python\Python312\Lib\pathlib.py:1027: in read_text
+    with self.open(mode='r', encoding=encoding, errors=errors) as f:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+..\..\AppData\Local\Programs\Python\Python312\Lib\pathlib.py:1013: in open
+    return io.open(self, mode, buffering, encoding, errors, newline)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   FileNotFoundError: [Errno 2] No such file or directory: 'C:\\Users\\linzi\\Desktop\\overcooked\\config\\recipe_weight_corrections.json'
+_ CachedCookingFactorTests.test_raw_food_with_cached_retention_becomes_complete_and_is_marked_llm_estimated _
+tests\test_llm_estimation.py:60: in test_raw_food_with_cached_retention_becomes_complete_and_is_marked_llm_estimated
+    self.assertEqual(chicken.nutrients["dietary_fiber_g"], D(0))
+E   AssertionError: None != Decimal('0')
+_ YieldOnlyApproximationTests.test_other_nutrients_use_raw_composition_with_retention_one _
+tests\test_other_nutrients.py:52: in test_other_nutrients_use_raw_composition_with_retention_one
+    self.assertEqual(chicken.nutrients["dietary_fiber_g"], D(0))  # TFDA 空白、肉類 → #45 類別 0
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   AssertionError: None != Decimal('0')
+________ DailyReferenceTests.test_other_nutrients_follow_daily_energy _________
+tests\test_per_person_nutrition.py:32: in test_other_nutrients_follow_daily_energy
+    self.assertEqual((Decimal(ref["carbohydrate_g"]["min"]), Decimal(ref["carbohydrate_g"]["max"])), (250, 300))
+                              ^^^^^^^^^^^^^^^^^^^^^
+E   KeyError: 'carbohydrate_g'
+_ HighSodiumDishTests.test_sodium_is_per_serving_and_flags_from_the_threshold _
+tests\test_per_person_nutrition.py:118: in test_sodium_is_per_serving_and_flags_from_the_threshold
+    self.assertEqual((Decimal(d1["sodium_mg_per_serving"]), d1["high_sodium"]), (Decimal(1000), True))
+E   AssertionError: Tuples differ: (Decimal('1000'), None) != (Decimal('1000'), True)
+E
+E   First differing element 1:
+E   None
+E   True
+E
+E   - (Decimal('1000'), None)
+E   ?                   ^^^
+E
+E   + (Decimal('1000'), True)
+E   ?                   ^^^
+____ BrownRiceTests.test_brown_rice_is_raw_japonica_brown_rice_eaten_as_is ____
+tests\test_staple_options.py:23: in test_brown_rice_is_raw_japonica_brown_rice_eaten_as_is
+    self.assertEqual((ln.grams_per_n, ln.adjustable_min, ln.adjustable_max), (D("75"), D("50"), D("125")))
+E   AssertionError: Tuples differ: (None, None, None) != (Decimal('75'), Decimal('50'), Decimal('125'))
+E
+E   First differing element 0:
+E   None
+E   Decimal('75')
+E
+E   - (None, None, None)
+E   + (Decimal('75'), Decimal('50'), Decimal('125'))
+___ BrownRiceTests.test_snapshot_explains_raw_weight_and_cooked_equivalent ____
+tests\test_staple_options.py:34: in test_snapshot_explains_raw_weight_and_cooked_equivalent
+    self.assertEqual(snap["display_name"], "糙米（生）")
+E   AssertionError: '糙米' != '糙米（生）'
+E   - 糙米
+E   + 糙米（生）
+_______________ AliasAndNoneTests.test_ways_of_saying_no_staple _______________
+tests\test_staple_options.py:46: in test_ways_of_saying_no_staple
+    self.assertIsNone(staples.resolve(text))
+E   AssertionError: Staple(label='不要', line=IngredientLine(food_id='STAPLE:不要', name='不要', grams_per_n=None, recipe_ingredient_id=None, cooking_method=None, weight_basis='raw', consumed_as_is=False, adjustable_min=None, adjustable_max=None, adjustment_approved=False, dish_id='staple', recipe_release_id=None, unresolved_reason='staple_not_supported', weight_basis_source='staple_config', unit=None, amount_per_n=None, raw_text='不要', role='staple', weight_estimate=None, cooking_methods=(), weight_source=None, group=None, intake_parts=None), config_version='1102-v3-pending-source-review', review_status='pending_review') is not None
+_________ AliasAndNoneTests.test_white_rice_raw_word_means_white_rice _________
+tests\test_staple_options.py:41: in test_white_rice_raw_word_means_white_rice
+    self.assertEqual(staples.resolve("白米").label, "白飯")
+E   AssertionError: '白米' != '白飯'
+E   - 白米
+E   + 白飯
+_ NewOptionTests.test_new_options_are_computable_and_close_to_150_g_white_rice _
+tests\test_staple_options.py:55: in test_new_options_are_computable_and_close_to_150_g_white_rice
+    rice = energy("白飯").nutrients["energy_kcal"]  # 274.5 kcal
+           ^^^^^^^^^^^^
+tests\test_staple_options.py:15: in energy
+    [row] = mc.tfda_calculator([(ln, ln.grams_per_n)])
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+backend\app\services\meal_calculation.py:1329: in calculate
+    return _tfda_calculate(rows, cooking_factors, tfda_resolver, nutrient_fills, raw_fallback)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+backend\app\services\meal_calculation.py:1397: in _tfda_calculate
+    grams = Decimal(grams)
+            ^^^^^^^^^^^^^^
+E   TypeError: conversion from NoneType to Decimal is not supported
+_ NewOptionTests.test_options_for_the_api_list_label_aliases_and_display_text _
+tests\test_staple_options.py:65: in test_options_for_the_api_list_label_aliases_and_display_text
+    self.assertTrue({"白飯", "糙米飯", "五穀飯", "胚芽米飯", "麵", "麵線", "烏龍麵", "麵包", "地瓜", "玉米"}
+E   AssertionError: False is not true
+_________ AllergenGroupFileTests.test_only_trigger_foods_open_a_group _________
+tests\test_t11_allergen_groups.py:25: in test_only_trigger_foods_open_a_group
+    soy_sauce = next(m for g in allergen_groups._load(str(allergen_groups.default_path()))
+                                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+backend\app\services\allergen_groups.py:29: in _load
+    raise AllergenGroupsInvalid("missing")
+E   app.services.allergen_groups.AllergenGroupsInvalid: missing
+_ AllergenGroupFileTests.test_project_file_is_valid_and_egg_covers_processed_egg_foods _
+tests\test_t11_allergen_groups.py:16: in test_project_file_is_valid_and_egg_covers_processed_egg_foods
+    extra = {e["food_id"]: e for e in allergen_groups.expansion([EGG])[EGG]}
+                                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+backend\app\services\allergen_groups.py:55: in expansion
+    groups = _load(str(path or default_path()))
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+backend\app\services\allergen_groups.py:29: in _load
+    raise AllergenGroupsInvalid("missing")
+E   app.services.allergen_groups.AllergenGroupsInvalid: missing
+________ OfficialBasisTests.test_every_group_cites_an_official_source _________
+tests\test_t11_allergen_groups.py:77: in setUp
+    self.data = json.loads(allergen_groups.default_path().read_text(encoding="utf-8"))
+                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+..\..\AppData\Local\Programs\Python\Python312\Lib\pathlib.py:1027: in read_text
+    with self.open(mode='r', encoding=encoding, errors=errors) as f:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+..\..\AppData\Local\Programs\Python\Python312\Lib\pathlib.py:1013: in open
+    return io.open(self, mode, buffering, encoding, errors, newline)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   FileNotFoundError: [Errno 2] No such file or directory: 'C:\\Users\\linzi\\Desktop\\overcooked\\config\\t11_allergen_groups.json'
+_________ OfficialBasisTests.test_official_exemptions_are_not_members _________
+tests\test_t11_allergen_groups.py:77: in setUp
+    self.data = json.loads(allergen_groups.default_path().read_text(encoding="utf-8"))
+                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+..\..\AppData\Local\Programs\Python\Python312\Lib\pathlib.py:1027: in read_text
+    with self.open(mode='r', encoding=encoding, errors=errors) as f:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+..\..\AppData\Local\Programs\Python\Python312\Lib\pathlib.py:1013: in open
+    return io.open(self, mode, buffering, encoding, errors, newline)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   FileNotFoundError: [Errno 2] No such file or directory: 'C:\\Users\\linzi\\Desktop\\overcooked\\config\\t11_allergen_groups.json'
+_________ test_reviewed_knowledge_matches_all_123_publication_records _________
+tests\test_t11_knowledge_review.py:10: in test_reviewed_knowledge_matches_all_123_publication_records
+    candidates, decisions = apply_reviewed.checked_records()
+                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+knowledge_rag\apply_reviewed.py:22: in checked_records
+    digest = sha256(path.read_bytes().replace(b"\r\n", b"\n")).hexdigest()
+                    ^^^^^^^^^^^^^^^^^
+..\..\AppData\Local\Programs\Python\Python312\Lib\pathlib.py:1019: in read_bytes
+    with self.open(mode='rb') as f:
+         ^^^^^^^^^^^^^^^^^^^^
+..\..\AppData\Local\Programs\Python\Python312\Lib\pathlib.py:1013: in open
+    return io.open(self, mode, buffering, encoding, errors, newline)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   FileNotFoundError: [Errno 2] No such file or directory: 'C:\\Users\\linzi\\Desktop\\overcooked\\knowledge_rag\\candidates\\web_paper_2026-10-30.json'
+_____________ test_changed_excerpt_cannot_reuse_existing_approval _____________
+tests\test_t11_knowledge_review.py:19: in test_changed_excerpt_cannot_reuse_existing_approval
+    text = apply_reviewed.CANDIDATES.read_text(encoding="utf-8")
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+..\..\AppData\Local\Programs\Python\Python312\Lib\pathlib.py:1027: in read_text
+    with self.open(mode='r', encoding=encoding, errors=errors) as f:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+..\..\AppData\Local\Programs\Python\Python312\Lib\pathlib.py:1013: in open
+    return io.open(self, mode, buffering, encoding, errors, newline)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   FileNotFoundError: [Errno 2] No such file or directory: 'C:\\Users\\linzi\\Desktop\\overcooked\\knowledge_rag\\candidates\\web_paper_2026-10-30.json'
+____________ test_dish_name_normalization_matches_tomato_spellings ____________
+tests\test_t11_knowledge_review.py:33: in test_dish_name_normalization_matches_tomato_spellings
+    assert normalize_name("番茄炒蛋") == normalize_name("蕃茄炒蛋")
+E   AssertionError: assert '番茄炒蛋' == '蕃茄炒蛋'
+E
+E     - 蕃茄炒蛋
+E     ? ^
+E     + 番茄炒蛋
+E     ? ^
+_____________ OpenAIEmbedderTests.test_embedding_model_is_priced ______________
+tests\test_t11_knowledge_service.py:319: in test_embedding_model_is_priced
+    self.assertEqual(spend.cost_twd("text-embedding-3-small", 1_000_000, 0), Decimal("0.6600"))
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+backend\app\services\spend.py:56: in cost_twd
+    raise ValueError(f"Model {model!r} has no pricing entry; refusing paid call.")
+E   ValueError: Model 'text-embedding-3-small' has no pricing entry; refusing paid call.
+____ NameVariantTests.test_previous_day_dedup_treats_variants_as_same_dish ____
+tests\test_t11_recipe_retrieval.py:422: in test_previous_day_dedup_treats_variants_as_same_dish
+    self.assertTrue(meal_history.same_dish({"dish_name": "蕃茄炒蛋"}, {"dish_name": "番茄炒蛋"}))
+E   AssertionError: False is not true
+_____ NameVariantTests.test_variant_characters_normalize_to_the_same_name _____
+tests\test_t11_recipe_retrieval.py:416: in test_variant_characters_normalize_to_the_same_name
+    self.assertEqual(normalize_name(a), normalize_name(b))
+E   AssertionError: '番茄炒蛋' != '蕃茄炒蛋'
+E   - 番茄炒蛋
+E   ? ^
+E   + 蕃茄炒蛋
+E   ? ^
+_____ MarketCookedTests.test_ai_declared_salted_egg_yolk_is_cooked_weight _____
+tests\test_t12_calc_fallbacks.py:151: in test_ai_declared_salted_egg_yolk_is_cooked_weight
+    self.assertEqual(yolk.nutrients["energy_kcal"], D("105.6"))  # 528 × 0.2
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   AssertionError: None != Decimal('105.6')
+_____ MarketCookedTests.test_bamboo_shoot_from_workbook_is_cooked_weight ______
+tests\test_t12_calc_fallbacks.py:142: in test_bamboo_shoot_from_workbook_is_cooked_weight
+    self.assertIsNone(shoot.error)
+E   AssertionError: 'cooked_food_requires_cooked_weight_basis' is not None
+____ MarketCookedTests.test_market_cooked_list_is_configured_with_reasons _____
+tests\test_t12_calc_fallbacks.py:161: in test_market_cooked_list_is_configured_with_reasons
+    self.assertTrue({"桂竹筍", "鹹蛋黃", "杏仁果"} <= names)
+E   AssertionError: False is not true
+__ TargetCompositionTests.test_v2_default_t03_rule_matches_frozen_040_digest __
+tests\test_t12_meal_calculation.py:24: in test_v2_default_t03_rule_matches_frozen_040_digest
+    self.assertEqual(target_service().rule_version, "hpa-dri8-mvp-0.4.0")
+E   AssertionError: 'hpa-dri8-mvp-0.3.0' != 'hpa-dri8-mvp-0.4.0'
+E   - hpa-dri8-mvp-0.3.0
+E   ?                ^
+E   + hpa-dri8-mvp-0.4.0
+E   ?                ^
+________ SeasoningTests.test_compute_uses_config_seasonings_by_default ________
+tests\test_t13_meal_cost.py:232: in test_compute_uses_config_seasonings_by_default
+    self.assertEqual(calls, [])
+E   AssertionError: Lists differ: ['FOOD000691'] != []
+E
+E   First list contains 1 additional elements.
+E   First extra element 0:
+E   'FOOD000691'
+E
+E   - ['FOOD000691']
+E   + []
+____ SeasoningTests.test_config_list_follows_its_rules_or_states_a_reason _____
+tests\test_t13_meal_cost.py:220: in test_config_list_follows_its_rules_or_states_a_reason
+    data = json.loads(SEASONINGS_PATH.read_text(encoding="utf-8"))
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+..\..\AppData\Local\Programs\Python\Python312\Lib\pathlib.py:1027: in read_text
+    with self.open(mode='r', encoding=encoding, errors=errors) as f:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+..\..\AppData\Local\Programs\Python\Python312\Lib\pathlib.py:1013: in open
+    return io.open(self, mode, buffering, encoding, errors, newline)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   FileNotFoundError: [Errno 2] No such file or directory: 'C:\\Users\\linzi\\Desktop\\overcooked\\config\\seasoning_ingredients.json'
+______ SeasoningTests.test_default_seasonings_come_from_the_config_file _______
+tests\test_t13_meal_cost.py:211: in test_default_seasonings_come_from_the_config_file
+    self.assertIn(food_id, seasonings)
+E   AssertionError: 'FOOD000691' not found in set()
+_ VersionedSQLNutritionTests.test_configured_cooked_rice_staple_uses_exact_source_method_without_conversion _
+tests\test_versioned_sql_nutrition.py:125: in test_configured_cooked_rice_staple_uses_exact_source_method_without_conversion
+    self.assertEqual(line.food_id, "FOOD000296")
+E   AssertionError: 'STAPLE:白飯' != 'FOOD000296'
+E   - STAPLE:白飯
+E   + FOOD000296
+_ test_real_registry_covers_all_recipe_food_ids_and_preserves_discussion_items _
+nutrition_planning\tests\test_food_id_mapping.py:70: in test_real_registry_covers_all_recipe_food_ids_and_preserves_discussion_items
+    document=json.loads(registry.read_text(encoding='utf-8'))
+                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+..\..\AppData\Local\Programs\Python\Python312\Lib\pathlib.py:1027: in read_text
+    with self.open(mode='r', encoding=encoding, errors=errors) as f:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+..\..\AppData\Local\Programs\Python\Python312\Lib\pathlib.py:1013: in open
+    return io.open(self, mode, buffering, encoding, errors, newline)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   FileNotFoundError: [Errno 2] No such file or directory: 'C:\\Users\\linzi\\Desktop\\overcooked\\nutrition_model\\data\\food_id_tfda_mapping.json'
+_________ test_white_rice_missing_from_import_is_reported_by_food_id __________
+nutrition_planning\tests\test_imported_nutrition.py:201: in test_white_rice_missing_from_import_is_reported_by_food_id
+    assert any(issue.code == 'nutrition_food_id_missing' for issue in result.preparation.issues)
+E   assert False
+E    +  where False = any(<generator object test_white_rice_missing_from_import_is_reported_by_food_id.<locals>.<genexpr> at 0x000001BB701F2400>)
+____ test_t12_backend_payload_exposes_blocking_reason_without_zero_values _____
+nutrition_planning\tests\test_imported_nutrition.py:218: in test_t12_backend_payload_exposes_blocking_reason_without_zero_values
+    assert issues[0]['message'] == '食材營養資料缺失'
+E   AssertionError: assert '營養或烹調依據缺失，無法採用' == '食材營養資料缺失'
+E
+E     - 食材營養資料缺失
+E     + 營養或烹調依據缺失，無法採用
+_______ test_white_rice_legacy_catalog_never_injects_fixed_tfda_sample ________
+nutrition_planning\tests\test_imported_nutrition.py:283: in test_white_rice_legacy_catalog_never_injects_fixed_tfda_sample
+    assert result.preparation.issues[0].code == 'staple_nutrition_selection_missing'
+E   AssertionError: assert 'staple_polic...ed_or_changed' == 'staple_nutri...ction_missing'
+E
+E     - staple_nutrition_selection_missing
+E     + staple_policy_unreviewed_or_changed
+_________ test_white_rice_food_296_is_aligned_with_dishes_and_counted _________
+nutrition_planning\tests\test_imported_nutrition.py:309: in test_white_rice_food_296_is_aligned_with_dishes_and_counted
+    assert result.validation is not None and result.validation.nutrition_passed
+E   AssertionError: assert (None is not None)
+E    +  where None = DatabaseMenuResult(targets=MealTargets(total_n=Fraction(13, 10), reference={'energy_kcal': Fraction(19428591, 25000), ...eld='policy', input_digest=None),)), validation=None, staple_snapshot=None, dish_portions=None, unscaled_baseline=None).validation
+_________ test_brown_rice_staple_uses_its_reviewed_usda_cooked_value __________
+nutrition_planning\tests\test_real_data_fixes.py:451: in test_brown_rice_staple_uses_its_reviewed_usda_cooked_value
+    assert payload['status'] in ('nutrition_passed', 'outside_tolerance')
+E   AssertionError: assert 'calculation_incomplete' in ('nutrition_passed', 'outside_tolerance')
+_________________ test_changed_brown_rice_policy_fails_closed _________________
+nutrition_planning\tests\test_real_data_fixes.py:475: in test_changed_brown_rice_policy_fails_closed
+    data['brown_rice']['grams_per_n'] = '200'
+    ^^^^^^^^^^^^^^^^^^
+E   KeyError: 'brown_rice'
+- generated xml file: C:\Users\linzi\Desktop\overcooked\docs\1102_V3\pytest-full.xml -
+=========================== short test summary info ===========================
+FAILED tests/test_category_zero_fill.py::CategoryZeroRuleTests::test_meat_seafood_and_egg_fiber_is_zero
+FAILED tests/test_category_zero_fill.py::CategoryZeroRuleTests::test_refined_oil_has_no_sodium_sugar_fiber_or_carbohydrate
+FAILED tests/test_category_zero_fill.py::CategoryZeroRuleTests::test_refined_sugar_and_salt
+FAILED tests/test_category_zero_fill.py::CategoryZeroCalculatorTests::test_fill_for_a_category_zero_nutrient_is_ignored
+FAILED tests/test_category_zero_fill.py::CategoryZeroCalculatorTests::test_oil_blank_sodium_is_category_zero_and_traced
+FAILED tests/test_category_zero_fill.py::CategoryZeroCalculatorTests::test_raw_sample_with_cooking_factor
+FAILED tests/test_category_zero_fill.py::CategoryZeroCalculatorTests::test_tfda_value_wins_over_the_category_rule
+FAILED tests/test_category_zero_fill.py::MenuLikeMealTests::test_whole_meal_has_all_seven_nutrients
+FAILED tests/test_category_zero_fill.py::CheckFillTests::test_category_zero_and_tfda_values_are_refused
+FAILED tests/test_intake_adjustments.py::AdjustmentFileTests::test_every_adjustment_has_a_reason_and_sane_parts
+FAILED tests/test_intake_adjustments.py::AdjustmentFileTests::test_loader_returns_parts_by_recipe_ingredient
+FAILED tests/test_intake_adjustments.py::AdjustmentFileTests::test_weight_corrections_have_reasons_and_positive_values
+FAILED tests/test_llm_estimation.py::CachedCookingFactorTests::test_raw_food_with_cached_retention_becomes_complete_and_is_marked_llm_estimated
+FAILED tests/test_other_nutrients.py::YieldOnlyApproximationTests::test_other_nutrients_use_raw_composition_with_retention_one
+FAILED tests/test_per_person_nutrition.py::DailyReferenceTests::test_other_nutrients_follow_daily_energy
+FAILED tests/test_per_person_nutrition.py::HighSodiumDishTests::test_sodium_is_per_serving_and_flags_from_the_threshold
+FAILED tests/test_staple_options.py::BrownRiceTests::test_brown_rice_is_raw_japonica_brown_rice_eaten_as_is
+FAILED tests/test_staple_options.py::BrownRiceTests::test_snapshot_explains_raw_weight_and_cooked_equivalent
+FAILED tests/test_staple_options.py::AliasAndNoneTests::test_ways_of_saying_no_staple
+FAILED tests/test_staple_options.py::AliasAndNoneTests::test_white_rice_raw_word_means_white_rice
+FAILED tests/test_staple_options.py::NewOptionTests::test_new_options_are_computable_and_close_to_150_g_white_rice
+FAILED tests/test_staple_options.py::NewOptionTests::test_options_for_the_api_list_label_aliases_and_display_text
+FAILED tests/test_t11_allergen_groups.py::AllergenGroupFileTests::test_only_trigger_foods_open_a_group
+FAILED tests/test_t11_allergen_groups.py::AllergenGroupFileTests::test_project_file_is_valid_and_egg_covers_processed_egg_foods
+FAILED tests/test_t11_allergen_groups.py::OfficialBasisTests::test_every_group_cites_an_official_source
+FAILED tests/test_t11_allergen_groups.py::OfficialBasisTests::test_official_exemptions_are_not_members
+FAILED tests/test_t11_knowledge_review.py::test_reviewed_knowledge_matches_all_123_publication_records
+FAILED tests/test_t11_knowledge_review.py::test_changed_excerpt_cannot_reuse_existing_approval
+FAILED tests/test_t11_knowledge_review.py::test_dish_name_normalization_matches_tomato_spellings
+FAILED tests/test_t11_knowledge_service.py::OpenAIEmbedderTests::test_embedding_model_is_priced
+FAILED tests/test_t11_recipe_retrieval.py::NameVariantTests::test_previous_day_dedup_treats_variants_as_same_dish
+FAILED tests/test_t11_recipe_retrieval.py::NameVariantTests::test_variant_characters_normalize_to_the_same_name
+FAILED tests/test_t12_calc_fallbacks.py::MarketCookedTests::test_ai_declared_salted_egg_yolk_is_cooked_weight
+FAILED tests/test_t12_calc_fallbacks.py::MarketCookedTests::test_bamboo_shoot_from_workbook_is_cooked_weight
+FAILED tests/test_t12_calc_fallbacks.py::MarketCookedTests::test_market_cooked_list_is_configured_with_reasons
+FAILED tests/test_t12_meal_calculation.py::TargetCompositionTests::test_v2_default_t03_rule_matches_frozen_040_digest
+FAILED tests/test_t13_meal_cost.py::SeasoningTests::test_compute_uses_config_seasonings_by_default
+FAILED tests/test_t13_meal_cost.py::SeasoningTests::test_config_list_follows_its_rules_or_states_a_reason
+FAILED tests/test_t13_meal_cost.py::SeasoningTests::test_default_seasonings_come_from_the_config_file
+FAILED tests/test_versioned_sql_nutrition.py::VersionedSQLNutritionTests::test_configured_cooked_rice_staple_uses_exact_source_method_without_conversion
+FAILED nutrition_planning/tests/test_food_id_mapping.py::test_real_registry_covers_all_recipe_food_ids_and_preserves_discussion_items
+FAILED nutrition_planning/tests/test_imported_nutrition.py::test_white_rice_missing_from_import_is_reported_by_food_id
+FAILED nutrition_planning/tests/test_imported_nutrition.py::test_t12_backend_payload_exposes_blocking_reason_without_zero_values
+FAILED nutrition_planning/tests/test_imported_nutrition.py::test_white_rice_legacy_catalog_never_injects_fixed_tfda_sample
+FAILED nutrition_planning/tests/test_imported_nutrition.py::test_white_rice_food_296_is_aligned_with_dishes_and_counted
+FAILED nutrition_planning/tests/test_real_data_fixes.py::test_brown_rice_staple_uses_its_reviewed_usda_cooked_value
+FAILED nutrition_planning/tests/test_real_data_fixes.py::test_changed_brown_rice_policy_fails_closed
+47 failed, 545 passed, 251 skipped in 15.88s

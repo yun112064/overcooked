@@ -29,3 +29,4 @@ nutrition_model/data/raw/
 
 # 本機開發腳本的執行狀態（PID、匯入報告）
 .dev/
+.test-runtime/

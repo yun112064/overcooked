@@ -253,7 +253,7 @@ class T07ApiTests(unittest.TestCase):
         self.with_household()
         member = self.client.post("/members", json=adult(birth_date=years_ago(30), portion="1.3")).json()
         target = self.client.get(f"/members/{member['id']}/target").json()
-        self.assertEqual(target["rule_version"], "hpa-dri8-mvp-0.3.0")
+        self.assertEqual(target["rule_version"], "hpa-dri8-mvp-0.4.0")
         self.assertEqual(target["daily_reference"]["protein_g"], "77.0")
         self.assertFalse(target["approved_for_adoption"])
 

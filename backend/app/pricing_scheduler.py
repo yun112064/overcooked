@@ -1,4 +1,4 @@
-"""T02 daily PX Mart collection: settings, service factory and manual CLI.
+"""T02 daily PX Mart collection (+ Uni-Prosperity fallback): settings, service factory and manual CLI.
 
 The recurring job is registered in the single scheduler process
 (app.jobs.scheduler); this module no longer starts its own scheduler.
@@ -11,7 +11,6 @@ import json
 import os
 from dataclasses import asdict, dataclass
 from datetime import datetime
-from pathlib import Path
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from apscheduler.schedulers.blocking import BlockingScheduler
@@ -20,6 +19,7 @@ from apscheduler.triggers.cron import CronTrigger
 from app.source_adapters.price_collection import PriceCollectionService
 from app.source_adapters.pricing_repository import PricingRepository
 from app.source_adapters.pxmart import PxMartAdapter
+from app.source_adapters.uni_prosperity import UniProsperityAdapter
 
 
 def _boolean(value: str) -> bool:
@@ -37,11 +37,12 @@ class SchedulerSettings:
     hour: int
     minute: int
     timezone_name: str
-    workbook_path: Path
     delay_seconds: float
     timeout_seconds: float
     retries: int
     batch_size: int | None = None
+    # 決策 #25：全聯查無／不可用時改查萬家福
+    fallback_uni_prosperity: bool = True
 
     @property
     def timezone(self) -> ZoneInfo:
@@ -55,20 +56,14 @@ class SchedulerSettings:
     @classmethod
     def from_env(cls) -> "SchedulerSettings":
         settings = cls(
-            enabled=_boolean(os.getenv("PRICE_SCHEDULER_ENABLED", "true")),
+            enabled=_boolean(os.getenv("PRICE_SCHEDULER_ENABLED", "false")),
             hour=int(os.getenv("PRICE_SCHEDULER_HOUR", "3")),
             minute=int(os.getenv("PRICE_SCHEDULER_MINUTE", "0")),
             timezone_name=os.getenv(
                 "PRICE_SCHEDULER_TIMEZONE", "Asia/Taipei"
             ),
-            workbook_path=Path(
-                os.getenv(
-                    "PRICE_WORKBOOK_PATH",
-                    "data/recipe_dataset_1017.xlsx",
-                )
-            ),
             delay_seconds=float(
-                os.getenv("PRICE_COLLECTION_DELAY_SECONDS", "1.5")
+                os.getenv("PRICE_COLLECTION_DELAY_SECONDS", "2.0")
             ),
             timeout_seconds=float(
                 os.getenv("PRICE_COLLECTION_TIMEOUT_SECONDS", "15")
@@ -77,13 +72,16 @@ class SchedulerSettings:
             batch_size=(
                 int(os.getenv("PRICE_COLLECTION_BATCH_SIZE", "0")) or None
             ),
+            fallback_uni_prosperity=_boolean(
+                os.getenv("PRICE_FALLBACK_UNI_PROSPERITY_ENABLED", "true")
+            ),
         )
         if not 0 <= settings.hour <= 23:
             raise ValueError("PRICE_SCHEDULER_HOUR must be 0..23")
         if not 0 <= settings.minute <= 59:
             raise ValueError("PRICE_SCHEDULER_MINUTE must be 0..59")
-        if settings.delay_seconds < 0:
-            raise ValueError("PRICE_COLLECTION_DELAY_SECONDS cannot be negative")
+        if settings.delay_seconds < 2.0:
+            raise ValueError("PRICE_COLLECTION_DELAY_SECONDS must be at least 2 seconds")
         if not 0 <= settings.retries <= 3:
             raise ValueError("PRICE_COLLECTION_RETRIES must be 0..3")
         if settings.batch_size is not None and settings.batch_size < 1:
@@ -94,13 +92,19 @@ class SchedulerSettings:
 
 def create_service(settings: SchedulerSettings) -> PriceCollectionService:
     return PriceCollectionService(
-        workbook_path=settings.workbook_path,
         repository=PricingRepository(),
         adapter_factory=lambda: PxMartAdapter(
             timeout=settings.timeout_seconds,
             retries=settings.retries,
         ),
         delay_seconds=settings.delay_seconds,
+        fallback_adapter_factory=(
+            (lambda: UniProsperityAdapter(
+                timeout=settings.timeout_seconds,
+                retries=settings.retries,
+            ))
+            if settings.fallback_uni_prosperity else None
+        ),
     )
 
 

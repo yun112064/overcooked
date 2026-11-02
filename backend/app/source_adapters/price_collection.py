@@ -1,4 +1,9 @@
-"""One resilient PX Mart price collection run."""
+"""One resilient price collection run: PX Mart first, then an optional fallback source.
+
+決策 #25：全聯查無或不可用（selection_tier=missing，不含 review_required 與工作簿對應失敗）的
+食材，才以第二來源（萬家福）查價。第二來源用獨立的 run（run_key 加 ":<provider>"），
+統計分來源記錄；同一 run_key 重跑可續跑、已完成則略過（冪等）。
+"""
 
 from __future__ import annotations
 
@@ -7,7 +12,7 @@ import json
 import time
 import uuid
 from collections import Counter
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import datetime, timezone
 from decimal import Decimal
 from pathlib import Path
@@ -16,7 +21,6 @@ from urllib.parse import quote as url_quote
 
 from app.core.logging_config import scheduler_logger
 
-from .ingredient_workbook import load_ingredient_queries
 from .price_models import (
     IngredientQuery,
     PriceQuote,
@@ -44,6 +48,8 @@ class CollectionResult:
     price_update_success_rate: float = 0.0
     duration_ms: int = 0
     skipped_reason: str | None = None
+    provider: str = "pxmart"
+    fallback: "CollectionResult | None" = None
 
 
 PRICE_EXEMPT_PATH = Path(__file__).resolve().parents[3] / "config/price_exempt_ingredients.json"
@@ -81,26 +87,32 @@ class PriceCollectionService:
     def __init__(
         self,
         *,
-        workbook_path: str | Path,
         repository: PricingRepository,
         adapter_factory: Callable[[], PxMartAdapter],
-        delay_seconds: float = 1.5,
-        ingredient_loader: Callable[[str | Path], list[IngredientQuery]] = (
-            load_ingredient_queries
-        ),
+        delay_seconds: float = 2.0,
+        ingredient_loader: Callable[[], list[IngredientQuery]] | None = None,
         sleep: Callable[[float], None] = time.sleep,
         exempt_food_ids: set[str] | None = None,
         synonym_groups: list[set[str]] | None = None,
+        fallback_adapter_factory: Callable[[], object] | None = None,
+        seasoning_food_ids: set[str] | None = None,
     ) -> None:
+        self.fallback_adapter_factory = fallback_adapter_factory
+        if seasoning_food_ids is None:
+            from app.services.seasonings import load_seasonings
+            seasoning_food_ids = load_seasonings()
+        self.seasoning_food_ids = set(seasoning_food_ids)
         if synonym_groups is None:
             from app.services.synonyms import confirmed_groups
             synonym_groups = confirmed_groups()
         self.synonym_groups = synonym_groups
         self.exempt_food_ids = load_price_exempt() if exempt_food_ids is None else set(exempt_food_ids)
-        self.workbook_path = Path(workbook_path)
         self.repository = repository
         self.adapter_factory = adapter_factory
         self.delay_seconds = delay_seconds
+        if ingredient_loader is None:
+            from .ingredient_database import load_ingredient_queries
+            ingredient_loader = lambda: load_ingredient_queries(repository.engine)
         self.ingredient_loader = ingredient_loader
         self.sleep = sleep
 
@@ -112,15 +124,43 @@ class PriceCollectionService:
         run_key: str | None = None,
         limit: int | None = None,
         batch_size: int | None = None,
+        food_ids: set[str] | None = None,
+    ) -> CollectionResult:
+        """food_ids：只查這些 FOOD 編號（T15 缺價定向查價）；None 為全部。"""
+        if run_key is None:
+            run_key = f"pxmart-manual-{uuid.uuid4()}"
+        common = dict(trigger_type=trigger_type, scheduled_for=scheduled_for, batch_size=batch_size,
+                      food_ids=food_ids)
+        primary = self._collect(provider="pxmart", run_key=run_key, adapter_factory=self.adapter_factory,
+                                limit=limit, **common)
+        if self.fallback_adapter_factory is None:
+            return primary
+        fallback_provider = getattr(self.fallback_adapter_factory, "provider", "uniprosperity")
+        fallback = self._collect(
+            provider=fallback_provider, run_key=f"{run_key}:{fallback_provider}",
+            adapter_factory=self.fallback_adapter_factory, limit=None,
+            target_filter=lambda lease: self.repository.fallback_targets(lease, primary_run_key=run_key),
+            **common)
+        return replace(primary, fallback=fallback)
+
+    def _collect(
+        self,
+        *,
+        provider: str,
+        run_key: str,
+        adapter_factory: Callable[[], object],
+        trigger_type: str,
+        scheduled_for: datetime,
+        limit: int | None,
+        batch_size: int | None,
+        food_ids: set[str] | None,
+        target_filter: Callable[[object], tuple[set[str], bool]] | None = None,
     ) -> CollectionResult:
         started_at = datetime.now(timezone.utc)
         started_monotonic = time.monotonic()
-        if run_key is None:
-            run_key = f"pxmart-manual-{uuid.uuid4()}"
-
         lease = self.repository.try_begin_run(
             run_key=run_key,
-            provider="pxmart",
+            provider=provider,
             trigger_type=trigger_type,
             scheduled_for=scheduled_for,
             started_at=started_at,
@@ -132,6 +172,7 @@ class PriceCollectionService:
             )
             return CollectionResult(
                 run_key=run_key,
+                provider=provider,
                 status="skipped",
                 skipped_reason="run_key already exists or advisory lock is held",
             )
@@ -165,14 +206,26 @@ class PriceCollectionService:
             review_count = estimate_count
             failure_count = missing_count
 
-            ingredients = merge_confirmed_synonyms(self.ingredient_loader(self.workbook_path), self.synonym_groups)
+            ingredients = merge_confirmed_synonyms(self.ingredient_loader(), self.synonym_groups)
             # 不計價食材（如水）不送去查價，成本為已知 0；在執行摘要中另計
             exempt = [i for i in ingredients if i.food_ids and set(i.food_ids) <= self.exempt_food_ids]
             if exempt:
                 ingredients = [i for i in ingredients if i not in exempt]
                 status_counts["exempt"] = len(exempt)
+            # 調味料（決策 #44）家中足量、成本 0，不在查價範圍；在執行摘要中另計
+            seasonings = [i for i in ingredients if i.food_ids and set(i.food_ids) <= self.seasoning_food_ids]
+            if seasonings:
+                ingredients = [i for i in ingredients if i not in seasonings]
+                status_counts["seasoning"] = len(seasonings)
+            primary_finished = True
+            if target_filter is not None:
+                # 第二來源只查主要來源查無／不可用的食材；總數即目標數
+                targets, primary_finished = target_filter(lease)
+                ingredients = [i for i in ingredients if i.canonical_name in targets]
             ingredient_total = len(ingredients)
             self.repository.set_ingredient_total(lease, ingredient_total)
+            if food_ids is not None:
+                ingredients = [i for i in ingredients if set(i.food_ids or ()) & food_ids]
             selected_ingredients = ingredients[:limit] if limit else ingredients
             remaining = [
                 ingredient for ingredient in selected_ingredients
@@ -181,11 +234,11 @@ class PriceCollectionService:
             if batch_size:
                 remaining = remaining[:batch_size]
 
-            with self.adapter_factory() as adapter:
+            with adapter_factory() as adapter:
                 for index, ingredient in enumerate(remaining):
                     representative = None
                     if ingredient.mapping_missing_reason:
-                        price_quote = self._workbook_mapping_error_quote(
+                        price_quote = self._database_mapping_error_quote(
                             ingredient
                         )
                     else:
@@ -217,6 +270,10 @@ class PriceCollectionService:
                             price_quote = self._unexpected_error_quote(
                                 ingredient, type(exc).__name__
                             )
+                            if provider != "pxmart":
+                                price_quote = price_quote.model_copy(update={
+                                    "retailer": getattr(adapter, "retailer", provider),
+                                    "source": provider, "source_url": "(fallback source)"})
 
                     self.repository.save_quote(lease, price_quote)
                     checkpoint_count += 1
@@ -246,7 +303,8 @@ class PriceCollectionService:
 
             target_total = len(selected_ingredients)
             processed_total = auto_adopted_count + estimate_count + missing_count
-            partial = processed_total < target_total
+            # 主要來源尚未跑完時，之後還會出現新的查無食材：第二來源也維持 partial 以便續跑
+            partial = processed_total < target_total or not primary_finished
             final_status = "partial" if partial else (
                 "completed" if missing_count == 0 else "completed_with_errors"
             )
@@ -283,6 +341,7 @@ class PriceCollectionService:
             )
             return CollectionResult(
                 run_key=run_key,
+                provider=provider,
                 status=final_status,
                 ingredient_total=ingredient_total,
                 success_count=success_count,
@@ -329,18 +388,18 @@ class PriceCollectionService:
             raise
 
     @staticmethod
-    def _workbook_mapping_error_quote(
+    def _database_mapping_error_quote(
         ingredient: IngredientQuery,
     ) -> PriceQuote:
         return PriceQuote(
             canonical_name=ingredient.canonical_name,
             food_ids=ingredient.food_ids,
-            source="recipe workbook Food_ID mapping",
-            source_url="data/recipe_dataset_1017.xlsx#recipe_ingredients",
+            source="active SQL recipe release Food_ID mapping",
+            source_url="postgresql://ingredient_aliases?release=active",
             queried_at=datetime.now(timezone.utc),
             status=QuoteStatus.NOT_FOUND,
             missing_reason=ingredient.mapping_missing_reason,
-            selection_method="workbook_mapping",
+            selection_method="database_mapping",
         )
 
     @staticmethod
