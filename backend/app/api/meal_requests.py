@@ -15,6 +15,8 @@ from app.services import recipe_retrieval
 from app.services import jobs as job_service
 from app.services import meal_request as service
 from app.services import t12_planning
+from app.services import knowledge_explanation
+from app.db.session import SessionLocal
 
 router = APIRouter(prefix="/meal-requests", tags=["meal-requests"], dependencies=[Depends(verify_origin)])
 
@@ -138,6 +140,32 @@ def nutrition_preview(request_id: uuid.UUID, body: NutritionPreviewBody,
         return t12_planning.preview(db, draft=draft, members=members, recipe_ids=body.recipe_ids)
     except t12_planning.T12PlanningUnavailable as exc:
         raise ApiError(503, exc.code, exc.message) from None
+
+
+@router.post("/{request_id}/knowledge-tips")
+def knowledge_tips(request_id: uuid.UUID, body: NutritionPreviewBody,
+                   household_id=Depends(current_household_id), db: Session = Depends(get_db)):
+    """T12 之後的營養小知識：後端重算最終食材 → T11 檢索審核知識 → 雲端 OpenAI 生成（經 T10）。
+
+    不接受前端傳來的食材或知識；缺知識、知識服務故障或額度不足都不阻擋採用，只回報狀態與原因。
+    """
+    row = _get_owned(db, household_id, request_id)
+    draft = service.load(row.payload)
+    members = _members(db, row.household_id)
+    issues = service.completeness(draft, members)
+    if issues:
+        raise ApiError(422, 'INVALID_INPUT', '請先完成問卷。', {'issues': issues})
+    try:
+        menu = t12_planning.preview(db, draft=draft, members=members, recipe_ids=body.recipe_ids)
+    except t12_planning.T12PlanningUnavailable as exc:
+        raise ApiError(503, exc.code, exc.message) from None
+    food_ids = list(menu.get('final_food_ids') or [])
+    db.rollback()  # 釋放讀取交易；以下的付費呼叫用各自的短交易
+    result = knowledge_explanation.tips_for_menu(
+        SessionLocal, final_food_ids=food_ids, household_id=household_id,
+        request_tag=f'tips:{request_id}:{row.version}', names=ingredients.names(db, food_ids) if food_ids else {})
+    return {**result, 'input_version': row.version, 'recipe_ids': body.recipe_ids,
+            'nutrition_status': menu.get('status')}
 
 
 @router.put("/{request_id}")

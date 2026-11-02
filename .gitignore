@@ -8,6 +8,12 @@ env/
 .env.*
 !.env.example
 !.env.dev.example
+# API 金鑰與憑證檔：只放本機，不進 Git（OPENAI_API_KEY 請寫在 .env／.env.dev）
+*.key
+*.pem
+secrets/
+openai_api_key*
+*api_key*.txt
 __pycache__/
 *.py[cod]
 .pytest_cache/

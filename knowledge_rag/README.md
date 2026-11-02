@@ -6,12 +6,14 @@
 
 更新：2026-10-30。程式來源版本為G5-T11 `a84b68c`，本次新增123筆網頁／論文知識、食材ID對照及逐筆來源審核結果。沒有新增T11測試程式、測試資料、原始驗收輸出或模型評比檔。
 
-## 最後小知識文字改由雲端生成（資料庫不變）
+## 最後小知識文字改由雲端生成（資料庫不變；分支 codex/t11-cloud-explain-t12）
 
 知識資料維持本分支 Excel 匯入的 123 筆審核知識與地端檢索；只有「給使用者看的最後一句營養小知識」改由雲端 OpenAI 生成（原規劃為地端 `qwen3.5:9b-q4_K_M`，見 spec T14 交接）。
 
 - `knowledge_rag/explain.py`：雲端與地端共用的提示詞（`t11-explain-prompt-v2`）、JSON schema 與程式驗證。驗證：引用的知識 ID 必須是本次提供的；文字中的營養／效益關鍵字與數字都出自所引用知識（fact_zh＋適用條件）；不得有治療、保證等誇大用詞（否定說法除外）；一般衛教文章不可寫「研究指出」。提示詞要求保留資料中的提醒（過量不適、特定族群），不加制式聲明。
-- `backend/app/services/knowledge_explanation.py`：`explain_snapshot(paid_call, explainer, snapshot, names)`，對 T11 檢索快照的每個食材呼叫一次 OpenAI（經 T10），驗證通過才顯示；模型設定 `KNOWLEDGE_EXPLAIN_MODEL`。
+- `POST /meal-requests/{id}/knowledge-tips`（body 同 `nutrition-preview`：`{"recipe_ids": [...]}`）：後端自行重算 T12 取得 `final_food_ids`（不接受前端傳食材或知識）→ T11 `retrieve_knowledge` → 雲端並行生成每個食材一句小知識。回傳 `items`（含引用來源）、`dropped`（驗證不通過或額度不足及原因）、`not_found`（無知識的食材）、`knowledge_status`、`nutrition_status`。知識缺漏、知識服務故障、額度不足都不阻擋採用。
+- `backend/app/services/knowledge_explanation.py`：`tips_for_menu`／`explain_snapshot`，每個食材一次 OpenAI 呼叫，經 T10 預留／結算（同步 API 用 `request_paid_call` 包成 JobContext 介面，呼叫鍵含每次請求的隨機 ID），最多 4 個並行；模型設定 `KNOWLEDGE_EXPLAIN_MODEL`。
+- **API 金鑰**：`OPENAI_API_KEY` 只寫在本機 `.env.dev`（start-dev）或 `.env`（docker compose），兩者都在 `.gitignore`；`.gitignore` 另排除 `*.key`、`secrets/`、`*api_key*.txt`。`tests/test_no_committed_secrets.py` 會掃描所有被追蹤的檔案，發現金鑰樣式即失敗。未設定金鑰時 API 回 `EXPLANATION_NOT_CONFIGURED`，菜單與營養照常。
 - `scripts/t11_explain_benchmark.py`：76 種食材逐一以雲端或地端生成並比較時間、費用、驗證結果；`scripts/t11-explain-local.ps1` 在團隊電腦跑地端 Qwen 並和雲端結果並列。
 
 ## 分支基底與合併順序
