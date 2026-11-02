@@ -40,6 +40,28 @@ def checked_records():
     return candidates, decisions
 
 
+def review_note(decision):
+    """Approval note that keeps how each source was checked.
+
+    113 records carry the fetched page snapshot hash.  10 paper records were
+    blocked by direct HTTP (403) and were checked against the publisher or
+    PubMed via another tool; they have no snapshot hash, so the fetch status,
+    access note and review method are recorded instead of failing the batch.
+    """
+    note = {"decision_basis": decision["decision_basis"],
+            "review_version": "web-paper-source-review-2026-10-30-v2",
+            "review_method": decision["review_method"],
+            "user_acceptance": "2026-10-31"}
+    if decision.get("source_snapshot_sha256"):
+        note["source_snapshot_sha256"] = decision["source_snapshot_sha256"]
+    elif decision.get("http_fetch_status") and decision.get("access_note"):
+        note["http_fetch_status"] = decision["http_fetch_status"]
+        note["access_note"] = decision["access_note"]
+    else:
+        raise ValueError(f"No source evidence recorded: {decision['knowledge_id']}")
+    return json.dumps(note, ensure_ascii=False)
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--apply", action="store_true", help="Import and approve in configured knowledge DB")
@@ -67,10 +89,7 @@ def main():
             row = by_id[decision["knowledge_id"]]
             if stored[(row["knowledge_id"], row["source_version"])]["status"] == "approved":
                 continue
-            note = json.dumps({"decision_basis": decision["decision_basis"],
-                               "review_version": "web-paper-source-review-2026-10-30-v2",
-                               "source_snapshot_sha256": decision["source_snapshot_sha256"],
-                               "user_acceptance": "2026-10-31"}, ensure_ascii=False)
+            note = review_note(decision)
             conn.execute("UPDATE knowledge_records SET status='approved',reviewer=%s,review_note=%s,"
                          "reviewed_at=now() WHERE knowledge_id=%s AND source_version=%s",
                          (decision["reviewed_by"], note, row["knowledge_id"], row["source_version"]))

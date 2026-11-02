@@ -29,3 +29,19 @@ def test_dish_name_normalization_matches_tomato_spellings():
     from app.services.recipe_import import normalize_name
 
     assert normalize_name("番茄炒蛋") == normalize_name("蕃茄炒蛋")
+
+
+def test_every_reviewed_record_has_recorded_source_evidence():
+    _, decisions = apply_reviewed.checked_records()
+    notes = [__import__("json").loads(apply_reviewed.review_note(d)) for d in decisions]
+    assert sum("source_snapshot_sha256" in n for n in notes) == 113
+    blocked = [n for n in notes if "source_snapshot_sha256" not in n]
+    assert len(blocked) == 10 and all(n["http_fetch_status"] == 403 and n["access_note"] for n in blocked)
+
+
+def test_record_without_any_source_evidence_is_rejected():
+    _, decisions = apply_reviewed.checked_records()
+    bare = {k: v for k, v in decisions[0].items()
+            if k not in ("source_snapshot_sha256", "http_fetch_status", "access_note")}
+    with pytest.raises(ValueError, match="No source evidence"):
+        apply_reviewed.review_note(bare)

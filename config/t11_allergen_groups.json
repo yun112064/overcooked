@@ -1,0 +1,1100 @@
+{
+ "schema_version": "t11-allergen-groups-v1",
+ "version": "t11-allergen-groups-2026-11-02-v2",
+ "status": "approved",
+ "approved_by": "使用者（2026-11-02：過敏原依政府官方資料確認後補上）",
+ "approved_on": "2026-11-02",
+ "note": "T11／T08 過敏限制專用。basis=official_definition：食材本身即屬官方規定的過敏原或其製品，也用來補食譜表標記；basis=typical_formula：一般配方常含（例：沙茶醬含花生、扁魚、蝦米），實際依商品標示，只用於過敏排除（寧可多排除），不寫入食譜表。官方除外品項不列入：高度精煉大豆油（黃豆油）、穀類製得之酒類（啤酒）。「不吃」不套用本表。",
+ "excluded_by_official_rule": [
+  {
+   "name": "黃豆油",
+   "reason": "高度提煉或純化之大豆油（脂）不在此限（規定第二點（九）、問答集 A19）"
+  },
+  {
+   "name": "啤酒、黑啤酒",
+   "reason": "由穀類製得之酒類不在此限（規定第二點（八）、問答集 A16、A17）"
+  },
+  {
+   "name": "沙拉油、葵花油、米油、橄欖油",
+   "reason": "不屬規定品項；葵花籽油經高度精煉者亦排除於建議事項"
+  }
+ ],
+ "groups": [
+  {
+   "allergen_id": "ALL005",
+   "allergen_name": "蛋",
+   "legal_status": "強制標示",
+   "official_basis": "食品過敏原標示規定（衛生福利部 107-08-21 公告，109-07-01 施行）第二點（五）蛋及其製品；食品過敏原標示規定問答集（107-08-21 公布，107-09-21 修訂） A12：指來自禽類蛋（例：雞蛋、鴨蛋）",
+   "source_url": "https://www.mohw.gov.tw/dl-64172-4f64e2a4-d8df-44d3-acac-ac1e060b1fa2.html",
+   "retrieved_on": "2026-11-02",
+   "triggers": [
+    {
+     "food_id": "FOOD001566",
+     "name": "雞蛋"
+    },
+    {
+     "food_id": "FOOD000315",
+     "name": "全蛋"
+    },
+    {
+     "food_id": "FOOD000943",
+     "name": "蛋白"
+    },
+    {
+     "food_id": "FOOD000945",
+     "name": "蛋黃"
+    }
+   ],
+   "members": [
+    {
+     "food_id": "FOOD001566",
+     "name": "雞蛋",
+     "basis": "official_definition"
+    },
+    {
+     "food_id": "FOOD000315",
+     "name": "全蛋",
+     "basis": "official_definition"
+    },
+    {
+     "food_id": "FOOD000943",
+     "name": "蛋白",
+     "basis": "official_definition"
+    },
+    {
+     "food_id": "FOOD000945",
+     "name": "蛋黃",
+     "basis": "official_definition"
+    },
+    {
+     "food_id": "FOOD000147",
+     "name": "水煮蛋",
+     "basis": "official_definition"
+    },
+    {
+     "food_id": "FOOD000309",
+     "name": "皮蛋",
+     "basis": "official_definition"
+    },
+    {
+     "food_id": "FOOD000933",
+     "name": "荷包蛋",
+     "basis": "official_definition"
+    },
+    {
+     "food_id": "FOOD001641",
+     "name": "鹹蛋",
+     "basis": "official_definition"
+    },
+    {
+     "food_id": "FOOD001642",
+     "name": "鹹蛋黃",
+     "basis": "official_definition"
+    },
+    {
+     "food_id": "FOOD000944",
+     "name": "蛋豆腐",
+     "basis": "official_definition"
+    },
+    {
+     "food_id": "FOOD001568",
+     "name": "雞蛋豆腐",
+     "basis": "official_definition"
+    },
+    {
+     "food_id": "FOOD000671",
+     "name": "美乃滋",
+     "basis": "official_definition"
+    },
+    {
+     "food_id": "FOOD000398",
+     "name": "沙拉醬",
+     "basis": "typical_formula"
+    },
+    {
+     "food_id": "FOOD000982",
+     "name": "凱撒沙拉醬",
+     "basis": "typical_formula"
+    }
+   ]
+  },
+  {
+   "allergen_id": "ALL004",
+   "allergen_name": "牛奶/羊奶",
+   "legal_status": "強制標示",
+   "official_basis": "食品過敏原標示規定（衛生福利部 107-08-21 公告，109-07-01 施行）第二點（四）牛奶、羊奶及其製品（乳糖醇除外）",
+   "source_url": "https://iychiang1809.blogspot.com/2018/10/20180821-20200701.html",
+   "retrieved_on": "2026-11-02",
+   "triggers": [
+    {
+     "food_id": "FOOD001518",
+     "name": "鮮奶"
+    },
+    {
+     "food_id": "FOOD000375",
+     "name": "低脂牛奶"
+    }
+   ],
+   "members": [
+    {
+     "food_id": "FOOD001518",
+     "name": "鮮奶",
+     "basis": "official_definition"
+    },
+    {
+     "food_id": "FOOD000375",
+     "name": "低脂牛奶",
+     "basis": "official_definition"
+    },
+    {
+     "food_id": "FOOD000437",
+     "name": "乳酪絲",
+     "basis": "official_definition"
+    },
+    {
+     "food_id": "FOOD001481",
+     "name": "優格",
+     "basis": "official_definition"
+    },
+    {
+     "food_id": "FOOD000242",
+     "name": "奶油",
+     "basis": "official_definition"
+    },
+    {
+     "food_id": "FOOD001010",
+     "name": "無塩奶油",
+     "basis": "official_definition"
+    },
+    {
+     "food_id": "FOOD000912",
+     "name": "焗烤起司",
+     "basis": "official_definition"
+    },
+    {
+     "food_id": "FOOD000840",
+     "name": "起司",
+     "basis": "official_definition"
+    },
+    {
+     "food_id": "FOOD000841",
+     "name": "起司粉",
+     "basis": "official_definition"
+    },
+    {
+     "food_id": "FOOD001135",
+     "name": "煉乳",
+     "basis": "official_definition"
+    },
+    {
+     "food_id": "FOOD001520",
+     "name": "鮮奶油",
+     "basis": "official_definition"
+    },
+    {
+     "food_id": "FOOD001398",
+     "name": "養樂多",
+     "basis": "official_definition"
+    },
+    {
+     "food_id": "FOOD000982",
+     "name": "凱撒沙拉醬",
+     "basis": "typical_formula"
+    }
+   ]
+  },
+  {
+   "allergen_id": "ALL003",
+   "allergen_name": "花生",
+   "legal_status": "強制標示",
+   "official_basis": "食品過敏原標示規定（衛生福利部 107-08-21 公告，109-07-01 施行）第二點（三）花生及其製品；食品過敏原標示規定問答集（107-08-21 公布，107-09-21 修訂） A10：花生油不論精煉與否皆應標示",
+   "source_url": "https://www.mohw.gov.tw/dl-64172-4f64e2a4-d8df-44d3-acac-ac1e060b1fa2.html",
+   "retrieved_on": "2026-11-02",
+   "triggers": [
+    {
+     "food_id": "FOOD000474",
+     "name": "油花生"
+    },
+    {
+     "food_id": "FOOD000533",
+     "name": "花生醬"
+    }
+   ],
+   "members": [
+    {
+     "food_id": "FOOD000474",
+     "name": "油花生",
+     "basis": "official_definition"
+    },
+    {
+     "food_id": "FOOD000533",
+     "name": "花生醬",
+     "basis": "official_definition"
+    },
+    {
+     "food_id": "FOOD000400",
+     "name": "沙茶",
+     "basis": "typical_formula"
+    },
+    {
+     "food_id": "FOOD000402",
+     "name": "沙茶醬",
+     "basis": "typical_formula"
+    },
+    {
+     "food_id": "FOOD000403",
+     "name": "沙茶醬的油",
+     "basis": "typical_formula"
+    }
+   ]
+  },
+  {
+   "allergen_id": "ALL001",
+   "allergen_name": "甲殼類",
+   "legal_status": "強制標示",
+   "official_basis": "食品過敏原標示規定（衛生福利部 107-08-21 公告，109-07-01 施行）第二點（一）甲殼類及其製品；食品過敏原標示規定問答集（107-08-21 公布，107-09-21 修訂） A8：依科學分類屬甲殼綱者",
+   "source_url": "https://www.mohw.gov.tw/dl-64172-4f64e2a4-d8df-44d3-acac-ac1e060b1fa2.html",
+   "retrieved_on": "2026-11-02",
+   "triggers": [
+    {
+     "food_id": "FOOD001310",
+     "name": "蝦"
+    },
+    {
+     "food_id": "FOOD001313",
+     "name": "蝦仁"
+    },
+    {
+     "food_id": "FOOD001312",
+     "name": "蝦子"
+    },
+    {
+     "food_id": "FOOD000835",
+     "name": "草蝦"
+    },
+    {
+     "food_id": "FOOD000836",
+     "name": "草蝦仁"
+    }
+   ],
+   "members": [
+    {
+     "food_id": "FOOD001310",
+     "name": "蝦",
+     "basis": "official_definition"
+    },
+    {
+     "food_id": "FOOD001313",
+     "name": "蝦仁",
+     "basis": "official_definition"
+    },
+    {
+     "food_id": "FOOD001312",
+     "name": "蝦子",
+     "basis": "official_definition"
+    },
+    {
+     "food_id": "FOOD000835",
+     "name": "草蝦",
+     "basis": "official_definition"
+    },
+    {
+     "food_id": "FOOD000836",
+     "name": "草蝦仁",
+     "basis": "official_definition"
+    },
+    {
+     "food_id": "FOOD001314",
+     "name": "蝦皮",
+     "basis": "official_definition"
+    },
+    {
+     "food_id": "FOOD001316",
+     "name": "蝦米",
+     "basis": "official_definition"
+    },
+    {
+     "food_id": "FOOD000496",
+     "name": "泡蝦米水",
+     "basis": "official_definition"
+    },
+    {
+     "food_id": "FOOD001602",
+     "name": "蟹肉棒",
+     "basis": "typical_formula"
+    },
+    {
+     "food_id": "FOOD000400",
+     "name": "沙茶",
+     "basis": "typical_formula"
+    },
+    {
+     "food_id": "FOOD000402",
+     "name": "沙茶醬",
+     "basis": "typical_formula"
+    },
+    {
+     "food_id": "FOOD000403",
+     "name": "沙茶醬的油",
+     "basis": "typical_formula"
+    },
+    {
+     "food_id": "FOOD000075",
+     "name": "干貝醬",
+     "basis": "typical_formula"
+    }
+   ]
+  },
+  {
+   "allergen_id": "ALL010",
+   "allergen_name": "魚類",
+   "legal_status": "強制標示",
+   "official_basis": "食品過敏原標示規定（衛生福利部 107-08-21 公告，109-07-01 施行）第二點（十）魚類及其製品；食品過敏原標示規定問答集（107-08-21 公布，107-09-21 修訂） A12、A20、A21：魚卵、魚油、魚明膠屬魚類製品",
+   "source_url": "https://www.mohw.gov.tw/dl-64172-4f64e2a4-d8df-44d3-acac-ac1e060b1fa2.html",
+   "retrieved_on": "2026-11-02",
+   "triggers": [
+    {
+     "food_id": "FOOD000965",
+     "name": "魚"
+    }
+   ],
+   "members": [
+    {
+     "food_id": "FOOD000965",
+     "name": "魚",
+     "basis": "official_definition"
+    },
+    {
+     "food_id": "FOOD000384",
+     "name": "吳郭魚",
+     "basis": "official_definition"
+    },
+    {
+     "food_id": "FOOD000328",
+     "name": "多利魚",
+     "basis": "official_definition"
+    },
+    {
+     "food_id": "FOOD000630",
+     "name": "秋刀魚",
+     "basis": "official_definition"
+    },
+    {
+     "food_id": "FOOD000558",
+     "name": "虱目魚肚",
+     "basis": "official_definition"
+    },
+    {
+     "food_id": "FOOD001516",
+     "name": "鮭魚",
+     "basis": "official_definition"
+    },
+    {
+     "food_id": "FOOD001532",
+     "name": "燻鮭魚",
+     "basis": "official_definition"
+    },
+    {
+     "food_id": "FOOD001609",
+     "name": "鯖魚",
+     "basis": "official_definition"
+    },
+    {
+     "food_id": "FOOD001611",
+     "name": "鯛魚",
+     "basis": "official_definition"
+    },
+    {
+     "food_id": "FOOD001612",
+     "name": "鯛魚片",
+     "basis": "official_definition"
+    },
+    {
+     "food_id": "FOOD001663",
+     "name": "鱈魚",
+     "basis": "official_definition"
+    },
+    {
+     "food_id": "FOOD001684",
+     "name": "鱸魚",
+     "basis": "official_definition"
+    },
+    {
+     "food_id": "FOOD000153",
+     "name": "水煮鮪魚罐頭",
+     "basis": "official_definition"
+    },
+    {
+     "food_id": "FOOD001677",
+     "name": "罐頭鮪魚",
+     "basis": "official_definition"
+    },
+    {
+     "food_id": "FOOD001515",
+     "name": "鮪魚罐頭",
+     "basis": "official_definition"
+    },
+    {
+     "food_id": "FOOD000719",
+     "name": "柴魚",
+     "basis": "official_definition"
+    },
+    {
+     "food_id": "FOOD000721",
+     "name": "柴魚片花",
+     "basis": "official_definition"
+    },
+    {
+     "food_id": "FOOD000722",
+     "name": "柴魚粉",
+     "basis": "official_definition"
+    },
+    {
+     "food_id": "FOOD000723",
+     "name": "柴魚高湯",
+     "basis": "official_definition"
+    },
+    {
+     "food_id": "FOOD001660",
+     "name": "鰹魚粉",
+     "basis": "official_definition"
+    },
+    {
+     "food_id": "FOOD000975",
+     "name": "魚露",
+     "basis": "official_definition"
+    },
+    {
+     "food_id": "FOOD000971",
+     "name": "魚高湯",
+     "basis": "official_definition"
+    },
+    {
+     "food_id": "FOOD000913",
+     "name": "甜不辣",
+     "basis": "typical_formula"
+    },
+    {
+     "food_id": "FOOD001602",
+     "name": "蟹肉棒",
+     "basis": "typical_formula"
+    },
+    {
+     "food_id": "FOOD000400",
+     "name": "沙茶",
+     "basis": "typical_formula"
+    },
+    {
+     "food_id": "FOOD000402",
+     "name": "沙茶醬",
+     "basis": "typical_formula"
+    },
+    {
+     "food_id": "FOOD000403",
+     "name": "沙茶醬的油",
+     "basis": "typical_formula"
+    },
+    {
+     "food_id": "FOOD000911",
+     "name": "烹大師",
+     "basis": "typical_formula"
+    }
+   ]
+  },
+  {
+   "allergen_id": "ALL012",
+   "allergen_name": "頭足類",
+   "legal_status": "建議標示",
+   "official_basis": "食品過敏原標示之建議標示事項（食藥署）：頭足類包含烏賊（花枝）、鎖管（小卷、透抽）、章魚、魷魚等",
+   "source_url": "https://www.mohw.gov.tw/dl-47354-645ca56e-c258-435f-b124-a37d90830c29.html",
+   "retrieved_on": "2026-11-02",
+   "triggers": [
+    {
+     "food_id": "FOOD001403",
+     "name": "魷魚"
+    },
+    {
+     "food_id": "FOOD000539",
+     "name": "花枝"
+    },
+    {
+     "food_id": "FOOD000049",
+     "name": "小卷"
+    },
+    {
+     "food_id": "FOOD000954",
+     "name": "透抽"
+    }
+   ],
+   "members": [
+    {
+     "food_id": "FOOD001403",
+     "name": "魷魚",
+     "basis": "official_definition"
+    },
+    {
+     "food_id": "FOOD000539",
+     "name": "花枝",
+     "basis": "official_definition"
+    },
+    {
+     "food_id": "FOOD000049",
+     "name": "小卷",
+     "basis": "official_definition"
+    },
+    {
+     "food_id": "FOOD000954",
+     "name": "透抽",
+     "basis": "official_definition"
+    }
+   ]
+  },
+  {
+   "allergen_id": "ALL013",
+   "allergen_name": "螺貝類",
+   "legal_status": "建議標示",
+   "official_basis": "食品過敏原標示之建議標示事項（食藥署）：螺貝類包含牡蠣、扇貝、文蛤等，製品例：干貝醬",
+   "source_url": "https://www.mohw.gov.tw/dl-47354-645ca56e-c258-435f-b124-a37d90830c29.html",
+   "retrieved_on": "2026-11-02",
+   "triggers": [
+    {
+     "food_id": "FOOD001057",
+     "name": "蛤蜊"
+    },
+    {
+     "food_id": "FOOD001059",
+     "name": "蛤蠣"
+    }
+   ],
+   "members": [
+    {
+     "food_id": "FOOD001057",
+     "name": "蛤蜊",
+     "basis": "official_definition"
+    },
+    {
+     "food_id": "FOOD001059",
+     "name": "蛤蠣",
+     "basis": "official_definition"
+    },
+    {
+     "food_id": "FOOD001288",
+     "name": "熟蛤蜊",
+     "basis": "official_definition"
+    },
+    {
+     "food_id": "FOOD001058",
+     "name": "蛤蜊汁",
+     "basis": "official_definition"
+    },
+    {
+     "food_id": "FOOD001636",
+     "name": "蠔油",
+     "basis": "official_definition"
+    },
+    {
+     "food_id": "FOOD000075",
+     "name": "干貝醬",
+     "basis": "official_definition"
+    }
+   ]
+  },
+  {
+   "allergen_id": "ALL007",
+   "allergen_name": "芝麻",
+   "legal_status": "強制標示",
+   "official_basis": "食品過敏原標示規定（衛生福利部 107-08-21 公告，109-07-01 施行）第二點（七）芝麻及其製品；食品過敏原標示規定問答集（107-08-21 公布，107-09-21 修訂） A10：芝麻油應標示，高度精煉者可免",
+   "source_url": "https://www.mohw.gov.tw/dl-64172-4f64e2a4-d8df-44d3-acac-ac1e060b1fa2.html",
+   "retrieved_on": "2026-11-02",
+   "triggers": [
+    {
+     "food_id": "FOOD000510",
+     "name": "芝麻"
+    },
+    {
+     "food_id": "FOOD000285",
+     "name": "白芝麻"
+    },
+    {
+     "food_id": "FOOD001095",
+     "name": "黑芝麻"
+    }
+   ],
+   "members": [
+    {
+     "food_id": "FOOD000510",
+     "name": "芝麻",
+     "basis": "official_definition"
+    },
+    {
+     "food_id": "FOOD000285",
+     "name": "白芝麻",
+     "basis": "official_definition"
+    },
+    {
+     "food_id": "FOOD001095",
+     "name": "黑芝麻",
+     "basis": "official_definition"
+    },
+    {
+     "food_id": "FOOD001088",
+     "name": "黑白芝麻",
+     "basis": "official_definition"
+    },
+    {
+     "food_id": "FOOD000512",
+     "name": "芝麻油",
+     "basis": "official_definition"
+    },
+    {
+     "food_id": "FOOD000693",
+     "name": "香油",
+     "basis": "official_definition"
+    },
+    {
+     "food_id": "FOOD000981",
+     "name": "麻油",
+     "basis": "official_definition"
+    },
+    {
+     "food_id": "FOOD001504",
+     "name": "韓式芝麻油",
+     "basis": "official_definition"
+    }
+   ]
+  },
+  {
+   "allergen_id": "ALL009",
+   "allergen_name": "大豆",
+   "legal_status": "強制標示",
+   "official_basis": "食品過敏原標示規定（衛生福利部 107-08-21 公告，109-07-01 施行）第二點（九）大豆及其製品（高度精煉大豆油等除外）；食品過敏原標示規定問答集（107-08-21 公布，107-09-21 修訂） A19：醬油屬大豆製品",
+   "source_url": "https://www.mohw.gov.tw/dl-64172-4f64e2a4-d8df-44d3-acac-ac1e060b1fa2.html",
+   "retrieved_on": "2026-11-02",
+   "triggers": [
+    {
+     "food_id": "FOOD000428",
+     "name": "豆腐"
+    },
+    {
+     "food_id": "FOOD000467",
+     "name": "板豆腐"
+    },
+    {
+     "food_id": "FOOD001182",
+     "name": "嫩豆腐"
+    },
+    {
+     "food_id": "FOOD001011",
+     "name": "無糖豆漿"
+    }
+   ],
+   "members": [
+    {
+     "food_id": "FOOD000428",
+     "name": "豆腐",
+     "basis": "official_definition"
+    },
+    {
+     "food_id": "FOOD000467",
+     "name": "板豆腐",
+     "basis": "official_definition"
+    },
+    {
+     "food_id": "FOOD001182",
+     "name": "嫩豆腐",
+     "basis": "official_definition"
+    },
+    {
+     "food_id": "FOOD001011",
+     "name": "無糖豆漿",
+     "basis": "official_definition"
+    },
+    {
+     "food_id": "FOOD001115",
+     "name": "傳統豆干",
+     "basis": "official_definition"
+    },
+    {
+     "food_id": "FOOD000420",
+     "name": "豆干",
+     "basis": "official_definition"
+    },
+    {
+     "food_id": "FOOD000473",
+     "name": "油豆腐",
+     "basis": "official_definition"
+    },
+    {
+     "food_id": "FOOD000422",
+     "name": "豆皮",
+     "basis": "official_definition"
+    },
+    {
+     "food_id": "FOOD000430",
+     "name": "豆腐乳",
+     "basis": "official_definition"
+    },
+    {
+     "food_id": "FOOD000944",
+     "name": "蛋豆腐",
+     "basis": "official_definition"
+    },
+    {
+     "food_id": "FOOD001568",
+     "name": "雞蛋豆腐",
+     "basis": "official_definition"
+    },
+    {
+     "food_id": "FOOD000114",
+     "name": "毛豆",
+     "basis": "official_definition"
+    },
+    {
+     "food_id": "FOOD001072",
+     "name": "黃豆芽",
+     "basis": "official_definition"
+    },
+    {
+     "food_id": "FOOD000444",
+     "name": "味噌",
+     "basis": "official_definition"
+    },
+    {
+     "food_id": "FOOD000427",
+     "name": "豆豉",
+     "basis": "official_definition"
+    },
+    {
+     "food_id": "FOOD001541",
+     "name": "醬油",
+     "basis": "official_definition"
+    },
+    {
+     "food_id": "FOOD000233",
+     "name": "台式醬油",
+     "basis": "official_definition"
+    },
+    {
+     "food_id": "FOOD000902",
+     "name": "淡醬油",
+     "basis": "official_definition"
+    },
+    {
+     "food_id": "FOOD001542",
+     "name": "醬油膏",
+     "basis": "official_definition"
+    },
+    {
+     "food_id": "FOOD001309",
+     "name": "蔭油",
+     "basis": "official_definition"
+    },
+    {
+     "food_id": "FOOD000358",
+     "name": "老抽",
+     "basis": "official_definition"
+    },
+    {
+     "food_id": "FOOD000433",
+     "name": "豆瓣醬",
+     "basis": "typical_formula"
+    },
+    {
+     "food_id": "FOOD001248",
+     "name": "辣豆瓣",
+     "basis": "typical_formula"
+    },
+    {
+     "food_id": "FOOD001249",
+     "name": "辣豆瓣醬",
+     "basis": "typical_formula"
+    },
+    {
+     "food_id": "FOOD000818",
+     "name": "素蠔油",
+     "basis": "typical_formula"
+    },
+    {
+     "food_id": "FOOD000335",
+     "name": "有機素蠔油",
+     "basis": "typical_formula"
+    },
+    {
+     "food_id": "FOOD001636",
+     "name": "蠔油",
+     "basis": "typical_formula"
+    },
+    {
+     "food_id": "FOOD000924",
+     "name": "甜麵醬",
+     "basis": "typical_formula"
+    },
+    {
+     "food_id": "FOOD000672",
+     "name": "美極鮮味露",
+     "basis": "typical_formula"
+    },
+    {
+     "food_id": "FOOD001505",
+     "name": "韓式烤肉醬",
+     "basis": "typical_formula"
+    },
+    {
+     "food_id": "FOOD000107",
+     "name": "日式炒麵醬",
+     "basis": "typical_formula"
+    }
+   ]
+  },
+  {
+   "allergen_id": "ALL008",
+   "allergen_name": "含麩質穀物",
+   "legal_status": "強制標示",
+   "official_basis": "食品過敏原標示規定（衛生福利部 107-08-21 公告，109-07-01 施行）第二點（八）含麩質之穀物及其製品（葡萄糖漿、麥芽糊精、酒類除外）；食品過敏原標示規定問答集（107-08-21 公布，107-09-21 修訂） A15：小麥、大麥、黑麥、燕麥等",
+   "source_url": "https://www.mohw.gov.tw/dl-64172-4f64e2a4-d8df-44d3-acac-ac1e060b1fa2.html",
+   "retrieved_on": "2026-11-02",
+   "triggers": [
+    {
+     "food_id": "FOOD001649",
+     "name": "麵粉"
+    },
+    {
+     "food_id": "FOOD000077",
+     "name": "中筋麵粉"
+    },
+    {
+     "food_id": "FOOD000377",
+     "name": "低筋麵粉"
+    },
+    {
+     "food_id": "FOOD000861",
+     "name": "高筋麵粉"
+    }
+   ],
+   "members": [
+    {
+     "food_id": "FOOD001649",
+     "name": "麵粉",
+     "basis": "official_definition"
+    },
+    {
+     "food_id": "FOOD000077",
+     "name": "中筋麵粉",
+     "basis": "official_definition"
+    },
+    {
+     "food_id": "FOOD000377",
+     "name": "低筋麵粉",
+     "basis": "official_definition"
+    },
+    {
+     "food_id": "FOOD000861",
+     "name": "高筋麵粉",
+     "basis": "official_definition"
+    },
+    {
+     "food_id": "FOOD001280",
+     "name": "澄粉",
+     "basis": "official_definition"
+    },
+    {
+     "food_id": "FOOD001651",
+     "name": "麵筋",
+     "basis": "official_definition"
+    },
+    {
+     "food_id": "FOOD001650",
+     "name": "麵條",
+     "basis": "official_definition"
+    },
+    {
+     "food_id": "FOOD001273",
+     "name": "寬麵條",
+     "basis": "official_definition"
+    },
+    {
+     "food_id": "FOOD000457",
+     "name": "拉麵",
+     "basis": "official_definition"
+    },
+    {
+     "food_id": "FOOD000490",
+     "name": "油麵",
+     "basis": "official_definition"
+    },
+    {
+     "food_id": "FOOD000753",
+     "name": "烏龍麵",
+     "basis": "official_definition"
+    },
+    {
+     "food_id": "FOOD000380",
+     "name": "冷凍烏龍麵",
+     "basis": "official_definition"
+    },
+    {
+     "food_id": "FOOD000078",
+     "name": "五木營養麵條",
+     "basis": "official_definition"
+    },
+    {
+     "food_id": "FOOD001147",
+     "name": "義大利麵",
+     "basis": "official_definition"
+    },
+    {
+     "food_id": "FOOD000323",
+     "name": "吐司",
+     "basis": "official_definition"
+    },
+    {
+     "food_id": "FOOD000279",
+     "name": "白吐司",
+     "basis": "official_definition"
+    },
+    {
+     "food_id": "FOOD000316",
+     "name": "全麥麵包",
+     "basis": "official_definition"
+    },
+    {
+     "food_id": "FOOD001646",
+     "name": "麵包丁",
+     "basis": "official_definition"
+    },
+    {
+     "food_id": "FOOD001648",
+     "name": "麵包粉",
+     "basis": "official_definition"
+    },
+    {
+     "food_id": "FOOD001262",
+     "name": "餃子皮",
+     "basis": "official_definition"
+    },
+    {
+     "food_id": "FOOD000167",
+     "name": "水餃皮",
+     "basis": "official_definition"
+    },
+    {
+     "food_id": "FOOD001452",
+     "name": "餛飩",
+     "basis": "official_definition"
+    },
+    {
+     "food_id": "FOOD001453",
+     "name": "餛飩皮",
+     "basis": "official_definition"
+    },
+    {
+     "food_id": "FOOD001435",
+     "name": "燕麥片",
+     "basis": "official_definition"
+    },
+    {
+     "food_id": "FOOD000976",
+     "name": "麥片",
+     "basis": "official_definition"
+    },
+    {
+     "food_id": "FOOD000924",
+     "name": "甜麵醬",
+     "basis": "official_definition"
+    },
+    {
+     "food_id": "FOOD001541",
+     "name": "醬油",
+     "basis": "typical_formula"
+    },
+    {
+     "food_id": "FOOD000233",
+     "name": "台式醬油",
+     "basis": "typical_formula"
+    },
+    {
+     "food_id": "FOOD000902",
+     "name": "淡醬油",
+     "basis": "typical_formula"
+    },
+    {
+     "food_id": "FOOD001542",
+     "name": "醬油膏",
+     "basis": "typical_formula"
+    },
+    {
+     "food_id": "FOOD000447",
+     "name": "咖哩塊",
+     "basis": "typical_formula"
+    },
+    {
+     "food_id": "FOOD000450",
+     "name": "咖喱塊",
+     "basis": "typical_formula"
+    },
+    {
+     "food_id": "FOOD000978",
+     "name": "麥芽糖",
+     "basis": "typical_formula"
+    },
+    {
+     "food_id": "FOOD001148",
+     "name": "義大利麵醬",
+     "basis": "typical_formula"
+    },
+    {
+     "food_id": "FOOD001238",
+     "name": "蒟蒻烏龍麵",
+     "basis": "typical_formula"
+    }
+   ]
+  },
+  {
+   "allergen_id": "ALL006",
+   "allergen_name": "堅果類",
+   "legal_status": "強制標示",
+   "official_basis": "食品過敏原標示規定（衛生福利部 107-08-21 公告，109-07-01 施行）第二點（六）堅果類及其製品；食品過敏原標示規定問答集（107-08-21 公布，107-09-21 修訂） A13：杏仁、榛果、核桃、腰果…椰子等；A14：椰子油高度精煉者可免",
+   "source_url": "https://www.mohw.gov.tw/dl-64172-4f64e2a4-d8df-44d3-acac-ac1e060b1fa2.html",
+   "retrieved_on": "2026-11-02",
+   "triggers": [
+    {
+     "food_id": "FOOD000388",
+     "name": "杏仁果"
+    }
+   ],
+   "members": [
+    {
+     "food_id": "FOOD000388",
+     "name": "杏仁果",
+     "basis": "official_definition"
+    },
+    {
+     "food_id": "FOOD001129",
+     "name": "椰子油",
+     "basis": "typical_formula"
+    }
+   ]
+  },
+  {
+   "allergen_id": "ALL014",
+   "allergen_name": "種子類",
+   "legal_status": "建議標示",
+   "official_basis": "食品過敏原標示之建議標示事項（食藥署）：種子類包含葵花籽、瓜子等（高度精煉葵花籽油除外）",
+   "source_url": "https://www.mohw.gov.tw/dl-47354-645ca56e-c258-435f-b124-a37d90830c29.html",
+   "retrieved_on": "2026-11-02",
+   "triggers": [
+    {
+     "food_id": "FOOD000452",
+     "name": "奇亞籽"
+    }
+   ],
+   "members": [
+    {
+     "food_id": "FOOD000452",
+     "name": "奇亞籽",
+     "basis": "official_definition"
+    }
+   ]
+  }
+ ]
+}
