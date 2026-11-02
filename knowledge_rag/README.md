@@ -6,6 +6,14 @@
 
 更新：2026-10-30。程式來源版本為G5-T11 `a84b68c`，本次新增123筆網頁／論文知識、食材ID對照及逐筆來源審核結果。沒有新增T11測試程式、測試資料、原始驗收輸出或模型評比檔。
 
+## 最後小知識文字改由雲端生成（資料庫不變）
+
+知識資料維持本分支 Excel 匯入的 123 筆審核知識與地端檢索；只有「給使用者看的最後一句營養小知識」改由雲端 OpenAI 生成（原規劃為地端 `qwen3.5:9b-q4_K_M`，見 spec T14 交接）。
+
+- `knowledge_rag/explain.py`：雲端與地端共用的提示詞（`t11-explain-prompt-v2`）、JSON schema 與程式驗證。驗證：引用的知識 ID 必須是本次提供的；文字中的營養／效益關鍵字與數字都出自所引用知識（fact_zh＋適用條件）；不得有治療、保證等誇大用詞（否定說法除外）；一般衛教文章不可寫「研究指出」。提示詞要求保留資料中的提醒（過量不適、特定族群），不加制式聲明。
+- `backend/app/services/knowledge_explanation.py`：`explain_snapshot(paid_call, explainer, snapshot, names)`，對 T11 檢索快照的每個食材呼叫一次 OpenAI（經 T10），驗證通過才顯示；模型設定 `KNOWLEDGE_EXPLAIN_MODEL`。
+- `scripts/t11_explain_benchmark.py`：76 種食材逐一以雲端或地端生成並比較時間、費用、驗證結果；`scripts/t11-explain-local.ps1` 在團隊電腦跑地端 Qwen 並和雲端結果並列。
+
 ## 分支基底與合併順序
 
 `codex/t11`接續組內既有`feature/t07-t10`（`bae1bfa876468f24159ffcdc4e4776565ccc4832`）。這些前置功能提供T01食譜表、T07家庭權限、T08問卷、T09及T10工作／額度服務；目前main尚未整合此前置分支。

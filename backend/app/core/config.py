@@ -59,6 +59,8 @@ class Settings(BaseSettings):
     knowledge_service_url: str | None = None
     knowledge_service_token: str | None = None
     knowledge_internal_token: str | None = None
+    # 最後的營養小知識文字由雲端生成（資料仍為審核知識）；須在 config/model_pricing.json 有價格
+    knowledge_explain_model: str = 'gpt-5.4-mini-2026-03-17'
 
     model_config = SettingsConfigDict(
         env_file=".env",

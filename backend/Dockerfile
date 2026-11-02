@@ -21,6 +21,9 @@ COPY config/price_exempt_ingredients.json /app/config/price_exempt_ingredients.j
 # 同義食材對照（過敏全套用、已有食材與查價只用已確認組）
 COPY config/ingredient_synonyms.json /app/config/ingredient_synonyms.json
 COPY config/staples.json /app/config/staples.json
+# T11 最後小知識文字：雲端生成的共用提示詞與驗證（純標準函式庫）
+COPY knowledge_rag/__init__.py knowledge_rag/explain.py /app/knowledge_rag/
+COPY config/nutrition_keywords.json /app/config/nutrition_keywords.json
 # T12 delegates raw-record cooking estimates to the established T04 modules.
 ENV PYTHONPATH=/app:/app/nutrition_model
 COPY alembic.ini /app/alembic.ini
