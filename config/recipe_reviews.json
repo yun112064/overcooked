@@ -1,7 +1,20 @@
 {
   "note": "T01 食譜人工審核紀錄。只套用到 SHA-256 完全相同的工作簿；工作簿任何修改後都需重新審核並更新此檔。工作簿已填的審核欄位優先。",
-  "workbook": "recipe_dataset_1017.xlsx",
-  "workbook_sha256": "6bcaca41549572e39bd0fc40d0d216663df6438ae8be50079f92d81aa32c7304",
+  "workbook": "recipe_dataset_1102.xlsx",
+  "workbook_sha256": "7c2b550111d8e0b992ba8a36301f5f60632e04d911952d5fb3ebf773fb13e1bb",
+  "re_review": {
+    "reviewed_on": "2026-11-02",
+    "reviewer": "使用者（2026-11-02 指示換成 1102 版並沿用原審核）",
+    "previous_workbook": "recipe_dataset_1017.xlsx",
+    "previous_workbook_sha256": "6bcaca41549572e39bd0fc40d0d216663df6438ae8be50079f92d81aa32c7304",
+    "changes": [
+      "recipe_steps：食譜同學 1027 版整理步驟文字（加「步驟一：」、刪廣告與題外話；1,507→1,471 步），做法未刪減",
+      "recipes／recipe_ingredients 的 allergens 欄：依衛福部「食品過敏原標示規定」補正（食材列 134、整道菜 43）",
+      "recipes 表刪除空白欄；recipe_steps 欄名維持 instruction_clean",
+      "食材、克數、份數、分類與 1017 版相同"
+    ],
+    "carried_over": "approvals、distinct_recipe_pairs、recipe_cooking_methods、recipe_categories、excluded_name_aliases、quantity_policy 全部沿用"
+  },
   "scope": "all_recipes",
   "reviewed_on": "2026-10-19",
   "reviewer": "專案團隊（於開發對話中確認全部食譜已審核；審核人姓名待補）",
