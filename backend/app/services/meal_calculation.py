@@ -892,9 +892,8 @@ def versioned_sql_calculator(factory, *, recipe_release_id: str | None,
                 imported = db.get(NutritionImport, nutrition_import_id)
                 if release is None or not release.active or imported is None:
                     return [failed(line, "nutrition_version_not_found_or_inactive") for line, _ in pairs]
-                recipe_source = (imported.source_files or {}).get("recipes", {})
-                if (not isinstance(recipe_source, dict)
-                        or recipe_source.get("sha256") != release.source_sha256):
+                from app.services.nutrition_release import recipe_import_matches
+                if not recipe_import_matches(db, release, imported, mapping_version=mapping_version):
                     return [failed(line, "recipe_nutrition_release_mismatch") for line, _ in pairs]
                 if source_provider == "TFDA" and (imported.report or {}).get("synthetic") is True:
                     return [failed(line, "nutrition_source_provider_not_allowed") for line, _ in pairs]

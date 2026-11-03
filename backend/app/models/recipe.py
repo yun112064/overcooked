@@ -73,6 +73,8 @@ class SourceArchive(Base):
 class RecipeDataRelease(Base):
     __tablename__ = "recipe_data_releases"
     __table_args__ = (
+        CheckConstraint("source_kind IN ('legacy', 'sql_seed', 'xlsx_import')",
+                        name="ck_recipe_data_releases_source_kind"),
         Index("uq_recipe_data_releases_active", "active", unique=True,
               postgresql_where=text("active"), sqlite_where=text("active")),
     )
@@ -122,6 +124,8 @@ class Recipe(Base):
     )
     servings_raw: Mapped[str] = mapped_column(String(100), nullable=False)
     original_servings: Mapped[Decimal | None] = mapped_column(Numeric(10, 3))
+    servings_basis: Mapped[str] = mapped_column(String(24), nullable=False,
+                                               default="portions", server_default="portions")
     servings_status: Mapped[str] = mapped_column(String(32), nullable=False)
     category: Mapped[str] = mapped_column(String(100), nullable=False)
     meal_type: Mapped[str] = mapped_column(String(100), nullable=False)
@@ -282,6 +286,10 @@ class RecipeIngredient(Base):
     unit_status: Mapped[str] = mapped_column(String(32), nullable=False)
     weight_g: Mapped[Decimal | None] = mapped_column(Numeric(16, 6))
     weight_status: Mapped[str] = mapped_column(String(32), nullable=False)
+    weight_basis: Mapped[str | None] = mapped_column(String(32))
+    weight_evidence: Mapped[dict[str, Any]] = mapped_column(
+        JSON().with_variant(postgresql.JSONB(astext_type=Text()), "postgresql"),
+        nullable=False, default=dict, server_default=text("'{}'"))
     adjustable_min: Mapped[Decimal | None] = mapped_column(Numeric(16, 6))
     adjustable_max: Mapped[Decimal | None] = mapped_column(Numeric(16, 6))
     adjustment_status: Mapped[str] = mapped_column(

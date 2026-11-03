@@ -2,7 +2,7 @@
 from datetime import datetime
 from decimal import Decimal
 
-from sqlalchemy import JSON, Boolean, CheckConstraint, DateTime, ForeignKey, Integer, Numeric, String, Text, UniqueConstraint, Index
+from sqlalchemy import JSON, Boolean, CheckConstraint, DateTime, ForeignKey, Integer, Numeric, String, Text, UniqueConstraint, Index, text
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -15,6 +15,29 @@ class NutritionImport(Base):
     import_id: Mapped[str] = mapped_column(String(64), primary_key=True)
     source_files: Mapped[dict] = mapped_column(JSON, nullable=False)
     report: Mapped[dict] = mapped_column(JSON, nullable=False)
+    imported_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+
+
+class NutritionDataRelease(Base):
+    """Explicit binding of an unchanged nutrition source batch to a T01 release."""
+    __tablename__ = 'nutrition_data_releases'
+    __table_args__ = (
+        CheckConstraint("usage_status = 'observations_only_pending_review'",
+                        name='ck_nutrition_release_usage'),
+        Index('uq_nutrition_release_active', 'recipe_release_id', unique=True,
+              postgresql_where=text('active'), sqlite_where=text('active')),
+    )
+
+    release_id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    import_id: Mapped[str] = mapped_column(ForeignKey('nutrition_imports.import_id', ondelete='RESTRICT'), nullable=False)
+    recipe_release_id: Mapped[str] = mapped_column(ForeignKey('recipe_data_releases.release_id', ondelete='RESTRICT'), nullable=False)
+    recipe_source_sha256: Mapped[str] = mapped_column(String(64), nullable=False)
+    mapping_version: Mapped[str] = mapped_column(String(100), nullable=False, unique=True)
+    manifest_sha256: Mapped[str] = mapped_column(String(64), nullable=False)
+    source_manifest: Mapped[dict] = mapped_column(JSON().with_variant(JSONB(), 'postgresql'), nullable=False)
+    row_counts: Mapped[dict] = mapped_column(JSON().with_variant(JSONB(), 'postgresql'), nullable=False)
+    usage_status: Mapped[str] = mapped_column(String(40), nullable=False)
+    active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False, server_default='false')
     imported_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
 
 

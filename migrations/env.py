@@ -18,7 +18,8 @@ import app.db.models  # noqa: F401,E402  T07–T10
 import app.models  # noqa: F401,E402  T01
 
 # T02 以 SQL 直接存取、沒有 ORM 模型；這些表只由遷移管理，比對模型時略過
-MIGRATION_ONLY_TABLES = {"price_collection_runs", "price_quote_snapshots", "retailer_product_mappings"}
+MIGRATION_ONLY_TABLES = {"price_collection_runs", "price_quote_snapshots", "retailer_product_mappings",
+                         "price_data_releases", "price_snapshot_foods"}
 
 
 def include_object(obj, name, type_, reflected, compare_to):

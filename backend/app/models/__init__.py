@@ -1,5 +1,6 @@
 from app.db.base import Base
-from app.models.nutrition import (FoodNutrition, NutritionFoodMapping, NutritionImport,
+from app.models.nutrition_candidates import NutritionSourceCandidate, NutritionProductSource
+from app.models.nutrition import (FoodNutrition, NutritionFoodMapping, NutritionImport, NutritionDataRelease,
                                   NutritionSource, NutritionSourceLink)
 from app.models.recipe import (
     Allergen,
@@ -22,6 +23,7 @@ __all__ = [
     "SourceArchive",
     "FoodNutrition",
     "NutritionImport",
+    "NutritionDataRelease",
     "NutritionSource",
     "NutritionSourceLink",
 ]

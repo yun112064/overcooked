@@ -14,22 +14,22 @@ x-runtime-environment: &runtime-environment
 
 services:
   db:
-    image: pgvector/pgvector:0.8.6-pg17
-    container_name: meal-planner-db
+    image: ${POSTGRES_IMAGE:-pgvector/pgvector:pg17}
+    container_name: overcooked-1102-v3-db
 
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
-      POSTGRES_DB: meal_planner
+      POSTGRES_DB: meal_planner_1102_v3
 
     ports:
-      - "127.0.0.1:5432:5432"
+      - "127.0.0.1:55435:5432"
 
     volumes:
       - postgres_data:/var/lib/postgresql/data
 
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d meal_planner"]
+      test: ["CMD-SHELL", "pg_isready -U postgres -d meal_planner_1102_v3"]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -43,7 +43,7 @@ services:
     container_name: meal-planner-backend
 
     environment:
-      DATABASE_URL: postgresql+psycopg://postgres:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}@db:5432/meal_planner
+      DATABASE_URL: postgresql+psycopg://postgres:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}@db:5432/meal_planner_1102_v3
       <<: *runtime-environment
       PROJECT_DATA_ROOT: /app/data
       PYTHONUNBUFFERED: "1"
@@ -85,7 +85,7 @@ services:
     command: ["python", "-m", "app.jobs.worker"]
     environment:
       <<: *runtime-environment
-      DATABASE_URL: postgresql+psycopg://postgres:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}@db:5432/meal_planner
+      DATABASE_URL: postgresql+psycopg://postgres:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}@db:5432/meal_planner_1102_v3
       PROJECT_DATA_ROOT: /app/data
       PYTHONUNBUFFERED: "1"
     volumes:
@@ -103,7 +103,7 @@ services:
     image: meal-planner-backend
     command: ["python", "-m", "app.jobs.scheduler"]
     environment:
-      DATABASE_URL: postgresql+psycopg://postgres:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}@db:5432/meal_planner
+      DATABASE_URL: postgresql+psycopg://postgres:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}@db:5432/meal_planner_1102_v3
       PROJECT_DATA_ROOT: /app/data
       PYTHONUNBUFFERED: "1"
       LOG_CLEANUP_APPLY: "true"
@@ -112,7 +112,7 @@ services:
       PRICE_SCHEDULER_HOUR: ${PRICE_SCHEDULER_HOUR:-3}
       PRICE_SCHEDULER_MINUTE: ${PRICE_SCHEDULER_MINUTE:-0}
       PRICE_SCHEDULER_TIMEZONE: ${PRICE_SCHEDULER_TIMEZONE:-Asia/Taipei}
-      PRICE_WORKBOOK_PATH: ${PRICE_WORKBOOK_PATH_CONTAINER:-/app/data/recipe_dataset_1017.xlsx}
+      PRICE_WORKBOOK_PATH: ${PRICE_WORKBOOK_PATH_CONTAINER:-/app/data/recipe_dataset_1103_V3.xlsx}
       PRICE_COLLECTION_DELAY_SECONDS: ${PRICE_COLLECTION_DELAY_SECONDS:-1.5}
       PRICE_COLLECTION_TIMEOUT_SECONDS: ${PRICE_COLLECTION_TIMEOUT_SECONDS:-15}
       PRICE_COLLECTION_RETRIES: ${PRICE_COLLECTION_RETRIES:-1}
@@ -140,4 +140,5 @@ services:
 
 volumes:
   postgres_data:
+    name: overcooked-1102-v3-pgdata
   backend_data:

@@ -36,6 +36,7 @@ function stapleProblem(label: string, reason: string | null | undefined): string
 /** 查價失敗原因 → 使用者看得懂的說明；原始原因放在滑鼠提示，方便追查。 */
 const MISSING_PRICE_REASONS: Record<string, string> = {
   NO_PRICE_DATA: '尚無價格資料', UNIT_MISMATCH: '包裝單位無法換算成克', PRICE_EXPIRED: '價格已過期',
+  PRICE_REVALIDATION_REQUIRED: '僅有歷史價格，需重新查價',
   INVALID_PACKAGE: '包裝資訊不完整',
 }
 const missingReason = (code: string | null) => (code && MISSING_PRICE_REASONS[code]) ?? '賣場找不到相符的商品'

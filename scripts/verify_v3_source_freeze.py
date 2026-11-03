@@ -15,6 +15,10 @@ IMPORTERS = {
     "nutrition_model/import_tfda.py", "nutrition_model/import_workbook.py",
     "nutrition_model/import_usda_nutrition.py", "nutrition_model/import_usda_yields.py",
 }
+AUTHORIZED_T01_CHANGES = {
+    'data/recipe_dataset_1017.xlsx', 'config/recipe_reviews.json',
+    'config/recipe_sources.json', 'backend/app/services/recipe_import.py',
+}
 
 
 def verify() -> dict:
@@ -33,8 +37,10 @@ def verify() -> dict:
         comparable = actual if binary else actual.replace(b"\r\n", b"\n")
         expected = original if binary else original.replace(b"\r\n", b"\n")
         rows.append({"path": path, "unchanged": comparable == expected,
+                     "authorized_t01_change": path in AUTHORIZED_T01_CHANGES,
                      "source_sha256": hashlib.sha256(original).hexdigest()})
-    return {"base": BASE, "passed": all(r["unchanged"] for r in rows), "files": rows}
+    return {"base": BASE, "passed": all(r["unchanged"] or r['authorized_t01_change'] for r in rows),
+            "authorization": "User T01 replacement decision 2026-11-03; non-T01 sources remain frozen", "files": rows}
 
 
 if __name__ == "__main__":

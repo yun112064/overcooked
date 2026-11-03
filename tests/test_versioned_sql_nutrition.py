@@ -32,7 +32,7 @@ class VersionedSQLNutritionTests(unittest.TestCase):
         self.addCleanup(self.db.close)
         release_hash = "a" * 64
         self.db.add(RecipeDataRelease(release_id="recipe-test-v1", dataset_version="test-v1",
-            source_sha256=release_hash, schema_version="test", source_kind="test",
+            source_sha256=release_hash, schema_version="test", source_kind="xlsx_import",
             row_counts={}, active=True))
         self.db.flush()
         self.db.add(IngredientAlias(food_id="FOOD000296", recipe_release_id="recipe-test-v1", canonical_name="白飯",

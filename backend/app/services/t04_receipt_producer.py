@@ -15,6 +15,7 @@ from app.models.nutrition import (
     FoodNutrition, NutritionFoodMapping, NutritionSource, NutritionSourceLink, NutritionImport,
 )
 from app.services.t04_receipts import persist_receipt
+from app.services.nutrition_release import recipe_import_matches
 
 
 RAW_STATES = (
@@ -77,7 +78,7 @@ def produce_receipt_from_estimate(factory, *, recipe_release_id: str, nutrition_
         recipe_import = db.get(NutritionImport, nutrition_import_id)
         release = db.get(RecipeDataRelease, recipe_release_id)
         if (recipe_import is None or release is None or not release.active
-                or (recipe_import.source_files or {}).get("recipes", {}).get("sha256") != release.source_sha256):
+                or not recipe_import_matches(db, release, recipe_import, mapping_version=mapping_version)):
             return None
         if source_provider != "TFDA" and not (
                 source_provider == "SYNTHETIC_TEST"

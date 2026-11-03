@@ -28,6 +28,7 @@ class RunLease:
     connection: Connection
     resumed: bool = False
     provider: str = "pxmart"
+    recipe_release_id: str | None = None
 
 
 @dataclass(frozen=True)
@@ -87,16 +88,20 @@ class PricingRepository:
                 connection.close()
                 return None
 
+            recipe_release_id = connection.execute(text(
+                "SELECT release_id FROM recipe_data_releases WHERE active"
+            )).scalar_one_or_none()
+
             run_id = str(uuid.uuid4())
             inserted = connection.execute(
                 text(
                     """
                     INSERT INTO price_collection_runs (
                         id, run_key, provider, trigger_type, scheduled_for,
-                        started_at, status, ingredient_total
+                        started_at, status, ingredient_total, recipe_release_id
                     ) VALUES (
                         :id, :run_key, :provider, :trigger_type, :scheduled_for,
-                        :started_at, 'running', 0
+                        :started_at, 'running', 0, :recipe_release_id
                     )
                     ON CONFLICT (run_key) DO NOTHING
                     RETURNING id
@@ -109,6 +114,7 @@ class PricingRepository:
                     "trigger_type": trigger_type,
                     "scheduled_for": scheduled_for,
                     "started_at": started_at,
+                    "recipe_release_id": recipe_release_id,
                 },
             ).scalar_one_or_none()
             connection.commit()
@@ -116,11 +122,14 @@ class PricingRepository:
             if inserted is None:
                 existing = connection.execute(
                     text(
-                        "SELECT id, status FROM price_collection_runs "
+                        "SELECT id, status, provider, recipe_release_id, price_data_release_id FROM price_collection_runs "
                         "WHERE run_key = :run_key"
                     ),
                     {"run_key": run_key},
                 ).mappings().one()
+                if (existing['provider'] != provider or existing['recipe_release_id'] != recipe_release_id
+                        or existing['price_data_release_id'] is not None):
+                    raise ValueError('Collection run belongs to another source or recipe release')
                 if existing["status"] not in {"running", "failed", "partial"}:
                     self._unlock_and_close(connection)
                     return None
@@ -140,6 +149,7 @@ class PricingRepository:
                 connection=connection,
                 resumed=resumed,
                 provider=provider,
+                recipe_release_id=recipe_release_id,
             )
         except Exception:
             connection.rollback()
@@ -160,6 +170,18 @@ class PricingRepository:
         lease.connection.commit()
 
     def save_quote(self, lease: RunLease, quote: PriceQuote) -> None:
+        if lease.recipe_release_id is not None:
+            current = lease.connection.execute(text(
+                "SELECT release_id FROM recipe_data_releases WHERE active"
+            )).scalar_one_or_none()
+            if current != lease.recipe_release_id:
+                raise ValueError('Active recipe release changed during price collection')
+            valid_ids = set(lease.connection.execute(text(
+                "SELECT food_id FROM ingredient_aliases WHERE recipe_release_id = :release "
+                "AND canonical_name = :name AND food_id = ANY(:ids)"
+            ), {'release': current, 'name': quote.canonical_name, 'ids': quote.food_ids}).scalars())
+            if not quote.food_ids or valid_ids != set(quote.food_ids):
+                raise ValueError('Quote Food_ID/name does not match the active recipe dictionary')
         payload = quote.model_dump(mode="json")
         lease.connection.execute(
             text(
@@ -198,6 +220,15 @@ class PricingRepository:
                 "quote_payload": json.dumps(payload, ensure_ascii=False),
             },
         )
+        if lease.recipe_release_id is not None:
+            lease.connection.execute(text(
+                "INSERT INTO price_snapshot_foods (snapshot_id, recipe_release_id, food_id, mapping_method) "
+                "SELECT s.id, :release, f.food_id, 'collector_exact_id_name' "
+                "FROM price_quote_snapshots s JOIN ingredient_aliases f "
+                "ON f.recipe_release_id = :release AND f.canonical_name = s.canonical_name "
+                "AND s.quote_payload -> 'food_ids' ? f.food_id "
+                "WHERE s.run_id = :run_id AND s.canonical_name = :name ON CONFLICT DO NOTHING"
+            ), {'release': lease.recipe_release_id, 'run_id': lease.run_id, 'name': quote.canonical_name})
         lease.connection.commit()
 
     def finish_run(

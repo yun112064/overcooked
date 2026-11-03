@@ -77,9 +77,9 @@ if (-not (Test-Path $LockStamp) -or (Get-Content $LockStamp) -ne $LockHash) {
 }
 
 # ---------- 4. 資料庫 ----------
-$Db = Cfg 'DEV_DB_CONTAINER' 'overcooked-dev-db'
-$DbPort = Cfg 'DEV_DB_PORT' '55432'
-$DbName = Cfg 'DEV_DB_NAME' 'meal_planner_dev'
+$Db = Cfg 'DEV_DB_CONTAINER' 'overcooked-1102-v3-db'
+$DbPort = Cfg 'DEV_DB_PORT' '55435'
+$DbName = Cfg 'DEV_DB_NAME' 'meal_planner_1102_v3'
 $DbPassword = Cfg 'DEV_DB_PASSWORD'
 if (-not $DbPassword) { Fail '.env.dev 缺少 DEV_DB_PASSWORD。' }
 
@@ -89,7 +89,7 @@ if ($LASTEXITCODE -ne 0) { Fail '連不到 Docker，請先開啟 Docker Desktop 
 $exists = docker ps -a --filter "name=^$Db$" --format '{{.Names}}'
 if (-not $exists) {
     docker run -d --name $Db -e "POSTGRES_PASSWORD=$DbPassword" -e "POSTGRES_DB=$DbName" `
-        -p "127.0.0.1:${DbPort}:5432" -v "$(Cfg 'DEV_DB_VOLUME' 'overcooked-dev-pgdata'):/var/lib/postgresql/data" `
+        -p "127.0.0.1:${DbPort}:5432" -v "$(Cfg 'DEV_DB_VOLUME' 'overcooked-1102-v3-pgdata'):/var/lib/postgresql/data" `
         pgvector/pgvector:0.8.6-pg17 | Out-Null
 } else {
     docker start $Db | Out-Null

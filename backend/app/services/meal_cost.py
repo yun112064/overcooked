@@ -28,6 +28,7 @@ from app.services.seasonings import load_seasonings
 from app.services.synonyms import confirmed_equivalents
 from app.source_adapters.price_collection import load_price_exempt
 from app.source_adapters.price_models import PriceQuote, QuoteStatus
+from app.source_adapters.price_scope import SCOPED_QUOTES_SQL, materialize_quote
 
 ZERO = Decimal(0)
 QuoteLookup = Callable[[str], PriceQuote | None]
@@ -168,14 +169,14 @@ def _unusable_reason(quote: PriceQuote | None, now: datetime) -> str | None:
 
 
 # 每個來源（全聯、萬家福）各取最新一筆成功快照
-LATEST_SUCCESS_PER_PROVIDER_SQL = """
-    SELECT DISTINCT ON (provider) quote_payload FROM price_quote_snapshots
-    WHERE status = 'success' AND quote_payload -> 'food_ids' ? :food_id
+LATEST_SUCCESS_PER_PROVIDER_SQL = SCOPED_QUOTES_SQL + """
+    SELECT DISTINCT ON (provider) * FROM scoped_quotes
+    WHERE status = 'success' AND food_id = :food_id
     ORDER BY provider, queried_at DESC, id DESC
 """
-LATEST_ANY_SQL = """
-    SELECT quote_payload FROM price_quote_snapshots
-    WHERE quote_payload -> 'food_ids' ? :food_id
+LATEST_ANY_SQL = SCOPED_QUOTES_SQL + """
+    SELECT * FROM scoped_quotes
+    WHERE food_id = :food_id
     ORDER BY queried_at DESC, id DESC
     LIMIT 1
 """
@@ -197,12 +198,13 @@ def latest_quote(db: Session, food_id: str, *, now: datetime | None = None) -> P
     """
     params = {"food_id": food_id}
     now = now or datetime.now(timezone.utc)
-    successes = [PriceQuote.model_validate(p) for p in
-                 db.execute(text(LATEST_SUCCESS_PER_PROVIDER_SQL), params).scalars().all()]
+    successes = [materialize_quote(p) for p in
+                 db.execute(text(LATEST_SUCCESS_PER_PROVIDER_SQL), params).mappings().all()]
     if successes:
-        return _choose(successes, now)
-    payload = db.execute(text(LATEST_ANY_SQL), params).scalars().first()
-    return PriceQuote.model_validate(payload) if payload is not None else None
+        usable = [q for q in successes if q.status is QuoteStatus.SUCCESS]
+        return _choose(usable, now) if usable else max(successes, key=lambda q: q.queried_at)
+    payload = db.execute(text(LATEST_ANY_SQL), params).mappings().first()
+    return materialize_quote(payload) if payload is not None else None
 
 
 def _choose(successes: list[PriceQuote], now: datetime) -> PriceQuote:
@@ -228,9 +230,8 @@ def _choose(successes: list[PriceQuote], now: datetime) -> PriceQuote:
 
 
 # 批次版：所有 FOOD 編號各來源最新一筆成功快照（一次查詢）
-LATEST_SUCCESS_ALL_SQL = """
-    SELECT DISTINCT ON (food_id, provider) food_id, quote_payload
-    FROM price_quote_snapshots, jsonb_array_elements_text(quote_payload -> 'food_ids') AS food_id
+LATEST_SUCCESS_ALL_SQL = SCOPED_QUOTES_SQL + """
+    SELECT DISTINCT ON (food_id, provider) * FROM scoped_quotes
     WHERE status = 'success'
     ORDER BY food_id, provider, queried_at DESC, id DESC
 """
@@ -240,8 +241,10 @@ def latest_success_quotes(db: Session, *, now: datetime) -> dict[str, PriceQuote
     """每個 FOOD 編號依 latest_quote 規則選出的成功報價（一次查詢）；從未成功的食材不列。
     給需要大量查價的估算用（預算下限）；成本計算仍逐項用 latest_quote（保留失敗原因）。"""
     grouped: dict[str, list[PriceQuote]] = {}
-    for food_id, payload in db.execute(text(LATEST_SUCCESS_ALL_SQL)).all():
-        grouped.setdefault(food_id, []).append(PriceQuote.model_validate(payload))
+    for row in db.execute(text(LATEST_SUCCESS_ALL_SQL)).mappings().all():
+        quote = materialize_quote(row)
+        if quote.status is QuoteStatus.SUCCESS:
+            grouped.setdefault(row['food_id'], []).append(quote)
     return {food_id: _choose(quotes, now) for food_id, quotes in grouped.items()}
 
 

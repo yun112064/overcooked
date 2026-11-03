@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react'
 import { api, errorMessage } from '../api/client'
 import type { Job, MealRequest } from '../api/types'
 import MealResultView from './MealResultView'
+import T04DataPanel from './T04DataPanel'
 
 const STAGE_LABELS: Record<string, string> = {
   queued: '排隊中',
@@ -158,6 +159,7 @@ export default function GenerationPanel({ row, onChanged }: Props) {
           )}
         </Box>
       )}
+      <T04DataPanel row={row} />
       {submit.isError && <Alert severity="error">{errorMessage(submit.error)}</Alert>}
       {cancel.isError && <Alert severity="error">{errorMessage(cancel.error)}</Alert>}
       {hasResult && !active && <MealResultView requestId={row.id} mealDate={row.draft.meal_date} onChanged={onChanged} />}

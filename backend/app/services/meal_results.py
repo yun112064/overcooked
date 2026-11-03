@@ -231,7 +231,8 @@ def _nutrition(payload: dict) -> dict:
 
 QUOTE_FIELDS = ("retailer", "source", "source_url", "product_name", "product_url", "price", "package_quantity",
                 "package_unit", "package_description", "queried_at", "valid_until", "region_condition",
-                "store_condition", "promotion_description")
+                "store_condition", "promotion_description", "recipe_release_id",
+                "price_data_release_id", "snapshot_id", "usage_status")
 
 
 # 畫面標示的價格來源名稱（決策 #25）

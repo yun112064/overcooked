@@ -245,6 +245,10 @@ export type PriceItem = {
   package_description: string | null
   queried_at: string | null
   valid_until: string | null
+  recipe_release_id?: string | null
+  price_data_release_id?: string | null
+  snapshot_id?: number | null
+  usage_status?: string | null
 }
 
 export type KnowledgeCitation = {

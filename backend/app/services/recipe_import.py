@@ -280,6 +280,8 @@ def _sheet_records(workbook: Any, sheet_name: str) -> list[dict[str, Any]]:
         raise WorkbookValidationError(f"Worksheet is empty: {sheet_name}") from exc
 
     headers = [_text(value) for value in header_row]
+    if sheet_name == 'recipe_steps' and 'instruction_clean' not in headers and 'instruction' in headers:
+        headers = ['instruction_clean' if h == 'instruction' else h for h in headers]
     if any(header is None for header in headers):
         raise WorkbookValidationError(f"Worksheet has blank header: {sheet_name}")
     missing = REQUIRED_COLUMNS[sheet_name] - set(headers)
