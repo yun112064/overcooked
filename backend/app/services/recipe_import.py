@@ -28,6 +28,11 @@ from app.models.recipe import (
 
 SCHEMA_VERSION = "t01-recipe-import-v1"
 
+# 新版工作簿改過的欄名 → 程式使用的欄名
+COLUMN_RENAMES = {("recipe_steps", "instruction"): "instruction_clean"}
+# 1103_V3 加在步驟開頭的編輯備註（用量以食材表為準，本來就是畫面做法），匯入時拿掉
+STEP_EDITOR_NOTE = "本版備料以食材表採值為準。"
+
 REQUIRED_COLUMNS = {
     "source_archive": {
         "raw_id",
@@ -282,6 +287,8 @@ def _sheet_records(workbook: Any, sheet_name: str) -> list[dict[str, Any]]:
     headers = [_text(value) for value in header_row]
     if any(header is None for header in headers):
         raise WorkbookValidationError(f"Worksheet has blank header: {sheet_name}")
+    # recipe_dataset_1103_V3 起步驟欄名改為 instruction；內容相同，視為 instruction_clean
+    headers = [COLUMN_RENAMES.get((sheet_name, h), h) if h is not None else h for h in headers]
     missing = REQUIRED_COLUMNS[sheet_name] - set(headers)
     if missing:
         raise WorkbookValidationError(
@@ -755,6 +762,9 @@ def parse_recipe_workbook(path: str | Path, source_rights: dict[str, dict] | Non
     for row in step_input:
         recipe_id = _text(row["recipe_id"])
         instruction = _text(row["instruction_clean"])
+        # 1103_V3 在步驟前加了編輯備註；畫面只留做法本身（2026-11-04 使用者決定）
+        if instruction is not None and instruction.startswith(STEP_EDITOR_NOTE):
+            instruction = _text(instruction[len(STEP_EDITOR_NOTE):])
         if recipe_id is None or instruction is None:
             raise WorkbookValidationError(f"Invalid recipe step at row {row['__row__']}")
         step_no = _integer(row["step_no"], "step_no")

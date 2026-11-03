@@ -10,6 +10,7 @@ from dataclasses import dataclass, replace
 import hashlib
 import json
 from decimal import Decimal
+from fractions import Fraction
 from pathlib import Path
 from typing import Any, Literal, cast
 
@@ -18,7 +19,7 @@ from sqlalchemy.engine import Connection
 from sqlalchemy.exc import SQLAlchemyError
 
 from .service import (IngredientQuantity, MealValidationResult, Number,
-                      NutritionPolicy, RecipeCandidate, exact, validate_meal)
+                      NutritionPolicy, RecipeCandidate, calculate_nutrition, exact, validate_meal)
 from .targets import MealTargets, PlanningInputError, targets_from_t03
 
 
@@ -127,6 +128,33 @@ BROWN_RICE_VERSION = 'staples-brown-rice-2026-11-02-v1'
 _BROWN_RICE_FIELDS = {'name': '糙米飯', 'food_id': 'FOOD001487', 'weight_basis': 'cooked',
                       'grams_per_n': '160', 'adjustable_min_g_per_n': '100',
                       'adjustable_max_g_per_n': '250', 'cooking_step_g': '1'}
+
+
+def _decimal_text(value: Fraction) -> str:
+    """Portion factors as plain decimals ("0.08"); a non-terminating one stays a fraction."""
+    den = value.denominator
+    for prime in (2, 5):
+        while den % prime == 0:
+            den //= prime
+    if den != 1:
+        return str(value)
+    return format((Decimal(value.numerator) / Decimal(value.denominator)).normalize(), 'f')
+
+
+ALL_NUTRIENTS = ('energy_kcal', 'protein_g', 'fat_g', 'carbohydrate_g', 'sugars_g', 'sodium_mg', 'dietary_fiber_g')
+# Plain water carries no nutrients; its blank cells count as 0 for the display-only nutrients.
+WATER_NAMES = frozenset({'水', '開水', '清水', '冷水', '熱水', '溫水', '冰水', '飲用水'})
+
+
+def _shares_summing_to_one(shares: Sequence[Fraction]) -> list[Fraction]:
+    """Round shares to 0.01 so they add up to exactly 1 (largest remainder first)."""
+    hundredths = [share * 100 for share in shares]
+    floors = [int(h) for h in hundredths]
+    remaining = 100 - sum(floors)
+    order = sorted(range(len(shares)), key=lambda i: (-(hundredths[i] - floors[i]), i))
+    for i in order[:max(remaining, 0)]:
+        floors[i] += 1
+    return [Fraction(f, 100) for f in floors]
 
 
 def _brown_rice_policy(conversion: str, nutrition_source: str) -> tuple[Mapping | None, InputIssue | None]:
@@ -241,6 +269,140 @@ class DatabaseMenuResult:
     staple_snapshot: Mapping | None = None
     dish_portions: Mapping | None = None
     unscaled_baseline: Any = None
+    # line_id → the seven nutrients of that final line (display only; None when the source has no value)
+    line_nutrients: Mapping[str, Mapping[str, Fraction | None]] | None = None
+    # line_id → blank display-only nutrients filled by category rules or cached estimates (trace only)
+    display_fills: Mapping[str, list] | None = None
+    # line_id → {recipe_id, name, food_id, unit, grams (recipe grams)}, for showing the amounts per dish.
+    line_labels: Mapping[str, Mapping[str, str | None]] | None = None
+    # recipe_id → ordered step texts, shown with the dish.
+    recipe_steps: Mapping[str, tuple[str, ...]] | None = None
+
+    @property
+    def dishes(self) -> tuple[Mapping[str, object], ...]:
+        """Whole-meal amounts of every validated line and the recipe steps, grouped by dish in menu order."""
+        validation = self.validation
+        labels = self.line_labels or {}
+        steps = self.recipe_steps or {}
+        grouped: dict[str, list[Mapping[str, str | None]]] = {}
+        # Validated (portioned) amounts when the menu passed; otherwise the recipe's own amounts,
+        # so ingredients and steps always show even when nutrition could not be calculated.
+        adjusted = bool(validation and validation.final_recipe)
+        if validation and validation.final_recipe:
+            for line in validation.final_recipe.ingredients:
+                label = labels.get(line.line_id) or {'recipe_id': '', 'name': line.food_id, 'food_id': line.food_id,
+                                                     'unit': None}
+                grouped.setdefault(str(label['recipe_id']), []).append(
+                    {'name': label['name'], 'food_id': label['food_id'], 'unit': label['unit'],
+                     'grams': str(exact(line.amount_g))})
+            order = list(validation.final_recipe.recipe_ids)
+        else:
+            for label in labels.values():
+                grouped.setdefault(str(label['recipe_id']), []).append(
+                    {'name': label['name'], 'food_id': label['food_id'], 'unit': label['unit'], 'grams': label['grams']})
+            order = list(dict.fromkeys(str(label['recipe_id']) for label in labels.values()))
+        order = [rid for rid in order if rid in grouped and rid != 'staple']
+        return tuple({'recipe_id': rid, 'ingredients': grouped[rid], 'steps': list(steps.get(rid, ())),
+                      'adjusted': adjusted} for rid in order)
+
+    def _line_name(self, line_id: str) -> str:
+        if line_id.startswith('staple:') and self.staple_snapshot:
+            return str(self.staple_snapshot.get('name') or '主食')
+        return str(((self.line_labels or {}).get(line_id) or {}).get('name') or line_id)
+
+    def _display_lines(self) -> dict[str, dict[str, Fraction | None]]:
+        """Per-line seven nutrients for display; water lines count as 0 where the source is blank."""
+        # Recipe names can carry a note after a space (e.g. 「水 各」); the first word decides.
+        water = {lid for lid in (self.line_nutrients or {}) if (self._line_name(lid).split() or [''])[0] in WATER_NAMES}
+        return {lid: {key: (Fraction(0) if value is None and lid in water else value)
+                      for key, value in nutrients.items()}
+                for lid, nutrients in (self.line_nutrients or {}).items()}
+
+    def _seven_totals(self) -> dict[str, Fraction | None]:
+        lines = list(self._display_lines().values())
+        totals: dict[str, Fraction | None] = {}
+        for key in ALL_NUTRIENTS:
+            values = [n.get(key) for n in lines]
+            known = [v for v in values if v is not None]
+            totals[key] = sum(known, Fraction()) if lines and len(known) == len(values) else None
+        return totals
+
+    @property
+    def all_nutrients(self) -> Mapping[str, object]:
+        """The seven nutrients of the final menu, for display only (only energy and protein are validated).
+
+        A nutrient is summed only when every line has a value; otherwise it is None, with the
+        known partial sum and the ingredients lacking it, never a silent 0.
+        """
+        totals: dict[str, str | None] = {}
+        known: dict[str, str] = {}
+        missing: dict[str, list[str]] = {}
+        lines = self._display_lines()
+        for key in ALL_NUTRIENTS:
+            values = [(line_id, nutrients.get(key)) for line_id, nutrients in lines.items()]
+            have = [v for _, v in values if v is not None]
+            lacking = sorted({self._line_name(lid) for lid, v in values if v is None})
+            if not lines:
+                totals[key] = None
+            elif lacking:
+                totals[key] = None
+                known[key] = str(sum(have, Fraction()))
+                missing[key] = lacking
+            else:
+                totals[key] = str(sum(have, Fraction()))
+        filled = [{'ingredient': self._line_name(lid), **fill}
+                  for lid, fills in (self.display_fills or {}).items() if lid in lines for fill in fills]
+        return {'totals': totals, 'known_partial': known, 'missing_by_nutrient': missing, 'display_fills': filled}
+
+    @property
+    def per_person(self) -> tuple[Mapping[str, object], ...]:
+        """Each participant's (or bento's) share of the validated menu, by their own target.
+
+        A participant gets (own energy target / meal energy target) of every cooked
+        dish and of the staple, so their energy follows their own T03 target.
+        ``dish_share`` is that share of each whole dish, rounded to 0.01 so that all
+        participants add up to exactly 1 (largest remainder); ``share`` keeps the
+        exact value used for the nutrition.  Protein comes with the same food and may
+        land elsewhere; ``within_10pct`` reports each nutrient against that person's
+        own ±10% window.
+        """
+        validation = self.validation
+        recipe = self.preparation.recipe
+        if not validation or not validation.nutrition_passed or not validation.final_estimate or recipe is None:
+            return ()
+        staple_g = (exact(self.staple_snapshot['final_grams'])
+                    if self.staple_snapshot and self.staple_snapshot.get('final_grams') else None)
+        totals = validation.final_estimate.totals
+        meal_energy = self.targets.target['energy_kcal']
+        meal_all = self._seven_totals()
+        meal_known = dict(cast(Mapping[str, str], self.all_nutrients['known_partial']))
+        items = list(self.targets.snapshot.get('participations') or [])
+        exact_shares = [exact(item['scaled_target']['energy_kcal']) / meal_energy for item in items]
+        shown_shares = _shares_summing_to_one(exact_shares)
+        people = []
+        for item, share, shown in zip(items, exact_shares, shown_shares):
+            own = {key: exact(item['scaled_target'][key]) for key in ('energy_kcal', 'protein_g')}
+            eaten = {key: None if (value := totals.get(key)) is None else value * share for key in own}
+            eaten_all = {key: None if value is None else value * share for key, value in meal_all.items()}
+            known_all = {key: Fraction(value) * share for key, value in meal_known.items()}
+            people.append({
+                'participation_id': item['participation_id'], 'member_id': item['member_id'],
+                'kind': item['kind'], 'meal': item['meal'], 'n': item['n'], 'share': str(share),
+                # 這一份應占每日的比例（餐別比例 × n），與每日目標（當餐目標 ÷ 該比例）
+                'meal_ratio': str(exact(item['meal_ratio']) * exact(item['n'])),
+                'daily': {key: str(own[key] / (exact(item['meal_ratio']) * exact(item['n']))) for key in own},
+                'dish_share': _decimal_text(shown),
+                'dish_ids': [rid for rid in recipe.recipe_ids if rid != 'staple'],
+                # Same rounded share as the dishes, so everyone's staple adds up to the cooked amount.
+                'staple_g': str(staple_g * shown) if staple_g is not None else None,
+                'target': {key: str(value) for key, value in own.items()},
+                'nutrition': {key: None if value is None else str(value) for key, value in eaten.items()},
+                'nutrition_all': {key: None if value is None else str(value) for key, value in eaten_all.items()},
+                'nutrition_known_partial': {key: str(value) for key, value in known_all.items()},
+                'within_10pct': {key: value is not None and own[key] * Fraction(9, 10) <= value <= own[key] * Fraction(11, 10)
+                                 for key, value in eaten.items()},
+            })
+        return tuple(people)
 
     @property
     def input_issues(self) -> tuple[Mapping[str, object], ...]:
@@ -309,6 +471,9 @@ class DatabaseMenuResult:
                                'nutrition_passed': ('營養計算通過（已調整菜餚份量）' if self.dish_portions
                                                     else '營養計算通過')}[status],
             'dish_portions': dict(self.dish_portions) if self.dish_portions else None,
+            'per_person': self.per_person,
+            'nutrition_all': self.all_nutrients,
+            'dishes': self.dishes,
             'targets': {key: str(value) for key, value in self.targets.target.items()},
             'input_issues': self.input_issues,
             'adoption_blocked': self.adoption_blocked,
@@ -568,7 +733,32 @@ def prepare_database_recipe(rows: RecipeRows, *, policy: NutritionPolicy,
     return PreparedRecipe(RecipeCandidate("database_menu", tuple(prepared), rows.recipe_ids, "approved"), ())
 
 
-def validate_database_menu(db: Connection, recipe_ids: Sequence[str], *, participations: list,
+def _recipe_grams(row: Mapping) -> str | None:
+    """The reviewed recipe grams T12 calculates with (``source_weight_g``, else ``weight_g``)."""
+    grams = row.get('source_weight_g') if row.get('source_weight_g') is not None else row.get('weight_g')
+    return None if grams is None else str(grams)
+
+
+def validate_database_menu(db: Connection, recipe_ids: Sequence[str], **kwargs) -> DatabaseMenuResult:
+    """T12 for database recipes; every result also carries each dish's ingredients and steps.
+
+    The ingredient names, recipe grams and steps come from the recipe rows, so they are
+    shown even when nutrition could not be calculated (see ``_validate_database_menu``).
+    """
+    rows = load_database_recipe_rows(db, recipe_ids)
+    result = _validate_database_menu(db, recipe_ids, rows=rows, **kwargs)
+    line_labels = {row['recipe_ingredient_id']: {'recipe_id': row['recipe_id'], 'food_id': row['food_id'],
+                                                 'name': row.get('canonical_name') or row['food_id'],
+                                                 'unit': row.get('unit'), 'grams': _recipe_grams(row)}
+                   for row in rows.ingredients}
+    recipe_steps: dict[str, tuple[str, ...]] = {}
+    for step in sorted(rows.steps, key=lambda s: (s['recipe_id'], s.get('step_no') or 0)):
+        if step.get('instruction_clean'):
+            recipe_steps[step['recipe_id']] = recipe_steps.get(step['recipe_id'], ()) + (step['instruction_clean'],)
+    return replace(result, line_labels=line_labels, recipe_steps=recipe_steps)
+
+
+def _validate_database_menu(db: Connection, recipe_ids: Sequence[str], *, rows: RecipeRows, participations: list,
                            target_service, policy: NutritionPolicy,
                            profiles: Mapping[str, RecipeLineProfile] | None = None,
                            staple: str | None = None,
@@ -587,7 +777,6 @@ def validate_database_menu(db: Connection, recipe_ids: Sequence[str], *, partici
     No public preview or caller-supplied adoption flag is used as a target.
     """
     targets = targets_from_t03(target_service.aggregate_meal_targets(participations))
-    rows = load_database_recipe_rows(db, recipe_ids)
     using_recipe_level_profiles = profiles is None
     profiles = dict(profiles) if profiles is not None else dict(recipe_level_profiles(rows))
     if staple is None:
@@ -600,8 +789,8 @@ def validate_database_menu(db: Connection, recipe_ids: Sequence[str], *, partici
         # User decision 2026-11-02: TFDA has no cooked brown rice, so the
         # reviewed USDA medium-grain cooked value is used for the staple only.
         brown, issue = _brown_rice_policy(conversion, nutrition_source)
-        if issue is not None:
-            return DatabaseMenuResult(targets, PreparedRecipe(None, (issue,)), None)
+        if issue is not None or brown is None:
+            return DatabaseMenuResult(targets, PreparedRecipe(None, (issue,) if issue else ()), None)
         staple_line_id = f"staple:{brown['food_id']}"
         staple_snapshot = {key: value for key, value in brown.items() if key != 'nutrition'}
         staple_snapshot.update({'selection': staple, 'nutrition_provider': brown['nutrition']['provider'],
@@ -693,7 +882,7 @@ def validate_database_menu(db: Connection, recipe_ids: Sequence[str], *, partici
             profiles=profiles, variant_resolver=variant_resolver, conversion=conversion,
             mappings=nutrition_mappings)
         supplement_lines: dict[str, Mapping] = {}
-        if staple_record is not None:
+        if staple_record is not None and staple_line_id is not None:
             supplement_lines[staple_line_id] = staple_record
         if conversion == 'factor_one':
             if nutrition_supplements is None:
@@ -711,7 +900,7 @@ def validate_database_menu(db: Connection, recipe_ids: Sequence[str], *, partici
                              if row['recipe_ingredient_id'] == issue.line_id), None)
                 supplement = (nutrition_supplements.values.get(line['food_id'])
                               if line is not None and issue.code in SUPPLEMENTABLE_CODES else None)
-                if supplement is None:
+                if supplement is None or line is None or issue.line_id is None:
                     remaining.append(issue)
                 else:
                     supplement_lines[issue.line_id] = _supplement_record(line, supplement)
@@ -820,11 +1009,13 @@ def validate_database_menu(db: Connection, recipe_ids: Sequence[str], *, partici
     dish_portions = None
     unscaled_baseline = None
     if (conversion == 'factor_one' and result is not None and not result.nutrition_passed
+            and preparation.recipe is not None
             and result.baseline_estimate is not None and not result.baseline_estimate.missing):
-        # User decision 2026-11-02: when the unchanged menu misses ±10%, each
-        # dish may be served at 0.5–1.0 recipe serving (whole dish, same
-        # factor on every line).  The tolerance itself is not relaxed.
-        from .portion_fit import POLICY_VERSION, candidate_factors, scale_dishes
+        # User decisions 2026-11-02/03: when the unchanged menu misses ±10%,
+        # each dish is portioned to the participants' targets, 0.1–2.0 recipe
+        # serving (whole dish, same factor on every line).  The tolerance
+        # itself is not relaxed.
+        from .portion_fit import FACTOR_RANGE, FACTOR_STEP, POLICY_VERSION, candidate_factors, scale_dishes
         line_dish = {row['recipe_ingredient_id']: row['recipe_id'] for row in rows.ingredients
                      if row['recipe_id'] != 'staple'}
         for factors in candidate_factors(preparation.recipe, line_dish, targets, policy):
@@ -832,8 +1023,8 @@ def validate_database_menu(db: Connection, recipe_ids: Sequence[str], *, partici
             if scaled.nutrition_passed:
                 unscaled_baseline = result.baseline_estimate
                 result = scaled
-                dish_portions = {'policy_version': POLICY_VERSION, 'range': ['0.5', '1.0'], 'step': '0.1',
-                                 'factors': {rid: str(f) for rid, f in sorted(factors.items())}}
+                dish_portions = {'policy_version': POLICY_VERSION, 'range': list(FACTOR_RANGE), 'step': FACTOR_STEP,
+                                 'factors': {rid: _decimal_text(f) for rid, f in sorted(factors.items())}}
                 break
     if staple_snapshot is not None and result and result.final_recipe:
         rice_line = next((line for line in result.final_recipe.ingredients
@@ -841,4 +1032,20 @@ def validate_database_menu(db: Connection, recipe_ids: Sequence[str], *, partici
         if rice_line is not None:
             staple_snapshot = {**staple_snapshot, 'final_grams': str(rice_line.amount_g),
                                'total_n': str(targets.total_n)}
-    return DatabaseMenuResult(targets, preparation, result, staple_snapshot, dish_portions, unscaled_baseline)
+    line_nutrients = None
+    display_fills: dict[str, list] = {}
+    if result and result.final_recipe:
+        # Display only: the same per-line conversion for all seven nutrients of the final menu.
+        # Blank cells of the five display-only nutrients are filled the t11-t20-demo way.
+        from .nutrient_fill import fill_record
+        filled_records = (None if policy.line_nutrition_records is None
+                          else {lid: fill_record(record) for lid, record in policy.line_nutrition_records.items()})
+        everything = replace(policy, required_nutrients=ALL_NUTRIENTS, line_nutrition_records=filled_records)
+        display_fills = {lid: list(record['source']['display_fills']) for lid, record in (filled_records or {}).items()
+                         if (record.get('source') or {}).get('display_fills')}
+        line_nutrients = {}
+        for line in result.final_recipe.ingredients:
+            one = calculate_nutrition(replace(result.final_recipe, ingredients=(line,)), policy=everything)
+            line_nutrients[line.line_id] = dict(one.totals)
+    return DatabaseMenuResult(targets, preparation, result, staple_snapshot, dish_portions, unscaled_baseline,
+                              line_nutrients=line_nutrients, display_fills=display_fills)

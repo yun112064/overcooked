@@ -1,6 +1,6 @@
 {
  "schema_version": "t12-nutrition-supplement-v1",
- "version": "t12-nutrition-supplement-2026-11-02-v2",
+ "version": "t12-nutrition-supplement-2026-11-04-v3",
  "scope": "只用於 T12 營養計算；不寫入任何共用資料表或工作簿。",
  "entries": [
   {
@@ -1323,6 +1323,31 @@
    "status": "approved",
    "approved_by": "使用者（2026-11-02 同意 18 項食材處理建議）",
    "approved_on": "2026-11-02"
+  },
+  {
+   "food_id": "FOOD001993",
+   "name": "無水乳脂（本版AMF模型）",
+   "kind": "values",
+   "state": "raw",
+   "values": {
+    "energy_kcal": "876",
+    "protein_g": "0.28",
+    "fat_g": "99.48",
+    "carbohydrate_g": "0",
+    "sugars_g": "0",
+    "sodium_mg": "2",
+    "dietary_fiber_g": "0"
+   },
+   "provider": "USDA",
+   "source_name": "USDA FoodData Central（SR Legacy）：Butter oil, anhydrous；FDC 173412；NDB 01003",
+   "source_record_id": "USDA_FDC_173412",
+   "source_url": "https://fdc.nal.usda.gov/food-details/173412/nutrients",
+   "retrieved_on": "2026-11-04",
+   "basis": "recipe_dataset_1103_V3 新增的無水乳脂（AMF，芋頭酥用，原為「無水奶油」），TFDA 與 All_Food 沒有數值。以 USDA FoodData Central API（/fdc/v1/food/173412）讀取每 100 g 數值，已逐項記錄。",
+   "confirmation_class": "建議",
+   "status": "approved",
+   "approved_by": "使用者（2026-11-04 同意查公開資料補）",
+   "approved_on": "2026-11-04"
   }
  ]
 }

@@ -71,6 +71,11 @@ def main():
         print(json.dumps({"matched": len(decisions), "database_written": False}))
         return
     store = KnowledgeStore(os.environ["KNOWLEDGE_DATABASE_URL"], embedding_model="embeddinggemma:latest")
+    print(json.dumps({**apply(store, candidates, decisions), "index_built": False}))
+
+
+def apply(store, candidates, decisions):
+    """Import and approve the checked records; already-approved ones are kept."""
     store.initialize()
     store.import_records(candidates)
     approved = 0
@@ -94,8 +99,7 @@ def main():
                          "reviewed_at=now() WHERE knowledge_id=%s AND source_version=%s",
                          (decision["reviewed_by"], note, row["knowledge_id"], row["source_version"]))
             approved += 1
-    print(json.dumps({"approved_now": approved, "already_approved": 123 - approved,
-                      "index_built": False}))
+    return {"approved_now": approved, "already_approved": 123 - approved}
 
 
 if __name__ == "__main__":

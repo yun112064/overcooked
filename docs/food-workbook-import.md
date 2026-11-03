@@ -1,6 +1,6 @@
 # 食譜、食材字典與營養資料匯入
 
-`scripts/import_food_workbooks.py` 一次讀取三份 Excel，在同一個資料庫交易內匯入食譜、食材字典與營養版本。Excel 只讀取，不修改。`done` 的字典須與食譜檔一致，故不重複建立食材。
+`scripts/import_food_workbooks.py` 一次讀取三份 Excel，在同一個資料庫交易內匯入食譜、食材字典與營養版本。`--catalog` 可省略：食譜工作簿（例如 `data/recipe_dataset_1103_V3.xlsx`）本身就有「標準食材整合」工作表，省略時直接讀它，不需要另一份 `done.xlsx`。本機 `start-dev` 在 `food_nutrition` 為空時，會以 `RECIPE_WORKBOOK` 與 `NUTRITION_WORKBOOK`（預設 `knowledge_rag/sources/All_Food_ID_1018.xlsx`）自動執行一次。Excel 只讀取，不修改。`done` 的字典須與食譜檔一致，故不重複建立食材。
 
 食譜依清理後的菜名去除完全同名重複，每組採用 `recipe_id` 最小、原本列為主食譜的一筆；只標為「疑似重複」的不同菜名維持原樣。單獨食譜匯入工具也套用相同規則，重跑不會重新加入被略過的版本。報告的 `recipe_quality.import_selection` 記錄保留／略過的 ID、兩張工作表的實際列號及來源網址；`recipe_quality.counts` 保留完整工作簿的原始品質統計。
 

@@ -19,7 +19,8 @@ from app.services.recipe_import import load_review_record, load_source_rights, w
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--recipes", required=True, help="Six-table recipe workbook")
-    parser.add_argument("--catalog", required=True, help="Food ID dictionary workbook")
+    parser.add_argument("--catalog", help="Food ID dictionary workbook (sheet 標準食材整合); "
+                        "defaults to --recipes, whose workbook carries the same sheet")
     parser.add_argument("--nutrition", required=True, help="Workbook with All and 原始來源與判定 sheets")
     parser.add_argument("--database-url", help="Defaults to DATABASE_URL in the environment or project .env")
     parser.add_argument("--sources", help="Existing source-rights JSON; does not fabricate rights")
@@ -28,7 +29,7 @@ def main():
     parser.add_argument("--dry-run", action="store_true", help="Validate only; no database connection")
     args = parser.parse_args()
     bundle = parse_nutrition_workbooks(
-        args.recipes, args.catalog, args.nutrition,
+        args.recipes, args.catalog or args.recipes, args.nutrition,
         source_rights=load_source_rights(args.sources) if args.sources else None,
         review_record=load_review_record(args.reviews) if args.reviews else None,
     )

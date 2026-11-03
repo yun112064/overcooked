@@ -273,7 +273,7 @@ P_reference = P_target / N
 - 前端 React＋TypeScript＋Vite、MUI／Stepper、Router、React Hook Form、Zod、TanStack Query、Axios；Recharts 僅用於本範圍內呈現。
 - 後端 FastAPI、Pydantic、OpenAPI、Argon2、Pillow、Python 版本化規則、Decimal；PostgreSQL、SQLAlchemy、Alembic、pgvector。
 - 部署模型固定為 YOLO26s（2026-10-29 規格變更，取代原「YOLOv8n 先建基準，再以同一資料比較 v8m」；理由見 `tickets/05-yolo-model-evaluation.md` 規格變更紀錄）。權重、類別、前後處理與模型指標一同固定，不混用不同版本結果。
-- 菜單生成仍由 T14 的雲端 OpenAI Responses API＋Structured Outputs 負責；知識向量化採團隊電腦的 `embeddinggemma:latest` 768 維，依模型 digest 與接入測試固定版本。地端 `qwen3.5:9b-q4_K_M` 的營養說明生成列為 T14 交接，不代表 T11 已完成生成或取代雲端選菜。
+- 菜單生成仍由 T14 的雲端 OpenAI Responses API＋Structured Outputs 負責；知識向量化採團隊電腦的 `embeddinggemma:latest` 768 維，依模型 digest 與接入測試固定版本。地端 `qwen3.5:9b-q4_K_M` 的營養說明生成原列為 T14 交接；2026-11-03 使用者決定改由雲端 OpenAI（`KNOWLEDGE_EXPLAIN_MODEL`，經 T10 額度控制）生成最後的營養小知識，資料仍只來自 T11 審核知識與地端檢索，且不取代雲端選菜。
 - Docker Compose＋Caddy 提供雲端網站、業務 API、結構化食譜與家庭歷史；團隊電腦提供 YOLO 及營養知識 RAG。兩端服務連線需驗證及加密，不公開資料庫。負載含兩端與跨網路延遲；雲端與本機資料分別備份，知識索引可由來源快照重建。
 - Code Root：開發機 `D:/AIPE04期末專題`，雲端 `/opt/meal-planner/code`。
 - Data Root：開發機 `D:/AIPE04期末專題_data`，雲端 `/var/lib/meal-planner/data`。

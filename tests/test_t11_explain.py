@@ -40,6 +40,30 @@ def test_study_wording_allowed_for_study_records():
     assert check('研究指出規律吃辣椒，可能減輕飯後胰島素升高。', ('K2',))['status'] == 'accepted'
 
 
+@pytest.mark.parametrize('tip', [
+    '規律吃辣椒可能減輕飯後胰島素升高，但原因未明。',
+    '規律吃辣椒可能減輕飯後胰島素升高，原因尚不清楚。',
+    '規律吃辣椒可能減輕飯後胰島素升高，機制仍有待釐清。',
+])
+def test_unexplained_cause_wording_is_rejected(tip):
+    """2026-11-03：小知識不可出現「原因不明」這類字眼。"""
+    result = check(tip, ('K2',))
+    assert result['status'] == 'rejected' and 'UNEXPLAINED_CAUSE' in result['failures']
+    assert '原因不明' in explain.INSTRUCTIONS
+
+
+@pytest.mark.parametrize('tip', [
+    '大蒜有助提振食慾，約85公克要算進主食熱量。',
+    '大蒜有助代謝，但要連同其他主食計算份量。',
+    '大蒜可作主食代換，有助提振食慾。',
+    '大蒜每次吃10g有助代謝。',
+])
+def test_portion_accounting_wording_is_rejected(tip):
+    """2026-11-03：小知識不可出現「約85公克要算進主食熱量」這類份量計算提醒。"""
+    assert 'PORTION_ACCOUNTING' in check(tip)['failures']
+    assert '算進主食熱量' in explain.INSTRUCTIONS
+
+
 def test_prompt_keeps_cautions_and_forbids_boilerplate():
     assert '不可只寫好處' in explain.INSTRUCTIONS and '制式聲明' in explain.INSTRUCTIONS
     assert explain.SCHEMA['required'] == ['tip_zh', 'citations']

@@ -19,7 +19,8 @@ from app.services.nutrition_import import (NUTRIENT_COLUMNS, find_nutrition_cand
                                           import_nutrition_bundle, parse_nutrition_workbooks)
 from app.services.recipe_import import WorkbookValidationError
 from app.services.t04_database_nutrition import (calculate_food_nutrition,
-                                                 calculate_recipe_nutrition)
+                                                 calculate_recipe_nutrition,
+                                                 calculate_source_nutrition)
 from recipe_workbook import build, recipe
 
 
@@ -141,6 +142,32 @@ class FoodWorkbookTests(unittest.TestCase):
         self.assertEqual(result["missing_fields"], ["sugars_g"])
         self.assertEqual(result["sources"][0]["provider"], "TFDA")
         self.assertTrue(result["sources"][0]["included_in_calculation"])
+
+    def test_t12_line_nutrition_matches_t04_source_conversion(self):
+        from fractions import Fraction
+        from nutrition_planning.service import (IngredientQuantity, NutritionPolicy, RecipeCandidate,
+                                                calculate_nutrition)
+        from nutrition_planning.targets import exact
+        self.sources[0].update({"熱量(kcal/100g)": "31.5", "蛋白質(g/100g)": "12.7"})
+        bundle = self.parse()
+        self.save(bundle)
+        with Session(self.engine) as session:
+            source = session.scalar(select(NutritionSource).where(
+                NutritionSource.import_id == bundle.import_id, NutritionSource.source_record_id == "A01"))
+            t04 = calculate_source_nutrition(session, import_id=bundle.import_id,
+                                             nutrition_source_id=source.source_id, weight_g="137.5")
+            values = {field: exact(source.raw_data[column]) for column, field in NUTRIENT_COLUMNS.items()
+                      if field in ("energy_kcal", "protein_g")}
+        self.assertTrue(t04["success"])
+        record = {"ingredient_id": "A01", "state": "raw", "nutrition_per_100g": values,
+                  "source": {"provider": "TFDA", "source_id": "A01", "source_version": bundle.import_id,
+                             "food_id": "FOOD000005"}}
+        line = IngredientQuantity("L1", "FOOD000005", "A01", "137.5", "raw", True, None)
+        t12 = calculate_nutrition(RecipeCandidate("database_menu", (line,)), policy=NutritionPolicy(
+            Path("unused.json"), {}, ("energy_kcal", "protein_g"), line_nutrition_records={"L1": record}))
+        for field in ("energy_kcal", "protein_g"):
+            self.assertEqual(t12.totals[field], Fraction(t04["nutrition_unrounded"][field]))
+        self.assertEqual(t04["nutrition_unrounded"]["protein_g"], Decimal("17.4625"))
 
     def test_t04_database_recipe_never_falls_back_to_another_variant(self):
         bundle = self.parse()

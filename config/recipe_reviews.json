@@ -1,19 +1,27 @@
 {
   "note": "T01 食譜人工審核紀錄。只套用到 SHA-256 完全相同的工作簿；工作簿任何修改後都需重新審核並更新此檔。工作簿已填的審核欄位優先。",
-  "workbook": "recipe_dataset_1102.xlsx",
-  "workbook_sha256": "7c2b550111d8e0b992ba8a36301f5f60632e04d911952d5fb3ebf773fb13e1bb",
+  "workbook": "recipe_dataset_1103_V3.xlsx",
+  "workbook_sha256": "6599f53b16a6b4bfc7f8aed4a44fd10758cf46b8d96a744faa36eefe56d43908",
   "re_review": {
-    "reviewed_on": "2026-11-02",
-    "reviewer": "使用者（2026-11-02 指示換成 1102 版並沿用原審核）",
-    "previous_workbook": "recipe_dataset_1017.xlsx",
-    "previous_workbook_sha256": "6bcaca41549572e39bd0fc40d0d216663df6438ae8be50079f92d81aa32c7304",
-    "changes": [
-      "recipe_steps：食譜同學 1027 版整理步驟文字（加「步驟一：」、刪廣告與題外話；1,507→1,471 步），做法未刪減",
-      "recipes／recipe_ingredients 的 allergens 欄：依衛福部「食品過敏原標示規定」補正（食材列 134、整道菜 43）",
-      "recipes 表刪除空白欄；recipe_steps 欄名維持 instruction_clean",
-      "食材、克數、份數、分類與 1017 版相同"
-    ],
-    "carried_over": "approvals、distinct_recipe_pairs、recipe_cooking_methods、recipe_categories、excluded_name_aliases、quantity_policy 全部沿用"
+    "reviewed_on": "2026-11-04",
+    "reviewer": "使用者（2026-11-04 指示換成 1103_V3 版並沿用原審核）",
+    "previous_workbook": "recipe_dataset_1102.xlsx",
+    "previous_workbook_sha256": "7c2b550111d8e0b992ba8a36301f5f60632e04d911952d5fb3ebf773fb13e1bb",
+    "changes_accepted": "1103_V3 修正 285 筆克數、54 筆食材 ID（油→葵花油、香菇→乾香菇、雞蛋→蛋黃等）、新增 78 列（多為葵花油）、刪除 4 列；步驟欄改名 instruction，開頭編輯備註匯入時拿掉",
+    "previous_re_review": {
+      "reviewed_on": "2026-11-02",
+      "reviewer": "使用者（2026-11-02 指示換成 1102 版並沿用原審核）",
+      "previous_workbook": "recipe_dataset_1017.xlsx",
+      "previous_workbook_sha256": "6bcaca41549572e39bd0fc40d0d216663df6438ae8be50079f92d81aa32c7304",
+      "changes": [
+        "recipe_steps：食譜同學 1027 版整理步驟文字（加「步驟一：」、刪廣告與題外話；1,507→1,471 步），做法未刪減",
+        "recipes／recipe_ingredients 的 allergens 欄：依衛福部「食品過敏原標示規定」補正（食材列 134、整道菜 43）",
+        "recipes 表刪除空白欄；recipe_steps 欄名維持 instruction_clean",
+        "食材、克數、份數、分類與 1017 版相同"
+      ],
+      "carried_over": "approvals、distinct_recipe_pairs、recipe_cooking_methods、recipe_categories、excluded_name_aliases、quantity_policy 全部沿用"
+    },
+    "distinct_pairs_added": "R0180／R0182（辣／不辣桂竹筍炒肉絲）、R0197／R0201（鴻喜菇炒青花菜／炒青花菜）：1103_V3 把「油」改為「葵花油」後相似度超過門檻，2026-11-04 使用者確認為不同的菜"
   },
   "scope": "all_recipes",
   "reviewed_on": "2026-10-19",
@@ -27,22 +35,65 @@
   },
   "distinct_recipe_pairs_note": "疑似重複（菜名與食材相近）經人工確認為不同食譜，2026-10-25 於開發對話中確認。同名重複（皮蛋瘦肉粥 R0068、三杯雞 R0192）不在此列，匯入時略過。",
   "distinct_recipe_pairs": [
-    ["R0037", "R0046"],
-    ["R0064", "R0067"],
-    ["R0065", "R0067"],
-    ["R0065", "R0206"],
-    ["R0240", "R0241"],
-    ["R0246", "R0250"],
-    ["R0218", "R0260"]
+    [
+      "R0037",
+      "R0046"
+    ],
+    [
+      "R0064",
+      "R0067"
+    ],
+    [
+      "R0065",
+      "R0067"
+    ],
+    [
+      "R0065",
+      "R0206"
+    ],
+    [
+      "R0240",
+      "R0241"
+    ],
+    [
+      "R0246",
+      "R0250"
+    ],
+    [
+      "R0218",
+      "R0260"
+    ],
+    [
+      "R0180",
+      "R0182"
+    ],
+    [
+      "R0197",
+      "R0201"
+    ]
   ],
   "recipe_cooking_methods_note": "步驟文字找不到烹調關鍵字的食譜，經人工確認後指定烹調方式，2026-10-25 於開發對話中確認。",
   "recipe_cooking_methods": {
-    "R0040": ["煮"],
-    "R0193": ["拌"],
-    "R0219": ["拌"],
-    "R0285": ["炒"]
+    "R0040": [
+      "煮"
+    ],
+    "R0193": [
+      "拌"
+    ],
+    "R0219": [
+      "拌"
+    ],
+    "R0285": [
+      "炒"
+    ]
   },
-  "recipe_categories": {"R0180": "主菜"},
-  "excluded_name_aliases": {"R0180": ["桂竹筍炒肉絲"]},
-  "quantity_policy":"「適量／少許」等無數字用量，依資料整理時填入的 amount 欄作為參考用量（quantity_status=reference_amount）"
+  "recipe_categories": {
+    "R0180": "主菜"
+  },
+  "excluded_name_aliases": {
+    "R0180": [
+      "桂竹筍炒肉絲"
+    ]
+  },
+  "quantity_policy": "「適量／少許」等無數字用量，依資料整理時填入的 amount 欄作為參考用量（quantity_status=reference_amount）"
 }

@@ -11,6 +11,8 @@ from fractions import Fraction
 from pathlib import Path
 from typing import Literal
 
+from app.services.t04_database_nutrition import scale_per_100g
+
 from .targets import MealTargets, PlanningInputError, REQUIRED_TARGETS, exact
 
 Number = str | int | Decimal | Fraction
@@ -216,6 +218,8 @@ def calculate_nutrition(recipe: RecipeCandidate, *, policy: NutritionPolicy) -> 
                         "cooked_edible_weight_g": cooked_weight,
                         "evidence_id": ev.evidence_id if ev else None,
                         "cooking_evidence": asdict(ev) if ev else None})
+        per_100g: dict[str, Fraction] = {}
+        retentions: dict[str, Fraction] = {}
         for key in totals:
             value = record.get("nutrition_per_100g", {}).get(key)
             retention: Fraction | None = Fraction(1) if state == "cooked" or is_direct else None
@@ -232,9 +236,13 @@ def calculate_nutrition(recipe: RecipeCandidate, *, policy: NutritionPolicy) -> 
                 missing.append(f"{line.line_id}:{key}:invalid_tfda_value")
                 totals[key] = None
                 continue
+            per_100g[key], retentions[key] = amount_value, retention
+        # The per-100g → weight step is T04's converter, so T04 and T12 agree exactly.
+        line_values = scale_per_100g(per_100g, usable_weight, retentions) if per_100g else {}
+        for key, line_value in line_values.items():
             previous = totals[key]
             if previous is not None:
-                totals[key] = previous + amount_value * usable_weight * retention / 100
+                totals[key] = previous + line_value
     return NutritionEstimate(totals, tuple(missing), tuple(sources))
 
 

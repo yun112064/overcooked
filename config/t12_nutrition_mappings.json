@@ -1,9 +1,10 @@
 {
  "schema_version": "t12-nutrition-mapping-v1",
- "version": "t12-nutrition-mapping-2026-11-02-v2",
+ "version": "t12-nutrition-mapping-2026-11-04-v4",
  "scope": "只用於 T12 營養計算；食譜 Food_ID、T07 禁忌、T11 知識、T13 價格都不受影響。",
  "source_data": {
-  "recipes": "recipe_dataset_1017.xlsx sha256 6bcaca41549572e39bd0fc40d0d216663df6438ae8be50079f92d81aa32c7304",
+  "recipes": "recipe_dataset_1103_V3.xlsx sha256 6599f53b16a6b4bfc7f8aed4a44fd10758cf46b8d96a744faa36eefe56d43908",
+  "recipes_change": "v3 只換食譜來源：1102 與 1017 的 recipe_ingredients 2,403 列 Food_ID／克數／單位相同（僅過敏原欄不同），標準食材整合 1,992 筆相同，281 筆對照的 Food_ID 與名稱都存在於 1102；對照內容未變。",
   "nutrition": "All_Food_ID_1018.xlsx sha256 b1ccb1b9d9e89c559580571af8018608b442919df4136ed61cf737e928a6dd5f"
  },
  "mappings": [

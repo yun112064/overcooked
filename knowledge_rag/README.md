@@ -1,6 +1,6 @@
 # T11：結構化食譜查詢與地端營養知識RAG
 
-本機 `start-dev` 若設定 `KNOWLEDGE_DATABASE_URL` 與 `KNOWLEDGE_SERVICE_TOKEN`，會在 8091（可用 `KNOWLEDGE_PORT` 調整）啟動知識服務，並將網址交給後端。知識服務只提供食材說明，菜單生成改用 API 時仍由生成流程決定是否呼叫，不影響營養計算。未設定時回傳 `NOT_CONFIGURED`，使用者畫面須顯示知識不可用。
+本機 `start-dev` 在 `.env.dev` 未設定 `KNOWLEDGE_DATABASE_URL` 時，會在開發資料庫容器內建立獨立知識庫 `overcooked_knowledge_dev`，執行 `python -m knowledge_rag.bootstrap`（核對並核准 123 筆審核知識；本機 Ollama 有 embeddinggemma 且沒有涵蓋全部核准知識的 active 索引時才建立新索引，不下載模型、不呼叫付費 API），再於 8091（可用 `KNOWLEDGE_PORT` 調整）啟動知識服務並將網址交給後端；`KNOWLEDGE_SERVICE_TOKEN` 未設定時每次啟動隨機產生。設 `DEV_SKIP_KNOWLEDGE=1` 可略過。知識服務只提供食材說明，菜單生成改用 API 時仍由生成流程決定是否呼叫，不影響營養計算。未設定時回傳 `NOT_CONFIGURED`，使用者畫面須顯示知識不可用。
 
 2026-10-31 使用者同意將現有 123 筆逐筆內容審核紀錄作為核准依據。先以 `python -m knowledge_rag.apply_reviewed` 核對候選與審核檔；在指定 `KNOWLEDGE_DATABASE_URL` 的獨立知識庫執行 `python -m knowledge_rag.apply_reviewed --apply`，確認版本後，再執行 `python -m knowledge_rag.admin index --index-version <版本>` 建立索引。僅有來源核准不會自動發布索引；未設資料庫或 Ollama embeddinggemma 時明確顯示不可用。
 
@@ -8,7 +8,7 @@
 
 ## 最後小知識文字改由雲端生成（資料庫不變；分支 codex/t11-cloud-explain-t12）
 
-知識資料維持本分支 Excel 匯入的 123 筆審核知識與地端檢索；只有「給使用者看的最後一句營養小知識」改由雲端 OpenAI 生成（原規劃為地端 `qwen3.5:9b-q4_K_M`，見 spec T14 交接）。
+知識資料維持本分支 Excel 匯入的 123 筆審核知識與地端檢索；只有「給使用者看的最後一句營養小知識」改由雲端 OpenAI 生成（原規劃為地端 `qwen3.5:9b-q4_K_M`；2026-11-03 使用者確認改用付費雲端，費用經 T10 預留／結算）。
 
 - `knowledge_rag/explain.py`：雲端與地端共用的提示詞（`t11-explain-prompt-v2`）、JSON schema 與程式驗證。驗證：引用的知識 ID 必須是本次提供的；文字中的營養／效益關鍵字與數字都出自所引用知識（fact_zh＋適用條件）；不得有治療、保證等誇大用詞（否定說法除外）；一般衛教文章不可寫「研究指出」。提示詞要求保留資料中的提醒（過量不適、特定族群），不加制式聲明。
 - `POST /meal-requests/{id}/knowledge-tips`（body 同 `nutrition-preview`：`{"recipe_ids": [...]}`）：後端自行重算 T12 取得 `final_food_ids`（不接受前端傳食材或知識）→ T11 `retrieve_knowledge` → 雲端並行生成每個食材一句小知識。回傳 `items`（含引用來源）、`dropped`（驗證不通過或額度不足及原因）、`not_found`（無知識的食材）、`knowledge_status`、`nutrition_status`。知識缺漏、知識服務故障、額度不足都不阻擋採用。

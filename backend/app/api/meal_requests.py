@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 
 from app.api.deps import AuthContext, current_auth, current_household_id, verify_origin
 from app.api.errors import ApiError, not_found, version_conflict
-from app.db.models import MealRequest, MealRequestRevision, Member
+from app.db.models import AdoptedMealPlan, MealRequest, MealRequestRevision, Member
 from app.db.session import get_db
 from app.services import ingredients
 from app.services import recipe_retrieval
@@ -16,6 +16,7 @@ from app.services import jobs as job_service
 from app.services import meal_request as service
 from app.services import t12_planning
 from app.services import knowledge_explanation
+from app.services import meal_plans
 from app.db.session import SessionLocal
 
 router = APIRouter(prefix="/meal-requests", tags=["meal-requests"], dependencies=[Depends(verify_origin)])
@@ -116,14 +117,30 @@ def retrieve_recipes(request_id: uuid.UUID, household_id=Depends(current_househo
     issues = service.completeness(draft, members)
     if issues:
         raise ApiError(422, "INVALID_INPUT", "請先完成問卷。", {"issues": issues})
-    restrictions = service.restrictions(db, draft, members)
     try:
-        result = recipe_retrieval.retrieve_database_menu(db, household_id, draft,
-                    excluded_food_ids=restrictions['excluded_food_ids'])
+        # 略過這一版問卷「不採用」過的組合（2026-11-03）
+        result = meal_plans.current_menu(db, household_id, row, draft, members)
     except recipe_retrieval.RecipeRetrievalError as exc:
         raise ApiError(503, exc.code, exc.message) from None
-    return {**result.to_dict(), 'input_version': row.version,
-            'fallback_eligible': result.status == recipe_retrieval.NO_FEASIBLE}
+    adopted = db.scalar(select(AdoptedMealPlan).where(AdoptedMealPlan.meal_request_id == row.id))
+    return {**result, 'input_version': row.version,
+            'fallback_eligible': result['status'] == recipe_retrieval.NO_FEASIBLE,
+            'adopted_plan': meal_plans.summary(adopted) if adopted is not None else None}
+
+
+class RejectBody(BaseModel):
+    version: int = Field(ge=1)
+    recipe_ids: list[str] = Field(min_length=1, max_length=10)
+
+
+@router.post("/{request_id}/menu-rejections", status_code=204)
+def reject_menu(request_id: uuid.UUID, body: RejectBody, auth: AuthContext = Depends(current_auth),
+                household_id=Depends(current_household_id), db: Session = Depends(get_db)):
+    """「不採用，換一份」：記錄這組食譜，同一版問卷下次查詢改給下一組。"""
+    row = _get_owned(db, household_id, request_id, lock=True)
+    meal_plans.reject(db, row, version=body.version, recipe_ids=body.recipe_ids, user_id=auth.user_id)
+    db.commit()
+    return Response(status_code=204)
 
 
 @router.post("/{request_id}/nutrition-preview")

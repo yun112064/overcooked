@@ -1,10 +1,13 @@
-"""Whole-dish portion adjustment for database menus (user decision 2026-11-02).
+"""Whole-dish portion adjustment for database menus.
 
 A recipe serving is a stand-alone portion, so three dishes plus rice often
-exceed one person's meal target.  When the unchanged menu cannot reach the
-±10% window, each dish may be served at 0.5–1.0 of its recipe serving, in
-0.1 steps.  A dish is scaled as a whole: every ingredient line of the dish
-gets the same factor, so the recipe's proportions never change.  Reviewed
+exceed one person's meal target (2026-11-02 decision, 0.5–1.0).  Since
+2026-11-03 portions follow the participants' targets: when the unchanged menu
+cannot reach the ±10% window, the whole menu is first scaled by one factor
+(0.01–2.0 recipe serving, 0.01 steps, closest to 1 first) with the staple
+filling the rest; only then may dishes differ (0.1–2.0, 0.1 steps, smallest
+spread first).  A dish is scaled as a whole: every ingredient line of the dish gets
+the same factor, so the recipe's proportions never change.  Reviewed
 adjustable lines (the staple) keep their own reviewed range.
 
 The ±10% check itself is unchanged; candidates found here are re-validated by
@@ -20,9 +23,14 @@ from typing import Iterator, Mapping
 from .service import NutritionPolicy, RecipeCandidate, calculate_nutrition
 from .targets import MealTargets, exact
 
-POLICY_VERSION = 'dish-portion-2026-11-02-v1'
-FACTORS = tuple(Fraction(k, 10) for k in range(10, 4, -1))  # 1.0, 0.9, …, 0.5
+POLICY_VERSION = 'dish-portion-2026-11-03-v2'
+UNIFORM_FACTORS = tuple(Fraction(k, 100) for k in range(1, 201))  # 0.01, …, 2.00
+FACTORS = tuple(Fraction(k, 10) for k in range(1, 21))  # 0.1, 0.2, …, 2.0
+FACTOR_RANGE = ('0.01', '2.0')
+FACTOR_STEP = {'same_for_all_dishes': '0.01', 'per_dish': '0.1'}
 MAX_DISHES = 6
+# Above this many dishes only equal factors are searched (20^5 combinations is too many).
+MAX_GRID_DISHES = 4
 MAX_CANDIDATES = 40
 
 
@@ -71,8 +79,12 @@ def candidate_factors(recipe: RecipeCandidate, line_dish: Mapping[str, str], tar
         return
     names = sorted(dishes)
     reference = targets.reference
-    combos = sorted(product(FACTORS, repeat=len(names)),
-                    key=lambda fs: (sum(1 - f for f in fs), max(1 - f for f in fs), [-f for f in fs]))
+    uniform = [(f,) * len(names) for f in sorted(UNIFORM_FACTORS, key=lambda f: (abs(1 - f), -f))]
+    # Per-dish factors only when every dish cannot share one; smallest spread first.
+    mixed = [] if len(names) > MAX_GRID_DISHES else sorted(
+        (fs for fs in product(FACTORS, repeat=len(names)) if max(fs) != min(fs)),
+        key=lambda fs: (max(fs) - min(fs), sum(abs(1 - f) for f in fs), [abs(1 - f) for f in fs], [-f for f in fs]))
+    combos = uniform + mixed
     yielded = 0
     for factors in combos:
         if all(f == 1 for f in factors):

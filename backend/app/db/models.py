@@ -278,6 +278,7 @@ class AdoptedMealPlan(Base):
         CheckConstraint("status IN ('adopted', 'superseded')", name="ck_adopted_meal_status"),
         CheckConstraint("version > 0", name="ck_adopted_meal_version_positive"),
         Index("ix_adopted_meal_plans_household_date", "household_id", "meal_date"),
+        UniqueConstraint("household_id", "idempotency_key", name="uq_adopted_meal_plan_idempotency"),
     )
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     household_id: Mapped[uuid.UUID] = mapped_column(
@@ -289,3 +290,24 @@ class AdoptedMealPlan(Base):
     version: Mapped[int] = mapped_column(Integer, nullable=False, default=1, server_default="1")
     dishes: Mapped[list] = mapped_column(JSONB, nullable=False, default=list, server_default=text("'[]'::jsonb"))
     adopted_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, nullable=False)
+    # 2026-11-03 採用資料庫菜單（migration c4d8e2a6f1b3）；T11 的最小紀錄這些欄位為 NULL／預設值
+    meal_request_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("meal_requests.id", ondelete="SET NULL"), nullable=True, unique=True)
+    request_version: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    idempotency_key: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    snapshot: Mapped[dict] = mapped_column(JSONB, nullable=False, default=dict, server_default=text("'{}'::jsonb"))
+    adopted_by: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+
+
+class MealMenuRejection(Base):
+    """「不採用，換一份」：同一問卷版本下次查詢時略過這組食譜。"""
+    __tablename__ = "meal_menu_rejections"
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    meal_request_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("meal_requests.id", ondelete="CASCADE"), nullable=False)
+    request_version: Mapped[int] = mapped_column(Integer, nullable=False)
+    recipe_ids: Mapped[list] = mapped_column(JSONB, nullable=False)
+    created_by: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, nullable=False)

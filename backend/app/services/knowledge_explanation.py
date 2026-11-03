@@ -93,7 +93,7 @@ def _explain_one(paid_call, explainer, food_id, name, records, call_prefix):
             'prompt_version': PROMPT_VERSION, 'model': explainer.model,
             'latency_ms': int((time.monotonic() - started) * 1000),
             'citations': [{k: cited[c].get(k) for k in ('knowledge_id', 'source_version', 'ingredient_id',
-                                                        'source_url', 'conditions')}
+                                                        'source_url', 'source_label', 'conditions')}
                           for c in result['citations']]}, None
 
 

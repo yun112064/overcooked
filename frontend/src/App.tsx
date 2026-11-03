@@ -1,17 +1,20 @@
 import {
-  AppBar, Box, Button, CircularProgress, Container, CssBaseline, ThemeProvider, Toolbar, Typography, createTheme,
+  Box, Button, CircularProgress, Container, CssBaseline, ThemeProvider, Typography, alpha,
 } from '@mui/material'
 import { QueryClient, QueryClientProvider, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Link, Navigate, Outlet, RouterProvider, createBrowserRouter, useNavigate } from 'react-router'
+import { Link, NavLink, Navigate, Outlet, RouterProvider, createBrowserRouter, useNavigate } from 'react-router'
 import { api, errorStatus } from './api/client'
 import type { Me } from './api/types'
 import HouseholdPage from './pages/HouseholdPage'
 import LoginPage from './pages/LoginPage'
+import MealHistoryPage from './pages/MealHistoryPage'
 import MealRequestEditor from './pages/MealRequestEditor'
 import MealRequestsPage from './pages/MealRequestsPage'
 import MembersPage from './pages/MembersPage'
+import { BrandMark } from './components/ui'
+import { theme, tokens } from './theme'
 
-const theme = createTheme({ palette: { primary: { main: '#2e7d32' } } })
+const NAV = [{ to: '/plan', label: '規劃餐食' }, { to: '/history', label: '已採用紀錄' }, { to: '/members', label: '家庭成員' }]
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -62,27 +65,55 @@ function Layout() {
       navigate('/login', { replace: true })
     },
   })
+  const household = me.data?.current_household
+  // 版面取自 t11-t20-demo：半透明和紙色頁首、明體品牌字、底線標示目前頁面
   return (
-    <>
-      <AppBar position="static" elevation={0}>
-        <Toolbar sx={{ gap: 1, flexWrap: 'wrap' }}>
-          <Typography variant="h6" component={Link} to="/members" sx={{ color: 'inherit', textDecoration: 'none', flexGrow: 1 }}>
-            今天吃啥
-          </Typography>
-          {me.data?.current_household && (
-            <>
-              <Button color="inherit" component={Link} to="/plan">規劃餐食</Button>
-              <Button color="inherit" component={Link} to="/members">成員</Button>
-              <Button color="inherit" component={Link} to="/households">{me.data.current_household.name}</Button>
-            </>
+    <Box sx={{ minHeight: '100vh' }}>
+      <Box component="header" sx={{
+        position: 'sticky', top: 0, zIndex: 10, bgcolor: alpha(tokens.washi, 0.92), backdropFilter: 'blur(8px)',
+        borderBottom: `1px solid ${tokens.line}`,
+      }}>
+        <Container maxWidth="lg" sx={{ display: 'flex', alignItems: 'center', gap: { xs: 1, sm: 3 }, minHeight: 64, flexWrap: 'wrap' }}>
+          <Box component={Link} to={household ? '/plan' : '/households'}
+            sx={{ display: 'flex', alignItems: 'center', gap: 1.25, color: 'inherit', textDecoration: 'none' }}>
+            <BrandMark size={30} />
+            <Typography sx={{ fontFamily: tokens.serif, fontSize: '1.15rem', fontWeight: 500, letterSpacing: '0.16em' }}>
+              今天吃啥
+            </Typography>
+          </Box>
+          {household && (
+            <Box component="nav" sx={{ display: 'flex', gap: 0.5 }}>
+              {NAV.map((n) => (
+                <Button key={n.to} component={NavLink} to={n.to} color="inherit" sx={{
+                  color: tokens.inkSoft, borderRadius: 0, px: 1.5, minHeight: 64, letterSpacing: '0.12em',
+                  borderBottom: '1.5px solid transparent',
+                  '&.active': { color: tokens.ink, borderBottomColor: tokens.ink },
+                  '&:hover': { bgcolor: 'transparent', color: tokens.ink },
+                }}>
+                  {n.label}
+                </Button>
+              ))}
+            </Box>
           )}
-          {me.data && <Button color="inherit" onClick={() => logout.mutate()} disabled={logout.isPending}>登出</Button>}
-        </Toolbar>
-      </AppBar>
-      <Container maxWidth="md" sx={{ py: 3 }}>
+          <Box sx={{ flexGrow: 1 }} />
+          {household && (
+            <Button component={Link} to="/households" color="inherit"
+              sx={{ color: tokens.inkSoft, maxWidth: 220, border: `1px solid ${tokens.line}`, bgcolor: tokens.paper,
+                '&:hover': { bgcolor: tokens.paper, borderColor: tokens.lineStrong } }}>
+              <Box component="span" sx={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{household.name}</Box>
+            </Button>
+          )}
+          {me.data && (
+            <Button color="inherit" onClick={() => logout.mutate()} disabled={logout.isPending} sx={{ color: tokens.inkSoft }}>
+              登出
+            </Button>
+          )}
+        </Container>
+      </Box>
+      <Container maxWidth="md" component="main" sx={{ py: { xs: 3, sm: 5 } }}>
         <Outlet />
       </Container>
-    </>
+    </Box>
   )
 }
 
@@ -107,6 +138,7 @@ const router = createBrowserRouter([
             { path: '/members', element: <MembersPage /> },
             { path: '/plan', element: <MealRequestsPage /> },
             { path: '/plan/:id', element: <MealRequestEditor /> },
+            { path: '/history', element: <MealHistoryPage /> },
           ],
         },
       ],

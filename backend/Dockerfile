@@ -21,6 +21,9 @@ COPY config/price_exempt_ingredients.json /app/config/price_exempt_ingredients.j
 # 同義食材對照（過敏全套用、已有食材與查價只用已確認組）
 COPY config/ingredient_synonyms.json /app/config/ingredient_synonyms.json
 COPY config/staples.json /app/config/staples.json
+COPY config/seasoning_ingredients.json /app/config/seasoning_ingredients.json
+COPY config/daily_reference_nutrients.json /app/config/daily_reference_nutrients.json
+COPY config/nutrient_category_zero.json config/t12_nutrient_fills.json config/garnish_ingredients.json /app/config/
 # T11 最後小知識文字：雲端生成的共用提示詞與驗證（純標準函式庫）
 COPY knowledge_rag/__init__.py knowledge_rag/explain.py /app/knowledge_rag/
 COPY config/nutrition_keywords.json /app/config/nutrition_keywords.json

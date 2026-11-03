@@ -4,17 +4,22 @@ This adapter intentionally requires the caller to choose the import, Food_ID,
 original cooking state and cooking method.  It never guesses another variant and
 never falls back to the legacy JSON data, so one calculation cannot silently mix
 nutrition versions.
+
+``scale_per_100g`` is the single per-100g → weight conversion.  T12
+(``nutrition_planning.service.calculate_nutrition``) calls it for every line, so
+T04 and T12 always give identical numbers for the same sample and weight.
 """
 from __future__ import annotations
 
 from decimal import Decimal, InvalidOperation
-from typing import Any
+from typing import Any, Mapping
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.models.nutrition import NutritionSource, NutritionSourceLink
 from app.services.nutrition_import import NUTRIENT_COLUMNS, find_nutrition_candidates
+from app.services.recipe_import import WorkbookValidationError
 
 
 NUTRIENT_FIELDS = tuple(NUTRIENT_COLUMNS.values())
@@ -30,6 +35,19 @@ def _positive_decimal(value: Any, field: str) -> Decimal:
     if not number.is_finite() or number <= 0:
         raise ValueError(f"{field} must be a positive finite number")
     return number
+
+
+def scale_per_100g(per_100g: Mapping[str, Any], weight_g: Any,
+                   retention: Mapping[str, Any] | None = None) -> dict[str, Any]:
+    """Scale per-100g values to ``weight_g``, optionally times a per-nutrient retention.
+
+    Exact arithmetic in the caller's number type (Decimal in → Decimal out,
+    Fraction in → Fraction out).  A missing value or retention stays None, never 0.
+    """
+    ratio = weight_g / 100
+    return {field: (None if value is None or (retention is not None and retention.get(field) is None)
+                    else value * ratio * (1 if retention is None else retention[field]))
+            for field, value in per_100g.items()}
 
 
 def _sources(session: Session, nutrition_id: str) -> list[dict[str, Any]]:
@@ -58,8 +76,8 @@ def calculate_food_nutrition(
     session: Session,
     *,
     import_id: str,
-    food_id: str,
-    cooking_state: str,
+    food_id: str | None,
+    cooking_state: str | None,
     cooking_method: str | None,
     weight_g: Any,
     round_result: bool = True,
@@ -73,7 +91,8 @@ def calculate_food_nutrition(
         weight = _positive_decimal(weight_g, "weight_g")
     except ValueError:
         return {"success": False, "error": "invalid_nutrition_input"}
-    if not all(isinstance(value, str) and value.strip() for value in (import_id, food_id, cooking_state)):
+    if not (isinstance(food_id, str) and isinstance(cooking_state, str)) or not all(
+            isinstance(value, str) and value.strip() for value in (import_id, food_id, cooking_state)):
         return {"success": False, "error": "invalid_nutrition_input"}
     if cooking_method is not None and (not isinstance(cooking_method, str) or not cooking_method.strip()):
         return {"success": False, "error": "invalid_nutrition_input"}
@@ -91,11 +110,7 @@ def calculate_food_nutrition(
         return {"success": False, "error": "ambiguous_nutrition_observation"}
 
     row = rows[0]
-    ratio = weight / Decimal("100")
-    exact = {
-        field: (getattr(row, field) * ratio if getattr(row, field) is not None else None)
-        for field in NUTRIENT_FIELDS
-    }
+    exact = scale_per_100g({field: getattr(row, field) for field in NUTRIENT_FIELDS}, weight)
     missing = [field for field, value in exact.items() if value is None]
     shown = {
         field: (value.quantize(Decimal("0.01")) if round_result and value is not None else value)
@@ -122,6 +137,62 @@ def calculate_food_nutrition(
         "cooking_adjustment_complete": True,
         "is_estimated": False,
     }
+
+
+def calculate_source_nutrition(
+    session: Session,
+    *,
+    import_id: str,
+    nutrition_source_id: str,
+    weight_g: Any,
+    round_result: bool = True,
+) -> dict[str, Any]:
+    """Scale one pinned TFDA／USDA source sample (not the All aggregate) to ``weight_g``.
+
+    This is the entry T12 uses: it selects one official sample per line, and the
+    sample's own per-100g cells are converted here with ``scale_per_100g``.
+    """
+    try:
+        weight = _positive_decimal(weight_g, "weight_g")
+    except ValueError:
+        return {"success": False, "error": "invalid_nutrition_input"}
+    source = session.get(NutritionSource, nutrition_source_id) if isinstance(nutrition_source_id, str) else None
+    if source is None or source.import_id != import_id:
+        return {"success": False, "error": "nutrition_source_not_found"}
+    try:
+        per_100g = {field: _source_value(source.raw_data.get(column))
+                    for column, field in NUTRIENT_COLUMNS.items()}
+    except WorkbookValidationError:
+        return {"success": False, "error": "invalid_source_nutrient"}
+    exact = scale_per_100g(per_100g, weight)
+    missing = [field for field, value in exact.items() if value is None]
+    return {
+        "success": True,
+        "import_id": source.import_id,
+        "nutrition_source_id": source.source_id,
+        "provider": source.provider,
+        "source_record_id": source.source_record_id,
+        "weight_g": weight,
+        "nutrition": {field: (value.quantize(Decimal("0.01")) if round_result and value is not None else value)
+                      for field, value in exact.items()},
+        "nutrition_unrounded": exact,
+        "nutrition_complete": not missing,
+        "missing_fields": missing,
+        "nutrition_basis": "imported_source_sample",
+        "is_estimated": False,
+    }
+
+
+def _source_value(value: Any) -> Decimal | None:
+    if value is None or value == "":
+        return None
+    try:
+        number = Decimal(str(value))
+    except InvalidOperation as exc:
+        raise WorkbookValidationError(f"Invalid source nutrient: {value!r}") from exc
+    if not number.is_finite() or number < 0:
+        raise WorkbookValidationError(f"Invalid source nutrient: {value!r}")
+    return number
 
 
 def calculate_recipe_nutrition(
