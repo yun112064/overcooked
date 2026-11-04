@@ -2,7 +2,7 @@
 
 範圍：`nutrition_model/cooked_nutrition_service.py`、`nutrition_model/import_workbook.py`、`nutrition_model/nutrition_service.py`、`backend/app/services/nutrition_import.py`、`backend/app/services/t04_database_nutrition.py` 及相關測試。
 依據：spec.md R09／AC13／AC17、`NutritionRecord` 契約，`docs/T04-T06-merge-pending.md` P03。
-Codex CLI 0.166.0，session `01a1a551-0627-7983-9064-0dd02b05cee0`，共 4 輪；第 4 輪後依使用者指示停止。**最終結論：VERDICT: REVISE（未核准）。**
+Codex CLI 0.166.0。缺值審查 4 輪（session `01a1a551-0627-7983-9064-0dd02b05cee0`）後，併入 `codex/t11-cloud-explain-t12` 再做分支審查 2 輪（session `01a1a56b-3eb1-7c21-a61a-ceb2c72247f3`）。**最終結論：VERDICT: APPROVED。**
 
 ## 各輪問題與處理
 
@@ -19,18 +19,22 @@ Codex CLI 0.166.0，session `01a1a551-0627-7983-9064-0dd02b05cee0`，共 4 輪�
 | 2 | 缺計算來源只是提示，無阻擋狀態 | WARNING | 已修：納入 `cooking_adjustment_complete` |
 | 3 | 原始 inf 已被 pandas／clean 轉為缺值，仍漏記 | WARNING | 已修：以 `keep_default_na=False` 另讀原始儲存格分類 |
 | 3 | 來源驗證只看新品質標記，舊匯入列不受保護 | WARNING | 已修：改查實際來源連結 `included_in_calculation` |
-| 4 | 依據未驗證時，縮放值仍進入正式 `nutrition`／`total_nutrition`，可能 `nutrition_complete=True`（違 AC13） | WARNING | **未修**（使用者要求停止） |
+| 4 | 依據未驗證時，縮放值仍進入正式 `nutrition`／`total_nutrition`，可能 `nutrition_complete=True`（違 AC13） | WARNING | 已修（分支審查）：正式欄位為 `None`，縮放值移到 `reference_nutrition` |
 | 4 | `import_workbook` 兩次讀取並以未檢查的 `zip` 配對列 | SUGGESTION | 未修 |
+| 分支 1 | 只要任一計算來源連結就算驗證；已刪除／變更的食譜來源列會被忽略 | WARNING | 已修：宣告的 `計算來源ID` 集合須與參與計算的連結完全相同；新增混合來源測試 |
+| 分支 1 | T03 核准直接改寫 0.3.0 規則檔與固定雜湊 | WARNING | 已修：0.3.0 還原，核准另發 `hpa-dri8-mvp-0.3.1` |
+| 分支 2 | T03 文件仍寫 0.3.0 為現行／新流程版本 | SUGGESTION | 已修 |
 
 ## 未解決項目
 
-1. **AC13 缺營養呈現（第 4 輪 WARNING）**：`t04_database_nutrition.calculate_food_nutrition` 在 `cooking_adjustment_complete=False` 時仍把值放入正式 `nutrition`，食譜總量也會加總。建議比照 `cooked_nutrition_service`：未驗證值移到參考欄位（如 `raw_reference`），正式欄位設 `None`。
-2. **P03 契約**：必要／展示欄位清單及逐項缺值原因待決議與規格核准。
-3. N+1 查詢、單次讀取 workbook 兩項建議。
+1. **P03 契約**：必要／展示欄位清單及逐項缺值原因待決議與規格核准。
+2. N+1 查詢、單次讀取 workbook 兩項建議。
 
 ## 驗證狀態
 
-- `nutrition_model` unittest：69 項通過（本機 `py -3 -m unittest discover`）。
-- 後端資料庫測試（`tests/test_food_workbooks.py`，含新增的重量基準測試）**未執行**：本機無 SQLAlchemy 與 `TEST_DATABASE_URL`。
-- 真實工作簿未重新匯入（本機缺 openpyxl），`invalid_fields` 對真實資料的結果未驗。
-- 所有變更未 commit。
+在臨時 pgvector PostgreSQL 容器上（依 CI 設定）：
+
+- 後端 unittest：160 項通過。
+- `nutrition_planning`：174 項通過；`nutrition_target`：27 項通過；`nutrition_model`：68 項通過、2 項略過。
+- `alembic upgrade head` 後 `alembic check`：No new upgrade operations detected。
+- 真實工作簿未重新匯入，`invalid_fields` 對真實資料的結果未驗。
