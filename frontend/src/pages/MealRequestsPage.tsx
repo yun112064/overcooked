@@ -124,7 +124,7 @@ export default function MealRequestsPage() {
   const newButton = (
     <>
       <Button variant="contained" startIcon={<AddOutlined />} onClick={() => create.mutate()} disabled={create.isPending}>
-        新增問卷
+        決定下一餐吃甚麼
       </Button>
       <Button variant="outlined" startIcon={<MenuBookOutlined />} component={Link} to="/pick">從食譜庫選菜</Button>
     </>
