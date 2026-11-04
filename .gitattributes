@@ -2,16 +2,6 @@
 # Preserve their committed line endings on Windows as well as Linux.
 nutrition_target/rules/*.json -text
 
-# T02 release manifests are checked by their exact bytes on every platform.
-data/pricing/**/manifest.json -text
-data/pricing/**/*.gz binary
-data/nutrition/**/manifest.json -text
-data/nutrition/**/*.gz binary
-data/nutrition/t04-additions-20261103/*.json -text
-data/nutrition/**/*.jpg binary
-data/nutrition/**/*.zip binary
-data/nutrition/t04-remaining247-20261103/*.json -text
-
 # 模型權重是二進位檔，不做換行轉換或文字 diff
 *.pt binary
 *.xlsx binary

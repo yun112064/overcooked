@@ -12,11 +12,9 @@ __pycache__/
 *.py[cod]
 .pytest_cache/
 
-# Keep new source datasets local; publication needs explicit authorization.
-# The legacy workbook exception predates this checkpoint.
+# 例外：T01 已審核、取得授權的食譜工作簿放進 Git，讓隊友啟動時自動匯入同一份資料
 data/*
 !data/recipe_dataset_1017.xlsx
-config/t02_package_mass_20261104.json
 outputs/
 logs/
 
@@ -31,26 +29,3 @@ nutrition_model/data/raw/
 
 # 本機開發腳本的執行狀態（PID、匯入報告）
 .dev/
-.test-runtime/
-# Local exports, review copies, browser probes and generated presentations.
-output/
-
-# Local database snapshots and private certificate material.
-backups/
-*.dump
-*.backup
-*.sqlite
-*.sqlite3
-*.pem
-*.key
-*.pfx
-
-# Detailed data reports and research hypotheses remain local.
-docs/1102_V3/T01-1103-V2/
-docs/1102_V3/T01-1103-V3/
-docs/1102_V3/T02/
-docs/1102_V3/T03/
-docs/1102_V3/T04/
-docs/1102_V3/T05-T10/
-scripts/build_t04_remaining247_plan.py
-tests/test_t04_remaining247.py

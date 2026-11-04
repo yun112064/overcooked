@@ -65,14 +65,21 @@ class SelectionTests(unittest.TestCase):
     def test_label_map_covers_primary_model_and_uses_known_ids(self):
         import json
         import re
-        from app.core.config import settings
+        from app.core.config import PROJECT_ROOT, settings
         from app.services.recognition import display_name
         data = json.loads(settings.recognition_labels_path.read_text(encoding="utf-8"))
         self.assertEqual(len(data["labels"]), 39)
         ids = [v["ingredient_id"] for v in data["labels"].values() if "ingredient_id" in v]
         self.assertTrue(all(re.fullmatch(r"FOOD\d{6}", i) for i in ids), ids)
         self.assertEqual(len(ids), len(set(ids)))
-        # ID 是否存在由 tests/test_recipe_sql_data.py 對正式 SQL release 驗證。
+        workbook = PROJECT_ROOT / "data/recipe_dataset_1017.xlsx"
+        if workbook.is_file():  # 原始工作簿不進 Git；本機有時核對編號確實存在於標準食材字典
+            from openpyxl import load_workbook
+            book = load_workbook(workbook, read_only=True, data_only=True)
+            rows = book["標準食材整合"].iter_rows(values_only=True)
+            next(rows)
+            catalog = {row[1] for row in rows if row[1]}
+            self.assertEqual([i for i in ids if i not in catalog], [])
         self.assertTrue(all(v["name"].strip() for v in data["labels"].values()))
         self.assertEqual(display_name("Cabbage"), ("高麗菜", "FOOD000867"))
         # 有歧義的類別不猜 ID；未列出的類別顯示原名
