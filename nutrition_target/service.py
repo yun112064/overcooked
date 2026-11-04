@@ -119,7 +119,7 @@ class NutritionTargetService:
         rule = json.loads(raw)
         # Every historical version is explicit and immutable; no 'latest' fallback.
         versions = {
-            "hpa-dri8-mvp-0.3.0": "fe74148eb24fd6dd036fd9ef5c64745a5413ee4c803470bc36e96b2c3f9a0aba",
+            "hpa-dri8-mvp-0.3.0": "c8055e419cf39c03145160de88404fe0d5f07e9c09a0e57632560b34c438485f",
             "hpa-dri8-mvp-0.1.0": "57a1327d6eb3e3e14b69745ee8ad41e254495713b44088a2ed253d30f2db80aa",
             "hpa-dri8-mvp-0.2.0": "cdd29bd858a29ee60d765c67d5b207ac6b9ec495fb41f1da330ef76f691efc85",
         }

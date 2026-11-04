@@ -2,6 +2,8 @@
 
 更新日期：2026-10-16。現行規則版本：`hpa-dri8-mvp-0.3.0`。使用者已決議T03以核准Spec為準。
 
+2026-11-04：使用者核准 `hpa-dri8-mvp-0.3.0` 規則，`rule_status` 由 `user_confirmed_mvp` 改為 `approved`（僅狀態欄位，公式與範圍不變，`service.py` 內的 SHA-256 已同步）。`approved_for_adoption` 仍為 false，G03 來源驗收另計。
+
 ## 使用者定案
 
 - 本次先交付 T03，T08、T15 等待隊友相依功能。
