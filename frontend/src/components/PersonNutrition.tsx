@@ -3,7 +3,7 @@
 import { Box, Button, Chip, Link, Stack, Tooltip, Typography } from '@mui/material'
 import { useState } from 'react'
 import { MEAL_LABELS, type DailyReference, type NutritionPreview, type PersonNutrition as Person, type PersonPortion } from '../api/types'
-import { NUTRIENTS, rice, toNumber } from '../api/nutrition'
+import { NUTRIENTS, rice, toNumber, withinTarget } from '../api/nutrition'
 import { tokens } from '../theme'
 import { IconTile } from './ui'
 import { NUTRIENT_VISUALS } from './visuals'
@@ -58,7 +58,7 @@ function EnergyLine({ portion, daily, label }: { portion: PersonPortion; daily: 
   if (energy === null || !energyDaily) return null
   const energyShare = energy / energyDaily
   return (
-    <Typography variant="body2" sx={{ color: Math.abs(energyShare - mealRatio) <= mealRatio * 0.1 ? '#3E5539' : tokens.inkSoft }}>
+    <Typography variant="body2" sx={{ color: mealRatio && withinTarget('energy_kcal', energyShare / mealRatio) ? '#3E5539' : tokens.inkSoft }}>
       {label}約占每日熱量 <b>{Math.round(energyShare * 100)}%</b>
       <Typography component="span" variant="caption" sx={{ ml: 1 }}>建議約 {Math.round(mealRatio * 100)}%</Typography>
     </Typography>

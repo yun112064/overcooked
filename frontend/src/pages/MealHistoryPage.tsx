@@ -11,7 +11,7 @@ import {
   Bar, CartesianGrid, ComposedChart, Line, ResponsiveContainer, Tooltip, XAxis, YAxis,
 } from 'recharts'
 import { api, errorMessage } from '../api/client'
-import { toNumber } from '../api/nutrition'
+import { toNumber, withinTarget } from '../api/nutrition'
 import { MEAL_LABELS, type MealPlanDetail } from '../api/types'
 import DishList from '../components/DishList'
 import PersonNutrition from '../components/PersonNutrition'
@@ -131,7 +131,8 @@ function Trends({ selected, onPick }: { selected: string; onPick: (date: string)
   const proteinReach = protein.length
     ? protein.reduce((s, i) => s + (i.protein_g as number) / (i.target_protein_g as number), 0) / protein.length
     : null
-  const tone = (r: number | null) => (r === null ? 'default' as const : Math.abs(r - 1) <= 0.1 ? 'good' as const : 'warn' as const)
+  const tone = (key: 'energy_kcal' | 'protein_g', r: number | null) =>
+    (r === null ? 'default' as const : withinTarget(key, r) ? 'good' as const : 'warn' as const)
 
   return (
     <Section title="趨勢" aside={
@@ -149,9 +150,10 @@ function Trends({ selected, onPick }: { selected: string; onPick: (date: string)
           <StatRow>
             <Stat label="採用餐數" value={items.length} unit="餐" note={`近 ${days} 天`} />
             <Stat label="熱量達成" value={reach === null ? '—' : Math.round(reach * 100)} unit={reach === null ? undefined : '%'}
-              tone={tone(reach)} note={reach === null ? '沒有可比較的紀錄' : Math.abs(reach - 1) <= 0.1 ? '平均落在目標 ±10% 內' : '平均偏離目標超過 10%'} />
+              tone={tone('energy_kcal', reach)} note={reach === null ? '沒有可比較的紀錄' : withinTarget('energy_kcal', reach) ? '平均未超過目標 10%' : '平均超過目標 10%'} />
             <Stat label="蛋白質達成" value={proteinReach === null ? '—' : Math.round(proteinReach * 100)}
-              unit={proteinReach === null ? undefined : '%'} tone={tone(proteinReach)} />
+              unit={proteinReach === null ? undefined : '%'} tone={tone('protein_g', proteinReach)}
+              note={proteinReach === null ? undefined : withinTarget('protein_g', proteinReach) ? '平均達目標 90% 以上' : '平均不足目標 90%'} />
             <Stat label="成本" value="—" note="價格整合後提供" />
           </StatRow>
           {items.length === 0 ? (

@@ -54,8 +54,9 @@ def test_whole_dish_factor_keeps_proportions_and_stays_in_range(tmp_path):
                                 adjustable_max_g=D("250"), original_servings=1))
     recipe = RecipeCandidate("database_menu", lines, ("R1", "R2"), "approved")
     line_dish = {"fish": "R1", "veg1": "R1", "veg2": "R2"}
-    targets = _targets("700", "30")
-    assert not validate_meal(recipe, targets, policy=policy).nutrition_passed   # 40 g protein from fish alone
+    targets = _targets("400", "30")
+    # Over 110% energy even with the least rice (100 g); only smaller dishes fit.
+    assert not validate_meal(recipe, targets, policy=policy).nutrition_passed
     factors = next(candidate_factors(recipe, line_dish, targets, policy))
     assert set(factors) == {"R1", "R2"} and all(f in FACTORS or f in UNIFORM_FACTORS for f in factors.values())
     scaled = scale_dishes(recipe, line_dish, factors)
@@ -69,8 +70,8 @@ def test_whole_dish_factor_keeps_proportions_and_stays_in_range(tmp_path):
 def test_factor_range_and_impossible_balance_still_fails(tmp_path):
     policy = _policy(tmp_path)
     recipe = RecipeCandidate("database_menu", (_line("fish", "f", "fish", "1000", 1),), ("R1",), "approved")
-    # Fish alone has 1 kcal per 0.2 g protein; 700 kcal with only 30 g protein cannot be portioned.
-    assert list(candidate_factors(recipe, {"fish": "R1"}, _targets("700", "30"), policy)) == []
+    # Fish alone has 5 kcal per 1 g protein: at least 27 g protein means 135 kcal, over 110 kcal.
+    assert list(candidate_factors(recipe, {"fish": "R1"}, _targets("100", "30"), policy)) == []
     assert min(UNIFORM_FACTORS) == F(1, 100) and max(UNIFORM_FACTORS) == 2
     assert min(FACTORS) == F(1, 10) and max(FACTORS) == 2
 

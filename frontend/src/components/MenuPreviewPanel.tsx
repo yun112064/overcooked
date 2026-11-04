@@ -6,7 +6,7 @@ import { Link as RouterLink } from 'react-router'
 import { api, errorMessage } from '../api/client'
 import type { KnowledgeTips, MealRequest, Member, NutritionPreview, RecipeRetrieval } from '../api/types'
 import { tokens } from '../theme'
-import { NUTRIENTS, toNumber } from '../api/nutrition'
+import { NUTRIENTS, toNumber, withinTarget } from '../api/nutrition'
 import DishList from './DishList'
 import PersonNutrition from './PersonNutrition'
 import { Section, Stat, StatRow } from './ui'
@@ -78,11 +78,11 @@ function sourceName(label: string | null | undefined, url: string) {
   try { return new URL(url).hostname } catch { return '原文' }
 }
 
-function targetNote(value: number | null, target: number | null, unit: string) {
+function targetNote(key: 'energy_kcal' | 'protein_g', value: number | null, target: number | null, unit: string) {
   if (value === null || !target) return { note: target ? `目標 ${Math.round(target)} ${unit}` : undefined, tone: 'default' as const }
   const diff = value / target - 1
   return { note: `目標 ${Math.round(target)} ${unit}・${diff >= 0 ? '+' : ''}${Math.round(diff * 100)}%`,
-    tone: Math.abs(diff) <= 0.1 ? 'good' as const : 'warn' as const }
+    tone: withinTarget(key, value / target) ? 'good' as const : 'warn' as const }
 }
 
 type Props = { row: MealRequest; members: Member[] }
@@ -145,8 +145,8 @@ export default function MenuPreviewPanel({ row, members }: Props) {
   const memberName = new Map(members.map((m) => [m.id, m.display_name]))
   const energy = toNumber(n?.nutrition.totals?.energy_kcal)
   const protein = toNumber(n?.nutrition.totals?.protein_g)
-  const energyInfo = targetNote(energy, toNumber(n?.targets.energy_kcal), 'kcal')
-  const proteinInfo = targetNote(protein, toNumber(n?.targets.protein_g), 'g')
+  const energyInfo = targetNote('energy_kcal', energy, toNumber(n?.targets.energy_kcal), 'kcal')
+  const proteinInfo = targetNote('protein_g', protein, toNumber(n?.targets.protein_g), 'g')
   const passed = n?.status === 'nutrition_passed'
   const adopted = menu.data?.adopted_plan ?? null
 

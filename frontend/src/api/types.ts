@@ -240,6 +240,7 @@ export type NutritionPreview = {
     staple_g: string | null
     target: { energy_kcal: string; protein_g: string }
     nutrition: { energy_kcal: string | null; protein_g: string | null }
+    /** 是否符合 T12 標準：熱量 ≤ 目標 110%、蛋白質 ≥ 目標 90%（欄名沿用） */
     within_10pct: { energy_kcal: boolean; protein_g: boolean }
     /** 七種營養素（只供顯示；null 表示資料缺值） */
     nutrition_all: Record<string, string | null>
@@ -255,7 +256,7 @@ export type NutritionPreview = {
   /** 每人（用餐與便當分開）這一餐吃到的量，對照每日建議攝取量（畫面用） */
   people?: PersonNutrition[]
   daily_reference_meta?: { version: string; source: { publisher: string; title: string; url: string } }
-  /** 七種營養素整餐值（只供顯示；只有熱量、蛋白質參與 ±10% 驗證）；缺值時附已知部分與缺資料的食材 */
+  /** 七種營養素整餐值（只供顯示；只有熱量（≤110%）、蛋白質（≥90%）參與驗證）；缺值時附已知部分與缺資料的食材 */
   nutrition_all?: {
     totals: Record<string, string | null>
     known_partial: Record<string, string>

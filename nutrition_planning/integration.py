@@ -19,7 +19,8 @@ from sqlalchemy.engine import Connection
 from sqlalchemy.exc import SQLAlchemyError
 
 from .service import (IngredientQuantity, MealValidationResult, Number,
-                      NutritionPolicy, RecipeCandidate, calculate_nutrition, exact, validate_meal)
+                      NutritionPolicy, RecipeCandidate, calculate_nutrition, exact, validate_meal,
+                      within_tolerance)
 from .targets import MealTargets, PlanningInputError, targets_from_t03
 
 
@@ -364,7 +365,7 @@ class DatabaseMenuResult:
         participants add up to exactly 1 (largest remainder); ``share`` keeps the
         exact value used for the nutrition.  Protein comes with the same food and may
         land elsewhere; ``within_10pct`` reports each nutrient against that person's
-        own ±10% window.
+        own T12 tolerance (energy ≤ 110%, protein ≥ 90%; field name kept for the API).
         """
         validation = self.validation
         recipe = self.preparation.recipe
@@ -399,7 +400,7 @@ class DatabaseMenuResult:
                 'nutrition': {key: None if value is None else str(value) for key, value in eaten.items()},
                 'nutrition_all': {key: None if value is None else str(value) for key, value in eaten_all.items()},
                 'nutrition_known_partial': {key: str(value) for key, value in known_all.items()},
-                'within_10pct': {key: value is not None and own[key] * Fraction(9, 10) <= value <= own[key] * Fraction(11, 10)
+                'within_10pct': {key: value is not None and within_tolerance(value, own[key], key)
                                  for key, value in eaten.items()},
             })
         return tuple(people)
@@ -455,8 +456,8 @@ class DatabaseMenuResult:
         baseline_complete = bool(baseline and not baseline.missing
                                  and all(value is not None for value in baseline.totals.values()))
         # Three different outcomes must not look alike in the preview:
-        # data missing (cannot calculate), calculated but outside the ±10%
-        # window, and calculated and passed.  Adoption-policy approval is
+        # data missing (cannot calculate), calculated but outside the tolerance
+        # (energy ≤ 110%, protein ≥ 90%), and calculated and passed.  Adoption-policy approval is
         # reported separately in `adoption_blockers`.
         if self.preparation.issues or validation is None or not baseline_complete:
             status = 'calculation_incomplete'
@@ -467,7 +468,7 @@ class DatabaseMenuResult:
         return {
             'status': status,
             'status_message': {'calculation_incomplete': '營養資料不足，無法完成計算',
-                               'outside_tolerance': '營養已計算，但無法在 ±10% 內達成目標',
+                               'outside_tolerance': '營養已計算，但熱量會超過目標 10% 或蛋白質不足目標 90%',
                                'nutrition_passed': ('營養計算通過（已調整菜餚份量）' if self.dish_portions
                                                     else '營養計算通過')}[status],
             'dish_portions': dict(self.dish_portions) if self.dish_portions else None,
@@ -1011,7 +1012,7 @@ def _validate_database_menu(db: Connection, recipe_ids: Sequence[str], *, rows: 
     if (conversion == 'factor_one' and result is not None and not result.nutrition_passed
             and preparation.recipe is not None
             and result.baseline_estimate is not None and not result.baseline_estimate.missing):
-        # User decisions 2026-11-02/03: when the unchanged menu misses ±10%,
+        # User decisions 2026-11-02/03: when the unchanged menu misses the tolerance,
         # each dish is portioned to the participants' targets, 0.1–2.0 recipe
         # serving (whole dish, same factor on every line).  The tolerance
         # itself is not relaxed.

@@ -12,6 +12,11 @@ export const NUTRIENTS = [
 ] as const
 
 /** 精確字串（含 a/b 分數）轉成數字；null 表示未知。 */
+/** T12 標準（2026-11-04）：熱量不可超過目標 110%（低於不限）；蛋白質不可低於目標 90%（高於不限）。ratio＝實際 ÷ 目標。 */
+export function withinTarget(key: 'energy_kcal' | 'protein_g', ratio: number) {
+  return key === 'energy_kcal' ? ratio <= 1.1 : ratio >= 0.9
+}
+
 export function toNumber(value: string | null | undefined): number | null {
   if (value == null) return null
   const [a, b] = value.split('/')
