@@ -9,6 +9,11 @@ RUN pip install --no-cache-dir -r /app/requirements.txt
 COPY backend /app/backend
 # T07 起後端直接使用 T03 版本化規則；標準食材字典（FOOD 編號）由 T01 匯入資料庫
 COPY nutrition_target /app/nutrition_target
+COPY nutrition_planning /app/nutrition_planning
+COPY nutrition_model /app/nutrition_model
+COPY knowledge_rag /app/knowledge_rag
+COPY ops /app/ops
+COPY config /app/config
 # T10 付費呼叫預留與結算用的模型價格表
 COPY config/model_pricing.json /app/config/model_pricing.json
 # T09 YOLO 類別名稱對照（待 T05 定版）
@@ -21,4 +26,4 @@ ENV PYTHONPATH=/app
 COPY alembic.ini /app/alembic.ini
 COPY migrations /app/migrations
 
-CMD ["sh", "-c", "alembic -c /app/alembic.ini upgrade head && exec uvicorn app.main:app --host 0.0.0.0 --port 8000 --no-access-log"]
+CMD ["sh", "-c", "python -m app.core.schema_gate && exec uvicorn app.main:app --host 0.0.0.0 --port 8000 --no-access-log"]

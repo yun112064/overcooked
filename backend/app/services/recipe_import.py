@@ -245,13 +245,21 @@ def _split_list(value: Any) -> list[str]:
     return [item.strip() for item in re.split(r"[；;]", text_value) if item.strip()]
 
 
-def normalize_name(value: str) -> str:
+def normalize_source_name(value: str) -> str:
+    """Keep source identities stable across changes to search equivalence."""
     normalized = unicodedata.normalize("NFKC", value).lower()
     return "".join(character for character in normalized if character.isalnum())
 
 
-def standard_dish_id(recipe_name: str) -> str:
-    normalized = normalize_name(recipe_name)
+NAME_VARIANTS = str.maketrans({"蕃": "番", "臺": "台", "葱": "蔥", "麪": "麵", "麫": "麵"})
+
+
+def normalize_name(value: str) -> str:
+    return normalize_source_name(value).translate(NAME_VARIANTS)
+
+
+def standard_dish_id(recipe_name: str, *, preserve_source_spelling: bool = False) -> str:
+    normalized = normalize_source_name(recipe_name) if preserve_source_spelling else normalize_name(recipe_name)
     digest = hashlib.sha256(normalized.encode("utf-8")).hexdigest()[:12].upper()
     return f"DISH{digest}"
 
@@ -280,6 +288,8 @@ def _sheet_records(workbook: Any, sheet_name: str) -> list[dict[str, Any]]:
         raise WorkbookValidationError(f"Worksheet is empty: {sheet_name}") from exc
 
     headers = [_text(value) for value in header_row]
+    if sheet_name == 'recipe_steps' and 'instruction_clean' not in headers and 'instruction' in headers:
+        headers = ['instruction_clean' if h == 'instruction' else h for h in headers]
     if any(header is None for header in headers):
         raise WorkbookValidationError(f"Worksheet has blank header: {sheet_name}")
     missing = REQUIRED_COLUMNS[sheet_name] - set(headers)
@@ -871,7 +881,7 @@ def parse_recipe_workbook(path: str | Path, source_rights: dict[str, dict] | Non
             raise WorkbookValidationError(
                 f"Ingredient alias canonical name conflicts for {food_id}: {canonical_name}"
             )
-        alias_targets[normalize_name(alias)].add(food_id)
+        alias_targets[normalize_source_name(alias)].add(food_id)
         aliases_by_food[food_id].add(alias)
 
     ingredient_alias_rows: list[dict[str, Any]] = []
@@ -880,7 +890,7 @@ def parse_recipe_workbook(path: str | Path, source_rights: dict[str, dict] | Non
         aliases: list[str] = []
         ambiguous_aliases: list[str] = []
         for alias in sorted(aliases_by_food.get(food_id, set())):
-            if len(alias_targets[normalize_name(alias)]) == 1:
+            if len(alias_targets[normalize_source_name(alias)]) == 1:
                 aliases.append(alias)
             else:
                 ambiguous_aliases.append(alias)
@@ -908,7 +918,7 @@ def parse_recipe_workbook(path: str | Path, source_rights: dict[str, dict] | Non
             raise WorkbookValidationError(f"Invalid recipe at row {row['__row__']}")
         source = source_by_raw_id[raw_id]
         servings, servings_status, servings_issues = _parse_servings(row["servings_raw"])
-        normalized = normalize_name(recipe_name)
+        normalized = normalize_source_name(recipe_name)
         normalized_groups[normalized].append(recipe_id)
         raw_name = _text(source["recipe_name_raw"])
         name_aliases = [raw_name] if raw_name and raw_name != recipe_name else []
@@ -934,7 +944,7 @@ def parse_recipe_workbook(path: str | Path, source_rights: dict[str, dict] | Non
         recipe_row = {
             "recipe_id": recipe_id,
             "raw_id": raw_id,
-            "standard_dish_id": standard_dish_id(recipe_name),
+            "standard_dish_id": standard_dish_id(recipe_name, preserve_source_spelling=True),
             "recipe_name": recipe_name,
             "normalized_name": normalized,
             "name_aliases": name_aliases,
@@ -1178,7 +1188,7 @@ def select_unique_recipe_bundle(bundle: ImportBundle) -> ImportBundle:
     """
     groups: dict[str, list[dict[str, Any]]] = defaultdict(list)
     for row in bundle.recipes:
-        groups[normalize_name(row["recipe_name"])].append(row)
+        groups[normalize_source_name(row["recipe_name"])].append(row)
     skipped_ids = {row["recipe_id"] for rows in groups.values()
                    for row in sorted(rows, key=lambda r: r["recipe_id"])[1:]}
     if not skipped_ids and "import_selection" in bundle.report:
@@ -1204,7 +1214,7 @@ def select_unique_recipe_bundle(bundle: ImportBundle) -> ImportBundle:
             continue
         values = {**row, "duplicate_candidate_recipe_ids": [
             key for key in row["duplicate_candidate_recipe_ids"] if key not in skipped_ids]}
-        if len(groups[normalize_name(row["recipe_name"])]) > 1:
+        if len(groups[normalize_source_name(row["recipe_name"])]) > 1:
             values["duplicate_status"] = "selected_exact_name_duplicate"
             values["quality_issues"] = [issue for issue in row["quality_issues"]
                                         if issue != "exact_name_duplicate_review_required"]

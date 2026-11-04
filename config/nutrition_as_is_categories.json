@@ -1,0 +1,46 @@
+{
+  "version": "nutrition-as-is-2026-10-21",
+  "decision": "decisions #49(a)",
+  "note": "TFDA 樣本狀態未標生熟（state=unspecified）且樣本 ID 以 prefixes 任一開頭時，不論食譜或 AI 菜有沒有烹調方式，一律以 TFDA 原樣組成 × 克數計算，不套烹調產率／保留率、不查烹調係數快取（trace.nutrition_basis=unspecified_as_is，trace.as_is_rule 記規則 id）。類別碼見 config/nutrient_category_zero.json 的說明（第一碼為食品大類，其後兩碼為次分類）。只適用 unspecified 樣本；raw 樣本查不到烹調係數時另走生組成近似（raw_composition_fallback），cooked 樣本不受影響。畫面不顯示這些說法（decisions #42）。",
+  "rules": [
+    {
+      "id": "seasonings_spices",
+      "category": "P 調味料及香辛料（鹽、醬油、醋、味精、高湯塊、香料、醬料、香油等）",
+      "prefixes": ["P"],
+      "reason": "調味料與香辛料以購買時的樣子加入料理，烹調只讓水分與料理湯汁混合，組成本身即為食用時的組成；整粒香料（八角、花椒）即使撈除，用量也很小，以原樣計算不會遺漏。"
+    },
+    {
+      "id": "sugars",
+      "category": "N 糖類（砂糖、冰糖、麥芽糖、蜂蜜等）",
+      "prefixes": ["N"],
+      "reason": "糖溶入料理後總量不變，烹調不改變其熱量與組成。"
+    },
+    {
+      "id": "fats_oils",
+      "category": "M 油脂（各式植物油、豬油、奶油等）",
+      "prefixes": ["M"],
+      "reason": "食譜另列的烹調用油依工作簿克數視為全部使用（決策 #44／T04 additions policy），以原樣組成計算。"
+    },
+    {
+      "id": "beverages_alcohol",
+      "category": "O 飲料、R99 酒類（紹興酒、啤酒、葡萄酒）與雞精",
+      "prefixes": ["O", "R99"],
+      "reason": "以液體加入料理；酒精揮發的熱量差異無 TFDA 實測依據（診斷中酒類保留率推估一再超出驗證範圍），依決策 #49 以原樣組成近似。"
+    },
+    {
+      "id": "dried_goods",
+      "category": "乾貨：F 藻類（乾海帶芽、紫菜、海帶）、G 乾菇蕈（G01 木耳、G02 銀耳、G04、G07、G08 乾香菇、G10、G23、G24 竹笙）、乾蔬菜（E05、E59、E60、E72 枸杞、E75 乾辣椒、E94）、C23 乾蓮子、乾海產（J08 小魚干、J21、J23 蝦米蝦皮、J31、J32 干貝、J33）、乾豆（H02–H07、H11 黃豆、H15–H17）",
+      "prefixes": ["F", "G01", "G02", "G04", "G07", "G08", "G10", "G23", "G24", "E05", "E59", "E60", "E72", "E75", "E94",
+                   "C23", "J08", "J21", "J23", "J31", "J32", "J33", "H02", "H03", "H04", "H05", "H06", "H07", "H11",
+                   "H15", "H16", "H17"],
+      "reason": "食譜克數為乾重；泡發與烹煮只吸水，營養總量不變，乾重 × 乾品組成即為食用量的營養（診斷中乾海帶芽、黑木耳的產率推估超出 4 倍上限而無法寫入快取）。"
+    },
+    {
+      "id": "flours_starches_dried_noodles",
+      "category": "粉類與乾麵：A01、A03 麵粉、A05 米穀粉、A10、B03–B09 與 B99 澱粉（太白粉、地瓜粉）、C13、C16、C17 堅果種子粉、R11 米粉粄條、R19 麵線、R20 麵條、R46 冬粉",
+      "prefixes": ["A01", "A03", "A05", "A10", "B03", "B04", "B05", "B07", "B08", "B09", "B99", "C13", "C16", "C17",
+                   "R11", "R19", "R20", "R46"],
+      "reason": "以購買時的乾重入菜（勾芡、裹粉、煮麵），烹煮只吸水，營養總量等於乾重 × 原樣組成（與 config/staples.json 的乾麵條 consumed_as_is 同一原則）。"
+    }
+  ]
+}

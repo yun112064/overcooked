@@ -10,8 +10,10 @@ from sqlalchemy import (
     CheckConstraint,
     DateTime,
     ForeignKey,
+    ForeignKeyConstraint,
     Index,
     Integer,
+    LargeBinary,
     Numeric,
     String,
     Text,
@@ -19,6 +21,7 @@ from sqlalchemy import (
     text,
 )
 from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.dialects import postgresql
 
 from app.db.base import Base
 
@@ -36,6 +39,13 @@ class SourceArchive(Base):
     )
 
     raw_id: Mapped[str] = mapped_column(String(32), primary_key=True)
+    recipe_release_id: Mapped[str] = mapped_column(
+        ForeignKey("recipe_data_releases.release_id", ondelete="RESTRICT"),
+        nullable=False,
+        default="legacy-1017",
+        server_default="legacy-1017",
+        index=True,
+    )
     source_name: Mapped[str] = mapped_column(String(200), nullable=False)
     source_url: Mapped[str] = mapped_column(Text, nullable=False)
     source_recipe_id: Mapped[str] = mapped_column(String(200), nullable=False)
@@ -62,15 +72,50 @@ class SourceArchive(Base):
     )
 
 
+class RecipeDataRelease(Base):
+    __tablename__ = "recipe_data_releases"
+    __table_args__ = (
+        CheckConstraint("source_kind IN ('legacy', 'sql_seed', 'xlsx_import')",
+                        name="ck_recipe_data_releases_source_kind"),
+        Index("uq_recipe_data_releases_active", "active", unique=True,
+              postgresql_where=text("active"), sqlite_where=text("active")),
+    )
+
+    release_id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    dataset_version: Mapped[str] = mapped_column(String(64), unique=True, nullable=False)
+    source_sha256: Mapped[str] = mapped_column(String(64), nullable=False)
+    schema_version: Mapped[str] = mapped_column(String(64), nullable=False)
+    source_kind: Mapped[str] = mapped_column(String(24), nullable=False)
+    source_uri: Mapped[str | None] = mapped_column(Text)
+    row_counts: Mapped[dict[str, Any]] = mapped_column(
+        JSON().with_variant(postgresql.JSONB(astext_type=Text()), "postgresql"),
+        nullable=False, default=dict, server_default=text("'{}'")
+    )
+    active: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=False, server_default=text("false")
+    )
+    imported_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=text("CURRENT_TIMESTAMP")
+    )
+
+
 class Recipe(Base):
     __tablename__ = "recipes"
     __table_args__ = (
+        UniqueConstraint("recipe_id", "recipe_release_id", name="uq_recipes_id_release"),
         CheckConstraint("original_servings IS NULL OR original_servings > 0", name="ck_recipe_servings_positive"),
         Index("ix_recipes_standard_dish_id", "standard_dish_id"),
         Index("ix_recipes_eligible", "is_eligible"),
     )
 
     recipe_id: Mapped[str] = mapped_column(String(32), primary_key=True)
+    recipe_release_id: Mapped[str] = mapped_column(
+        ForeignKey("recipe_data_releases.release_id", ondelete="RESTRICT"),
+        nullable=False,
+        default="legacy-1017",
+        server_default="legacy-1017",
+        index=True,
+    )
     raw_id: Mapped[str] = mapped_column(
         ForeignKey("source_archive.raw_id", ondelete="RESTRICT"), unique=True, nullable=False
     )
@@ -82,6 +127,8 @@ class Recipe(Base):
     )
     servings_raw: Mapped[str] = mapped_column(String(100), nullable=False)
     original_servings: Mapped[Decimal | None] = mapped_column(Numeric(10, 3))
+    servings_basis: Mapped[str] = mapped_column(String(24), nullable=False,
+                                               default="portions", server_default="portions")
     servings_status: Mapped[str] = mapped_column(String(32), nullable=False)
     category: Mapped[str] = mapped_column(String(100), nullable=False)
     meal_type: Mapped[str] = mapped_column(String(100), nullable=False)
@@ -120,6 +167,29 @@ class Recipe(Base):
     )
 
 
+class RecipeCover(Base):
+    __tablename__ = "recipe_covers"
+    __table_args__ = (
+        ForeignKeyConstraint(
+            ["recipe_id", "recipe_release_id"], ["recipes.recipe_id", "recipes.recipe_release_id"],
+            name="fk_recipe_covers_recipe_release", ondelete="CASCADE",
+        ),
+        CheckConstraint("media_type IN ('image/jpeg', 'image/png', 'image/webp')",
+                        name="ck_recipe_covers_media_type"),
+    )
+
+    recipe_id: Mapped[str] = mapped_column(String(32), primary_key=True)
+    recipe_release_id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    filename: Mapped[str] = mapped_column(Text, nullable=False)
+    image_url: Mapped[str] = mapped_column(Text, nullable=False)
+    sha256: Mapped[str] = mapped_column(String(64), nullable=False)
+    media_type: Mapped[str] = mapped_column(String(32), nullable=False)
+    image_bytes: Mapped[bytes] = mapped_column(LargeBinary, nullable=False)
+    approved_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=text("CURRENT_TIMESTAMP"),
+    )
+
+
 class RecipeStep(Base):
     __tablename__ = "recipe_steps"
     __table_args__ = (
@@ -128,6 +198,13 @@ class RecipeStep(Base):
     )
 
     step_id: Mapped[str] = mapped_column(String(32), primary_key=True)
+    recipe_release_id: Mapped[str] = mapped_column(
+        ForeignKey("recipe_data_releases.release_id", ondelete="RESTRICT"),
+        nullable=False,
+        default="legacy-1017",
+        server_default="legacy-1017",
+        index=True,
+    )
     recipe_id: Mapped[str] = mapped_column(
         ForeignKey("recipes.recipe_id", ondelete="CASCADE"), nullable=False, index=True
     )
@@ -146,6 +223,13 @@ class IngredientAlias(Base):
     __tablename__ = "ingredient_aliases"
 
     food_id: Mapped[str] = mapped_column(String(32), primary_key=True)
+    recipe_release_id: Mapped[str] = mapped_column(
+        ForeignKey("recipe_data_releases.release_id", ondelete="RESTRICT"),
+        nullable=False,
+        default="legacy-1017",
+        server_default="legacy-1017",
+        index=True,
+    )
     canonical_name: Mapped[str] = mapped_column(Text, nullable=False)
     aliases: Mapped[list[Any]] = mapped_column(
         JSON, nullable=False, default=_json_list_default, server_default=text("'[]'")
@@ -165,6 +249,13 @@ class Allergen(Base):
     __tablename__ = "allergens"
 
     allergen_id: Mapped[str] = mapped_column(String(32), primary_key=True)
+    recipe_release_id: Mapped[str] = mapped_column(
+        ForeignKey("recipe_data_releases.release_id", ondelete="RESTRICT"),
+        nullable=False,
+        default="legacy-1017",
+        server_default="legacy-1017",
+        index=True,
+    )
     allergen_name: Mapped[str] = mapped_column(String(200), unique=True, nullable=False)
     reference: Mapped[str] = mapped_column(Text, nullable=False)
     source_version: Mapped[str | None] = mapped_column(String(200))
@@ -193,6 +284,13 @@ class RecipeIngredient(Base):
     )
 
     recipe_ingredient_id: Mapped[str] = mapped_column(String(32), primary_key=True)
+    recipe_release_id: Mapped[str] = mapped_column(
+        ForeignKey("recipe_data_releases.release_id", ondelete="RESTRICT"),
+        nullable=False,
+        default="legacy-1017",
+        server_default="legacy-1017",
+        index=True,
+    )
     recipe_id: Mapped[str] = mapped_column(
         ForeignKey("recipes.recipe_id", ondelete="CASCADE"), nullable=False, index=True
     )
@@ -214,6 +312,10 @@ class RecipeIngredient(Base):
     unit_status: Mapped[str] = mapped_column(String(32), nullable=False)
     weight_g: Mapped[Decimal | None] = mapped_column(Numeric(16, 6))
     weight_status: Mapped[str] = mapped_column(String(32), nullable=False)
+    weight_basis: Mapped[str | None] = mapped_column(String(32))
+    weight_evidence: Mapped[dict[str, Any]] = mapped_column(
+        JSON().with_variant(postgresql.JSONB(astext_type=Text()), "postgresql"),
+        nullable=False, default=dict, server_default=text("'{}'"))
     adjustable_min: Mapped[Decimal | None] = mapped_column(Numeric(16, 6))
     adjustable_max: Mapped[Decimal | None] = mapped_column(Numeric(16, 6))
     adjustment_status: Mapped[str] = mapped_column(

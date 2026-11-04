@@ -1,7 +1,10 @@
 """T08：當餐問卷、便當與手動食材草稿（AC03、AC09）。成員皆為合成測試資料。"""
+import pytest
 import unittest
 
 from db_support import seed_foods, make_client, migrate_fresh, requires_db, truncate_all
+
+pytestmark = pytest.mark.usefixtures("staple_policy")
 
 PASSWORD = "correct-horse-42"
 
@@ -110,8 +113,8 @@ class T08ApiTests(unittest.TestCase):
         self.assertEqual(ratios, {("dining", "dinner"): "0.4", ("bento", "lunch"): "0.3"})
         self.assertEqual(len(preview["items"]), 3)
         self.assertEqual(preview["total_n"], "3.3")
-        # 成員 A：77 g/day 蛋白質；晚餐 0.4、午餐便當 0.3，各乘 1.3；成員 B：28×1.1×0.4×0.7
-        expected_protein = 77 * 0.4 * 1.3 + 77 * 0.3 * 1.3 + 28 * 1.1 * 0.4 * 0.7
+        # 成員 A：77 g/day；成員 B：0.3.0 的蛋白質規則為 28 × 1.1 g/day。
+        expected_protein = 77 * (0.4 + 0.3) * 1.3 + 28 * 1.1 * 0.4 * 0.7
         self.assertAlmostEqual(float(preview["target"]["protein_g"]), expected_protein, places=9)
         self.assertFalse(preview["approved_for_adoption"])
 

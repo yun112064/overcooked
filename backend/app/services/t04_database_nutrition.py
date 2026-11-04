@@ -119,6 +119,10 @@ def calculate_food_nutrition(
         "quality_issues": list(row.quality_issues),
         "sources": _sources(session, row.nutrition_id),
         "nutrition_basis": "imported_food_observation",
+        # This query scales the selected observation to the requested grams; it does not
+        # execute a raw-to-cooked conversion. Callers must inspect this explicit field.
+        "cooking_conversion_applied": False,
+        "weight_basis_matches_observation": True,
         "cooking_adjustment_complete": True,
         "is_estimated": False,
     }
@@ -188,6 +192,7 @@ def calculate_recipe_nutrition(
         },
         "nutrition_complete": not failed and all(value is not None for value in exact.values()),
         "cooking_adjustment_complete": not failed,
+        "cooking_conversion_applied": False,
         "missing_nutrients": {field: ids for field, ids in missing.items() if ids},
         "failed_ingredients": failed,
         "servings": serving_count,

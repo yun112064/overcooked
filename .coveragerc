@@ -1,0 +1,7 @@
+[run]
+branch = True
+source = nutrition_planning
+omit = nutrition_planning/tests/*
+
+[report]
+show_missing = True

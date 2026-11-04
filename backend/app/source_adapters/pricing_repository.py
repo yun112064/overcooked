@@ -14,6 +14,7 @@ from sqlalchemy import Engine, text
 from sqlalchemy.engine import Connection
 
 from .price_models import PriceQuote
+from .price_scope import PACKAGE_MASS_JOIN, materialize_quote, quote_unusable_reason
 
 
 LOCK_NAME = "overcooked:t02:pxmart-price-collection"
@@ -27,6 +28,8 @@ class RunLease:
     run_key: str
     connection: Connection
     resumed: bool = False
+    provider: str = "pxmart"
+    recipe_release_id: str | None = None
 
 
 @dataclass(frozen=True)
@@ -58,12 +61,14 @@ class RunProgress:
 class PricingRepository:
     """Append-only quote snapshots with one durable row per logical run."""
 
-    def __init__(self, database_engine: Engine | None = None) -> None:
+    def __init__(self, database_engine: Engine | None = None, *,
+                 expected_recipe_release_id: str | None = None) -> None:
         if database_engine is None:
             from app.db.session import engine as configured_engine
 
             database_engine = configured_engine
         self.engine = database_engine
+        self.expected_recipe_release_id = expected_recipe_release_id
 
     def try_begin_run(
         self,
@@ -86,16 +91,23 @@ class PricingRepository:
                 connection.close()
                 return None
 
+            recipe_release_id = connection.execute(text(
+                "SELECT release_id FROM recipe_data_releases WHERE active"
+            )).scalar_one_or_none()
+            if (self.expected_recipe_release_id is not None
+                    and recipe_release_id != self.expected_recipe_release_id):
+                raise ValueError('Active recipe release changed before price collection')
+
             run_id = str(uuid.uuid4())
             inserted = connection.execute(
                 text(
                     """
                     INSERT INTO price_collection_runs (
                         id, run_key, provider, trigger_type, scheduled_for,
-                        started_at, status, ingredient_total
+                        started_at, status, ingredient_total, recipe_release_id
                     ) VALUES (
                         :id, :run_key, :provider, :trigger_type, :scheduled_for,
-                        :started_at, 'running', 0
+                        :started_at, 'running', 0, :recipe_release_id
                     )
                     ON CONFLICT (run_key) DO NOTHING
                     RETURNING id
@@ -108,6 +120,7 @@ class PricingRepository:
                     "trigger_type": trigger_type,
                     "scheduled_for": scheduled_for,
                     "started_at": started_at,
+                    "recipe_release_id": recipe_release_id,
                 },
             ).scalar_one_or_none()
             connection.commit()
@@ -115,11 +128,14 @@ class PricingRepository:
             if inserted is None:
                 existing = connection.execute(
                     text(
-                        "SELECT id, status FROM price_collection_runs "
+                        "SELECT id, status, provider, recipe_release_id, price_data_release_id FROM price_collection_runs "
                         "WHERE run_key = :run_key"
                     ),
                     {"run_key": run_key},
                 ).mappings().one()
+                if (existing['provider'] != provider or existing['recipe_release_id'] != recipe_release_id
+                        or existing['price_data_release_id'] is not None):
+                    raise ValueError('Collection run belongs to another source or recipe release')
                 if existing["status"] not in {"running", "failed", "partial"}:
                     self._unlock_and_close(connection)
                     return None
@@ -138,6 +154,8 @@ class PricingRepository:
                 run_key=run_key,
                 connection=connection,
                 resumed=resumed,
+                provider=provider,
+                recipe_release_id=recipe_release_id,
             )
         except Exception:
             connection.rollback()
@@ -158,6 +176,18 @@ class PricingRepository:
         lease.connection.commit()
 
     def save_quote(self, lease: RunLease, quote: PriceQuote) -> None:
+        if lease.recipe_release_id is not None:
+            current = lease.connection.execute(text(
+                "SELECT release_id FROM recipe_data_releases WHERE active"
+            )).scalar_one_or_none()
+            if current != lease.recipe_release_id:
+                raise ValueError('Active recipe release changed during price collection')
+            valid_ids = set(lease.connection.execute(text(
+                "SELECT food_id FROM ingredient_aliases WHERE recipe_release_id = :release "
+                "AND canonical_name = :name AND food_id = ANY(:ids)"
+            ), {'release': current, 'name': quote.canonical_name, 'ids': quote.food_ids}).scalars())
+            if not quote.food_ids or valid_ids != set(quote.food_ids):
+                raise ValueError('Quote Food_ID/name does not match the active recipe dictionary')
         payload = quote.model_dump(mode="json")
         lease.connection.execute(
             text(
@@ -168,7 +198,7 @@ class PricingRepository:
                     product_name, price, currency, package_quantity,
                     package_unit, source_url, quote_payload
                 ) VALUES (
-                    :run_id, 'pxmart', :canonical_name, :status,
+                    :run_id, :provider, :canonical_name, :status,
                     :missing_reason, :queried_at, :valid_from, :valid_until,
                     :product_id, :product_name, :price, :currency,
                     :package_quantity, :package_unit, :source_url,
@@ -179,6 +209,7 @@ class PricingRepository:
             ),
             {
                 "run_id": lease.run_id,
+                "provider": lease.provider,
                 "canonical_name": quote.canonical_name,
                 "status": quote.status.value,
                 "missing_reason": quote.missing_reason,
@@ -195,6 +226,15 @@ class PricingRepository:
                 "quote_payload": json.dumps(payload, ensure_ascii=False),
             },
         )
+        if lease.recipe_release_id is not None:
+            lease.connection.execute(text(
+                "INSERT INTO price_snapshot_foods (snapshot_id, recipe_release_id, food_id, mapping_method) "
+                "SELECT s.id, :release, f.food_id, 'collector_exact_id_name' "
+                "FROM price_quote_snapshots s JOIN ingredient_aliases f "
+                "ON f.recipe_release_id = :release AND f.canonical_name = s.canonical_name "
+                "AND s.quote_payload -> 'food_ids' ? f.food_id "
+                "WHERE s.run_id = :run_id AND s.canonical_name = :name ON CONFLICT DO NOTHING"
+            ), {'release': lease.recipe_release_id, 'run_id': lease.run_id, 'name': quote.canonical_name})
         lease.connection.commit()
 
     def finish_run(
@@ -299,10 +339,10 @@ class PricingRepository:
                 "SELECT canonical_name, product_id, product_name, product_url, "
                 "confidence, policy_version, consecutive_failures, "
                 "next_reassessment_at FROM retailer_product_mappings "
-                "WHERE provider = 'pxmart' AND canonical_name = :canonical_name "
+                "WHERE provider = :provider AND canonical_name = :canonical_name "
                 "AND active = true"
             ),
-            {"canonical_name": canonical_name},
+            {"canonical_name": canonical_name, "provider": lease.provider},
         ).mappings().one_or_none()
         lease.connection.commit()
         return RepresentativeProduct(**dict(row)) if row else None
@@ -320,7 +360,7 @@ class PricingRepository:
                     active, selected_at, last_verified_at, last_success_at,
                     consecutive_failures, next_reassessment_at
                 ) VALUES (
-                    'pxmart', :canonical_name, :product_id, :product_name,
+                    :provider, :canonical_name, :product_id, :product_name,
                     :product_url, :confidence, CAST(:selection_reason AS jsonb),
                     :policy_version, true, :now, :now, :now, 0, :reassess_at
                 )
@@ -344,6 +384,7 @@ class PricingRepository:
                 """
             ),
             {
+                "provider": lease.provider,
                 "canonical_name": quote.canonical_name,
                 "product_id": quote.product_id,
                 "product_name": quote.product_name,
@@ -369,11 +410,41 @@ class PricingRepository:
                 "last_verified_at = :now, "
                 "active = CASE WHEN consecutive_failures + 1 >= 3 "
                 "THEN false ELSE active END "
-                "WHERE provider = 'pxmart' AND canonical_name = :canonical_name"
+                "WHERE provider = :provider AND canonical_name = :canonical_name"
             ),
-            {"canonical_name": canonical_name, "now": datetime.now(timezone.utc)},
+            {"canonical_name": canonical_name, "now": datetime.now(timezone.utc),
+             "provider": lease.provider},
         )
         lease.connection.commit()
+
+    def fallback_targets(self, lease: RunLease, *, primary_run_key: str) -> tuple[set[str], bool]:
+        """Find primary quotes that T13 cannot use, excluding Food_ID mapping errors."""
+        row = lease.connection.execute(
+            text("SELECT id, status, recipe_release_id FROM price_collection_runs WHERE run_key = :run_key"),
+            {"run_key": primary_run_key},
+        ).mappings().one_or_none()
+        if row is None:
+            lease.connection.commit()
+            return set(), False
+        if row["recipe_release_id"] != lease.recipe_release_id:
+            raise ValueError("Primary and fallback collection runs belong to different recipe releases")
+        quotes = lease.connection.execute(
+            text(f"""
+                SELECT s.id, s.canonical_name, s.status, s.quote_payload, r.recipe_release_id,
+                       r.price_data_release_id, NULL AS usage_status, m.net_mass_g, m.source_url AS mass_source_url
+                FROM price_quote_snapshots s JOIN price_collection_runs r ON r.id = s.run_id
+                {PACKAGE_MASS_JOIN}
+                WHERE s.run_id = :run_id AND COALESCE(s.quote_payload ->> 'selection_method', '')
+                      NOT IN ('workbook_mapping', 'database_mapping')
+            """),
+            {"run_id": row["id"]},
+        ).mappings().all()
+        lease.connection.commit()
+        now = datetime.now(timezone.utc)
+        names = {quote["canonical_name"] for quote in quotes
+                 if quote["status"] != "success" or quote_unusable_reason(materialize_quote(quote), now) is not None}
+        finished = row["status"] in {"completed", "completed_with_errors"}
+        return names, finished
 
     def list_recent_runs(self, limit: int = 20) -> list[dict[str, Any]]:
         query, params = run_rows_query(limit)

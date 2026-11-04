@@ -65,22 +65,14 @@ class SynonymRuleTests(unittest.TestCase):
 
 class ProjectTableTests(unittest.TestCase):
     def test_project_table_is_well_formed(self):
-        from app.core.config import PROJECT_ROOT, settings
+        from app.core.config import settings
         data = json.loads(settings.ingredient_synonyms_path.read_text(encoding="utf-8"))
         ids = [f["food_id"] for g in data["groups"] for f in g["foods"]]
         self.assertEqual(len(ids), len(set(ids)), "同一食材不可出現在兩個同義組")
         self.assertTrue(all(re.fullmatch(r"FOOD\d{6}", i) for i in ids))
         self.assertTrue(all(len(g["foods"]) >= 2 and g["evidence"] for g in data["groups"]))
         self.assertTrue(all(g["status"] in {"pending_confirmation", "confirmed", "rejected"} for g in data["groups"]))
-        workbook = PROJECT_ROOT / "data/recipe_dataset_1017.xlsx"
-        if workbook.is_file():  # 本機有原始工作簿時核對編號與名稱
-            from openpyxl import load_workbook
-            rows = load_workbook(workbook, read_only=True, data_only=True)["標準食材整合"].iter_rows(values_only=True)
-            next(rows)
-            catalog = {row[1]: row[0] for row in rows if row[1]}
-            for g in data["groups"]:
-                for f in g["foods"]:
-                    self.assertEqual(catalog.get(f["food_id"]), f["name"], f)
+        # 正式 ID／名稱由 tests/test_recipe_sql_data.py 對實際 SQL release 核對。
 
 
 class PriceMergeTests(unittest.TestCase):
