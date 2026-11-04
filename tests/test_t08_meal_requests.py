@@ -106,7 +106,7 @@ class T08ApiTests(unittest.TestCase):
         ], meal_date="2026-08-20"))
         preview = created["targets_preview"]
         self.assertEqual(preview["status"], "available", preview)
-        self.assertEqual(preview["rule_version"], "hpa-dri8-mvp-0.3.0")
+        self.assertEqual(preview["rule_version"], "hpa-dri8-mvp-0.3.1")
         ratios = {(i["kind"], i["meal"]): i["meal_ratio"] for i in preview["items"]}
         self.assertEqual(ratios, {("dining", "dinner"): "0.4", ("bento", "lunch"): "0.3"})
         self.assertEqual(len(preview["items"]), 3)

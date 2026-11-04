@@ -2,7 +2,7 @@
 
 更新日期：2026-10-16。現行規則版本：`hpa-dri8-mvp-0.3.0`。依使用者決議，T03 以 Spec 為準；來源驗收待完成，G03 未通過。
 
-2026-11-04：使用者核准 `hpa-dri8-mvp-0.3.0` 規則，`rule_status` 由 `user_confirmed_mvp` 改為 `approved`（僅狀態欄位，公式與範圍不變，`service.py` 內的 SHA-256 已同步）。`approved_for_adoption` 仍為 false，G03 來源驗收另計。
+2026-11-04：使用者核准規則，發布 `hpa-dri8-mvp-0.3.1`（`rule_status: approved`），內容與 0.3.0 相同，只改版本與狀態；0.3.0 保留原位元組與雜湊供重現，新流程（後端預設 `nutrition_rules_path`）改用 0.3.1。`approved_for_adoption` 仍為 false，G03 來源驗收另計。
 
 ## 已確認與未確認
 
