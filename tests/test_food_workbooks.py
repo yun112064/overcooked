@@ -202,6 +202,16 @@ class FoodWorkbookTests(unittest.TestCase):
                 self.assertTrue(result["cooking_adjustment_complete"])
                 self.assertEqual(len(statements), 2, f"{count} lines")
 
+    def test_t04_database_recipe_rejects_invalid_import_id_without_querying(self):
+        line = {"food_id": "FOOD000005", "cooking_state": "已熟製", "cooking_method": "水煮", "weight_g": 50}
+        with Session(self.engine) as session:
+            for import_id in (["x"], {"x": 1}, "", None):
+                with self.subTest(import_id=import_id):
+                    result = calculate_recipe_nutrition(session, import_id=import_id, recipe_name="壞版本",
+                                                        recipe_ingredients=[line])
+                    self.assertFalse(result["success"])
+                    self.assertEqual(result["failed_ingredients"][0]["error"], "invalid_nutrition_input")
+
     def test_t04_database_partial_calculation_sources_stay_unverified(self):
         # RI999 is a recipe line the recipe workbook no longer has, so the importer drops its link.
         self.rows[0].update({"原來源ID": "TFDA_A01\nRI999", "計算來源ID": "TFDA_A01\nRI999",

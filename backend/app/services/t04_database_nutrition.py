@@ -290,9 +290,11 @@ def calculate_recipe_nutrition(
     if not isinstance(recipe_name, str) or not recipe_name.strip() or not recipe_ingredients:
         return {"success": False, "error": "invalid_recipe_input"}
 
+    # An invalid import_id skips the batch query; each line then reports invalid_nutrition_input.
     lookup = _RecipeLookup(session, import_id, {
         item["food_id"] for item in recipe_ingredients
-        if isinstance(item, dict) and isinstance(item.get("food_id"), str)})
+        if isinstance(item, dict) and isinstance(item.get("food_id"), str)}
+    ) if isinstance(import_id, str) and import_id.strip() else None
     results: list[dict[str, Any]] = []
     failed: list[dict[str, Any]] = []
     for item in recipe_ingredients:
