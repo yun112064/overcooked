@@ -1,4 +1,5 @@
 """T10：持久背景工作與付費額度控制（AC18、AC20、AC25）。"""
+import pytest
 import json
 import logging
 import threading
@@ -10,6 +11,8 @@ from unittest.mock import patch
 from sqlalchemy import select, text
 
 from db_support import make_client, migrate_fresh, requires_db, session_factory, truncate_all
+
+pytestmark = pytest.mark.usefixtures("staple_policy")
 
 PASSWORD = "correct-horse-42"
 MODEL = "gpt-5.4-mini-2026-03-17"

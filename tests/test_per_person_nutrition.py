@@ -1,6 +1,7 @@
 """每人營養對照每日建議（結果頁畫面用；不參與驗證與採用資格）。"""
 import unittest
 from decimal import Decimal
+from unittest.mock import patch
 
 from app.services.meal_results import _dishes
 from app.services.per_person_nutrition import daily_reference, per_person
@@ -25,7 +26,17 @@ NUTRITION = {"total_n": "2", "energy_kcal": "1600", "protein_g": "60",
 
 class DailyReferenceTests(unittest.TestCase):
     def test_other_nutrients_follow_daily_energy(self):
-        ref = daily_reference(Decimal(2000), Decimal(60))
+        rules = {
+            "carbohydrate_g": {"kind": "range", "energy_percent_min": "50",
+                               "energy_percent_max": "60", "kcal_per_g": "4"},
+            "fat_g": {"kind": "range", "energy_percent_min": "20", "energy_percent_max": "30", "kcal_per_g": "9"},
+            "sugars_g": {"kind": "max", "energy_percent_max": "10", "kcal_per_g": "4", "caveat": "Test caveat"},
+            "sodium_mg": {"kind": "max", "value": "2400"},
+            "dietary_fiber_g": {"kind": "target", "per_1000_kcal": "14"},
+        }
+        for nutrient, rule in rules.items():
+            rule["label"] = nutrient
+        ref = daily_reference(Decimal(2000), Decimal(60), {"nutrients": rules})
         self.assertEqual((ref["energy_kcal"]["kind"], Decimal(ref["energy_kcal"]["value"])), ("target", 2000))
         self.assertEqual(Decimal(ref["protein_g"]["value"]), 60)
         # 碳水 50–60% ÷ 4、脂肪 20–30% ÷ 9、糖 <10% ÷ 4、鈉 <2400、纖維 14 g / 1000 kcal
@@ -114,10 +125,12 @@ class HighSodiumDishTests(unittest.TestCase):
         rows = [self.row("R1", "1500"), self.row("R1", "500"),  # 2000 ÷ 2 份 ＝ 1000 → 高鈉（含等於）
                 self.row("R2", "1998"),                          # 999 → 不標示
                 self.row("R3", "800"), self.row("R3", None)]     # 有食材缺值 → 未知
-        d1, d2, d3 = _dishes(self.result(rows))
+        with patch("app.services.per_person_nutrition.load_reference",
+                   return_value={"high_sodium_dish": {"mg_per_serving": "1000"}}):
+            d1, d2, d3 = _dishes(self.result(rows))
         self.assertEqual((Decimal(d1["sodium_mg_per_serving"]), d1["high_sodium"]), (Decimal(1000), True))
         self.assertEqual((Decimal(d2["sodium_mg_per_serving"]), d2["high_sodium"]), (Decimal(999), False))
-        self.assertEqual((d3["sodium_mg_per_serving"], d3["high_sodium"]), (None, False))
+        self.assertEqual((d3["sodium_mg_per_serving"], d3["high_sodium"]), (None, None))
 
 
 if __name__ == "__main__":

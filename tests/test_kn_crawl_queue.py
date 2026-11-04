@@ -2,6 +2,7 @@
 
 記錄只含 FOOD 編號與次數（不含家庭或使用者資料）；記錄失敗絕不影響生成；未審核內容不會因此顯示。
 """
+import pytest
 import json
 import unittest
 from datetime import datetime, timedelta, timezone
@@ -11,6 +12,8 @@ from sqlalchemy import text
 
 from generation_support import (CABBAGE, EGG, GARLIC, TOMATO, FakeKnowledgeClient, FakeResponder,
                                  GenerationTestCase, knowledge_record)
+
+pytestmark = pytest.mark.usefixtures("embedding_test_price")
 
 
 class CrawlQueueAfterGenerationTests(GenerationTestCase):

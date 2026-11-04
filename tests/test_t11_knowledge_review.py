@@ -1,11 +1,13 @@
 """The approved T11 candidate snapshot must remain unchanged before publication."""
-from pathlib import Path
+from hashlib import sha256
 
 import pytest
 
 from knowledge_rag import apply_reviewed
 
 
+@pytest.mark.skipif(not (apply_reviewed.CANDIDATES.is_file() and apply_reviewed.REVIEWS.is_file()),
+                    reason="Local reviewed knowledge snapshot is not distributed with code")
 def test_reviewed_knowledge_matches_all_123_publication_records():
     candidates, decisions = apply_reviewed.checked_records()
     assert len(candidates) == len(decisions) == 123
@@ -16,12 +18,11 @@ def test_reviewed_knowledge_matches_all_123_publication_records():
 
 def test_changed_excerpt_cannot_reuse_existing_approval(tmp_path, monkeypatch):
     changed = tmp_path / "candidates.json"
-    text = apply_reviewed.CANDIDATES.read_text(encoding="utf-8")
-    changed.write_text(text.replace("整理摘要（非逐字原文）：", "未審核摘要：", 1), encoding="utf-8")
+    original = '{"records":[{"excerpt":"Synthetic reviewed text"}]}'
+    changed.write_text(original.replace("reviewed", "modified"), encoding="utf-8")
     monkeypatch.setattr(apply_reviewed, "CANDIDATES", changed)
     monkeypatch.setattr(apply_reviewed, "EXPECTED_HASHES", {
-        changed: apply_reviewed.EXPECTED_HASHES[apply_reviewed.ROOT / "candidates/web_paper_2026-10-30.json"],
-        apply_reviewed.REVIEWS: apply_reviewed.EXPECTED_HASHES[apply_reviewed.REVIEWS],
+        changed: sha256(original.encode()).hexdigest(),
     })
     with pytest.raises(ValueError, match="Reviewed file changed"):
         apply_reviewed.checked_records()

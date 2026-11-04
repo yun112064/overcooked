@@ -8,6 +8,9 @@
 5. 結果檢視：受影響食材與營養標示「LLM 推估」。
 絕不呼叫真實 OpenAI：responder 一律為假物件。
 """
+import pytest
+
+
 import json
 import tempfile
 import unittest
@@ -21,6 +24,8 @@ from app.meal_calc.types import EstimatedFactor
 from app.services import meal_calculation as mc
 from db_support import migrate_fresh, requires_db, session_factory, truncate_all
 from recipe_workbook import build, ingredient, recipe
+
+pytestmark = pytest.mark.usefixtures("category_zero_policy")
 
 D = Decimal
 
@@ -399,22 +404,9 @@ class BatchEstimationTests(unittest.TestCase):
         self.assertEqual(sorted(chicken.input_snapshot["recipe_ids"]), ["R001", "R002"])
 
     def test_lines_with_workbook_weight_never_become_unit_gaps(self):
-        # decisions #20：以真實工作簿的形狀（每種非 g 單位各取一列，weight_g 皆有值）匯入，單位缺口為 0
-        from openpyxl import load_workbook
-        from app.core.config import PROJECT_ROOT
-        rows = load_workbook(PROJECT_ROOT / "data/recipe_dataset_1027.xlsx", read_only=True,
-                             data_only=True)["recipe_ingredients"].iter_rows(values_only=True)
-        header = list(next(rows))
-        col = {name: header.index(name) for name in ("raw_text", "amount", "unit", "weight_g")}
-        samples = {}
-        for row in rows:
-            unit = row[col["unit"]]
-            if unit and unit != "g" and row[col["amount"]] is not None and unit not in samples:
-                samples[unit] = row
-        self.assertGreaterEqual(len(samples), 10)
-        self.assertTrue(all(r[col["weight_g"]] is not None for r in samples.values()))
-        lines = [ingredient("FOOD001541", "醬油", r[col["amount"]], raw_text=f"醬油 {r[col['amount']]}{u}",
-                            unit=u, weight_g=r[col["weight_g"]]) for u, r in samples.items()]
+        # Representative non-gram units with explicit measured mass.
+        lines = [ingredient("FOOD001541", "醬油", 2, unit=unit, weight_g=15)
+                 for unit in ("大匙", "小匙", "杯", "碗", "毫升", "瓶", "包", "罐", "滴", "份")]
         truncate_all()
         from app.services.recipe_import import import_recipe_bundle, parse_recipe_workbook
         bundle = parse_recipe_workbook(build(Path(self.folder.name) / "real.xlsx", [

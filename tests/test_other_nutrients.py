@@ -9,12 +9,15 @@
 3. meal_results 檢視：每項食材與營養區塊的「近似」標示。
 絕不呼叫 LLM：係數一律為測試建立的快取物件。
 """
+import pytest
 import unittest
 from decimal import Decimal
 from fractions import Fraction
 
 from app.meal_calc.types import EstimatedFactor
 from app.services import meal_calculation as mc
+
+pytestmark = pytest.mark.usefixtures("category_zero_policy")
 
 D = Decimal
 

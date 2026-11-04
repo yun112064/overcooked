@@ -13,7 +13,7 @@ sys.path[:0] = [str(ROOT / 'backend'), str(ROOT)]
 from sqlalchemy import create_engine, select, delete, func, text
 from sqlalchemy.orm import Session
 from app.models.recipe import RecipeDataRelease, SourceArchive, Recipe, RecipeStep, RecipeIngredient, IngredientAlias, Allergen
-from app.services.recipe_import import parse_recipe_workbook, normalize_name
+from app.services.recipe_import import normalize_source_name, parse_recipe_workbook
 
 MODELS = [SourceArchive, IngredientAlias, Allergen, Recipe, RecipeStep, RecipeIngredient]
 
@@ -41,7 +41,7 @@ def prepare(path, expected_hash):
     bundle = parse_recipe_workbook(path)
     if hashlib.sha256(path.read_bytes()).hexdigest() != expected_hash:
         raise ValueError('Workbook changed while parsing')
-    names = [normalize_name(r['recipe_name']) for r in bundle.recipes]
+    names = [normalize_source_name(r['recipe_name']) for r in bundle.recipes]
     if len(names) != len(set(names)):
         raise ValueError('Duplicate normalized recipe names require selection')
     release = 'recipe-1103-v3-' + expected_hash[:12]

@@ -135,6 +135,16 @@ class RawCompositionFallbackTests(unittest.TestCase):
 class MarketCookedTests(unittest.TestCase):
     """#51：市售即為熟品（桂竹筍、鹹蛋黃、杏仁果）對照到 TFDA 熟樣本 → 克數視為熟重、不套烹調。"""
 
+    def setUp(self):
+        from unittest.mock import patch
+
+        entries = tuple({"food_id": food_id, "name": name, "reason": "Synthetic cooked-weight evidence"}
+                        for food_id, name in (("FOOD000728", "桂竹筍"), ("FOOD001642", "鹹蛋黃"),
+                                              ("TEST-ALMOND", "杏仁果")))
+        configured = patch.object(mc, "market_cooked_entries", return_value=entries)
+        configured.start()
+        self.addCleanup(configured.stop)
+
     def test_bamboo_shoot_from_workbook_is_cooked_weight(self):
         maps = {"FOOD000728": mapping("FOOD000728", "E1100101", status="llm_estimated", source="llm_estimated")}
         [shoot] = calc(line("桂竹筍", "200", food_id="FOOD000728", cooking_method="炒",

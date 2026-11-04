@@ -1,4 +1,5 @@
 """預算下限（2026-10-28 使用者決定：預算低於估算的最低合理金額時不能送出生成）。"""
+import pytest
 import unittest
 import uuid
 from decimal import Decimal
@@ -6,6 +7,8 @@ from unittest.mock import patch
 
 from app.services.budget_floor import MIN_PRICED_DISHES, RecipeFloor, reference_dish_cost
 from db_support import requires_db
+
+pytestmark = pytest.mark.usefixtures("staple_policy")
 
 D = Decimal
 

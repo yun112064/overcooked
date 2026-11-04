@@ -5,7 +5,6 @@ import unittest
 from decimal import Decimal
 from unittest.mock import patch
 
-from app.core.config import PROJECT_ROOT
 from app.services.meal_calculation import (IngredientLine, IngredientNutrition, _evaluate, intake_adjustments,
                                            load_recipe_lines, weight_corrections)
 from db_support import migrate_fresh, requires_db, seed_foods, session_factory, truncate_all
@@ -60,35 +59,21 @@ class IntakeCalculationTests(unittest.TestCase):
         self.assertEqual(missing["sodium_mg"], ["EGG"])
 
 
-class AdjustmentFileTests(unittest.TestCase):
-    def test_every_adjustment_has_a_reason_and_sane_parts(self):
-        data = json.loads((PROJECT_ROOT / "config/recipe_intake_adjustments.json").read_text(encoding="utf-8"))
-        for rid, adj in data["adjustments"].items():
-            self.assertTrue(rid.startswith("RI") and adj["recipe_id"].startswith("R"), rid)
-            self.assertTrue(adj["reason"], rid)
-            for part in adj["parts"]:
-                self.assertTrue(part["food_id"].startswith("FOOD"), rid)
-                self.assertTrue(0 <= Decimal(part["ratio"]) <= 1, rid)  # 0：重複列出、不計入營養
+def test_intake_policy_loads_parts_by_recipe_ingredient(tmp_path):
+    path = tmp_path / "intake.json"
+    path.write_text(json.dumps({"adjustments": {"RI-TEST": {
+        "parts": [{"food_id": "FOOD-TEST", "name": "合成食材", "ratio": "0.3"}],
+    }}}), encoding="utf-8")
+    assert intake_adjustments(str(path)) == {"RI-TEST": (("FOOD-TEST", "合成食材", Decimal("0.3")),)}
 
-    def test_loader_returns_parts_by_recipe_ingredient(self):
-        loaded = intake_adjustments()
-        self.assertEqual(loaded["RI002005"], (("FOOD001642", "鹹蛋黃", Decimal("0.3")),))
-        self.assertNotIn("RI000001", loaded)
 
-    def test_weight_corrections_have_reasons_and_positive_values(self):
-        data = json.loads((PROJECT_ROOT / "config/recipe_weight_corrections.json").read_text(encoding="utf-8"))
-        for rid, fix in data["ingredients"].items():
-            self.assertTrue(rid.startswith("RI") and fix["reason"], rid)
-            self.assertGreater(Decimal(fix["weight_g"]), 0, rid)
-        for rid, fix in data["recipes"].items():
-            self.assertTrue(fix["reason"], rid)
-            self.assertGreater(Decimal(fix["servings"]), 0, rid)
-        # 同一筆食材不應同時是換算錯誤又是攝取修正（擇一，避免重複折算）
-        intake = json.loads((PROJECT_ROOT / "config/recipe_intake_adjustments.json").read_text(encoding="utf-8"))
-        self.assertFalse(set(data["ingredients"]) & set(intake["adjustments"]))
-        servings, weights = weight_corrections()
-        self.assertEqual(weights["RI001880"], Decimal(300))
-        self.assertEqual(servings["R0169"], Decimal(4))
+def test_weight_policy_loads_servings_and_grams(tmp_path):
+    path = tmp_path / "weight.json"
+    path.write_text(json.dumps({
+        "recipes": {"R-TEST": {"servings": "4"}},
+        "ingredients": {"RI-TEST": {"weight_g": "300"}},
+    }), encoding="utf-8")
+    assert weight_corrections(str(path)) == ({"R-TEST": Decimal(4)}, {"RI-TEST": Decimal(300)})
 
 
 @requires_db

@@ -2,6 +2,7 @@
 
 鏈路：爬蟲匯入（合成文章）→ 審核 → 建索引 → 團隊電腦服務 → 雲端檢索快照 → T14 說明引用 → T15 結果 API。
 """
+import pytest
 import unittest
 
 from db_support import FOODS, migrate_fresh, requires_db, session_factory, truncate_all
@@ -9,6 +10,8 @@ from app.services.team_link import TeamCredentials
 from test_kn_healthnews_crawler import AUTH_REF, BOKCHOY, SITE, FakeFetcher, site_pages
 from test_t11_knowledge_service import TOKEN, paid_call_for, serve
 from generation_support import EGG, TOMATO, FakeKnowledgeClient, FakeResponder, GenerationTestCase, knowledge_record
+
+pytestmark = pytest.mark.usefixtures("embedding_test_price")
 
 ATTRIBUTION = "來源：健康醫療網《合成：番茄小知識》（2026-08-01）"
 

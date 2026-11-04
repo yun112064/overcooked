@@ -8,6 +8,7 @@
    T10 預留／結算、冪等、dry-run；水不產生 TFDA 對照缺口。
 絕不呼叫真實 OpenAI：responder 一律為假物件。
 """
+import pytest
 import json
 import tempfile
 import unittest
@@ -21,6 +22,8 @@ from app.services import meal_calculation as mc
 from app.services import tfda_mapping
 from db_support import migrate_fresh, requires_db, session_factory, truncate_all
 from recipe_workbook import build, ingredient, recipe
+
+pytestmark = pytest.mark.usefixtures("staple_policy", "category_zero_policy")
 
 D = Decimal
 MODEL = "gpt-5.4-mini-2026-03-17"

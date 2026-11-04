@@ -1,6 +1,7 @@
 """pre-review #6：團隊電腦經雲端內部 API（Access 服務權杖＋Bearer）處理補抓佇列與建索引向量化，
 不需要雲端 DATABASE_URL。驗證失敗一律拒絕；向量化仍經 T10 額度；團隊端錯誤是明確的 CloudError。
 """
+import pytest
 import json
 import os
 import subprocess
@@ -10,6 +11,8 @@ from unittest.mock import patch
 
 from db_support import ROOT, migrate_fresh, requires_db, session_factory, truncate_all
 from test_kn_admin import INTERNAL_TOKEN, internal_cloud
+
+pytestmark = pytest.mark.usefixtures("embedding_test_price")
 
 FOOD = "FOOD000867"
 

@@ -3,8 +3,12 @@
 import unittest
 from decimal import Decimal
 
+import pytest
+
 from app.services import meal_calculation as mc
 from app.services import staples
+
+pytestmark = pytest.mark.usefixtures("staple_policy")
 
 D = Decimal
 

@@ -1,5 +1,6 @@
 from datetime import datetime, timezone
 from decimal import Decimal
+import pytest
 import unittest
 
 from sqlalchemy import create_engine, event, update
@@ -15,6 +16,8 @@ from app.services.meal_calculation import IngredientLine, versioned_sql_calculat
 from app.services.meal_calculation import MealTargets, calculate_meal
 from fractions import Fraction
 from app.services import staples
+
+pytestmark = pytest.mark.usefixtures("staple_policy")
 
 
 class VersionedSQLNutritionTests(unittest.TestCase):

@@ -4,6 +4,7 @@
 測試以 FastAPI TestClient 當傳輸層、伺服器端的向量化以假物件取代：不連網、不呼叫付費 API，
 團隊電腦端不需要雲端 DATABASE_URL。
 """
+import pytest
 import io
 import json
 import unittest
@@ -16,6 +17,8 @@ from sqlalchemy import select, text
 from db_support import FOODS, migrate_fresh, requires_db, session_factory, truncate_all
 from test_kn_healthnews_crawler import (AUTH_REF, BOKCHOY, CABBAGE, CARROT, CHANNEL, EGG, SITE, TOMATO, FakeFetcher,
                                         site_pages, synthetic_article)
+
+pytestmark = pytest.mark.usefixtures("embedding_test_price")
 
 INTERNAL_TOKEN = "internal-token-for-tests-0123456789"
 

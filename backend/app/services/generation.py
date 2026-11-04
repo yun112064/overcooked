@@ -399,7 +399,7 @@ MENU_INSTRUCTIONS = (
     "是每 1 份分攤；請用台灣超市常見、平價的食材（例如雞蛋、豆腐、豆干、雞胸、豬絞肉、當季蔬菜），"
     "少用牛肉、海鮮、進口食材等高價食材，讓整餐食材成本不超過 budget；known_ingredients 是家中已有的食材，"
     "能用就優先使用。budget 為 null 時仍以平價家常為原則。\n"
-    "10. 控制鈉：全部菜（含主食）加總後每 1 份的鈉不要超過 sodium_budget_per_n（mg）。每道菜每份的鹽約 0.3–0.6 g、"
+    "10. 控制鈉：sodium_budget_per_n 有數值時，全部菜（含主食）每 1 份的鈉不要超過該上限（mg）。每道菜每份的鹽約 0.3–0.6 g、"
     "或醬油 3–5 g 擇一為主，不要同時大量用鹽、醬油、醬油膏與雞粉；湯品少放鹽；少用加工肉品（貢丸、香腸、培根）、"
     "醃漬品與雞粉、蠔油等高鈉調味料，可用蔥、薑、蒜、香草、檸檬或醋提味。high_sodium_ingredients 是本身含鈉高的食材，"
     "盡量不要用；真的要用時整份菜單最多一種、份量要少，且那道菜不要再加鹽。"
@@ -458,6 +458,7 @@ def _menu_input(draft, restrictions: dict, foods: FoodDictionary, context: dict,
             if k in reference and v is not None:
                 reference[k] = max(Decimal(0), reference[k] - Decimal(v))
     known = [i for i in draft.available_ingredient_ids if i not in restrictions["excluded_food_ids"]]
+    sodium_budget = meal_sodium_budget(targets)
     data = {
         "meal_type": draft.meal_type, "staple": _staple_input(staple, draft.staple),
         "dish_count": draft.dish_count,
@@ -476,7 +477,7 @@ def _menu_input(draft, restrictions: dict, foods: FoodDictionary, context: dict,
         "budget": str(draft.budget) if draft.budget is not None else None,
         "budget_per_n": str((draft.budget / n).quantize(Decimal("0.1"))) if draft.budget is not None else None,
         # 控制鈉：這一餐每 1 份的鈉額度（每日上限 × 餐別比例）
-        "sodium_budget_per_n": str(meal_sodium_budget(targets).quantize(Decimal("1"))),
+        "sodium_budget_per_n": str(sodium_budget.quantize(Decimal("1"))) if sodium_budget is not None else None,
         # 每 100 g 鈉 ≥ 400 mg 的食材（加工肉品、醃漬品等），盡量不用
         "high_sodium_ingredients": list(high_sodium),
     }
@@ -800,10 +801,13 @@ def apply_ai_portion_scale(dishes: list[dict], lines: list[IngredientLine], scal
             for ln in lines]
 
 
-def meal_sodium_budget(targets_info: dict) -> Decimal:
+def meal_sodium_budget(targets_info: dict) -> Decimal | None:
     """這一餐每 1 份的鈉額度（mg）：每日上限 × 各份的餐別比例（晚餐 40%、便當午餐 30%…）依份數加權平均。
     與結果頁每人長條的判定一致（攝取量 ÷ 每日上限 > 餐別比例即標示偏高）。"""
-    daily = Decimal(per_person_nutrition.load_reference()["nutrients"]["sodium_mg"]["value"])
+    configured = per_person_nutrition.load_reference()["nutrients"].get("sodium_mg", {}).get("value")
+    if configured is None:
+        return None
+    daily = Decimal(configured)
     items = targets_info.get("items") or []
     n = sum((Decimal(str(i["n"])) for i in items), Decimal(0))
     if not n:
@@ -1019,7 +1023,8 @@ def _generate(ctx, *, responder, knowledge_client, embedder, calculator, now) ->
                     AI_PORTION_SCALE_MIN <= portion_scale["factor"] <= AI_PORTION_SCALE_MAX):
                 raise _rejected("PORTION_OUT_OF_RANGE", [{"code": "PORTION_OUT_OF_RANGE", **portion_scale}])
             lines = apply_ai_portion_scale(dishes, lines, portion_scale)
-        lines, sodium_adjustment = reduce_sodium(lines, staple_lines, sodium_budget, calculator)
+        if sodium_budget is not None:
+            lines, sodium_adjustment = reduce_sodium(lines, staple_lines, sodium_budget, calculator)
         sync_dish_grams(dishes, lines)
         calc = calculate_meal(lines + staple_lines, targets, mode="ai", calculator=calculator)
         cost_view = cost_of(calc)
@@ -1030,7 +1035,8 @@ def _generate(ctx, *, responder, knowledge_client, embedder, calculator, now) ->
                 codes.add("BUDGET_EXCEEDED")
             # 菜全是問卷指定的就不為鈉重試（換不了菜，只會多花一次生成）
             sodium_final = finalize_sodium(sodium_adjustment, calc)
-            if (sodium_final and sodium_final["sodium_per_n_after"] > sodium_budget * SODIUM_RETRY_OVER_RATIO
+            if (sodium_budget is not None and sodium_final
+                    and sodium_final["sodium_per_n_after"] > sodium_budget * SODIUM_RETRY_OVER_RATIO
                     and not all(d["specified"] for d in dishes)):
                 codes.add("SODIUM_OVER_MEAL_SHARE")
             if codes:

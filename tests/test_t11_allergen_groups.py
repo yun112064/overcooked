@@ -1,15 +1,40 @@
-"""T11 過敏原群組（使用者 2026-11-02 核准）：對雞蛋過敏也排除皮蛋、蛋豆腐等；不吃不套用。"""
+"""T11 過敏原群組與問卷接線，使用合成群組。"""
 import json
 import tempfile
 import unittest
 from pathlib import Path
 
+import pytest
+
+from app.services.allergen_groups import default_path
 from db_support import make_client, migrate_fresh, requires_db, seed_foods, truncate_all
 from test_t08_meal_requests import PASSWORD, full_draft, member_body
 
 EGG, CENTURY_EGG, EGG_TOFU, MAYO = "FOOD001566", "FOOD000309", "FOOD000944", "FOOD000671"
 
 
+@pytest.fixture
+def synthetic_allergen_policy(tmp_path, monkeypatch):
+    from app.services import allergen_groups
+
+    def group(group_id, name, members):
+        foods = [{"food_id": food_id, "name": label, "basis": "typical_formula"}
+                 for food_id, label in members]
+        return {"allergen_id": group_id, "allergen_name": name, "triggers": foods[:1], "members": foods,
+                "official_basis": "Synthetic source field", "source_url": "https://example.invalid/allergens",
+                "legal_status": "強制標示"}
+
+    path = tmp_path / "groups.json"
+    path.write_text(json.dumps({
+        "schema_version": allergen_groups.SCHEMA_VERSION, "status": "approved",
+        "approved_by": "Synthetic reviewer", "version": "test-only",
+        "groups": [group("egg", "蛋", [(EGG, "雞蛋"), (CENTURY_EGG, "皮蛋"), (EGG_TOFU, "蛋豆腐")]),
+                   group("soy", "大豆", [("TEST-SOY", "大豆"), ("FOOD001541", "醬油")])],
+    }, ensure_ascii=False), encoding="utf-8")
+    monkeypatch.setattr(allergen_groups, "default_path", lambda: path)
+
+
+@pytest.mark.usefixtures("synthetic_allergen_policy")
 class AllergenGroupFileTests(unittest.TestCase):
     def test_project_file_is_valid_and_egg_covers_processed_egg_foods(self):
         from app.services import allergen_groups
@@ -39,6 +64,7 @@ class AllergenGroupFileTests(unittest.TestCase):
 
 
 @requires_db
+@pytest.mark.usefixtures("synthetic_allergen_policy")
 class AllergenGroupRestrictionTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
@@ -69,6 +95,7 @@ class AllergenGroupRestrictionTests(unittest.TestCase):
         self.assertNotIn(CENTURY_EGG, r["excluded_food_ids"])
 
 
+@unittest.skipUnless(default_path().is_file(), "Local allergen source file is not distributed with code")
 class OfficialBasisTests(unittest.TestCase):
     """2026-11-02：群組依衛福部食品過敏原標示規定與食藥署建議標示事項。"""
 

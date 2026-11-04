@@ -9,6 +9,7 @@
 5. estimation.batch：掃描 7 種營養素（排除類別 0）、含主食樣本，dry-run 回報預估費用。
 絕不呼叫真實 OpenAI：推估值一律為測試建立的快取物件或假 responder。
 """
+import pytest
 import tempfile
 import unittest
 from decimal import Decimal
@@ -21,6 +22,8 @@ from app.services import meal_calculation as mc
 from app.services import nutrient_category_zero as cz
 from db_support import migrate_fresh, requires_db, session_factory, truncate_all
 from recipe_workbook import build, ingredient, recipe
+
+pytestmark = pytest.mark.usefixtures("staple_policy", "category_zero_policy")
 
 D = Decimal
 MODEL = "gpt-5.4-mini-2026-03-17"

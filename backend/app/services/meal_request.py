@@ -15,7 +15,7 @@ from sqlalchemy.orm import Session
 
 from app.db.models import Member
 from app.services import household as household_service
-from app.services import ingredients, synonyms
+from app.services import allergen_groups, ingredients, synonyms
 from nutrition_target import TargetInputError
 
 MealType = Literal["breakfast", "lunch", "dinner"]
@@ -229,7 +229,19 @@ def restrictions(db: Session, draft: MealRequestDraft, members: dict) -> dict:
                     row["member_names"].append(member.display_name)
     # 同義食材（含待確認的組）也一併排除，例如對「番茄」過敏也排除「蕃茄」
     expanded: dict[str, dict] = {}
-    for base_id, extras in synonyms.restriction_expansion(list(union)).items():
+    expansions = synonyms.restriction_expansion(list(union))
+    allergy_ids = [food_id for food_id, row in union.items() if "allergen" in row["kinds"]]
+    group_path = allergen_groups.default_path()
+    if allergy_ids and group_path.is_file():
+        try:
+            groups = allergen_groups.expansion(allergy_ids, group_path)
+        except allergen_groups.AllergenGroupsInvalid:
+            from app.api.errors import ApiError
+
+            raise ApiError(503, "ALLERGEN_GROUPS_UNAVAILABLE", "無法讀取過敏原群組設定。") from None
+        for base_id, extras in groups.items():
+            expansions.setdefault(base_id, []).extend(extras)
+    for base_id, extras in expansions.items():
         for extra in extras:
             if extra["food_id"] in union:
                 continue
@@ -237,9 +249,11 @@ def restrictions(db: Session, draft: MealRequestDraft, members: dict) -> dict:
                 "ingredient_id": extra["food_id"], "relation": extra["relation"], "status": extra["status"],
                 "via": [], "kinds": [], "member_names": [],
             })
-            row["via"].append(base_id)
+            if base_id not in row["via"]:
+                row["via"].append(base_id)
             for key in ("kinds", "member_names"):
-                for value in union[base_id][key]:
+                values = ["allergen"] if key == "kinds" and extra["relation"] == "allergen_group" else union[base_id][key]
+                for value in values:
                     if value not in row[key]:
                         row[key].append(value)
     extra_names = ingredients.names(db, list(expanded))

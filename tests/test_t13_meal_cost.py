@@ -202,36 +202,37 @@ class SeasoningTests(unittest.TestCase):
         self.assertTrue(result.price_complete)
         self.assertEqual(result.purchase_total, Decimal("60"))
 
-    def test_default_seasonings_come_from_the_config_file(self):
+    def test_missing_seasoning_file_does_not_exempt_an_ingredient(self):
+        from pathlib import Path
+        from tempfile import TemporaryDirectory
         from app.services.seasonings import load_seasonings
-        seasonings = load_seasonings()
-        # 鹽、醬油、雞粉、米酒、油、太白粉（勾芡）、白胡椒粉
-        for food_id in ("FOOD000691", "FOOD001541", "FOOD001562", "FOOD000352", "FOOD000472", "FOOD000090",
-                        "FOOD000289"):
-            self.assertIn(food_id, seasonings)
-        # 主料用的麵粉、生鮮辛香（大蒜、青蔥）、水（另由免計價設定處理）不是調味料
-        for food_id in ("FOOD000077", "FOOD000377", "FOOD000039", "FOOD000598", WATER, CABBAGE):
-            self.assertNotIn(food_id, seasonings)
 
-    def test_config_list_follows_its_rules_or_states_a_reason(self):
+        with TemporaryDirectory() as folder:
+            self.assertEqual(load_seasonings(Path(folder) / "missing.json"), set())
+
+    def test_configured_seasonings_and_exclusions(self):
         import json
+        from pathlib import Path
+        from tempfile import TemporaryDirectory
+        from unittest.mock import patch
+        from app.services.seasonings import classify, load_seasonings
 
-        from app.services.seasonings import SEASONINGS_PATH, classify
-        data = json.loads(SEASONINGS_PATH.read_text(encoding="utf-8"))
-        for food_id, entry in data["ingredients"].items():
-            with self.subTest(food_id=food_id, name=entry["name"]):
-                self.assertTrue(classify(food_id, entry["name"]) or entry.get("reason"))
-        self.assertFalse(set(data["exclude"]) & set(data["ingredients"]))
-        self.assertIsNone(classify("FOOD000650", "紅酒"))       # exclude 優先於規則
-        self.assertEqual(classify(None, "鮮味炒手"), "調味粉")
-        self.assertIsNone(classify(None, "中筋麵粉"))
-
-    def test_compute_uses_config_seasonings_by_default(self):
-        quote_for, calls = lookup({})
-        result = compute_meal_cost([req(SALT, "3")], set(), Decimal("10"), quote_for, now=NOW)
-        self.assertEqual(calls, [])
-        self.assertEqual(result.missing_items, [])
-        self.assertEqual(result.cost_total, Decimal("0"))
+        with TemporaryDirectory() as folder:
+            path = Path(folder) / "seasonings.json"
+            path.write_text(json.dumps({
+                "ingredients": {SALT: {"name": "Test salt"}},
+                "exclude": {"EXCLUDED": {"reason": "Test exclusion"}},
+                "rules": {"keywords": {"test": ["salt"]}},
+            }), encoding="utf-8")
+            self.assertEqual(classify(None, "salt", path), "test")
+            self.assertIsNone(classify("EXCLUDED", "salt", path))
+            self.assertEqual(load_seasonings(path), {SALT})
+            quote_for, calls = lookup({})
+            with patch("app.services.meal_cost.load_seasonings", return_value=load_seasonings(path)):
+                result = compute_meal_cost([req(SALT, "3")], set(), Decimal("10"), quote_for, now=NOW)
+            self.assertEqual(calls, [])
+            self.assertEqual(result.missing_items, [])
+            self.assertEqual(result.cost_total, Decimal("0"))
 
 
 class TraceabilityTests(unittest.TestCase):

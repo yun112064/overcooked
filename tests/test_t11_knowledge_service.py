@@ -3,6 +3,7 @@
 真實 HTTP：測試在本機啟動 knowledge_rag/server.py 的處理器，連到測試知識庫；
 OpenAI 向量化以假轉接器取代（不呼叫付費 API），額度預留／結算寫入雲端測試庫。
 """
+import pytest
 import threading
 import unittest
 import socket
@@ -16,6 +17,8 @@ from sqlalchemy import select
 
 from db_support import migrate_fresh, requires_db, session_factory, truncate_all
 from app.services.team_link import TeamCredentials
+
+pytestmark = pytest.mark.usefixtures("embedding_test_price")
 
 BOKCHOY, TOMATO, EGG, CABBAGE = "FOOD000585", "FOOD001016", "FOOD001566", "FOOD000867"
 TOKEN = "test-knowledge-token"

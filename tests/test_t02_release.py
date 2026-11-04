@@ -47,6 +47,7 @@ def synthetic_bundle():
     return PriceBundle(manifest, '1' * 64, [run], [row])
 
 
+@pytest.mark.skipif(not MANIFEST.is_file(), reason="Local historical price release is not distributed with code")
 def test_real_price_package_has_only_two_hash_verified_sources():
     bundle = load_bundle(MANIFEST, MANIFEST_HASH)
     assert len(bundle.runs) == 8 and len(bundle.quotes) == 2279
@@ -54,9 +55,11 @@ def test_real_price_package_has_only_two_hash_verified_sources():
     assert set(bundle.manifest['files']) == {'price_collection_runs.json', 'price_quote_snapshots.json'}
 
 
-def test_rejects_manifest_hash_mismatch():
+def test_rejects_manifest_hash_mismatch(tmp_path):
+    manifest = tmp_path / 'manifest.json'
+    manifest.write_text('{}', encoding='utf-8')
     with pytest.raises(ValueError, match='manifest hash'):
-        load_bundle(MANIFEST, '0' * 64)
+        load_bundle(manifest, '0' * 64)
 
 
 def test_rejects_scalar_price_different_from_payload():
@@ -139,13 +142,16 @@ def test_import_rejects_other_databases(database):
 
 @pytest.fixture
 def pg_connection():
-    url = os.getenv('TEST_DATABASE_URL')
+    url = os.getenv('T02_TEST_DATABASE_URL') or os.getenv('TEST_DATABASE_URL')
     if not url:
         pytest.skip('Verified disposable V3 TEST_DATABASE_URL not set')
     engine = create_engine(url)
     # No generic database URL is permitted, even if a caller accidentally sets it.
     if engine.url.database != 'meal_planner_1102_v3_t02_test':
-        raise RuntimeError('This test only accepts the dedicated disposable T02 database')
+        engine.dispose()
+        if os.getenv('T02_TEST_DATABASE_URL'):
+            raise RuntimeError('This test only accepts the dedicated disposable T02 database')
+        pytest.skip('Set T02_TEST_DATABASE_URL to the dedicated disposable T02 database')
     with engine.connect() as connection:
         with connection.begin() as transaction:
             assert connection.scalar(text('SELECT current_database()')) == 'meal_planner_1102_v3_t02_test'

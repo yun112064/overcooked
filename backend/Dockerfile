@@ -12,6 +12,7 @@ COPY nutrition_target /app/nutrition_target
 COPY nutrition_planning /app/nutrition_planning
 COPY nutrition_model /app/nutrition_model
 COPY knowledge_rag /app/knowledge_rag
+COPY ops /app/ops
 COPY config /app/config
 # T10 付費呼叫預留與結算用的模型價格表
 COPY config/model_pricing.json /app/config/model_pricing.json
