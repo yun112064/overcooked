@@ -240,7 +240,7 @@ def target_preview(draft: MealRequestDraft, members: dict) -> dict:
              "meal_ratio": p["meal_ratio"], "n": p["n"], "scaled_target": p["scaled_target"]}
             for p in result["participations"]
         ],
-        "approved_for_adoption": False,
+        "approved_for_adoption": result.get("approved_for_adoption") is True,
     }
 
 

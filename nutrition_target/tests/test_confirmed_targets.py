@@ -53,22 +53,6 @@ class ConfirmedTargetTests(unittest.TestCase):
                 self.assertTrue(result["daily_target_available"])
                 self.assertFalse(result["approved_for_adoption"])
 
-    def test_approved_0_3_1_only_changes_version_and_status(self):
-        old = json.loads(RULE.read_text(encoding="utf-8"))
-        new = json.loads((RULE_ROOT / "hpa-dri8-mvp-0.3.1.json").read_text(encoding="utf-8"))
-        self.assertEqual((old["rule_status"], new["rule_status"]), ("user_confirmed_mvp", "approved"))
-        for key in ("rule_version", "rule_status"):
-            old.pop(key), new.pop(key)
-        self.assertEqual(old, new)
-        approved = NutritionTargetService(RULE_ROOT / "hpa-dri8-mvp-0.3.1.json")
-        for data in (member(), member(goal="fat_loss", age_years=45, weight_kg="90")):
-            with self.subTest(data=data):
-                before, after = self.service.daily_target(data), approved.daily_target(data)
-                self.assertEqual(after["daily_reference"], before["daily_reference"])
-                self.assertEqual(after["rule_status"], "approved")
-                # Rule approval is not G03 source acceptance.
-                self.assertFalse(after["approved_for_adoption"])
-
     def test_uniform_protein_across_ages_and_goals(self):
         for age in (0, 3, 8, 18, 19, 69, 70, 71, 75):
             for goal in self.service.available_goals(age):
@@ -266,3 +250,33 @@ class MinorReferenceTableTests(unittest.TestCase):
         with self.assertRaises(TargetInputError) as ctx:
             self.service.daily_target(member(age_years=15, goal="fat_loss"))
         self.assertEqual(ctx.exception.reason, "GOAL_NOT_ALLOWED_FOR_AGE")
+
+
+RULE_V41 = RULE_ROOT / "hpa-dri8-mvp-0.4.1.json"
+
+
+class ApprovedRuleTests(unittest.TestCase):
+    """0.4.1：內容同 0.4.0，只加上規則核准與 G03 核准（2026-11-04 使用者決議）。"""
+
+    def test_only_version_status_and_g03_differ_from_0_4_0(self):
+        old = json.loads(RULE_V4.read_text(encoding="utf-8"))
+        new = json.loads(RULE_V41.read_text(encoding="utf-8"))
+        self.assertEqual((new["rule_status"], new["g03_status"]), ("approved", "approved"))
+        for key in ("rule_version", "rule_status", "g03_status", "g03_decision"):
+            old.pop(key, None), new.pop(key, None)
+        self.assertEqual(old, new)
+
+    def test_same_targets_as_0_4_0_and_now_adoptable(self):
+        before, after = NutritionTargetService(RULE_V4), NutritionTargetService(RULE_V41)
+        for data in (member(), member(goal="fat_loss", age_years=45, weight_kg="90"),
+                     member(age_years=11, equation_sex="F", weight_kg="32.8", activity_category="active",
+                            goal="general")):
+            with self.subTest(data=data):
+                old, new = before.daily_target(data), after.daily_target(data)
+                self.assertEqual(new["daily_reference"], old["daily_reference"])
+                self.assertFalse(old["approved_for_adoption"])
+                self.assertTrue(new["approved_for_adoption"])
+        aggregate = after.aggregate_meal_targets([participation()])
+        self.assertTrue(aggregate["approved_for_adoption"])
+        # E0 alone is never a target, approved rule or not.
+        self.assertFalse(after.energy_baseline(member())["approved_for_adoption"])

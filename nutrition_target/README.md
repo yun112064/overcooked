@@ -1,8 +1,8 @@
 # 今天吃啥：T03 營養目標模組
 
-本資料夾集中 T03 的 Python 套件、版本化規則、合成測試資料、測試與交接文件，與 T04 的 `nutrition_model/` 並列。T03 已決議以 Spec 為準；G03 仍未通過。跨模組狀態見 [決議與整合待辦](../docs/T04-T06-merge-pending.md)。
+本資料夾集中 T03 的 Python 套件、版本化規則、合成測試資料、測試與交接文件，與 T04 的 `nutrition_model/` 並列。T03 已決議以 Spec 為準；G03 於 2026-11-04 由使用者決議核准（規則 0.4.1）。跨模組狀態見 [決議與整合待辦](../docs/T04-T06-merge-pending.md)。
 
-現行規則：`hpa-dri8-mvp-0.3.1`（`rule_status: approved`，2026-11-04 使用者核准，內容同 0.3.0；G03 仍未通過），沿用 T03 分支已實作的目標限制：0–18 歲僅 `general`，19 歲起開放維持／增肌／減脂。19 歲是既有 T03 的成人目標支援門檻，並非 Spec 對法律成年年齡的定義。一般餐食／維持不調整熱量、增肌+5%、減脂−500 kcal；蛋白質係數維持 1.1 g/kg/day。既有成人式的一般餐食試算仍待 G03 適用性驗證，不能宣稱已確認適用兒少。減脂結果低於1200時明確拒絕，不自動夾值。
+現行規則：`hpa-dri8-mvp-0.4.1`（`rule_status: approved`、`g03_status: approved`，2026-11-04 使用者核准，內容同 0.4.0），沿用 T03 分支已實作的目標限制：0–18 歲僅 `general`，19 歲起開放維持／增肌／減脂。19 歲是既有 T03 的成人目標支援門檻，並非 Spec 對法律成年年齡的定義。一般餐食／維持不調整熱量、增肌+5%、減脂−500 kcal；蛋白質係數維持 1.1 g/kg/day。未滿 19 歲自 0.4.0 起改查國健署 DRIs 第八版總表分齡值，不再套成人公式。減脂結果低於1200時明確拒絕，不自動夾值。
 
 已實作每日基準、餐別基準、用餐／便當及五段n合計、規則與輸入快照、精確合成基準及CLI。T08、T15仍等待隊友功能。本次不建立公開API、登入、資料庫或前端。
 
@@ -16,7 +16,7 @@
 
 ```sh
 python -m nutrition_target \
-  --rules nutrition_target/rules/hpa-dri8-mvp-0.3.1.json \
+  --rules nutrition_target/rules/hpa-dri8-mvp-0.4.1.json \
   --input nutrition_target/tests/fixtures/member-A.json \
   --operation daily
 ```
@@ -27,7 +27,7 @@ python -m nutrition_target \
 
 ```sh
 python -m nutrition_target \
-  --rules nutrition_target/rules/hpa-dri8-mvp-0.3.1.json \
+  --rules nutrition_target/rules/hpa-dri8-mvp-0.4.1.json \
   --input nutrition_target/tests/fixtures/member-A.json \
   --operation meal --meal dinner
 ```
@@ -38,7 +38,7 @@ python -m nutrition_target \
 
 ```sh
 python -m nutrition_target \
-  --rules nutrition_target/rules/hpa-dri8-mvp-0.3.1.json \
+  --rules nutrition_target/rules/hpa-dri8-mvp-0.4.1.json \
   --input nutrition_target/tests/fixtures/participations.json \
   --operation aggregate
 ```
@@ -60,7 +60,7 @@ python -m unittest discover -s nutrition_target/tests -t . -v
 ```python
 from nutrition_target import NutritionTargetService, TargetInputError
 
-service = NutritionTargetService("nutrition_target/rules/hpa-dri8-mvp-0.3.1.json")
+service = NutritionTargetService("nutrition_target/rules/hpa-dri8-mvp-0.4.1.json")
 daily = service.daily_target(member_input)
 meal = service.meal_target(member_input, "dinner")
 combined = service.aggregate_meal_targets(participations)
@@ -73,6 +73,6 @@ combined = service.aggregate_meal_targets(participations)
 - T12消費未縮放每日基準或合計目標，依Spec先對齊基準配方±10%，再乘總N；精確分數避免循環小數取整造成邊界漂移。
 - FastAPI/Pydantic轉接、家庭權限及正式Log沿用T06骨架責任。本模組不擴張其範圍。
 
-新流程明確使用 0.3.1；0.1.0、0.2.0、0.3.0 保留原始位元組與歷史計算行為，僅供重現，不供新流程選用。詳見 [交接契約與人工案例](docs/T03-handoff.md)、[規則來源與G03](docs/T03-nutrition-rule-proposal.md)。
+新流程明確使用 0.4.1；0.1.0、0.2.0、0.3.0、0.4.0 保留原始位元組與歷史計算行為，僅供重現，不供新流程選用。詳見 [交接契約與人工案例](docs/T03-handoff.md)、[規則來源與G03](docs/T03-nutrition-rule-proposal.md)。
 
 原 `app.nutrition` 匯入與 `python -m app.nutrition` 入口已移至 `nutrition_target`；相依功能接入時使用上述新路徑。未來 Docker 接入須同時納入套件與規則，單純搬移資料夾不代表已完成 API／容器整合。
