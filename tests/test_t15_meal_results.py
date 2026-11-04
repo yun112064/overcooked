@@ -511,10 +511,10 @@ class MissingNutritionDecisionTests(ResultTestCase):
     def test_out_of_range_offers_no_decision(self):
         def doubled():
             energy, protein = self.reference()
-            # 蛋白質五倍、熱量剛好 → 資料庫組合整道縮放（決策 #48）與 AI 份量校正（只依熱量）都無法讓蛋白質回到 ±10%
-            return per_gram_calculator(energy / 200, protein / 40)
+            # 蛋白質只有 1/5、熱量剛好 → 資料庫組合整道縮放（決策 #48）與 AI 份量校正都補不到蛋白質下限
+            return per_gram_calculator(energy / 200, protein / 1000)
         doubled.factory = True
-        # 資料庫候選組合全部不可行 → 自動 AI 回退；AI 菜蛋白質同樣超出 ±10%
+        # 資料庫候選組合全部不可行 → 自動 AI 回退；AI 菜蛋白質同樣低於目標 10%
         self.generate(calculator=doubled, responder=FakeResponder(AI_MENU, AI_MENU), runs=2)
         self.assertEqual(self.status(), "result_ready")
         view = self.result()

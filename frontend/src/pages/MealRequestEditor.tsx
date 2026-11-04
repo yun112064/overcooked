@@ -7,7 +7,7 @@ import {
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useRef, useState, type ReactNode } from 'react'
 import { Controller, useForm, useWatch, type FieldPath } from 'react-hook-form'
-import { Link, useParams } from 'react-router'
+import { Link, Navigate, useParams } from 'react-router'
 import { z } from 'zod'
 import { api, apiError, errorMessage, errorStatus } from '../api/client'
 import {
@@ -83,6 +83,7 @@ function toForm(row: MealRequest, members: Member[]): FormValues {
 
 function toDraft(v: FormValues): MealRequestDraft {
   return {
+    mode: 'questionnaire',
     meal_date: v.meal_date || null,
     meal_type: v.meal_type || null,
     budget: v.budget.trim() || null,
@@ -115,6 +116,7 @@ export default function MealRequestEditor() {
   if (request.isError) return <Alert severity="error">{errorMessage(request.error)}</Alert>
   if (members.isError) return <Alert severity="error">{errorMessage(members.error)}</Alert>
   if (!request.data || !members.data) return <CircularProgress />
+  if (request.data.draft.mode === 'picker') return <Navigate to={`/pick/${request.data.id}`} replace />
   // key：換問卷時重建表單狀態
   return <Editor key={request.data.id} initial={request.data} members={members.data} />
 }

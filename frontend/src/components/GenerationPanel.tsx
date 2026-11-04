@@ -71,10 +71,10 @@ function TeamStatus() {
   )
 }
 
-type Props = { row: MealRequest; onChanged: () => void }
+type Props = { row: MealRequest; onChanged: () => void; autoSubmit?: boolean }
 
 /** 送出生成並追蹤工作狀態；有結果時顯示結果頁（T15）。查無資料庫菜單會自動改由 AI 生成，不詢問同意。 */
-export default function GenerationPanel({ row, onChanged }: Props) {
+export default function GenerationPanel({ row, onChanged, autoSubmit = false }: Props) {
   const queryClient = useQueryClient()
   // 同一問卷版本固定使用同一把冪等鍵：網路重送或重複點擊不會建立第二個工作
   const keys = useRef(new Map<number, string>())
@@ -133,6 +133,15 @@ export default function GenerationPanel({ row, onChanged }: Props) {
   const confirmed = row.status === 'confirmed'
   const hasResult = row.status === 'result_ready' || row.status === 'awaiting_decision' || confirmed
   const canSubmit = row.complete && !active && !confirmed && !(lastJobForThisVersion && job.status === 'succeeded')
+
+  // 食譜庫選菜按確定後自動送出一次（等最近工作查詢完成，避免重複送出）
+  const autoSent = useRef(false)
+  useEffect(() => {
+    if (autoSubmit && !autoSent.current && latest.isFetched && canSubmit && !submit.isPending) {
+      autoSent.current = true
+      submit.mutate(false)
+    }
+  }, [autoSubmit, latest.isFetched, canSubmit, submit])
 
   return (
     <Stack spacing={1.5}>

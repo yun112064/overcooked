@@ -151,14 +151,15 @@ export default function MealResultView({ requestId, mealDate, onChanged }: Props
   const energyTarget = num(r.nutrition.target?.energy_kcal)
   const protein = num(r.nutrition.protein_g)
   const proteinTarget = num(r.nutrition.target?.protein_g)
-  const ratioNote = (v: number | null, target: number | null, unit: string) => {
+  // over：超過目標是問題（熱量）；否則低於目標才是問題（蛋白質）
+  const ratioNote = (v: number | null, target: number | null, unit: string, over: boolean) => {
     if (v === null || !target) return { note: target ? `目標 ${Math.round(target)} ${unit}` : undefined, tone: 'default' as const }
     const diff = v / target - 1
     return { note: `目標 ${Math.round(target)} ${unit}・${diff >= 0 ? '+' : ''}${Math.round(diff * 100)}%`,
-      tone: Math.abs(diff) <= 0.1 ? 'good' as const : 'warn' as const }
+      tone: (over ? diff <= 0.1 : diff >= -0.1) ? 'good' as const : 'warn' as const }
   }
-  const energyInfo = ratioNote(energy, energyTarget, 'kcal')
-  const proteinInfo = ratioNote(protein, proteinTarget, 'g')
+  const energyInfo = ratioNote(energy, energyTarget, 'kcal', true)
+  const proteinInfo = ratioNote(protein, proteinTarget, 'g', false)
   const computed = r.prices.status === 'computed'
   const cost = computed ? num(r.prices.cost_total) : null
   const budget = num(r.prices.budget)
@@ -410,7 +411,9 @@ export default function MealResultView({ requestId, mealDate, onChanged }: Props
             <Typography variant="body2">
               成本價 <b>{r.prices.cost_total !== null ? money(r.prices.cost_total) : `未知（已知 ${money(r.prices.known_cost_total)}）`}</b>
             </Typography>
-            <Typography variant="body2" color="text.secondary">預算 {money(r.prices.budget)}</Typography>
+            {r.prices.budget !== null && (
+              <Typography variant="body2" color="text.secondary">預算 {money(r.prices.budget)}</Typography>
+            )}
           </Box>
         )}
         {computed && pricePending && (

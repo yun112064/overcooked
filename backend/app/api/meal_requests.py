@@ -13,6 +13,7 @@ from app.db.session import get_db
 from app.services import ingredients
 from app.services import jobs as job_service
 from app.services import meal_request as service
+from app.services import recipe_catalog as catalog_service
 
 router = APIRouter(prefix="/meal-requests", tags=["meal-requests"], dependencies=[Depends(verify_origin)])
 
@@ -85,7 +86,8 @@ def list_requests(household_id=Depends(current_household_id), db: Session = Depe
     return {"meal_requests": [
         {"id": str(r.id), "status": r.status, "version": r.version,
          "meal_date": r.meal_date.isoformat() if r.meal_date else None,
-         "meal_type": r.payload.get("meal_type"), "updated_at": r.updated_at.isoformat()}
+         "meal_type": r.payload.get("meal_type"), "mode": r.payload.get("mode", "questionnaire"),
+         "updated_at": r.updated_at.isoformat()}
         for r in rows
     ]}
 
@@ -114,6 +116,15 @@ def create_request(draft: service.MealRequestDraft, auth: AuthContext = Depends(
 def get_request(request_id: uuid.UUID, household_id=Depends(current_household_id),
                 db: Session = Depends(get_db)):
     return _out(db, get_owned_request(db, household_id, request_id))
+
+
+@router.get("/{request_id}/recipe-catalog")
+def recipe_catalog(request_id: uuid.UUID, household_id=Depends(current_household_id),
+                   db: Session = Depends(get_db)):
+    """食譜庫選菜：合格食譜依主要食材／菜系／類型／主食種類分類，並標出與本問卷成員禁忌衝突的菜。"""
+    draft = service.load(get_owned_request(db, household_id, request_id).payload)
+    excluded = service.restrictions(db, draft, _members(db, household_id))["excluded_food_ids"]
+    return catalog_service.catalog(db, set(excluded))
 
 
 @router.put("/{request_id}")

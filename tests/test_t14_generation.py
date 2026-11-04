@@ -54,6 +54,10 @@ def menu(*dishes):
     return {"dishes": list(dishes)}
 
 
+# 所有食材熱量／蛋白質都只有 1/3（低於目標 10%，資料庫菜整道最多 1 倍救不回）
+THIRD = {f: Decimal(1) / 3 for f in (TOMATO, EGG, CABBAGE, GARLIC, BOKCHOY, CARROT, BASIL, SOY)}
+
+
 def per_gram_calculator(energy_per_g, protein_per_g):
     """假營養計算：每克固定熱量／蛋白質；回傳形狀與 T12 Calculator 相同。"""
     from app.services.meal_calculation import IngredientNutrition
@@ -868,7 +872,7 @@ class DatabaseCandidateTests(GenerationTestCase):
         bad = menu(ai_dish("番茄蛋花湯", [(TOMATO, 50), (EGG, 50)], method="煮"),
                    ai_dish("蒜香高麗菜", [(CABBAGE, 50), (GARLIC, 50)]))
         energy, protein = self.reference()
-        calculator = per_gram_calculator(energy / 200, protein * 5 / 200)  # 蛋白質永遠是熱量對齊後的 5 倍
+        calculator = per_gram_calculator(energy / 200, protein / 5 / 200)  # 蛋白質永遠只有熱量對齊後的 1/5
         responder = FakeResponder(bad, bad)
         self.run_job(responder, calculator=calculator)
         job = self.job(job_id)
@@ -924,8 +928,8 @@ class DatabaseCandidateTests(GenerationTestCase):
         self.create_request(dish_count=2)
         job_id = self.submit()
         responder = FakeResponder()
-        # 含高麗菜的組合熱量過高（整道縮到最小倍率 0.4 仍超出，決策 #48）
-        self.run_job(responder, calculator=self.calculator({CABBAGE: 50}))
+        # 含高麗菜的組合熱量過低（整道最多 1 倍，補不到目標的 90%，決策 #48）
+        self.run_job(responder, calculator=self.calculator({CABBAGE: Decimal("0.01")}))
         self.assertEqual(self.job(job_id)["status"], "succeeded")
         [row] = self.results()
         self.assertEqual(row.mode, "database_menu")
@@ -942,17 +946,31 @@ class DatabaseCandidateTests(GenerationTestCase):
         ai_menu = menu(ai_dish("番茄蛋花湯", [(TOMATO, 50), (EGG, 50)], method="煮"),
                        ai_dish("蒜香高麗菜", [(CABBAGE, 50), (GARLIC, 50)]))
         responder = FakeResponder(ai_menu)
-        # 所有食材熱量／蛋白質都是 3 倍 → 每個資料庫組合都超出 ±10%（AI 菜同樣超出，只能查看）
-        tripled = {f: 3 for f in (TOMATO, EGG, CABBAGE, GARLIC, BOKCHOY, CARROT, BASIL, SOY)}
-        self.run_job(responder, calculator=self.calculator(tripled))
+        # 所有食材熱量／蛋白質都只有 1/3 → 每個資料庫組合都低於目標 10%（整道最多 1 倍，放大不了）
+        self.run_job(responder, calculator=self.calculator(THIRD))
         self.assertEqual(self.job(job_id)["status"], "succeeded")
         [row] = self.results()
         self.assertEqual((row.mode, row.fallback_reason), ("ai_generated_menu", "DATABASE_MENU_NUTRITION_INFEASIBLE"))
         self.assertEqual(len(responder.calls), 1)
         self.assertGreater(len(row.payload["fallback_details"]["tried"]), 1)
-        # AI 菜熱量同樣 3 倍 → 份量校正縮到約 1/3 後可採用
-        self.assertAlmostEqual(float(row.payload["evidence"]["ai_portion_scale"]["factor"]), 1 / 3, places=3)
+        # AI 菜熱量同樣 1/3 → 份量校正放大約 3 倍後可採用
+        self.assertAlmostEqual(float(row.payload["evidence"]["ai_portion_scale"]["factor"]), 3, places=3)
         self.assertTrue(row.payload["calculation"]["adoptable"])
+
+    def test_picker_keeps_database_recipes_even_when_infeasible(self):
+        # 食譜庫選菜（2026-11-04）：不轉 AI 重做，照食譜做並標示不可採用；不填預算也能送出
+        self.create_request(mode="picker", budget=None, dish_count=2, specified_dishes=["番茄炒蛋", "紅蘿蔔炒蛋"])
+        job_id = self.submit()
+        responder = FakeResponder()
+        self.run_job(responder, calculator=self.calculator(THIRD))
+        self.assertEqual(self.job(job_id)["status"], "succeeded", self.job(job_id))
+        [row] = self.results()
+        self.assertEqual((row.mode, row.fallback_reason), ("database_menu", None))
+        self.assertEqual(sorted(d["dish_name"] for d in row.payload["dishes"]), ["番茄炒蛋", "紅蘿蔔炒蛋"])
+        self.assertTrue(all(d["specified"] and d["source"] == "database" for d in row.payload["dishes"]))
+        self.assertFalse(row.payload["calculation"]["adoptable"])
+        self.assertEqual(row.payload["cost"]["status"], "computed")
+        self.assertEqual(responder.calls, [])
 
     def test_combinations_that_only_miss_data_are_never_the_result_and_fall_back_to_ai(self):
         """決策 #47：營養未知（缺資料）的資料庫組合永不作為結果；沒有可採用組合一律轉 AI，並記錄每組原因。"""

@@ -210,13 +210,13 @@ class EligibilityTests(PlanTestCase):
         self.assertEqual(self.plans_on("2026-08-20"), [])
 
     def test_nutrition_out_of_range_is_rejected(self):
-        def too_much():
+        def too_little():
             energy, protein = self.reference()
-            # 熱量剛好、蛋白質約為目標的 4 倍（AI 份量校正只依熱量縮放，蛋白質仍超出）
-            return per_gram_calculator(energy / Decimal(200), protein / Decimal(50))
-        too_much.factory = True
-        # 資料庫候選組合全部不可行 → 自動 AI 回退；AI 菜蛋白質同樣超出 ±10%，可查看但不可採用
-        self.generate(calculator=too_much, responder=FakeResponder(AI_MENU, AI_MENU), runs=2)
+            # 熱量剛好、蛋白質只有目標的 1/5（低於 10% 不可採用；超過目標則可採用，2026-11-04）
+            return per_gram_calculator(energy / Decimal(200), protein / Decimal(1000))
+        too_little.factory = True
+        # 資料庫候選組合全部不可行 → 自動 AI 回退；AI 菜蛋白質同樣不足，可查看但不可採用
+        self.generate(calculator=too_little, responder=FakeResponder(AI_MENU, AI_MENU), runs=2)
         res = self.adopt()
         self.assertEqual(res.status_code, 422, res.text)
         self.assertIn("NUTRITION_OUT_OF_RANGE", [b["code"] for b in res.json()["error"]["details"]["blocks"]])
