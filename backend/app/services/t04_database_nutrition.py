@@ -18,7 +18,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.models.nutrition import NutritionSource, NutritionSourceLink
-from app.services.nutrition_import import NUTRIENT_COLUMNS, find_nutrition_candidates
+from app.services.nutrition_import import NUTRIENT_COLUMNS, _references, find_nutrition_candidates
 from app.services.recipe_import import WorkbookValidationError
 
 
@@ -126,8 +126,14 @@ def calculate_food_nutrition(
         return {"success": False, "error": "weight_basis_mismatch"}
     basis_verified = weight_basis is not None and weight_basis == observation_basis
     sources = _sources(session, row.nutrition_id)
-    # Checked on the stored links, so rows imported before the quality flag existed are covered too.
-    source_verified = any(source["included_in_calculation"] for source in sources)
+    # Every declared calculation source must still be linked; the importer drops links to recipe
+    # lines that were removed or changed, so a partial set stays unverified.
+    try:
+        declared = set(_references(row.raw_data.get("計算來源ID")))
+    except WorkbookValidationError:
+        declared = set()
+    linked = {source["source_key"] for source in sources if source["included_in_calculation"]}
+    source_verified = bool(declared) and declared == linked
     if not basis_verified:
         missing_reason = "weight_basis_unverified"
     elif not source_verified:
@@ -136,11 +142,21 @@ def calculate_food_nutrition(
         missing_reason = "no_cooking_basis; raw composition used as supplied"
     else:
         missing_reason = None
-    exact = scale_per_100g({field: getattr(row, field) for field in NUTRIENT_FIELDS}, weight)
+    scaled = scale_per_100g({field: getattr(row, field) for field in NUTRIENT_FIELDS}, weight)
+    # Without a verified basis the scaled values are reference only (AC13): the official
+    # nutrition stays unknown, so recipe totals and completeness cannot use it.
+    exact = scaled if missing_reason is None else dict.fromkeys(NUTRIENT_FIELDS)
     missing = [field for field, value in exact.items() if value is None]
     shown = {
         field: (value.quantize(Decimal("0.01")) if round_result and value is not None else value)
         for field, value in exact.items()
+    }
+    reference = {} if missing_reason is None else {
+        "reference_nutrition": {
+            field: (value.quantize(Decimal("0.01")) if round_result and value is not None else value)
+            for field, value in scaled.items()
+        },
+        "reference_nutrition_unrounded": scaled,
     }
     return {
         "success": True,
@@ -164,6 +180,7 @@ def calculate_food_nutrition(
         "source_basis_verified": source_verified,
         "cooking_adjustment_complete": missing_reason is None,
         "missing_reason": missing_reason,
+        **reference,
         "is_estimated": False,
     }
 

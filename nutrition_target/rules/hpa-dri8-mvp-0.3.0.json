@@ -1,6 +1,6 @@
 {
   "rule_version": "hpa-dri8-mvp-0.3.0",
-  "rule_status": "approved",
+  "rule_status": "user_confirmed_mvp",
   "source_verification": "text_verified_pdf_visual_check_pending",
   "product_scope": "adult_standard_for_all_ages_mvp_adult_goals_from_19",
   "energy": {

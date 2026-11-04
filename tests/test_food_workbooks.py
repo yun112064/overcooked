@@ -132,7 +132,12 @@ class FoodWorkbookTests(unittest.TestCase):
                 cooking_state="未熟製",
                 cooking_method=None,
                 weight_g=150,
+                weight_basis="raw",
+                consumed_as_is=True,
             )
+            unverified = calculate_food_nutrition(
+                session, import_id=bundle.import_id, food_id="FOOD000005",
+                cooking_state="未熟製", cooking_method=None, weight_g=150)
         self.assertTrue(result["success"])
         self.assertEqual(result["food_id"], "FOOD000005")
         self.assertEqual(result["import_id"], bundle.import_id)
@@ -142,9 +147,14 @@ class FoodWorkbookTests(unittest.TestCase):
         self.assertEqual(result["missing_fields"], ["sugars_g"])
         self.assertEqual(result["sources"][0]["provider"], "TFDA")
         self.assertTrue(result["sources"][0]["included_in_calculation"])
-        # No declared weight basis: values are usable, but the cooking basis is not verified.
-        self.assertFalse(result["cooking_adjustment_complete"])
-        self.assertEqual(result["missing_reason"], "weight_basis_unverified")
+        self.assertTrue(result["source_basis_verified"])
+        self.assertNotIn("reference_nutrition", result)
+        # No declared weight basis: values are reference only, official nutrition stays unknown (AC13).
+        self.assertFalse(unverified["cooking_adjustment_complete"])
+        self.assertEqual(unverified["missing_reason"], "weight_basis_unverified")
+        self.assertIsNone(unverified["nutrition"]["protein_g"])
+        self.assertFalse(unverified["nutrition_complete"])
+        self.assertEqual(unverified["reference_nutrition"]["protein_g"], Decimal("1.50"))
 
     def test_t04_database_weight_basis_must_match_observation_state(self):
         bundle = self.parse()
@@ -159,10 +169,27 @@ class FoodWorkbookTests(unittest.TestCase):
         # Matching basis alone is not a cooking basis for raw composition.
         self.assertTrue(raw["weight_basis_verified"])
         self.assertFalse(raw["cooking_adjustment_complete"])
+        self.assertIsNone(raw["nutrition"]["protein_g"])
         self.assertTrue(as_is["cooking_adjustment_complete"])
         self.assertIsNone(as_is["missing_reason"])
         self.assertEqual(cooked, {"success": False, "error": "weight_basis_mismatch"})
         self.assertEqual(invalid, {"success": False, "error": "invalid_weight_basis"})
+
+    def test_t04_database_partial_calculation_sources_stay_unverified(self):
+        # RI999 is a recipe line the recipe workbook no longer has, so the importer drops its link.
+        self.rows[0].update({"原來源ID": "TFDA_A01\nRI999", "計算來源ID": "TFDA_A01\nRI999",
+                             "原來源筆數": 2, "計算來源筆數": 2})
+        bundle = self.parse()
+        self.save(bundle)
+        with Session(self.engine) as session:
+            result = calculate_food_nutrition(
+                session, import_id=bundle.import_id, food_id="FOOD000005", cooking_state="未熟製",
+                cooking_method=None, weight_g=150, weight_basis="raw", consumed_as_is=True)
+        self.assertIn("recipe_source_line_removed", result["quality_issues"])
+        self.assertTrue(any(source["included_in_calculation"] for source in result["sources"]))
+        self.assertFalse(result["source_basis_verified"])
+        self.assertEqual(result["missing_reason"], "missing_calculation_source")
+        self.assertIsNone(result["nutrition"]["protein_g"])
 
     def test_t12_line_nutrition_matches_t04_source_conversion(self):
         from fractions import Fraction
@@ -211,6 +238,7 @@ class FoodWorkbookTests(unittest.TestCase):
                     "cooking_state": "已熟製",
                     "cooking_method": "水煮",
                     "weight_g": 200,
+                    "weight_basis": "cooked",
                 }],
                 servings=2,
             )
