@@ -154,6 +154,8 @@ def parse_nutrition_workbooks(recipes_path, catalog_path, nutrition_path, *, sou
         original, calculated = _references(row["原來源ID"]), set(_references(row["計算來源ID"]))
         if not original or not calculated.issubset(original):
             raise WorkbookValidationError(f"Invalid source references at All/{number}")
+        if not calculated:
+            issues.append("missing_calculation_source")
         for column, expected in (("原來源筆數", len(original)), ("計算來源筆數", len(calculated))):
             declared = _number(row[column], f"All/{number}/{column}")
             if declared is None or declared != declared.to_integral_value():

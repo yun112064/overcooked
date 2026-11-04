@@ -142,6 +142,27 @@ class FoodWorkbookTests(unittest.TestCase):
         self.assertEqual(result["missing_fields"], ["sugars_g"])
         self.assertEqual(result["sources"][0]["provider"], "TFDA")
         self.assertTrue(result["sources"][0]["included_in_calculation"])
+        # No declared weight basis: values are usable, but the cooking basis is not verified.
+        self.assertFalse(result["cooking_adjustment_complete"])
+        self.assertEqual(result["missing_reason"], "weight_basis_unverified")
+
+    def test_t04_database_weight_basis_must_match_observation_state(self):
+        bundle = self.parse()
+        self.save(bundle)
+        common = dict(import_id=bundle.import_id, food_id="FOOD000005", cooking_state="未熟製",
+                      cooking_method=None, weight_g=150)
+        with Session(self.engine) as session:
+            raw = calculate_food_nutrition(session, weight_basis="raw", **common)
+            as_is = calculate_food_nutrition(session, weight_basis="raw", consumed_as_is=True, **common)
+            cooked = calculate_food_nutrition(session, weight_basis="cooked", **common)
+            invalid = calculate_food_nutrition(session, weight_basis="edible", **common)
+        # Matching basis alone is not a cooking basis for raw composition.
+        self.assertTrue(raw["weight_basis_verified"])
+        self.assertFalse(raw["cooking_adjustment_complete"])
+        self.assertTrue(as_is["cooking_adjustment_complete"])
+        self.assertIsNone(as_is["missing_reason"])
+        self.assertEqual(cooked, {"success": False, "error": "weight_basis_mismatch"})
+        self.assertEqual(invalid, {"success": False, "error": "invalid_weight_basis"})
 
     def test_t12_line_nutrition_matches_t04_source_conversion(self):
         from fractions import Fraction

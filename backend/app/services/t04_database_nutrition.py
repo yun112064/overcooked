@@ -23,6 +23,8 @@ from app.services.recipe_import import WorkbookValidationError
 
 
 NUTRIENT_FIELDS = tuple(NUTRIENT_COLUMNS.values())
+# Weight basis each imported cooking state is measured on; other states stay unverified.
+STATE_WEIGHT_BASIS = {"未熟製": "raw", "已熟製": "cooked"}
 
 
 def _positive_decimal(value: Any, field: str) -> Decimal:
@@ -80,13 +82,22 @@ def calculate_food_nutrition(
     cooking_state: str | None,
     cooking_method: str | None,
     weight_g: Any,
+    weight_basis: str | None = None,
+    consumed_as_is: bool = False,
     round_result: bool = True,
 ) -> dict[str, Any]:
     """Scale one exact imported observation to ``weight_g``.
 
     ``weight_g`` must use the same basis as the selected observation.  Cooking
-    yield conversion remains a separate T04 step and is never inferred here.
+    yield conversion remains a separate T04 step and is never inferred here, so
+    the cooking basis is only complete when ``weight_basis`` ("raw"/"cooked")
+    is declared and matches the observation's state, a raw observation is
+    declared ``consumed_as_is``, and at least one source fed the calculation.
     """
+    if weight_basis is not None and weight_basis not in ("raw", "cooked"):
+        return {"success": False, "error": "invalid_weight_basis"}
+    if not isinstance(consumed_as_is, bool):
+        return {"success": False, "error": "invalid_consumed_as_is"}
     try:
         weight = _positive_decimal(weight_g, "weight_g")
     except ValueError:
@@ -110,6 +121,21 @@ def calculate_food_nutrition(
         return {"success": False, "error": "ambiguous_nutrition_observation"}
 
     row = rows[0]
+    observation_basis = STATE_WEIGHT_BASIS.get(row.cooking_state)
+    if weight_basis is not None and observation_basis is not None and weight_basis != observation_basis:
+        return {"success": False, "error": "weight_basis_mismatch"}
+    basis_verified = weight_basis is not None and weight_basis == observation_basis
+    sources = _sources(session, row.nutrition_id)
+    # Checked on the stored links, so rows imported before the quality flag existed are covered too.
+    source_verified = any(source["included_in_calculation"] for source in sources)
+    if not basis_verified:
+        missing_reason = "weight_basis_unverified"
+    elif not source_verified:
+        missing_reason = "missing_calculation_source"
+    elif observation_basis == "raw" and not consumed_as_is:
+        missing_reason = "no_cooking_basis; raw composition used as supplied"
+    else:
+        missing_reason = None
     exact = scale_per_100g({field: getattr(row, field) for field in NUTRIENT_FIELDS}, weight)
     missing = [field for field, value in exact.items() if value is None]
     shown = {
@@ -132,9 +158,12 @@ def calculate_food_nutrition(
         "nutrition_complete": not missing,
         "missing_fields": missing,
         "quality_issues": list(row.quality_issues),
-        "sources": _sources(session, row.nutrition_id),
+        "sources": sources,
         "nutrition_basis": "imported_food_observation",
-        "cooking_adjustment_complete": True,
+        "weight_basis_verified": basis_verified,
+        "source_basis_verified": source_verified,
+        "cooking_adjustment_complete": missing_reason is None,
+        "missing_reason": missing_reason,
         "is_estimated": False,
     }
 
@@ -226,6 +255,8 @@ def calculate_recipe_nutrition(
             cooking_state=item.get("cooking_state"),
             cooking_method=item.get("cooking_method"),
             weight_g=item.get("weight_g"),
+            weight_basis=item.get("weight_basis"),
+            consumed_as_is=item.get("consumed_as_is", False),
             round_result=False,
         )
         results.append(result)
@@ -258,7 +289,7 @@ def calculate_recipe_nutrition(
             for field, value in exact.items()
         },
         "nutrition_complete": not failed and all(value is not None for value in exact.values()),
-        "cooking_adjustment_complete": not failed,
+        "cooking_adjustment_complete": not failed and all(r["cooking_adjustment_complete"] for r in results),
         "missing_nutrients": {field: ids for field, ids in missing.items() if ids},
         "failed_ingredients": failed,
         "servings": serving_count,
