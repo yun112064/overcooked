@@ -381,6 +381,7 @@ export type MealResult = {
     aliases: string[]
     source: 'database' | 'ai'
     recipe_id: string | null
+    cover_url?: string
     specified: boolean
     cooking_method: string | null
     /** 步驟原文（不改寫） */

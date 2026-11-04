@@ -95,6 +95,16 @@ def test_history_without_expiry_does_not_become_a_current_price():
     assert source['price'] == '60'  # Original source remains unchanged.
 
 
+def test_live_quote_without_source_expiry_uses_local_freshness_window():
+    from datetime import timedelta
+
+    source = synthetic_bundle().quotes[0]['quote_payload']
+    quote = materialize_quote({'quote_payload': source, 'id': 1,
+        'recipe_release_id': 'legacy-1017', 'price_data_release_id': None, 'usage_status': None})
+    assert quote.valid_until == OLD + timedelta(hours=48)
+    assert source['valid_until'] is None
+
+
 def test_result_projection_keeps_price_provenance_and_missing_reason():
     from app.services.meal_results import _prices
     payload = {'cost': {'status': 'computed', 'lines': [{
@@ -211,3 +221,43 @@ def test_pg_live_quote_binding_preserves_two_costs_and_filters_history(pg_connec
     connection.execute(text("UPDATE recipe_data_releases SET active = false WHERE release_id='legacy-1017'"))
     with pytest.raises(ValueError, match='release changed'):
         repository.save_quote(lease, live)
+
+
+def test_pg_verified_net_mass_applies_to_the_exact_live_package_only(pg_connection):
+    from scripts.install_t02_package_mass import install as install_mass
+
+    conn = pg_connection
+    local = SimpleNamespace(execute=conn.execute, commit=lambda: None)
+    repository = PricingRepository(conn.engine)
+    payload = synthetic_bundle().quotes[0]['quote_payload']
+    live = PriceQuote.model_validate({**payload, 'queried_at': NOW, 'product_id': 'sku-1',
+                                     'product_name': 'Test bottle', 'package_unit': 'ml'})
+
+    def save(run_key, quote):
+        run_id = conn.scalar(text("""
+            INSERT INTO price_collection_runs (id,run_key,provider,trigger_type,scheduled_for,started_at,status,recipe_release_id)
+            VALUES (gen_random_uuid(), :key, 'pxmart', 'manual', :now, :now, 'completed', 'legacy-1017') RETURNING id
+        """), {'key': run_key, 'now': NOW})
+        lease = RunLease(run_id, run_key, local, recipe_release_id='legacy-1017')
+        repository.save_quote(lease, quote)
+        return conn.scalar(text('SELECT id FROM price_quote_snapshots WHERE run_id=:id'), {'id': run_id})
+
+    snapshot = save('mass-source', live)
+    manifest = {'run_key': 'mass-source', 'recipe_release_id': 'legacy-1017', 'packages': [{
+        'source_snapshot_id': snapshot, 'food_id': FOOD, 'provider': 'pxmart', 'product_id': live.product_id,
+        'product_name': live.product_name, 'volume_ml': str(live.package_quantity), 'net_mass_g': '250',
+        'source_url': 'https://example.test/manufacturer', 'source_detail': 'net mass on exact package',
+    }]}
+    assert install_mass(conn, manifest) == 1
+    assert install_mass(conn, manifest) == 0
+    raw = conn.execute(text('SELECT package_unit, quote_payload FROM price_quote_snapshots WHERE id=:id'),
+                       {'id': snapshot}).one()
+    assert raw.package_unit == raw.quote_payload['package_unit'] == 'ml'
+    lease = RunLease('fallback', 'fallback', local, recipe_release_id='legacy-1017')
+    assert repository.fallback_targets(lease, primary_run_key='mass-source') == (set(), True)
+    with Session(bind=conn) as session:
+        enriched = latest_quote(session, FOOD, now=NOW)
+        assert (enriched.package_quantity, enriched.package_unit, enriched.queried_at) == (Decimal('250'), 'g', NOW)
+        assert 'https://example.test/manufacturer' in enriched.selection_reasons[-1]
+        save('changed-volume', live.model_copy(update={'package_quantity': live.package_quantity + 1}))
+        assert latest_quote(session, FOOD, now=NOW).package_unit == 'ml'

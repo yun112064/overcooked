@@ -90,9 +90,10 @@ class SchedulerSettings:
         return settings
 
 
-def create_service(settings: SchedulerSettings) -> PriceCollectionService:
+def create_service(settings: SchedulerSettings, *,
+                   expected_recipe_release_id: str | None = None) -> PriceCollectionService:
     return PriceCollectionService(
-        repository=PricingRepository(),
+        repository=PricingRepository(expected_recipe_release_id=expected_recipe_release_id),
         adapter_factory=lambda: PxMartAdapter(
             timeout=settings.timeout_seconds,
             retries=settings.retries,

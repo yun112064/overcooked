@@ -14,6 +14,7 @@ from sqlalchemy import Engine, text
 from sqlalchemy.engine import Connection
 
 from .price_models import PriceQuote
+from .price_scope import PACKAGE_MASS_JOIN, materialize_quote, quote_unusable_reason
 
 
 LOCK_NAME = "overcooked:t02:pxmart-price-collection"
@@ -60,12 +61,14 @@ class RunProgress:
 class PricingRepository:
     """Append-only quote snapshots with one durable row per logical run."""
 
-    def __init__(self, database_engine: Engine | None = None) -> None:
+    def __init__(self, database_engine: Engine | None = None, *,
+                 expected_recipe_release_id: str | None = None) -> None:
         if database_engine is None:
             from app.db.session import engine as configured_engine
 
             database_engine = configured_engine
         self.engine = database_engine
+        self.expected_recipe_release_id = expected_recipe_release_id
 
     def try_begin_run(
         self,
@@ -91,6 +94,9 @@ class PricingRepository:
             recipe_release_id = connection.execute(text(
                 "SELECT release_id FROM recipe_data_releases WHERE active"
             )).scalar_one_or_none()
+            if (self.expected_recipe_release_id is not None
+                    and recipe_release_id != self.expected_recipe_release_id):
+                raise ValueError('Active recipe release changed before price collection')
 
             run_id = str(uuid.uuid4())
             inserted = connection.execute(
@@ -412,31 +418,33 @@ class PricingRepository:
         lease.connection.commit()
 
     def fallback_targets(self, lease: RunLease, *, primary_run_key: str) -> tuple[set[str], bool]:
-        """主要來源（全聯）那次 run 查無／不可用的食材，以及該 run 是否已跑完。
-
-        取 selection_tier=missing（not_found、unusable_package、out_of_stock、逾時等），以及
-        review_required（全聯只有估價，估價不算已知價格，改到第二來源查實際價格）；
-        工作簿 Food_ID 對應失敗不送第二來源。
-        """
+        """Find primary quotes that T13 cannot use, excluding Food_ID mapping errors."""
         row = lease.connection.execute(
-            text("SELECT id, status FROM price_collection_runs WHERE run_key = :run_key"),
+            text("SELECT id, status, recipe_release_id FROM price_collection_runs WHERE run_key = :run_key"),
             {"run_key": primary_run_key},
         ).mappings().one_or_none()
         if row is None:
             lease.connection.commit()
             return set(), False
-        names = lease.connection.execute(
-            text(
-                "SELECT canonical_name FROM price_quote_snapshots WHERE run_id = :run_id "
-                "AND (status = 'review_required' "
-                "OR COALESCE(quote_payload ->> 'selection_tier', 'missing') = 'missing') "
-                "AND COALESCE(quote_payload ->> 'selection_method', '') <> 'workbook_mapping'"
-            ),
+        if row["recipe_release_id"] != lease.recipe_release_id:
+            raise ValueError("Primary and fallback collection runs belong to different recipe releases")
+        quotes = lease.connection.execute(
+            text(f"""
+                SELECT s.id, s.canonical_name, s.status, s.quote_payload, r.recipe_release_id,
+                       r.price_data_release_id, NULL AS usage_status, m.net_mass_g, m.source_url AS mass_source_url
+                FROM price_quote_snapshots s JOIN price_collection_runs r ON r.id = s.run_id
+                {PACKAGE_MASS_JOIN}
+                WHERE s.run_id = :run_id AND COALESCE(s.quote_payload ->> 'selection_method', '')
+                      NOT IN ('workbook_mapping', 'database_mapping')
+            """),
             {"run_id": row["id"]},
-        ).scalars().all()
+        ).mappings().all()
         lease.connection.commit()
+        now = datetime.now(timezone.utc)
+        names = {quote["canonical_name"] for quote in quotes
+                 if quote["status"] != "success" or quote_unusable_reason(materialize_quote(quote), now) is not None}
         finished = row["status"] in {"completed", "completed_with_errors"}
-        return set(names), finished
+        return names, finished
 
     def list_recent_runs(self, limit: int = 20) -> list[dict[str, Any]]:
         query, params = run_rows_query(limit)

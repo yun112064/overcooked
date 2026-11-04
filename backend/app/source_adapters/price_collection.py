@@ -1,7 +1,7 @@
 """One resilient price collection run: PX Mart first, then an optional fallback source.
 
-決策 #25：全聯查無或不可用（selection_tier=missing，不含 review_required 與工作簿對應失敗）的
-食材，才以第二來源（萬家福）查價。第二來源用獨立的 run（run_key 加 ":<provider>"），
+決策 #25：全聯報價無法供 T13 使用時，以第二來源（萬家福）查價。
+第二來源用獨立的 run（run_key 加 ":<provider>"），
 統計分來源記錄；同一 run_key 重跑可續跑、已完成則略過（冪等）。
 """
 
@@ -50,6 +50,7 @@ class CollectionResult:
     skipped_reason: str | None = None
     provider: str = "pxmart"
     fallback: "CollectionResult | None" = None
+    paused_reason: str | None = None
 
 
 PRICE_EXEMPT_PATH = Path(__file__).resolve().parents[3] / "config/price_exempt_ingredients.json"
@@ -135,13 +136,34 @@ class PriceCollectionService:
                                 limit=limit, **common)
         if self.fallback_adapter_factory is None:
             return primary
-        fallback_provider = getattr(self.fallback_adapter_factory, "provider", "uniprosperity")
-        fallback = self._collect(
-            provider=fallback_provider, run_key=f"{run_key}:{fallback_provider}",
-            adapter_factory=self.fallback_adapter_factory, limit=None,
-            target_filter=lambda lease: self.repository.fallback_targets(lease, primary_run_key=run_key),
-            **common)
+        fallback = self.run_fallback(run_key=run_key, follow_primary=True, **common)
         return replace(primary, fallback=fallback)
+
+    def run_fallback(
+        self,
+        *,
+        trigger_type: str,
+        scheduled_for: datetime,
+        run_key: str,
+        food_ids: set[str] | None,
+        batch_size: int | None = None,
+        follow_primary: bool = False,
+    ) -> CollectionResult:
+        adapter_factory = self.fallback_adapter_factory
+        if adapter_factory is None:
+            raise ValueError("Fallback price collection is disabled")
+        if not follow_primary and not food_ids:
+            raise ValueError("Fallback-only collection requires explicit Food_IDs")
+        provider = getattr(adapter_factory, "provider", "uniprosperity")
+        target_filter = None
+        if follow_primary:
+            def target_filter(lease):
+                return self.repository.fallback_targets(lease, primary_run_key=run_key)
+        return self._collect(
+            provider=provider, run_key=f"{run_key}:{provider}", adapter_factory=adapter_factory,
+            trigger_type=trigger_type, scheduled_for=scheduled_for, limit=None, batch_size=batch_size,
+            food_ids=food_ids, target_filter=target_filter,
+        )
 
     def _collect(
         self,
@@ -206,7 +228,11 @@ class PriceCollectionService:
             review_count = estimate_count
             failure_count = missing_count
 
-            ingredients = merge_confirmed_synonyms(self.ingredient_loader(), self.synonym_groups)
+            ingredients = self.ingredient_loader()
+            # The legacy synonym groups belong to a different workbook. Versioned
+            # quotes require each Food_ID to match the active dictionary name.
+            if lease.recipe_release_id is None:
+                ingredients = merge_confirmed_synonyms(ingredients, self.synonym_groups)
             # 不計價食材（如水）不送去查價，成本為已知 0；在執行摘要中另計
             exempt = [i for i in ingredients if i.food_ids and set(i.food_ids) <= self.exempt_food_ids]
             if exempt:
@@ -222,11 +248,11 @@ class PriceCollectionService:
                 # 第二來源只查主要來源查無／不可用的食材；總數即目標數
                 targets, primary_finished = target_filter(lease)
                 ingredients = [i for i in ingredients if i.canonical_name in targets]
-            ingredient_total = len(ingredients)
-            self.repository.set_ingredient_total(lease, ingredient_total)
             if food_ids is not None:
                 ingredients = [i for i in ingredients if set(i.food_ids or ()) & food_ids]
             selected_ingredients = ingredients[:limit] if limit else ingredients
+            ingredient_total = len(selected_ingredients)
+            self.repository.set_ingredient_total(lease, ingredient_total)
             remaining = [
                 ingredient for ingredient in selected_ingredients
                 if ingredient.canonical_name not in progress.completed_names
@@ -234,6 +260,7 @@ class PriceCollectionService:
             if batch_size:
                 remaining = remaining[:batch_size]
 
+            paused_reason = None
             with adapter_factory() as adapter:
                 for index, ingredient in enumerate(remaining):
                     representative = None
@@ -274,6 +301,11 @@ class PriceCollectionService:
                                 price_quote = price_quote.model_copy(update={
                                     "retailer": getattr(adapter, "retailer", provider),
                                     "source": provider, "source_url": "(fallback source)"})
+
+                    if (price_quote.missing_reason or "").startswith("source blocked or rate-limited"):
+                        # Leave this ingredient uncheckpointed so the same run can resume later.
+                        paused_reason = price_quote.missing_reason
+                        break
 
                     self.repository.save_quote(lease, price_quote)
                     checkpoint_count += 1
@@ -334,6 +366,7 @@ class PriceCollectionService:
                 checkpoint_count=checkpoint_count,
                 mapping_failure_rate=mapping_failure_rate,
                 price_update_success_rate=price_update_success_rate,
+                fatal_error=paused_reason,
             )
             scheduler_logger.info(
                 "price collection completed",
@@ -354,6 +387,7 @@ class PriceCollectionService:
                 mapping_failure_rate=float(mapping_failure_rate),
                 price_update_success_rate=float(price_update_success_rate),
                 duration_ms=duration_ms,
+                paused_reason=paused_reason,
             )
         except BaseException as exc:
             if finish_attempted:

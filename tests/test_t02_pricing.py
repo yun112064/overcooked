@@ -137,7 +137,10 @@ class CollectionLockTests(unittest.TestCase):
         probe = create_engine(TEST_DATABASE_URL)
         try:
             with probe.connect() as conn:
-                return conn.execute(text("SELECT count(*) FROM pg_locks WHERE locktype = 'advisory'")).scalar_one()
+                return conn.execute(text(
+                    "SELECT count(*) FROM pg_locks WHERE locktype = 'advisory' "
+                    "AND database = (SELECT oid FROM pg_database WHERE datname = current_database())"
+                )).scalar_one()
         finally:
             probe.dispose()
 
@@ -234,6 +237,30 @@ class CollectionLockTests(unittest.TestCase):
         self.run_once(repository, "pxmart-daily-2026-10-20")
         with self.engine.connect() as conn:
             self.assertEqual(conn.execute(text("SELECT count(*) FROM price_quote_snapshots")).scalar_one(), 2)
+        self.assertEqual(self.advisory_locks(), 0)
+
+    def test_rate_limited_run_pauses_and_same_key_can_resume(self):
+        from app.source_adapters.pricing_repository import PricingRepository
+
+        repository = PricingRepository(self.engine)
+        service = self.service(repository)
+        source, client = adapter(429, retries=0)
+        service.adapter_factory = lambda: source
+        result = service.run(trigger_type="scheduled", scheduled_for=datetime.now(TZ), run_key="blocked")
+        self.assertEqual(result.status, "partial")
+        self.assertIn("HTTP 429", result.paused_reason)
+        self.assertEqual(result.checkpoint_count, 0)
+        self.assertEqual(client.calls, 1)
+        self.assertEqual(self.run_once(repository, "blocked").checkpoint_count, 1)
+
+    def test_expected_release_mismatch_refuses_run_and_unlocks(self):
+        from app.source_adapters.pricing_repository import PricingRepository
+
+        repository = PricingRepository(self.engine, expected_recipe_release_id="wrong-release")
+        with self.assertRaisesRegex(ValueError, "Active recipe release changed"):
+            self.run_once(repository, "wrong-release")
+        with self.engine.connect() as connection:
+            self.assertEqual(connection.scalar(text("SELECT count(*) FROM price_collection_runs")), 0)
         self.assertEqual(self.advisory_locks(), 0)
 
 

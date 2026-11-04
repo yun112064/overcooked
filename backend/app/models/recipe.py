@@ -10,8 +10,10 @@ from sqlalchemy import (
     CheckConstraint,
     DateTime,
     ForeignKey,
+    ForeignKeyConstraint,
     Index,
     Integer,
+    LargeBinary,
     Numeric,
     String,
     Text,
@@ -100,6 +102,7 @@ class RecipeDataRelease(Base):
 class Recipe(Base):
     __tablename__ = "recipes"
     __table_args__ = (
+        UniqueConstraint("recipe_id", "recipe_release_id", name="uq_recipes_id_release"),
         CheckConstraint("original_servings IS NULL OR original_servings > 0", name="ck_recipe_servings_positive"),
         Index("ix_recipes_standard_dish_id", "standard_dish_id"),
         Index("ix_recipes_eligible", "is_eligible"),
@@ -161,6 +164,29 @@ class Recipe(Base):
     )
     quality_issues: Mapped[list[Any]] = mapped_column(
         JSON, nullable=False, default=_json_list_default, server_default=text("'[]'")
+    )
+
+
+class RecipeCover(Base):
+    __tablename__ = "recipe_covers"
+    __table_args__ = (
+        ForeignKeyConstraint(
+            ["recipe_id", "recipe_release_id"], ["recipes.recipe_id", "recipes.recipe_release_id"],
+            name="fk_recipe_covers_recipe_release", ondelete="CASCADE",
+        ),
+        CheckConstraint("media_type IN ('image/jpeg', 'image/png', 'image/webp')",
+                        name="ck_recipe_covers_media_type"),
+    )
+
+    recipe_id: Mapped[str] = mapped_column(String(32), primary_key=True)
+    recipe_release_id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    filename: Mapped[str] = mapped_column(Text, nullable=False)
+    image_url: Mapped[str] = mapped_column(Text, nullable=False)
+    sha256: Mapped[str] = mapped_column(String(64), nullable=False)
+    media_type: Mapped[str] = mapped_column(String(32), nullable=False)
+    image_bytes: Mapped[bytes] = mapped_column(LargeBinary, nullable=False)
+    approved_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=text("CURRENT_TIMESTAMP"),
     )
 
 

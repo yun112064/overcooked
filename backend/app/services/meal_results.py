@@ -11,13 +11,15 @@
 import uuid
 from datetime import datetime, timezone
 from decimal import Decimal
+from urllib.parse import quote
 
-from sqlalchemy import func, select
+from sqlalchemy import func, select, tuple_
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.api.errors import ApiError, idempotency_conflict, version_conflict
 from app.db.models import GenerationResult, MealRequest, MealResultDecision, Member
+from app.models.recipe import RecipeCover
 from app.services import idempotency, jobs, meal_history, meal_validation, per_person_nutrition, seasonings
 from app.services.meal_calculation import display_count
 
@@ -290,6 +292,25 @@ def nutrition_with_people(db: Session, household_id, payload: dict) -> dict:
             "daily_reference": per_person_nutrition.reference_meta()}
 
 
+def dishes_with_covers(db: Session, payload: dict) -> list[dict]:
+    dishes = _dishes(payload)
+    keys = [
+        (dish.get("recipe_id"), dish.get("recipe_release_id"))
+        if dish["source"] == "database" else (None, None)
+        for dish in payload["dishes"]
+    ]
+    candidates = {key for key in keys if all(key)}
+    if not candidates:
+        return dishes
+    covers = set(db.execute(select(RecipeCover.recipe_id, RecipeCover.recipe_release_id).where(
+        tuple_(RecipeCover.recipe_id, RecipeCover.recipe_release_id).in_(candidates)
+    )).tuples())
+    for dish, (recipe_id, release_id) in zip(dishes, keys):
+        if (recipe_id, release_id) in covers:
+            dish["cover_url"] = f"/recipe-covers/{quote(release_id, safe='')}/{quote(recipe_id, safe='')}"
+    return dishes
+
+
 def view(db: Session, request: MealRequest, result: GenerationResult) -> dict:
     p = result.payload
     derived = db.get(GenerationResult, result.derived_from_result_id) if result.derived_from_result_id else None
@@ -304,7 +325,7 @@ def view(db: Session, request: MealRequest, result: GenerationResult) -> dict:
         "sodium_adjustment": p.get("sodium_adjustment"),
         "fallback_message": FALLBACK_MESSAGES.get(result.fallback_reason, "食譜資料庫沒有可行組合，已自動改由 AI 生成。")
         if result.fallback_reason else None,
-        "dishes": _dishes(p), "staple": staple_view(p), "nutrition": nutrition_with_people(db, request.household_id, p), "prices": _prices(p),
+        "dishes": dishes_with_covers(db, p), "staple": staple_view(p), "nutrition": nutrition_with_people(db, request.household_id, p), "prices": _prices(p),
         "knowledge": {**(p.get("explanation") or {"status": "not_found", "items": []}),
                       "retry_available": knowledge_retry_available(p)},
         "knowledge_retry": p.get("knowledge_retry"), "price_retry": p.get("price_retry"),

@@ -29,6 +29,7 @@ from app.services.synonyms import confirmed_equivalents
 from app.source_adapters.price_collection import load_price_exempt
 from app.source_adapters.price_models import PriceQuote, QuoteStatus
 from app.source_adapters.price_scope import SCOPED_QUOTES_SQL, materialize_quote
+from app.source_adapters.price_scope import quote_unusable_reason as _unusable_reason
 
 ZERO = Decimal(0)
 QuoteLookup = Callable[[str], PriceQuote | None]
@@ -37,14 +38,6 @@ QuoteLookup = Callable[[str], PriceQuote | None]
 BUDGET_OK = "OK"
 PRICE_INCOMPLETE = "PRICE_INCOMPLETE"
 BUDGET_EXCEEDED = "BUDGET_EXCEEDED"
-
-# 未知價格原因（來源報價失敗時沿用其 missing_reason）
-NO_PRICE_DATA = "NO_PRICE_DATA"
-UNIT_MISMATCH = "UNIT_MISMATCH"
-PRICE_EXPIRED = "PRICE_EXPIRED"
-INVALID_PACKAGE = "INVALID_PACKAGE"
-CURRENCY_MISMATCH = "CURRENCY_MISMATCH"
-
 
 @dataclass(frozen=True)
 class IngredientCost:
@@ -152,22 +145,6 @@ def _priced_line(item: IngredientRequirement, quote: PriceQuote | None, now: dat
                           purchase_price=packs * quote.price, cost=item.grams * quote.price / quote.package_quantity)
 
 
-def _unusable_reason(quote: PriceQuote | None, now: datetime) -> str | None:
-    if quote is None:
-        return NO_PRICE_DATA
-    if quote.status is not QuoteStatus.SUCCESS or quote.price is None:
-        return quote.missing_reason or NO_PRICE_DATA
-    if quote.package_unit != "g":
-        return UNIT_MISMATCH  # 配方以克計；容量包裝沒有可靠換算
-    if not quote.package_quantity or quote.package_quantity <= 0:
-        return INVALID_PACKAGE
-    if quote.valid_until is not None and quote.valid_until < now:
-        return PRICE_EXPIRED
-    if quote.currency != "TWD":
-        return CURRENCY_MISMATCH  # 預算以新臺幣計價，沒有匯率依據時不換算外幣報價
-    return None
-
-
 # 每個來源（全聯、萬家福）各取最新一筆成功快照
 LATEST_SUCCESS_PER_PROVIDER_SQL = SCOPED_QUOTES_SQL + """
     SELECT DISTINCT ON (provider) * FROM scoped_quotes
@@ -209,7 +186,8 @@ def latest_quote(db: Session, food_id: str, *, now: datetime | None = None) -> P
 
 def _choose(successes: list[PriceQuote], now: datetime) -> PriceQuote:
     """各來源最新成功報價中選一筆（規則見 latest_quote）。"""
-    current = [q for q in successes if q.valid_until is None or q.valid_until >= now]
+    usable = [q for q in successes if _unusable_reason(q, now) is None]
+    current = usable or [q for q in successes if q.valid_until is None or q.valid_until >= now]
     if not current:
         return max(successes, key=lambda q: q.queried_at)
     # 不比較不同幣別的數值大小。T13 以 TWD 做預算；有效 TWD 報價優先，

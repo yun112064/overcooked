@@ -16,6 +16,7 @@ __pycache__/
 # The legacy workbook exception predates this checkpoint.
 data/*
 !data/recipe_dataset_1017.xlsx
+config/t02_package_mass_20261104.json
 outputs/
 logs/
 

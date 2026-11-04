@@ -297,6 +297,11 @@ export default function MealResultView({ requestId, mealDate, onChanged }: Props
                 {String(idx + 1).padStart(2, '0')}
               </Typography>
               <Box sx={{ minWidth: 0, flexGrow: 1 }}>
+                {d.cover_url && (
+                  <Box component="img" src={`/api${d.cover_url}`} alt={d.dish_name} loading="lazy"
+                    sx={{ display: 'block', width: '100%', maxWidth: 320, aspectRatio: '4 / 3',
+                      objectFit: 'contain', borderRadius: 1, mb: 1.5 }} />
+                )}
                 <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 1, flexWrap: 'wrap', mb: 0.5 }}>
                   <Typography sx={{ fontFamily: tokens.serif, fontSize: '1.15rem', letterSpacing: '0.06em' }}>{d.dish_name}</Typography>
                   {d.cooking_method && <Typography variant="caption">{d.cooking_method}</Typography>}

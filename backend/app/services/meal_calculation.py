@@ -964,7 +964,18 @@ def versioned_sql_calculator(factory, *, recipe_release_id: str | None,
                             NutritionSource.source_record_id == selected_receipt.get("sample_id"))
                     rows = db.execute(statement).all()
                     if not rows:
-                        any_candidate = db.scalar(select(NutritionFoodMapping.mapping_id).where(
+                        candidates = db.execute(select(
+                            NutritionFoodMapping.approval_status,
+                            NutritionSourceLink.included_in_calculation,
+                            NutritionSource.provider,
+                            NutritionSource.import_id.label("source_import_id"),
+                            FoodNutrition.import_id.label("observation_import_id"),
+                        ).join(NutritionSource, NutritionSource.source_id == NutritionFoodMapping.source_id)
+                          .join(FoodNutrition, FoodNutrition.nutrition_id == NutritionFoodMapping.nutrition_id)
+                          .outerjoin(NutritionSourceLink, and_(
+                              NutritionSourceLink.nutrition_id == NutritionFoodMapping.nutrition_id,
+                              NutritionSourceLink.source_id == NutritionFoodMapping.source_id))
+                          .where(
                             NutritionFoodMapping.import_id == nutrition_import_id,
                             NutritionFoodMapping.recipe_release_id == recipe_release_id,
                             NutritionFoodMapping.mapping_version == mapping_version,
@@ -973,9 +984,32 @@ def versioned_sql_calculator(factory, *, recipe_release_id: str | None,
                                NutritionFoodMapping.source_id == selected_receipt.get("nutrition_source_id")]
                               if selected_receipt is not None else []),
                             NutritionFoodMapping.cooking_state.in_(state_values),
-                            NutritionFoodMapping.cooking_method == source_method).limit(1))
-                        results.append(failed(line, "nutrition_mapping_pending" if any_candidate
-                                               else "nutrition_observation_not_found"))
+                            NutritionFoodMapping.cooking_method == source_method)).all()
+                        approved = [candidate for candidate in candidates if candidate.approval_status == "approved"]
+                        if approved:
+                            failures = set()
+                            for candidate in approved:
+                                if (candidate.source_import_id != nutrition_import_id
+                                        or candidate.observation_import_id != nutrition_import_id):
+                                    failures.add("nutrition_mapping_import_mismatch")
+                                elif candidate.provider != source_provider:
+                                    failures.add("nutrition_source_provider_not_allowed")
+                                elif candidate.included_in_calculation is None:
+                                    failures.add("nutrition_source_link_missing")
+                                elif not candidate.included_in_calculation:
+                                    failures.add("nutrition_source_link_excluded")
+                                elif selected_receipt is not None:
+                                    failures.add("t04_cooking_receipt_mismatch")
+                                else:
+                                    failures.add("nutrition_mapping_source_mismatch")
+                            reason = next(iter(failures)) if len(failures) == 1 else "nutrition_mapping_source_mismatch"
+                        elif any(candidate.approval_status == "pending_review" for candidate in candidates):
+                            reason = "nutrition_mapping_pending"
+                        elif candidates:
+                            reason = "nutrition_mapping_rejected"
+                        else:
+                            reason = "nutrition_observation_not_found"
+                        results.append(failed(line, reason))
                         continue
                     if len(rows) != 1:
                         results.append(failed(line, "nutrition_mapping_ambiguous"))

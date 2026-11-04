@@ -98,6 +98,21 @@ class VersionedSQLNutritionTests(unittest.TestCase):
         self.assertEqual(row.error, "nutrition_mapping_pending")
         self.assertIsNone(row.nutrients["energy_kcal"])
 
+    def test_approved_mapping_reports_excluded_and_missing_source_link(self):
+        mapping = self.db.get(NutritionFoodMapping, "mapping-test-v1")
+        mapping.approval_status = "approved"
+        link = self.db.get(NutritionSourceLink, (mapping.nutrition_id, mapping.source_id))
+        link.included_in_calculation = False
+        self.db.commit()
+        [row] = self.calculator()([(self.line(), Decimal("160"))])
+        self.assertEqual(row.error, "nutrition_source_link_excluded")
+
+        self.db.delete(link)
+        self.db.commit()
+        [row] = self.calculator()([(self.line(), Decimal("160"))])
+        self.assertEqual(row.error, "nutrition_source_link_missing")
+        self.assertIsNone(row.nutrients["energy_kcal"])
+
     def test_synthetic_source_cannot_be_requested_for_formal_import(self):
         [row] = versioned_sql_calculator(self.factory, recipe_release_id="recipe-test-v1",
             nutrition_import_id="import-test-v1", mapping_version="mapping-test-v1",

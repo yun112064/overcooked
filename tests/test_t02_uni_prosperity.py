@@ -265,19 +265,29 @@ class FallbackCollectionTests(unittest.TestCase):
         self.assertEqual(sum(1 for r in rows if r[0] == "uniprosperity"), 2)
         self.assertEqual(set(runs), {"pxmart", "uniprosperity"})
 
-    def test_px_estimates_are_also_queried_at_uni_prosperity(self):
-        """全聯只有估價（review_required）不算已知價格，也送萬家福查實際價格；工作簿對應失敗仍不送。"""
+    def test_px_quotes_unusable_for_t13_are_queried_at_uni_prosperity(self):
         from app.source_adapters.pricing_repository import PricingRepository, RunLease
+        from test_t13_meal_cost import quote
+
+        def payload(**updates):
+            return quote("FOOD000867", "99", "300").model_copy(update=updates).model_dump(mode="json")
+
         snapshots = [("查無", "not_found", {"selection_tier": "missing"}),
                      ("估價", "review_required", {"selection_tier": "estimate"}),
-                     ("已成功", "success", {"selection_tier": "exact"}),
+                     ("克重可用", "success", payload()),
+                     ("只有容量", "success", payload(package_unit="ml")),
+                     ("包裝量無效", "success", payload(package_quantity=Decimal("0"))),
+                     ("外幣報價", "success", payload(currency="USD")),
+                     ("已過期", "success", payload(valid_until=datetime.now(timezone.utc) - timedelta(days=1))),
                      ("對應失敗", "not_found", {"selection_tier": "missing",
-                                               "selection_method": "workbook_mapping"})]
+                                               "selection_method": "workbook_mapping"}),
+                     ("資料庫對應失敗", "not_found", {"selection_tier": "missing",
+                                                     "selection_method": "database_mapping"})]
         with self.engine.connect() as conn:
             run_id = conn.execute(text(
                 "INSERT INTO price_collection_runs (id, run_key, provider, trigger_type, scheduled_for, "
                 "started_at, status, ingredient_total) VALUES (gen_random_uuid(), 'px', 'pxmart', 'manual', "
-                "now(), now(), 'completed', 4) RETURNING id")).scalar_one()
+                "now(), now(), 'completed', :total) RETURNING id"), {"total": len(snapshots)}).scalar_one()
             for name, status, payload in snapshots:
                 conn.execute(text(
                     "INSERT INTO price_quote_snapshots (run_id, provider, canonical_name, status, queried_at, "
@@ -287,7 +297,18 @@ class FallbackCollectionTests(unittest.TestCase):
             conn.commit()
             lease = RunLease(run_id="unused", run_key="px:uniprosperity", connection=conn, provider="uniprosperity")
             targets, finished = PricingRepository(self.engine).fallback_targets(lease, primary_run_key="px")
-        self.assertEqual((targets, finished), ({"查無", "估價"}, True))
+        self.assertEqual((targets, finished), ({"查無", "估價", "只有容量", "包裝量無效", "外幣報價", "已過期"}, True))
+
+    def test_targeted_fallback_only_uses_one_source_and_can_rerun_safely(self):
+        service = self.service()
+        kwargs = dict(trigger_type="manual", scheduled_for=datetime.now(TZ), run_key="capacity-backfill",
+                      food_ids={"FOOD000867"})
+        result = service.run_fallback(**kwargs)
+        self.assertEqual((result.provider, result.ingredient_total, result.success_count), ("uniprosperity", 1, 1))
+        self.assertEqual(service.run_fallback(**kwargs).status, "skipped")
+        with self.engine.connect() as conn:
+            rows = conn.execute(text("SELECT provider, canonical_name FROM price_quote_snapshots")).all()
+        self.assertEqual(rows, [("uniprosperity", "高麗菜")])
 
     def test_rerun_is_idempotent_and_backfills_an_already_completed_px_run(self):
         from app.source_adapters.price_collection import PriceCollectionService
@@ -386,6 +407,12 @@ class CrossSourceQuoteTests(unittest.TestCase):
         self.assertTrue(any("lowest unit price" in reason for reason in chosen.selection_reasons))
         self.seed("uniprosperity", self.uni_quote("200", "800"))  # 萬家福新快照變貴 → 改回全聯
         self.assertEqual(self.latest().retailer, "PX Mart")
+
+    def test_usable_fallback_wins_over_a_cheaper_invalid_primary_package(self):
+        from test_t13_meal_cost import quote
+        self.seed("pxmart", quote("FOOD000867", "20", "-100"))
+        self.seed("uniprosperity", self.uni_quote("99", "800"))
+        self.assertEqual(self.latest().retailer, "萬家福")
 
     def test_expired_cheaper_quote_does_not_hide_a_valid_one(self):
         """回報 P2：較便宜的報價已過期、另一來源仍有效時，要用有效的那筆，不能被判缺價。"""
