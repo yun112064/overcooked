@@ -303,6 +303,7 @@ class AdoptedMealPlan(Base):
 class MealMenuRejection(Base):
     """「不採用，換一份」：同一問卷版本下次查詢時略過這組食譜。"""
     __tablename__ = "meal_menu_rejections"
+    __table_args__ = (Index("ix_meal_menu_rejections_request", "meal_request_id", "request_version"),)
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     meal_request_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("meal_requests.id", ondelete="CASCADE"), nullable=False)
