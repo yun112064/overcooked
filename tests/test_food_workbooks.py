@@ -145,6 +145,11 @@ class FoodWorkbookTests(unittest.TestCase):
         self.assertIsNone(result["nutrition"]["sugars_g"])
         self.assertEqual(result["nutrition"]["sodium_mg"], Decimal("0.00"))
         self.assertEqual(result["missing_fields"], ["sugars_g"])
+        # P03: sugar is display-only, so the required set is still complete.
+        self.assertFalse(result["nutrition_complete"])
+        self.assertEqual(result["required_nutrients"], ["energy_kcal", "protein_g"])
+        self.assertTrue(result["required_nutrition_complete"])
+        self.assertFalse(unverified["required_nutrition_complete"])
         self.assertEqual(result["sources"][0]["provider"], "TFDA")
         self.assertTrue(result["sources"][0]["included_in_calculation"])
         self.assertTrue(result["source_basis_verified"])
@@ -174,6 +179,28 @@ class FoodWorkbookTests(unittest.TestCase):
         self.assertIsNone(as_is["missing_reason"])
         self.assertEqual(cooked, {"success": False, "error": "weight_basis_mismatch"})
         self.assertEqual(invalid, {"success": False, "error": "invalid_weight_basis"})
+
+    def test_t04_required_nutrients_match_t12_targets(self):
+        from app.services.t04_database_nutrition import REQUIRED_NUTRIENTS
+        from nutrition_planning.targets import REQUIRED_TARGETS
+        self.assertEqual(REQUIRED_NUTRIENTS, REQUIRED_TARGETS)
+
+    def test_t04_database_recipe_loads_lines_in_constant_queries(self):
+        bundle = self.parse()
+        self.save(bundle)
+        line = {"food_id": "FOOD000005", "cooking_state": "已熟製", "cooking_method": "水煮",
+                "weight_g": 50, "weight_basis": "cooked"}
+        statements = []
+        listener = lambda *args: statements.append(args[2])
+        event.listen(self.engine, "before_cursor_execute", listener)
+        self.addCleanup(event.remove, self.engine, "before_cursor_execute", listener)
+        with Session(self.engine) as session:
+            for count in (1, 4):
+                statements.clear()
+                result = calculate_recipe_nutrition(session, import_id=bundle.import_id, recipe_name="批次",
+                                                    recipe_ingredients=[dict(line) for _ in range(count)])
+                self.assertTrue(result["cooking_adjustment_complete"])
+                self.assertEqual(len(statements), 2, f"{count} lines")
 
     def test_t04_database_partial_calculation_sources_stay_unverified(self):
         # RI999 is a recipe line the recipe workbook no longer has, so the importer drops its link.

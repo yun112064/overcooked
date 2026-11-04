@@ -119,7 +119,8 @@ class NutritionTargetService:
         rule = json.loads(raw)
         # Every historical version is explicit and immutable; no 'latest' fallback.
         versions = {
-            "hpa-dri8-mvp-0.3.1": "5dfc5b74a8dee82432a66542ce8cd46716dca56e1530e23ca76f40fb090d282f",
+            "hpa-dri8-mvp-0.4.1": "9af725381bf14bc0b01993c3d2fbde01810b112efd1a3eb2659f1e6886a175d6",
+            "hpa-dri8-mvp-0.4.0": "543ea80e0aefab40a280dadef3443f83566497e439937a43ff28b89a858e1ac7",
             "hpa-dri8-mvp-0.3.0": "fe74148eb24fd6dd036fd9ef5c64745a5413ee4c803470bc36e96b2c3f9a0aba",
             "hpa-dri8-mvp-0.1.0": "57a1327d6eb3e3e14b69745ee8ad41e254495713b44088a2ed253d30f2db80aa",
             "hpa-dri8-mvp-0.2.0": "cdd29bd858a29ee60d765c67d5b207ac6b9ec495fb41f1da330ef76f691efc85",
@@ -131,6 +132,11 @@ class NutritionTargetService:
             raise TargetInputError("RULE_CONFIG_VERSION_CONFLICT", "rule_version", "Rule content differs from this frozen version. Publish a new version before changing rules.")
         self._rule = rule
         self._rule_sha256 = rule_sha256
+
+    @property
+    def _g03_approved(self) -> bool:
+        """Targets are adoptable only under a rule version that records G03 as approved (0.4.1+)."""
+        return self._rule.get("g03_status") == "approved"
 
     @property
     def rule_version(self) -> str:
@@ -156,10 +162,50 @@ class NutritionTargetService:
         if member.goal not in self.available_goals(member.age_years):
             raise TargetInputError("GOAL_NOT_ALLOWED_FOR_AGE", "goal", "Only the general meal planning goal is available below age 19. No automatic goal substitution is performed.")
 
+    def _minor_target(self, member: MemberInput) -> dict | None:
+        """0.4.0+: below the adult age the energy equation does not apply; use the HPA DRI age-band table.
+
+        Returns {"energy_kcal", "protein_g", "band"} or None for adults (and for rule versions without the table).
+        """
+        table = self._rule.get("minor_targets")
+        if not table or member.age_years >= table["applies_below_age_years"]:
+            return None
+        infant = table["infant"]
+        if member.age_years <= infant["age_max"]:
+            return {"energy_kcal": member.weight_kg * Decimal(infant["energy_kcal_per_kg"]),
+                    "protein_g": member.weight_kg * Decimal(infant["protein_g_per_kg"]), "band": infant["source_row"]}
+        for band in table["bands"]:
+            if band["age_min"] <= member.age_years <= band["age_max"]:
+                return {"energy_kcal": Decimal(band["energy_kcal"][member.equation_sex][member.activity_category]),
+                        "protein_g": Decimal(band["protein_g"][member.equation_sex]),
+                        "band": f"{band['age_min']}-{band['age_max']}"}
+        raise TargetInputError("UNSUPPORTED_TARGET_SCOPE", "member", "No minor reference band covers this age.")
+
     def energy_baseline(self, data: Mapping) -> dict:
         """Return E0 only, regardless of goal, never an adjusted daily target."""
         member = MemberInput.from_mapping(data)
         self._validate_goal_eligibility(member)
+        minor = self._minor_target(member)
+        if minor is not None:
+            table = self._rule["minor_targets"]
+            return {
+                "member_id": member.member_id,
+                "rule_version": self.rule_version,
+                "rule_config_sha256": self._rule_sha256,
+                "rule_status": self._rule["rule_status"],
+                "source_verification": table["source"]["verification"],
+                "product_scope": self._rule["product_scope"],
+                "source_energy_scope": "hpa_dri8_table_by_age_band",
+                "energy_equation_id": "hpa-dri8-minor-table",
+                "minor_band": minor["band"],
+                "unadjusted_energy_kcal": str(minor["energy_kcal"]),
+                "resting_energy_kcal": None,
+                "pal": None,
+                "input_snapshot": member.snapshot(),
+                "source": deepcopy(table["source"]),
+                "daily_target_available": False,
+                "approved_for_adoption": False,
+            }
         config = self._rule["energy"]
         # Increase precision for supplied decimal digits; trap rounding rather than hiding it.
         with localcontext() as ctx:
@@ -220,17 +266,19 @@ class NutritionTargetService:
                     * Decimal(adjustment["energy_multiplier"])
                     + Decimal(adjustment["energy_offset_kcal"])
                 )
-                protein = member.weight_kg * Decimal(protein_rule["g_per_kg"])
+                minor = self._minor_target(member)
+                protein = minor["protein_g"] if minor else member.weight_kg * Decimal(protein_rule["g_per_kg"])
             except DecimalException:
                 raise TargetInputError("UNSUPPORTED_NUMERIC_PRECISION", "member", "Input cannot be calculated without intermediate rounding.") from None
         if "minimum_daily_energy_kcal" in adjustment and energy < Decimal(adjustment["minimum_daily_energy_kcal"]):
             raise TargetInputError("DAILY_ENERGY_BELOW_MINIMUM", "goal", "Fat loss would produce less than 1200 kcal/day. No automatic clamping or goal substitution is performed.")
         result.update({
             "daily_reference": {"energy_kcal": str(energy), "protein_g": str(protein)},
-            "protein_rule_id": protein_rule["rule_id"],
+            "protein_rule_id": "hpa-dri8-minor-table" if minor else protein_rule["rule_id"],
             "goal_adjustment": {"goal": member.goal, **adjustment},
             "adjustment_sources": deepcopy(self._rule.get("adjustment_sources", [])),
             "daily_target_available": True,
+            "approved_for_adoption": self._g03_approved,
         })
         return result
 
@@ -319,7 +367,7 @@ class NutritionTargetService:
             "reference_display": {key: _fraction_decimal(value, exact=False) for key, value in references.items()},
             "reference_display_precision": 50,
             "participations": snapshots,
-            "daily_target_available": True, "approved_for_adoption": False,
+            "daily_target_available": True, "approved_for_adoption": self._g03_approved,
             "source": deepcopy(self._rule["source"]),
             "adjustment_sources": deepcopy(self._rule.get("adjustment_sources", [])),
         }

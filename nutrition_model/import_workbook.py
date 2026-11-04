@@ -68,7 +68,9 @@ def import_workbook(path=SOURCE):
     required_sheets = {'食材營養成分', '食材ID主檔'}
     if not required_sheets.issubset(book.sheet_names):
         raise ValueError('Missing required workbook sheets')
-    foods_df = pd.read_excel(book, sheet_name='食材營養成分')
+    # Read without pandas NA parsing, so text such as 'N/A' or 'inf' is classified
+    # from the raw cell; only truly empty cells become missing below.
+    foods_df = pd.read_excel(book, sheet_name='食材營養成分', keep_default_na=False, na_values=[])
     ids_df = pd.read_excel(book, sheet_name='食材ID主檔')
     required = set(COLUMNS) | {'來源食品ID', '中文食品名稱', '資料來源', '來源紀錄ID',
                                 '來源生熟狀態', '來源版本', '來源描述', '來源網址'}
@@ -76,12 +78,9 @@ def import_workbook(path=SOURCE):
         raise ValueError('Missing required food columns')
     if not {'ingredient_id', 'canonical_name', 'suggested_name'}.issubset(ids_df.columns):
         raise ValueError('Missing ingredient ID columns')
-    foods = [{key: clean(value) for key, value in row.items()}
-             for row in foods_df.to_dict(orient='records')]
-    # Second read without pandas NA parsing, so text such as 'N/A' or 'inf' is
-    # classified from the raw cell instead of collapsing into a blank.
-    raw_cells = pd.read_excel(book, sheet_name='食材營養成分', keep_default_na=False, na_values=[])
-    raw_foods = raw_cells[list(COLUMNS)].to_dict(orient='records')
+    raw_foods = foods_df.to_dict(orient='records')
+    foods = [{key: None if isinstance(value, str) and not value.strip() else clean(value)
+              for key, value in row.items()} for row in raw_foods]
     ids = [{key: clean(value) for key, value in row.items()}
            for row in ids_df.to_dict(orient='records')]
     food_ids = [str(row['來源食品ID']) for row in foods]

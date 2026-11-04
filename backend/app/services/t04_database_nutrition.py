@@ -17,12 +17,15 @@ from typing import Any, Mapping
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.models.nutrition import NutritionSource, NutritionSourceLink
+from app.models.nutrition import FoodNutrition, NutritionSource, NutritionSourceLink
 from app.services.nutrition_import import NUTRIENT_COLUMNS, _references, find_nutrition_candidates
 from app.services.recipe_import import WorkbookValidationError
 
 
 NUTRIENT_FIELDS = tuple(NUTRIENT_COLUMNS.values())
+# P03 (2026-11-04): adoption requires energy and protein, matching T12's REQUIRED_TARGETS.
+# The other five are display-only; their gaps stay visible in missing_fields.
+REQUIRED_NUTRIENTS = ("energy_kcal", "protein_g")
 # Weight basis each imported cooking state is measured on; other states stay unverified.
 STATE_WEIGHT_BASIS = {"未熟製": "raw", "已熟製": "cooked"}
 
@@ -52,15 +55,19 @@ def scale_per_100g(per_100g: Mapping[str, Any], weight_g: Any,
             for field, value in per_100g.items()}
 
 
-def _sources(session: Session, nutrition_id: str) -> list[dict[str, Any]]:
+def _source_map(session: Session, nutrition_ids: set[str]) -> dict[str, list[dict[str, Any]]]:
+    """Source links for many observations in one query, keyed by nutrition ID."""
+    found: dict[str, list[dict[str, Any]]] = {nutrition_id: [] for nutrition_id in nutrition_ids}
+    if not nutrition_ids:
+        return found
     rows = session.execute(
-        select(NutritionSource, NutritionSourceLink.included_in_calculation)
+        select(NutritionSourceLink.nutrition_id, NutritionSource, NutritionSourceLink.included_in_calculation)
         .join(NutritionSourceLink, NutritionSourceLink.source_id == NutritionSource.source_id)
-        .where(NutritionSourceLink.nutrition_id == nutrition_id)
+        .where(NutritionSourceLink.nutrition_id.in_(nutrition_ids))
         .order_by(NutritionSource.source_key)
     ).all()
-    return [
-        {
+    for nutrition_id, source, included in rows:
+        found[nutrition_id].append({
             "source_id": source.source_id,
             "source_key": source.source_key,
             "provider": source.provider,
@@ -69,9 +76,26 @@ def _sources(session: Session, nutrition_id: str) -> list[dict[str, Any]]:
             "source_sheet": source.source_sheet,
             "source_row": source.source_row,
             "included_in_calculation": included,
-        }
-        for source, included in rows
-    ]
+        })
+    return found
+
+
+class _RecipeLookup:
+    """Observations and sources for one recipe, loaded in two queries instead of two per line."""
+
+    def __init__(self, session: Session, import_id: str, food_ids: set[str]):
+        rows = list(session.scalars(select(FoodNutrition).where(
+            FoodNutrition.import_id == import_id, FoodNutrition.food_id.in_(food_ids),
+        ).order_by(FoodNutrition.source_row))) if food_ids else []
+        self._rows = rows
+        self._sources = _source_map(session, {row.nutrition_id for row in rows})
+
+    def candidates(self, food_id: str, cooking_state: str, cooking_method: str | None) -> list[FoodNutrition]:
+        return [row for row in self._rows if row.food_id == food_id and row.cooking_state == cooking_state
+                and row.cooking_method == cooking_method]
+
+    def sources(self, nutrition_id: str) -> list[dict[str, Any]]:
+        return self._sources[nutrition_id]
 
 
 def calculate_food_nutrition(
@@ -85,6 +109,7 @@ def calculate_food_nutrition(
     weight_basis: str | None = None,
     consumed_as_is: bool = False,
     round_result: bool = True,
+    _lookup: _RecipeLookup | None = None,
 ) -> dict[str, Any]:
     """Scale one exact imported observation to ``weight_g``.
 
@@ -108,13 +133,16 @@ def calculate_food_nutrition(
     if cooking_method is not None and (not isinstance(cooking_method, str) or not cooking_method.strip()):
         return {"success": False, "error": "invalid_nutrition_input"}
 
-    rows = find_nutrition_candidates(
-        session,
-        import_id=import_id,
-        food_id=food_id,
-        cooking_state=cooking_state,
-        cooking_method=cooking_method,
-    )
+    if _lookup is not None:
+        rows = _lookup.candidates(food_id, cooking_state, cooking_method)
+    else:
+        rows = find_nutrition_candidates(
+            session,
+            import_id=import_id,
+            food_id=food_id,
+            cooking_state=cooking_state,
+            cooking_method=cooking_method,
+        )
     if not rows:
         return {"success": False, "error": "nutrition_observation_not_found"}
     if len(rows) != 1:
@@ -125,7 +153,8 @@ def calculate_food_nutrition(
     if weight_basis is not None and observation_basis is not None and weight_basis != observation_basis:
         return {"success": False, "error": "weight_basis_mismatch"}
     basis_verified = weight_basis is not None and weight_basis == observation_basis
-    sources = _sources(session, row.nutrition_id)
+    sources = (_lookup.sources(row.nutrition_id) if _lookup is not None
+               else _source_map(session, {row.nutrition_id})[row.nutrition_id])
     # Every declared calculation source must still be linked; the importer drops links to recipe
     # lines that were removed or changed, so a partial set stays unverified.
     try:
@@ -172,6 +201,8 @@ def calculate_food_nutrition(
         "nutrition": shown,
         "nutrition_unrounded": exact,
         "nutrition_complete": not missing,
+        "required_nutrients": list(REQUIRED_NUTRIENTS),
+        "required_nutrition_complete": all(exact[field] is not None for field in REQUIRED_NUTRIENTS),
         "missing_fields": missing,
         "quality_issues": list(row.quality_issues),
         "sources": sources,
@@ -223,6 +254,8 @@ def calculate_source_nutrition(
                       for field, value in exact.items()},
         "nutrition_unrounded": exact,
         "nutrition_complete": not missing,
+        "required_nutrients": list(REQUIRED_NUTRIENTS),
+        "required_nutrition_complete": all(exact[field] is not None for field in REQUIRED_NUTRIENTS),
         "missing_fields": missing,
         "nutrition_basis": "imported_source_sample",
         "is_estimated": False,
@@ -257,6 +290,9 @@ def calculate_recipe_nutrition(
     if not isinstance(recipe_name, str) or not recipe_name.strip() or not recipe_ingredients:
         return {"success": False, "error": "invalid_recipe_input"}
 
+    lookup = _RecipeLookup(session, import_id, {
+        item["food_id"] for item in recipe_ingredients
+        if isinstance(item, dict) and isinstance(item.get("food_id"), str)})
     results: list[dict[str, Any]] = []
     failed: list[dict[str, Any]] = []
     for item in recipe_ingredients:
@@ -275,6 +311,7 @@ def calculate_recipe_nutrition(
             weight_basis=item.get("weight_basis"),
             consumed_as_is=item.get("consumed_as_is", False),
             round_result=False,
+            _lookup=lookup,
         )
         results.append(result)
         if not result.get("success"):
@@ -306,6 +343,8 @@ def calculate_recipe_nutrition(
             for field, value in exact.items()
         },
         "nutrition_complete": not failed and all(value is not None for value in exact.values()),
+        "required_nutrients": list(REQUIRED_NUTRIENTS),
+        "required_nutrition_complete": not failed and all(exact[field] is not None for field in REQUIRED_NUTRIENTS),
         "cooking_adjustment_complete": not failed and all(r["cooking_adjustment_complete"] for r in results),
         "missing_nutrients": {field: ids for field, ids in missing.items() if ids},
         "failed_ingredients": failed,
