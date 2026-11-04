@@ -27,7 +27,7 @@ Codex CLI 0.166.0。缺值審查 4 輪（session `01a1a551-0627-7983-9064-0dd02b
 
 ## 未解決項目
 
-無。G03 已於 2026-11-04 由使用者決議核准（規則 `hpa-dri8-mvp-0.4.1`，`approved_for_adoption=true`）；國健署 PDF 逐格核對與來源檔保存未執行，為已知且已接受的缺口。
+無。G03 已於 2026-11-04 由使用者決議核准（規則 `hpa-dri8-mvp-0.4.1`，`approved_for_adoption=true`）；國健署 PDF 逐格核對已由使用者完成並通過；T12 營養政策 `approved_for_adoption` 亦改為 true。
 
 ## 驗證狀態
 

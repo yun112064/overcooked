@@ -1,12 +1,12 @@
 {
   "rule_version": "hpa-dri8-mvp-0.4.1",
   "rule_status": "approved",
-  "source_verification": "text_verified_pdf_visual_check_pending",
+  "source_verification": "pdf_visual_check_passed",
   "g03_status": "approved",
   "g03_decision": {
     "date": "2026-11-04",
     "decided_by": "user",
-    "note": "User approved G03 for this rule; PDF visual check and source file snapshot were not performed."
+    "note": "User approved G03 for this rule after completing the cell-by-cell PDF visual check (2026-11-04)."
   },
   "product_scope": "adult_equation_from_19_minor_dri_table_under_19_adult_goals_from_19",
   "energy": {

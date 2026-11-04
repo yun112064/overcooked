@@ -256,13 +256,14 @@ RULE_V41 = RULE_ROOT / "hpa-dri8-mvp-0.4.1.json"
 
 
 class ApprovedRuleTests(unittest.TestCase):
-    """0.4.1：內容同 0.4.0，只加上規則核准與 G03 核准（2026-11-04 使用者決議）。"""
+    """0.4.1：內容同 0.4.0，只加上規則核准、PDF 核對通過與 G03 核准（2026-11-04 使用者決議）。"""
 
     def test_only_version_status_and_g03_differ_from_0_4_0(self):
         old = json.loads(RULE_V4.read_text(encoding="utf-8"))
         new = json.loads(RULE_V41.read_text(encoding="utf-8"))
         self.assertEqual((new["rule_status"], new["g03_status"]), ("approved", "approved"))
-        for key in ("rule_version", "rule_status", "g03_status", "g03_decision"):
+        self.assertEqual(new["source_verification"], "pdf_visual_check_passed")
+        for key in ("rule_version", "rule_status", "source_verification", "g03_status", "g03_decision"):
             old.pop(key, None), new.pop(key, None)
         self.assertEqual(old, new)
 

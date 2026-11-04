@@ -2,7 +2,7 @@
 
 更新日期：2026-11-04。現行規則版本：`hpa-dri8-mvp-0.4.1`（內容同 0.4.0）。使用者已決議T03以核准Spec為準。
 
-2026-11-04：使用者決議採用 `hpa-dri8-mvp-0.4.1`（內容同 0.4.0：19 歲以上沿用衛公式－1，未滿 19 歲改查國健署 DRIs 第八版總表分齡值，取自 t11-t20-demo），並核准規則與 G03（`rule_status: approved`、`g03_status: approved`），目標輸出 `approved_for_adoption=true`。PDF 逐格視覺核對與來源檔保存未執行，`source_verification` 仍如實記為 `text_verified_pdf_visual_check_pending`。0.3.0、0.4.0 及更早版本保留原位元組供重現。
+2026-11-04：使用者決議採用 `hpa-dri8-mvp-0.4.1`（內容同 0.4.0：19 歲以上沿用衛公式－1，未滿 19 歲改查國健署 DRIs 第八版總表分齡值，取自 t11-t20-demo），並核准規則與 G03（`rule_status: approved`、`g03_status: approved`），目標輸出 `approved_for_adoption=true`。PDF 逐格視覺核對已由使用者於 2026-11-04 完成並通過（`source_verification: pdf_visual_check_passed`）；來源 PDF 未存入專案。0.3.0、0.4.0 及更早版本保留原位元組供重現。
 
 ## 使用者定案
 
@@ -37,6 +37,6 @@
 
 ## G03結論
 
-目標限制已依使用者決議以Spec為準，程式與人工算術可供隊友接入測試。**G03 已由使用者決議核准（2026-11-04，規則 0.4.1）**。兒少目標自 0.4.0 起改查國健署分齡表，不再外推成人公式；來源 PDF 逐格視覺核對與檔案保存未執行，為已知且已接受的缺口。
+目標限制已依使用者決議以Spec為準，程式與人工算術可供隊友接入測試。**G03 已由使用者決議核准（2026-11-04，規則 0.4.1）**。兒少目標自 0.4.0 起改查國健署分齡表，不再外推成人公式；PDF 逐格視覺核對已由使用者於 2026-11-04 完成並通過（`source_verification: pdf_visual_check_passed`）；來源 PDF 未存入專案。
 
 因此輸出 `daily_target_available=true` 表示已能計算完整數值；0.4.1 起 `approved_for_adoption=true`（0.4.0 及更早版本仍為 false）。它不能替代T12的營養完整性、±10%及其他採用條件。Ticket不標整體驗收完成。

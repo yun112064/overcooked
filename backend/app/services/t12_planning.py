@@ -29,7 +29,9 @@ def preview(db: Session, *, draft: meal_request.MealRequestDraft, members: dict,
             target_service=household.target_service(),
             # Imported Food_ID records replace the catalog path; this placeholder
             # is never read in imported mode.
-            policy=NutritionPolicy(Path(settings.nutrition_rules_path), {}, ('energy_kcal', 'protein_g')),
+            # 2026-11-04: the T04 nutrition policy is approved for adoption (user decision).
+            policy=NutritionPolicy(Path(settings.nutrition_rules_path), {}, ('energy_kcal', 'protein_g'),
+                                   approved_for_adoption=True),
             profiles=None, staple=draft.staple, nutrition_source='imported',
             nutrition_import_id=None, nutrition_selections=None,
             # 2026-11-01: recipe grams × raw composition, factor 1 for
