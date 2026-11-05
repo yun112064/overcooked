@@ -311,6 +311,8 @@ class RecipeIngredient(Base):
     quantity_status: Mapped[str] = mapped_column(String(32), nullable=False)
     unit_status: Mapped[str] = mapped_column(String(32), nullable=False)
     weight_g: Mapped[Decimal | None] = mapped_column(Numeric(16, 6))
+    volume_ml: Mapped[Decimal | None] = mapped_column(Numeric(16, 6))
+    volume_evidence: Mapped[str | None] = mapped_column(Text)
     weight_status: Mapped[str] = mapped_column(String(32), nullable=False)
     weight_basis: Mapped[str | None] = mapped_column(String(32))
     weight_evidence: Mapped[dict[str, Any]] = mapped_column(

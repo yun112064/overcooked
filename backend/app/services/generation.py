@@ -820,6 +820,7 @@ def _scale_line(ln: IngredientLine, ratio: Decimal) -> IngredientLine:
     def times(v):
         return None if v is None else (v * ratio).quantize(Decimal("0.001"), rounding=ROUND_HALF_UP)
     return replace(ln, grams_per_n=times(ln.grams_per_n), amount_per_n=times(ln.amount_per_n),
+                   volume_ml_per_n=times(ln.volume_ml_per_n),
                    adjustable_min=times(ln.adjustable_min), adjustable_max=times(ln.adjustable_max))
 
 

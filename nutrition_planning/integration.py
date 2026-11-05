@@ -588,6 +588,12 @@ def validate_database_menu(db: Connection, recipe_ids: Sequence[str], *, partici
     """
     targets = targets_from_t03(target_service.aggregate_meal_targets(participations))
     rows = load_database_recipe_rows(db, recipe_ids)
+    batch_issues = tuple(
+        InputIssue("batch_servings_unresolved", recipe["recipe_id"], field="original_servings")
+        for recipe in rows.recipes if recipe.get("servings_basis") == "batch"
+    )
+    if batch_issues:
+        return DatabaseMenuResult(targets, PreparedRecipe(None, batch_issues), None)
     using_recipe_level_profiles = profiles is None
     profiles = dict(profiles) if profiles is not None else dict(recipe_level_profiles(rows))
     if staple is None:

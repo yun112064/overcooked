@@ -129,6 +129,8 @@ class IngredientLine:
     # 實際吃下的組成（config/recipe_intake_adjustments.json）：((food_id, name, 克數比例), ...)。
     # 只影響營養（例如燙青菜水裡的鹽只計一部分、鹹蛋只吃蛋黃）；顯示、缺料與價格仍用原食材與克數。None 為全部吃下。
     intake_parts: tuple | None = None
+    volume_ml_per_n: Decimal | None = None
+    volume_is_estimated: bool = False
 
 
 @dataclass
@@ -664,8 +666,14 @@ def _display(ln: IngredientLine, whole: Decimal | None, n: Decimal) -> dict:
     """畫面用量（decisions #21／#43）：有原數量＋原單位（非 g）→ 一律顯示原單位、數量取整數（最少 1），
     克數只留在追溯欄位；原單位是 g 或沒有原單位但有克數 → 克到 1 g；都沒有 → 原文。
     縮放倍率：有克數時用整餐克數 ÷ 每 1n 克數（含熱量對齊調整），否則用 n。"""
+    factor = whole / ln.grams_per_n if whole is not None and ln.grams_per_n else n
+    if ln.volume_ml_per_n is not None:
+        liters = ln.volume_ml_per_n * factor / 1000
+        if ln.volume_is_estimated:
+            return {"display_amount": None, "display_unit": "L",
+                    "display_text": f"約 {format(liters.normalize(), 'f')} L"}
+        return {"display_amount": liters, "display_unit": "L", "display_text": None}
     if ln.amount_per_n is not None and ln.unit and ln.unit != "g":
-        factor = whole / ln.grams_per_n if whole is not None and ln.grams_per_n else n
         return {"display_amount": display_count(ln.amount_per_n * factor), "display_unit": ln.unit,
                 "display_text": None}
     if whole is not None:
@@ -1133,7 +1141,8 @@ def load_recipe_lines(db, recipe_id: str, factors=None) -> list[IngredientLine]:
     if active_releases and recipe.recipe_release_id not in active_releases:
         raise LookupError(f"recipe is not in an active release: {recipe_id}")
     servings_fix, weight_fix = weight_corrections()
-    servings = servings_fix.get(recipe_id, recipe.original_servings)
+    batch = recipe.servings_basis == "batch"
+    servings = None if batch else servings_fix.get(recipe_id, recipe.original_servings)
     methods = recipe.cooking_methods or []
     method = methods[0] if len(methods) == 1 else None
     rows = db.scalars(select(RecipeIngredient).where(RecipeIngredient.recipe_id == recipe_id)
@@ -1154,7 +1163,9 @@ def load_recipe_lines(db, recipe_id: str, factors=None) -> list[IngredientLine]:
             weight, source = row.source_weight_g, "workbook"
         if row.recipe_ingredient_id in weight_fix:  # 工作簿換算錯誤的人工修正（config/recipe_weight_corrections.json）
             weight, source = weight_fix[row.recipe_ingredient_id], "corrected"
-        if not servings:
+        if batch:
+            reason = "batch_servings_unresolved"
+        elif not servings:
             reason = "servings_unresolved"
         elif weight is None:
             # decisions #19：有數量、非克單位時，改用快取的每單位克數推估（人工值優先；rejected 不用）
@@ -1174,6 +1185,8 @@ def load_recipe_lines(db, recipe_id: str, factors=None) -> list[IngredientLine]:
             dish_id=recipe_id, recipe_release_id=recipe.recipe_release_id, unresolved_reason=reason,
             cooking_methods=tuple(methods) if len(methods) > 1 else (),
             unit=row.unit, amount_per_n=per_n(row.amount), raw_text=row.raw_text,
+            volume_ml_per_n=per_n(row.volume_ml),
+            volume_is_estimated=bool(row.volume_evidence and row.volume_evidence.startswith("estimate:")),
             weight_source=None if reason else source, group=ingredient_group(row.raw_text)[0],
             intake_parts=intake_adjustments().get(row.recipe_ingredient_id),
         ))

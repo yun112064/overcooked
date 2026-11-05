@@ -71,7 +71,7 @@ def public_decision(db: Session, row: MealResultDecision) -> dict:
 
 def _display_amount(amount, unit):
     """decisions #43：非克重單位一律整數（最少 1）；舊結果存的 0.5 等值讀取時也照此顯示。"""
-    if amount is None or unit in (None, "g"):
+    if amount is None or unit in (None, "g", "L"):
         return amount
     return display_count(Decimal(str(amount)))
 
@@ -80,7 +80,7 @@ def _shown(r: dict) -> dict:
     """畫面用量：調味料換成小匙／大匙（seasonings.spoon_display，舊結果讀取時也套用）；
     其餘克到 1 g、其他單位到整數，無換算照原文。只影響顯示，計算一律用 whole_meal_grams。"""
     unit = r.get("display_unit", "g" if r.get("display_grams") is not None else None)
-    if r.get("role") != "staple":
+    if unit != "L" and r.get("role") != "staple":
         spoon = seasonings.spoon_display(r["food_id"], r.get("whole_meal_grams"), unit)
         if spoon is not None:
             return spoon

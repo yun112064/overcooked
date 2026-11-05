@@ -113,6 +113,7 @@ UNIT_ALIASES = {
     "克": "g",
     "G": "g",
     "毫升": "ml",
+    "l": "L",
     "cc": "ml",
     "CC": "ml",
     "茶匙": "小匙",
@@ -180,7 +181,7 @@ NOTE_RE = re.compile(r"\[[^\]]*\]|【[^】]*】|\([^)]*\)|（[^）]*）")
 CHINESE_DIGITS = {"一": 1, "二": 2, "兩": 2, "三": 3, "四": 4, "五": 5, "六": 6, "七": 7, "八": 8, "九": 9}
 UNIT_IN_TEXT_RE = re.compile(
     r"(?:\d+(?:\.\d+)?\s*(?:/\s*\d+)?|\d+(?:\.\d+)?\s*[~～\-–—]\s*\d+(?:\.\d+)?)\s*"
-    r"(?P<unit>公克|克|g|G|毫升|ml|cc|CC|大匙|湯匙|小匙|茶匙|顆|片|條|根|瓣|支|個|碗|隻|杯|把|朵|盒|包|斤|塊|粒|株|罐|尾|份|兩|張|米杯|小撮|滴)"
+    r"(?P<unit>公克|克|g|G|毫升|ml|公升|[Ll](?![a-zA-Z])|cc|CC|大匙|湯匙|小匙|茶匙|顆|片|條|根|瓣|支|個|碗|隻|杯|把|朵|盒|包|斤|塊|粒|株|罐|尾|份|兩|張|米杯|小撮|滴)"
 )
 
 
@@ -459,6 +460,9 @@ def _normalize_quantity(record: dict[str, Any]) -> dict[str, Any]:
     else:
         weight_status = "unresolved"
 
+    volume_ml = None
+    if amount is not None and amount > 0 and unit in ("ml", "L", "公升"):
+        volume_ml = amount if unit == "ml" else amount * 1000
     return {
         "source_amount": source_amount,
         "source_unit": source_unit,
@@ -470,6 +474,8 @@ def _normalize_quantity(record: dict[str, Any]) -> dict[str, Any]:
         "quantity_status": quantity_status,
         "unit_status": unit_status,
         "weight_g": weight_g,
+        "volume_ml": volume_ml,
+        "volume_evidence": "workbook_volume" if volume_ml is not None else None,
         "weight_status": weight_status,
         "quality_issues": sorted(set(issues)),
     }
