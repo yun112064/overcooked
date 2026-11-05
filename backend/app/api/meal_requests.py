@@ -124,7 +124,7 @@ def get_request(request_id: uuid.UUID, household_id=Depends(current_household_id
 @router.get("/{request_id}/recipes")
 def retrieve_recipes(request_id: uuid.UUID, household_id=Depends(current_household_id),
                      db: Session = Depends(get_db)):
-    row = _get_owned(db, household_id, request_id)
+    row = get_owned_request(db, household_id, request_id)
     draft = service.load(row.payload)
     _reject_bad_references(db, household_id, draft)
     members = _members(db, household_id)
@@ -144,7 +144,7 @@ def retrieve_recipes(request_id: uuid.UUID, household_id=Depends(current_househo
 @router.post("/{request_id}/nutrition-preview")
 def nutrition_preview(request_id: uuid.UUID, body: NutritionPreviewBody,
                       household_id=Depends(current_household_id), db: Session = Depends(get_db)):
-    row = _get_owned(db, household_id, request_id)
+    row = get_owned_request(db, household_id, request_id)
     draft = service.load(row.payload)
     _reject_bad_references(db, household_id, draft)
     members = _members(db, household_id)
