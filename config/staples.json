@@ -1,0 +1,45 @@
+{
+  "version": "staples-2026-11-01-v2",
+  "review_status": "user_confirmed",
+  "white_rice": {
+    "name": "白飯",
+    "food_id": "FOOD000296",
+    "tfda_sample_id": "A0550601",
+    "weight_basis": "cooked",
+    "source_cooking_method": "電鍋煮",
+    "grams_per_n": "160",
+    "adjustable_min_g_per_n": "100",
+    "adjustable_max_g_per_n": "250",
+    "cooking_step_g": "1"
+  },
+  "brown_rice": {
+    "version": "staples-brown-rice-2026-11-02-v1",
+    "review_status": "user_confirmed",
+    "approved_by": "使用者（2026-11-02 同意糙米飯建議）",
+    "approved_on": "2026-11-02",
+    "name": "糙米飯",
+    "food_id": "FOOD001487",
+    "weight_basis": "cooked",
+    "grams_per_n": "160",
+    "adjustable_min_g_per_n": "100",
+    "adjustable_max_g_per_n": "250",
+    "cooking_step_g": "1",
+    "nutrition": {
+      "provider": "USDA",
+      "source_record_id": "USDA_FDC_168875",
+      "source_name": "USDA FoodData Central（SR Legacy）：Rice, brown, medium-grain, cooked；FDC 168875",
+      "source_url": "https://getfoodfacts.com/food/rice-brown-medium-grain-cooked-includes-foods-for-usdas-food-distribution-progra-168875",
+      "retrieved_on": "2026-11-02",
+      "state": "cooked",
+      "values": {
+        "energy_kcal": "112",
+        "protein_g": "2.32",
+        "fat_g": "0.83",
+        "carbohydrate_g": "23.5",
+        "sodium_mg": "1",
+        "dietary_fiber_g": "1.8"
+      },
+      "basis": "TFDA 無煮熟糙米飯與糙米平均值；台灣常見稉米屬中粒米，採 USDA 中粒糙米飯（熟重）。Food_ID 用 All 表「糙米」FOOD001487，僅供 T11 知識與過敏／禁忌比對，營養值只用於主食。"
+    }
+  }
+}

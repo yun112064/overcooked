@@ -259,6 +259,18 @@ class EstimatorTests(unittest.TestCase):
         self.assertFalse(result['success'])
         self.assertNotIn('secret', str(result))
 
+    def test_variant_llm_can_only_select_provided_nutrition_id(self):
+        import llm_cooking_estimator as llm
+        payload = {'candidates': [{'nutrition_id': 'cooked-fry'}, {'nutrition_id': 'cooked-steam'}],
+                   'steps': [{'instruction_clean': '先煎後煮'}]}
+        result = llm.resolve_nutrition_variant(payload, estimator=lambda _: {
+            'nutrition_id': 'cooked-fry', 'basis': '步驟說明先煎後煮', 'missing_information': []})
+        self.assertTrue(result['success'])
+        self.assertEqual(result['nutrition_id'], 'cooked-fry')
+        invalid = llm.resolve_nutrition_variant(payload, estimator=lambda _: {
+            'nutrition_id': 'invented', 'basis': '猜測', 'missing_information': []})
+        self.assertFalse(invalid['success'])
+
 
 class AdditionalFlowTests(unittest.TestCase):
     def test_cli_preview_shows_exact_usda_context_without_api_call(self):

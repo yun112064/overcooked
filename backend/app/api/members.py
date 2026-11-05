@@ -140,7 +140,7 @@ def delete_member(member_id: uuid.UUID, household_id=Depends(current_household_i
 @router.get("/{member_id}/target")
 def member_target(member_id: uuid.UUID, household_id=Depends(current_household_id),
                   db: Session = Depends(get_db)):
-    """今日每日基準（未乘 n）。G03 未通過前 approved_for_adoption 仍為 false。"""
+    """今日每日基準（未乘 n）。approved_for_adoption 由規則的 G03 狀態決定（0.4.1 起為 true）。"""
     member = _get_owned(db, household_id, member_id)
     result = household_service.daily_target(member, on=_today())
     return {

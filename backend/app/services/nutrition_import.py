@@ -134,6 +134,7 @@ def parse_nutrition_workbooks(recipes_path, catalog_path, nutrition_path, *, sou
         }
 
     observations, links, name_differences, count_mismatches = [], [], [], []
+    stale_refs: list[dict] = []
     variant_keys = set()
     for number, row in all_rows:
         food_id, name, state = (_text(row[field]) for field in ("Food_ID", "標準食材名稱", "熟製狀態"))
@@ -153,6 +154,8 @@ def parse_nutrition_workbooks(recipes_path, catalog_path, nutrition_path, *, sou
         original, calculated = _references(row["原來源ID"]), set(_references(row["計算來源ID"]))
         if not original or not calculated.issubset(original):
             raise WorkbookValidationError(f"Invalid source references at All/{number}")
+        if not calculated:
+            issues.append("missing_calculation_source")
         for column, expected in (("原來源筆數", len(original)), ("計算來源筆數", len(calculated))):
             declared = _number(row[column], f"All/{number}/{column}")
             if declared is None or declared != declared.to_integral_value():
@@ -166,7 +169,11 @@ def parse_nutrition_workbooks(recipes_path, catalog_path, nutrition_path, *, sou
             if key in recipe_sources:
                 source_number, source = recipe_sources[key]
                 if _text(source["Food_ID"]) != food_id:
-                    raise WorkbookValidationError(f"Recipe source food differs at All/{number}: {key}")
+                    # 食譜檔把這一列改成別的食材（例如 1103_V3 的 油→葵花油）：同「已刪除」處理
+                    issues.append("recipe_source_line_changed")
+                    stale_refs.append({"food_id": food_id, "source_row": number, "recipe_ingredient_id": key,
+                                       "now_food_id": _text(source["Food_ID"])})
+                    continue
                 issues.append("recipe_derived_nutrition_unreviewed")
                 if key not in sources:
                     sources[key] = {
@@ -175,6 +182,12 @@ def parse_nutrition_workbooks(recipes_path, catalog_path, nutrition_path, *, sou
                         "source_url": None, "source_sheet": "recipe_ingredients", "source_row": source_number,
                         "raw_data": _raw(source),
                     }
+            if key not in sources and key.startswith("RI") and key not in recipe_sources:
+                # 食譜檔已刪除這一列（例如 1103_V3 刪了 4 列）：只拿掉這個來源連結並記在報告；
+                # 這類是「未判定」的食譜推算值，T12 本來就不用來計算（2026-11-04 使用者決定）
+                issues.append("recipe_source_line_removed")
+                stale_refs.append({"food_id": food_id, "source_row": number, "recipe_ingredient_id": key})
+                continue
             if key not in sources:
                 raise WorkbookValidationError(f"Unknown source reference at All/{number}: {key}")
             links.append({"nutrition_id": nutrition_id, "source_id": sources[key]["source_id"],
@@ -199,10 +212,12 @@ def parse_nutrition_workbooks(recipes_path, catalog_path, nutrition_path, *, sou
                    "source_links": len(links), "complete_nutrition_records": sum(r["nutrition_complete"] for r in observations),
                    "catalog_ids_without_nutrition": len(missing_ids), "name_difference_records": len(name_differences),
                    "recipe_foods": len(used), "recipe_foods_without_nutrition": len(used - food_counts.keys()),
-                   "source_count_mismatches": len(count_mismatches)},
+                   "source_count_mismatches": len(count_mismatches),
+                   "removed_recipe_source_refs": len(stale_refs)},
         "missing_nutrients": {field: sum(r[field] is None for r in observations) for field in NUTRIENT_COLUMNS.values()},
         "reconciliation": {"catalog_ids_without_nutrition": [{"food_id": key, "name": catalog[key]} for key in missing_ids],
-                           "name_differences": name_differences, "source_count_mismatches": count_mismatches},
+                           "name_differences": name_differences, "source_count_mismatches": count_mismatches,
+                           "removed_recipe_source_refs": stale_refs},
         "recipe_quality": selected_recipes.report,
     }
     # Bind all reads to exactly the version identified in the report.

@@ -41,6 +41,10 @@ services:
       # T09 團隊電腦 YOLO 推論服務；未設定時辨識顯示不可用，可手動輸入
       RECOGNITION_SERVICE_URL: ${RECOGNITION_SERVICE_URL:-}
       RECOGNITION_SERVICE_TOKEN: ${RECOGNITION_SERVICE_TOKEN:-}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      KNOWLEDGE_SERVICE_URL: ${KNOWLEDGE_SERVICE_URL:-}
+      KNOWLEDGE_SERVICE_TOKEN: ${KNOWLEDGE_SERVICE_TOKEN:-}
+      KNOWLEDGE_INTERNAL_TOKEN: ${KNOWLEDGE_INTERNAL_TOKEN:-}
 
     ports:
       - "127.0.0.1:8000:8000"
@@ -70,6 +74,9 @@ services:
     image: meal-planner-backend
     command: ["python", "-m", "app.jobs.worker"]
     environment:
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      KNOWLEDGE_SERVICE_URL: ${KNOWLEDGE_SERVICE_URL:-}
+      KNOWLEDGE_SERVICE_TOKEN: ${KNOWLEDGE_SERVICE_TOKEN:-}
       DATABASE_URL: postgresql+psycopg://postgres:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}@db:5432/meal_planner
       PROJECT_DATA_ROOT: /app/data
       PYTHONUNBUFFERED: "1"

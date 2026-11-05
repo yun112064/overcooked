@@ -117,7 +117,7 @@ New-Item -ItemType Directory -Force $DataRoot | Out-Null
 $env:PROJECT_DATA_ROOT = $DataRoot
 # 其餘設定（例如之後新增的 API key）原樣傳下去；DEV_ 開頭與腳本專用的不傳
 foreach ($k in $Cfg.Keys) {
-    if ($k -like 'DEV_*' -or $k -in @('PROJECT_DATA_ROOT', 'YOLO_PYTHON', 'RECIPE_WORKBOOK', 'INFERENCE_WEIGHTS')) { continue }
+    if ($k -like 'DEV_*' -or $k -in @('PROJECT_DATA_ROOT', 'YOLO_PYTHON', 'RECIPE_WORKBOOK', 'NUTRITION_WORKBOOK', 'INFERENCE_WEIGHTS')) { continue }
     Set-Item "env:$k" $Cfg[$k]
 }
 $Weights = Resolve-FromRoot (Cfg 'INFERENCE_WEIGHTS' 'inference/models/yolo26s-food41-denoise-seed45-50e.pt')
@@ -153,8 +153,17 @@ Step '套用資料庫 migration'
 if ($LASTEXITCODE -ne 0) { Fail 'alembic upgrade 失敗。' }
 
 $count = docker exec $Db psql -U postgres -d $DbName -tAc 'SELECT count(*) FROM recipes'
-if ("$count".Trim() -eq '0') {
-    $Workbook = Resolve-FromRoot (Cfg 'RECIPE_WORKBOOK' 'data/recipe_dataset_1017.xlsx')
+$nutritionCount = docker exec $Db psql -U postgres -d $DbName -tAc 'SELECT count(*) FROM food_nutrition'
+$Workbook = Resolve-FromRoot (Cfg 'RECIPE_WORKBOOK' 'data/recipe_dataset_1103_V3.xlsx')
+$NutritionWorkbook = Resolve-FromRoot (Cfg 'NUTRITION_WORKBOOK' 'knowledge_rag/sources/All_Food_ID_1018.xlsx')
+if ("$nutritionCount".Trim() -eq '0' -and (Test-Path $Workbook) -and (Test-Path $NutritionWorkbook)) {
+    # 食譜、食材字典（食譜工作簿內的「標準食材整合」）與營養版本同一個交易匯入，T12 才算得出營養
+    Step '資料庫沒有營養資料，從工作簿匯入食譜與營養（約兩分鐘）'
+    & $Py scripts/import_food_workbooks.py --recipes $Workbook --nutrition $NutritionWorkbook `
+        --reviews config/recipe_reviews.json --sources config/recipe_sources.json `
+        --report (Join-Path $StateDir 'food-workbooks-import.json') | Out-Null
+    if ($LASTEXITCODE -ne 0) { Fail '營養資料匯入失敗，報告見 .dev\food-workbooks-import.json。' }
+} elseif ("$count".Trim() -eq '0') {
     if (Test-Path $Workbook) {
         Step '資料庫沒有食譜，從工作簿匯入（約一分鐘）'
         & $Py scripts/import_recipes.py --excel $Workbook --reviews config/recipe_reviews.json `
@@ -193,10 +202,145 @@ function Start-Service-Here($name, $port, $command) {
     Info "$name 已啟動"
 }
 
+# 後端放在自己的隱藏主控台，輸出寫到 .dev\<名稱>.out.log／.err.log，再由下面的 Show-ServiceLogs 印回這個視窗；
+# 程式變更時由 Watch-CodeChanges 重新啟動它（不用 uvicorn --reload：它在 Windows 對子程序送 Ctrl+C，
+# 會傳給同一主控台的所有服務，而且第二次以後常卡住）。
+$LogTails = [ordered]@{}
+function Start-Service-Isolated($name, $port, $exe, [string[]]$arguments) {
+    # 獨立主控台的服務在關掉上次的視窗後不會跟著結束；它帶的是上次的環境變數，所以重新啟動
+    if ($Running.ContainsKey($name)) {
+        Info "$name 是上次啟動留下的，重新啟動以套用這次的設定"
+        taskkill /T /F /PID $Running[$name] *> $null
+        $Running.Remove($name)
+        Set-Content $PidFile ($Running.GetEnumerator() | ForEach-Object { "$($_.Key)=$($_.Value)" })
+        for ($i = 0; $i -lt 10 -and $port -and (Get-NetTCPConnection -LocalPort $port -State Listen -ErrorAction SilentlyContinue); $i++) {
+            Start-Sleep -Milliseconds 500
+        }
+    }
+    if ($port -and (Get-NetTCPConnection -LocalPort $port -State Listen -ErrorAction SilentlyContinue)) {
+        Info "port $port 已被其他程式使用，略過 $name（可能已經開著）"; return
+    }
+    $p = Start-Isolated-Process $name $exe $arguments
+    Add-Content $PidFile "$name=$($p.Id)"
+    $script:Started += $p
+    $script:Reloadable[$name] = @{ Port = $port; Exe = $exe; Args = $arguments; Proc = $p }
+    Info "$name 已啟動（獨立主控台；程式有變更時由本腳本重新啟動）"
+}
+
+function Start-Isolated-Process($name, $exe, [string[]]$arguments) {
+    $out = Join-Path $StateDir "$name.out.log"
+    $err = Join-Path $StateDir "$name.err.log"
+    $p = Start-Process $exe -WorkingDirectory $Root -PassThru -WindowStyle Hidden -ArgumentList $arguments `
+        -RedirectStandardOutput $out -RedirectStandardError $err
+    # 重新啟動時記錄檔會被清空，從頭讀
+    foreach ($f in @($out, $err)) { $script:LogTails[$f] = @{ Name = $name; Pos = 0L; Rest = '' } }
+    return $p
+}
+
+# 自動重新載入：uvicorn --reload 在 Windows 靠對子程序送 Ctrl+C 重啟，第二次以後常收不到而卡住，
+# 所以改由本腳本每 2 秒檢查 .py 檔，有變更就結束整個程序樹再啟動一次（不送 Ctrl+C）。
+$Reloadable = @{}
+$ReloadDirs = @('backend', 'nutrition_planning', 'nutrition_model', 'nutrition_target', 'knowledge_rag') |
+    ForEach-Object { Join-Path $Root $_ } | Where-Object { Test-Path $_ }
+function Get-CodeStamp {
+    $files = @(Get-ChildItem -Path $ReloadDirs -Recurse -Filter '*.py' -File -ErrorAction SilentlyContinue |
+        Where-Object { $_.FullName -notmatch '\\__pycache__\\' })
+    $latest = ($files | ForEach-Object { $_.LastWriteTimeUtc.Ticks } | Measure-Object -Maximum).Maximum
+    "$($files.Count):$latest"
+}
+$CodeStamp = $null
+$LastCodeCheck = [DateTime]::MinValue
+function Watch-CodeChanges {
+    if (-not $script:Reloadable.Count -or ((Get-Date) - $script:LastCodeCheck).TotalSeconds -lt 2) { return }
+    $script:LastCodeCheck = Get-Date
+    $stamp = Get-CodeStamp
+    if ($null -eq $script:CodeStamp) { $script:CodeStamp = $stamp; return }
+    if ($stamp -eq $script:CodeStamp) { return }
+    $script:CodeStamp = $stamp
+    foreach ($name in @($script:Reloadable.Keys)) {
+        $def = $script:Reloadable[$name]
+        Write-Host "[$name] 偵測到程式變更，重新啟動…" -ForegroundColor Cyan
+        taskkill /T /F /PID $def.Proc.Id *> $null
+        for ($i = 0; $i -lt 20 -and $def.Port -and (Get-NetTCPConnection -LocalPort $def.Port -State Listen -ErrorAction SilentlyContinue); $i++) {
+            Start-Sleep -Milliseconds 250
+        }
+        $old = $def.Proc
+        $def.Proc = Start-Isolated-Process $name $def.Exe $def.Args
+        $script:Started = @($script:Started | Where-Object { $_.Id -ne $old.Id }) + $def.Proc
+        $lines = @(Get-Content $PidFile -ErrorAction SilentlyContinue | Where-Object { $_ -and -not $_.StartsWith("$name=") })
+        Set-Content $PidFile ($lines + "$name=$($def.Proc.Id)")
+    }
+}
+
+# 把獨立主控台服務的新輸出印到這個視窗，每行前面加上服務名稱
+function Show-ServiceLogs {
+    foreach ($path in @($script:LogTails.Keys)) {
+        $tail = $script:LogTails[$path]
+        if (-not (Test-Path $path)) { continue }
+        try {
+            $fs = [IO.File]::Open($path, 'Open', 'Read', 'ReadWrite')
+            try {
+                if ($fs.Length -le $tail.Pos) { continue }
+                [void]$fs.Seek($tail.Pos, 'Begin')
+                $buf = New-Object byte[] ($fs.Length - $tail.Pos)
+                $read = $fs.Read($buf, 0, $buf.Length)
+                $tail.Pos += $read
+            } finally { $fs.Dispose() }
+        } catch { continue }
+        $text = $tail.Rest + [Text.Encoding]::UTF8.GetString($buf, 0, $read)
+        $lines = $text -split "`r?`n"
+        $tail.Rest = $lines[-1]  # 最後一段可能還沒寫完整行，留到下次
+        if ($lines.Count -lt 2) { continue }
+        foreach ($line in $lines[0..($lines.Count - 2)]) { if ($line) { Write-Host "[$($tail.Name)] $line" } }
+    }
+}
+
+# ---------- 6b. T11 食材知識庫 ----------
+# 沒有另外設定知識庫時，用同一個資料庫容器裡的獨立資料庫（768 維，與業務庫分開）。
+# 每次啟動都核對 123 筆審核知識並在缺索引時用本機 embeddinggemma 建立；不下載模型、不呼叫付費 API。
+if ((Cfg 'DEV_SKIP_KNOWLEDGE') -ne '1') {
+    if (-not (Cfg 'KNOWLEDGE_DATABASE_URL')) {
+        $KnowledgeDb = Cfg 'DEV_KNOWLEDGE_DB_NAME' 'overcooked_knowledge_dev'
+        $hasKnowledgeDb = docker exec $Db psql -U postgres -tAc "SELECT 1 FROM pg_database WHERE datname = '$KnowledgeDb'"
+        if ("$hasKnowledgeDb".Trim() -ne '1') {
+            docker exec $Db psql -U postgres -c "CREATE DATABASE $KnowledgeDb" | Out-Null
+        }
+        $Cfg['KNOWLEDGE_DATABASE_URL'] = "postgresql://postgres:$DbPassword@127.0.0.1:$DbPort/$KnowledgeDb"
+    }
+    # 權杖只在本機後端與知識服務之間使用，未設定時每次啟動隨機產生
+    # 存在 .dev\knowledge-token（已在 .gitignore），每次啟動沿用同一個，避免沿用中的後端與新的知識服務權杖不一致
+    if (-not (Cfg 'KNOWLEDGE_SERVICE_TOKEN')) {
+        $TokenFile = Join-Path $StateDir 'knowledge-token'
+        if (-not (Test-Path $TokenFile)) { Set-Content $TokenFile ([guid]::NewGuid().ToString('N')) -NoNewline }
+        $Cfg['KNOWLEDGE_SERVICE_TOKEN'] = (Get-Content $TokenFile -Raw).Trim()
+    }
+    $env:KNOWLEDGE_DATABASE_URL = $Cfg['KNOWLEDGE_DATABASE_URL']
+    $env:KNOWLEDGE_SERVICE_TOKEN = $Cfg['KNOWLEDGE_SERVICE_TOKEN']
+    Step '核對 T11 審核知識並檢查索引'
+    $kb = & $Py -m knowledge_rag.bootstrap 2>&1
+    if ($LASTEXITCODE -ne 0) {
+        Write-Host "    知識庫準備失敗，知識服務先不啟動：$($kb | Select-Object -Last 1)" -ForegroundColor Yellow
+        $Cfg.Remove('KNOWLEDGE_DATABASE_URL'); Remove-Item env:KNOWLEDGE_DATABASE_URL -ErrorAction SilentlyContinue
+    } else {
+        Info ($kb | Select-Object -Last 1)
+    }
+}
+
 Step '啟動服務（全部在這個視窗，輸出以 [服務名稱] 區分）'
-Start-Service-Here 'backend' 8000 "& '$Py' -m uvicorn app.main:app --app-dir backend --host 127.0.0.1 --port 8000 --reload --reload-dir backend"
+if ((Cfg 'KNOWLEDGE_DATABASE_URL') -and (Cfg 'KNOWLEDGE_SERVICE_TOKEN')) {
+    $KnowledgePort = Cfg 'KNOWLEDGE_PORT' '8091'
+    $env:KNOWLEDGE_SERVICE_URL = "http://127.0.0.1:$KnowledgePort"
+}
+# 後端也會 import 這些專案根目錄的套件（T12 營養、T04、T03、T11 小知識）；改到它們也要自動重新載入
+Start-Service-Isolated 'backend' 8000 $Py @('-m', 'uvicorn', 'app.main:app', '--app-dir', 'backend',
+    '--host', '127.0.0.1', '--port', '8000')
 Start-Service-Here 'worker' $null "& '$Py' -m app.jobs.worker"
 Start-Service-Here 'frontend' 5173 'npm --prefix frontend run dev -- --host 127.0.0.1 --port 5173 --strictPort'
+if ((Cfg 'KNOWLEDGE_DATABASE_URL') -and (Cfg 'KNOWLEDGE_SERVICE_TOKEN')) {
+    Start-Service-Here 'knowledge' $KnowledgePort "& '$Py' -m uvicorn knowledge_rag.server:create_app --factory --host 127.0.0.1 --port $KnowledgePort"
+} else {
+    Write-Host '    食材知識服務未設定；知識結果會顯示不可用及缺少設定。' -ForegroundColor Yellow
+}
 if ($UseYolo) {
     Start-Service-Here 'yolo' $YoloPort "& '$YoloPy' inference/server.py"
 } else {
@@ -206,8 +350,9 @@ if ($UseYolo) {
 Step '等待後端就緒'
 $up = $false
 for ($i = 0; $i -lt 30; $i++) {
-    try { Invoke-WebRequest 'http://127.0.0.1:8000/health' -UseBasicParsing -TimeoutSec 2 | Out-Null; $up = $true; break } catch { Start-Sleep -Seconds 2 }
+    try { Invoke-WebRequest 'http://127.0.0.1:8000/health' -UseBasicParsing -TimeoutSec 2 | Out-Null; $up = $true; break } catch { Show-ServiceLogs; Start-Sleep -Seconds 2 }
 }
+Show-ServiceLogs
 if (-not $up) { Write-Host '    後端 60 秒內沒有回應，請看上方 [backend] 開頭的錯誤訊息。' -ForegroundColor Yellow }
 
 Write-Host ''
@@ -218,7 +363,8 @@ if (-not $Started) { exit 0 }  # 服務都已在別處執行，沒有要看守�
 
 # 留在這裡顯示各服務輸出；按 Ctrl+C 時一併關閉服務與資料庫容器（資料保留）
 try {
-    while ($Started | Where-Object { -not $_.HasExited }) { Start-Sleep -Seconds 1 }
+    while ($Started | Where-Object { -not $_.HasExited }) { Show-ServiceLogs; Watch-CodeChanges; Start-Sleep -Seconds 1 }
+    Show-ServiceLogs
     Write-Host '所有服務都已結束。' -ForegroundColor Yellow
 } finally {
     & (Join-Path $PSScriptRoot 'stop-dev.ps1')

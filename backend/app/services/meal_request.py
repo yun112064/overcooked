@@ -14,7 +14,7 @@ from sqlalchemy.orm import Session
 
 from app.db.models import Member
 from app.services import household as household_service
-from app.services import ingredients, synonyms
+from app.services import allergen_groups, ingredients, synonyms
 from nutrition_target import TargetInputError
 
 MealType = Literal["breakfast", "lunch", "dinner"]
@@ -172,6 +172,34 @@ def restrictions(db: Session, draft: MealRequestDraft, members: dict) -> dict:
                 for value in union[base_id][key]:
                     if value not in row[key]:
                         row[key].append(value)
+    # T11 過敏原群組：對「雞蛋」過敏也排除皮蛋、鹹蛋、蛋豆腐等（只套用「過敏」，不套用「不吃」）
+    allergic: dict[str, list[str]] = {}
+    for p in draft.participants:
+        member = members.get(p.member_id)
+        if member is None or not (p.bento or (p.dining and draft.meal_type)):
+            continue
+        for ingredient_id in member.allergen_ingredient_ids:
+            names_for = allergic.setdefault(ingredient_id, [])
+            if member.display_name not in names_for:
+                names_for.append(member.display_name)
+    triggers = {**{fid: fid for fid in allergic},
+                **{extra["food_id"]: base for base, extras in synonyms.restriction_expansion(list(allergic)).items()
+                   for extra in extras if extra["food_id"] not in allergic}}
+    for trigger, base_id in triggers.items():
+        for extra in allergen_groups.expansion([trigger])[trigger]:
+            if extra["food_id"] in union:
+                continue
+            row = expanded.setdefault(extra["food_id"], {
+                "ingredient_id": extra["food_id"], "relation": extra["relation"], "status": extra["status"],
+                "group_name": extra["group_name"], "via": [], "kinds": [], "member_names": [],
+            })
+            if base_id not in row["via"]:
+                row["via"].append(base_id)
+            if "allergen" not in row["kinds"]:
+                row["kinds"].append("allergen")
+            for value in allergic[base_id]:
+                if value not in row["member_names"]:
+                    row["member_names"].append(value)
     extra_names = ingredients.names(db, list(expanded))
     for row in expanded.values():
         row["name"] = extra_names.get(row["ingredient_id"])
@@ -192,19 +220,10 @@ def target_preview(draft: MealRequestDraft, members: dict) -> dict:
     entries = items(draft)
     if not entries or draft.meal_date is None:
         return {"status": "incomplete"}
-    participations = []
-    for entry in entries:
-        member = members.get(uuid.UUID(entry["member_id"]))
-        if member is None:
-            return {"status": "incomplete"}
-        fields = {c: getattr(member, c) for c in ("birth_date", "equation_sex", "weight_kg", "activity_category", "goal")}
-        participations.append({
-            "participation_id": entry["participation_id"],
-            "kind": entry["kind"],
-            "meal": entry["meal"],
-            "n": household_service.plain_decimal(member.portion),
-            "member": household_service.target_input(fields, member_id=entry["member_id"], on=draft.meal_date),
-        })
+    try:
+        participations = target_participations(draft, members)
+    except (TargetInputError, ValueError):
+        return {"status": "incomplete"}
     try:
         result = household_service.target_service().aggregate_meal_targets(participations)
     except TargetInputError as exc:
@@ -221,5 +240,26 @@ def target_preview(draft: MealRequestDraft, members: dict) -> dict:
              "meal_ratio": p["meal_ratio"], "n": p["n"], "scaled_target": p["scaled_target"]}
             for p in result["participations"]
         ],
-        "approved_for_adoption": False,
+        "approved_for_adoption": result.get("approved_for_adoption") is True,
     }
+
+
+def target_participations(draft: MealRequestDraft, members: dict) -> list[dict]:
+    """Trusted T03 inputs derived from the stored questionnaire and members."""
+    if draft.meal_date is None:
+        raise ValueError('meal_date is required')
+    entries = items(draft)
+    participations = []
+    for entry in entries:
+        member = members.get(uuid.UUID(entry["member_id"]))
+        if member is None:
+            raise ValueError('member is unavailable')
+        fields = {c: getattr(member, c) for c in ("birth_date", "equation_sex", "weight_kg", "activity_category", "goal")}
+        participations.append({
+            "participation_id": entry["participation_id"],
+            "kind": entry["kind"],
+            "meal": entry["meal"],
+            "n": household_service.plain_decimal(member.portion),
+            "member": household_service.target_input(fields, member_id=entry["member_id"], on=draft.meal_date),
+        })
+    return participations

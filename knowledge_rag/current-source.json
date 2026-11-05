@@ -1,0 +1,21 @@
+{
+  "file": "knowledge_rag/candidates/web_paper_2026-10-30.json",
+  "source_version": "web-paper-platform-2026-10-30-r3",
+  "records": 123,
+  "ingredients": 76,
+  "web_records": 103,
+  "paper_records": 20,
+  "status": "source_reviewed_not_imported",
+  "database_updated": false,
+  "index_updated": false,
+  "historical_candidates_preserved": true,
+  "review_file": "knowledge_rag/reviews/web_paper_2026-10-30.json",
+  "source_review_counts": {
+    "accepted_under_user_policy": 123
+  },
+  "acceptance_basis_counts": {
+    "named_professional_or_original_research": 96,
+    "user_accepted_platform_source": 27
+  },
+  "source_policy_version": "user-approved-platform-sources-2026-10-30-v1"
+}

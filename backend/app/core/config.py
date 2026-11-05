@@ -1,5 +1,6 @@
 from decimal import Decimal
 from pathlib import Path
+from typing import Literal
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -23,7 +24,7 @@ class Settings(BaseSettings):
     ingredient_synonyms_path: Path = PROJECT_ROOT / "config/ingredient_synonyms.json"
 
     nutrition_rules_path: Path = (
-        PROJECT_ROOT / "nutrition_target/rules/hpa-dri8-mvp-0.3.0.json"
+        PROJECT_ROOT / "nutrition_target/rules/hpa-dri8-mvp-0.4.1.json"
     )
 
     # T10 外部服務費用：每月總上限包含主機、模型、備份等全部服務
@@ -51,6 +52,15 @@ class Settings(BaseSettings):
     recognition_timeout_seconds: float = 10.0
     recognition_min_confidence: Decimal = Decimal("0.25")
     recognition_labels_path: Path = PROJECT_ROOT / "config/recognition_labels.json"
+
+    # T11 defaults to team-computer Ollama embeddings; the legacy paid key stays on the cloud.
+    openai_api_key: str | None = None
+    knowledge_provider: Literal['ollama','openai'] = 'ollama'
+    knowledge_service_url: str | None = None
+    knowledge_service_token: str | None = None
+    knowledge_internal_token: str | None = None
+    # 最後的營養小知識文字由雲端生成（資料仍為審核知識）；須在 config/model_pricing.json 有價格
+    knowledge_explain_model: str = 'gpt-5.4-mini-2026-03-17'
 
     model_config = SettingsConfigDict(
         env_file=".env",

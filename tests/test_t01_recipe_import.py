@@ -30,6 +30,17 @@ def by_id(bundle):
 
 
 class QualityRuleTests(unittest.TestCase):
+    def test_reviewed_r0180_is_main_and_keeps_spicy_identity(self):
+        from app.services.recipe_import import load_review_record, parse_recipe_workbook
+        root = Path(__file__).resolve().parents[1]
+        bundle = parse_recipe_workbook(root / "data/recipe_dataset_1103_V3.xlsx",
+                                       review_record=load_review_record(root / "config/recipe_reviews.json"))
+        spicy, plain = by_id(bundle)["R0180"], by_id(bundle)["R0182"]
+        self.assertEqual(spicy["category"], "主菜")
+        self.assertNotEqual(spicy["standard_dish_id"], plain["standard_dish_id"])
+        self.assertNotIn("桂竹筍炒肉絲", spicy["name_aliases"])
+        self.assertEqual(plain["category"], "主菜")
+
     def test_fully_reviewed_recipe_qualifies(self):
         bundle = parse([recipe("R001", "清炒高麗菜")])
         self.assertTrue(by_id(bundle)["R001"]["is_eligible"], by_id(bundle)["R001"]["quality_issues"])

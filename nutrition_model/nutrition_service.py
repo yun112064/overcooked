@@ -184,6 +184,12 @@ def calculate_nutrition(
         "missing_fields":
             missing_fields,
 
+        "invalid_fields":
+            ingredient.get(
+                "invalid_fields",
+                {}
+            ),
+
         "source":
             ingredient[
                 "source"

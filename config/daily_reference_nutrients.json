@@ -1,0 +1,48 @@
+{
+  "version": "hpa-daily-reference-0.1.0",
+  "decided_on": "2026-10-24",
+  "note": "每人每日建議攝取量（熱量、蛋白質以外的 5 項）。熱量與蛋白質沿用 T03 規則（nutrition_target）算出的每人每日目標；其餘依該成員每日熱量推算。僅供畫面對照，不參與 ±10% 驗證與採用資格。",
+  "source": {
+    "publisher": "衛生福利部國民健康署",
+    "title": "國人膳食營養素參考攝取量（第八版）、每日飲食指南",
+    "url": "https://www.hpa.gov.tw/Pages/Detail.aspx?id=549&nodeid=4248&pid=12285",
+    "verification": "依使用者決定採用常見建議值，尚未逐頁對照原文"
+  },
+  "nutrients": {
+    "carbohydrate_g": {
+      "kind": "range",
+      "energy_percent_min": "50",
+      "energy_percent_max": "60",
+      "kcal_per_g": "4",
+      "label": "占每日熱量 50–60%"
+    },
+    "fat_g": {
+      "kind": "range",
+      "energy_percent_min": "20",
+      "energy_percent_max": "30",
+      "kcal_per_g": "9",
+      "label": "占每日熱量 20–30%"
+    },
+    "sugars_g": {
+      "kind": "max",
+      "energy_percent_max": "10",
+      "kcal_per_g": "4",
+      "label": "添加糖不超過每日熱量 10%",
+      "caveat": "TFDA 資料的「糖」是總糖（含天然糖），國健署 10% 是指添加糖，僅供參考"
+    },
+    "sodium_mg": {
+      "kind": "max",
+      "value": "2400",
+      "label": "每日不超過 2400 mg"
+    },
+    "dietary_fiber_g": {
+      "kind": "target",
+      "per_1000_kcal": "14",
+      "label": "每 1000 大卡 14 g"
+    }
+  },
+  "high_sodium_dish": {
+    "mg_per_serving": "1000",
+    "text": "單一道菜每人份鈉 ≥ 1000 mg 標示「高鈉」：約等於每日上限 2400 mg 的 40%（晚餐建議占比），也就是一道菜就用完一整餐的鈉額度。只提醒，不影響採用資格。"
+  }
+}

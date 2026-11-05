@@ -1,5 +1,6 @@
 """T08：當餐問卷、便當與手動食材草稿（AC03、AC09）。成員皆為合成測試資料。"""
 import unittest
+from unittest.mock import patch
 
 from db_support import seed_foods, make_client, migrate_fresh, requires_db, truncate_all
 
@@ -105,15 +106,28 @@ class T08ApiTests(unittest.TestCase):
         ], meal_date="2026-08-20"))
         preview = created["targets_preview"]
         self.assertEqual(preview["status"], "available", preview)
-        self.assertEqual(preview["rule_version"], "hpa-dri8-mvp-0.3.0")
+        self.assertEqual(preview["rule_version"], "hpa-dri8-mvp-0.4.1")
         ratios = {(i["kind"], i["meal"]): i["meal_ratio"] for i in preview["items"]}
         self.assertEqual(ratios, {("dining", "dinner"): "0.4", ("bento", "lunch"): "0.3"})
         self.assertEqual(len(preview["items"]), 3)
         self.assertEqual(preview["total_n"], "3.3")
-        # 成員 A：77 g/day 蛋白質；晚餐 0.4、午餐便當 0.3，各乘 1.3；成員 B：28×1.1×0.4×0.7
-        expected_protein = 77 * 0.4 * 1.3 + 77 * 0.3 * 1.3 + 28 * 1.1 * 0.4 * 0.7
+        # 成員 A（成人）：77 g/day 蛋白質；晚餐 0.4、午餐便當 0.3，各乘 1.3
+        # 成員 B（7–9 歲）：0.4.0 起查國健署分齡表 40 g/day（不再套成人 1.1 g/kg）× 0.4 × 0.7
+        expected_protein = 77 * 0.4 * 1.3 + 77 * 0.3 * 1.3 + 40 * 0.4 * 0.7
         self.assertAlmostEqual(float(preview["target"]["protein_g"]), expected_protein, places=9)
-        self.assertFalse(preview["approved_for_adoption"])
+        self.assertTrue(preview["approved_for_adoption"])  # 0.4.1 records G03 as approved
+
+    def test_nutrition_preview_uses_stored_questionnaire_and_only_recipe_ids(self):
+        created = self.create(full_draft([{"member_id": self.a["id"]}]))
+        expected = {"nutrition_passed": False, "input_issues": [{"message": "食材營養資料缺失"}]}
+        with patch("app.api.meal_requests.t12_planning.preview", return_value=expected) as preview:
+            response = self.client.post(f"/meal-requests/{created['id']}/nutrition-preview",
+                                        json={"recipe_ids": ["R001"]})
+        self.assertEqual(response.status_code, 200, response.text)
+        self.assertEqual(response.json(), expected)
+        kwargs = preview.call_args.kwargs
+        self.assertEqual(kwargs["recipe_ids"], ["R001"])
+        self.assertEqual(kwargs["draft"].staple, "白飯")
 
     def test_breakfast_ratio_is_thirty_percent(self):
         created = self.create(full_draft([{"member_id": self.a["id"]}], meal_type="breakfast"))

@@ -8,11 +8,16 @@ from sqlalchemy.orm import Session
 
 from app.api.deps import AuthContext, current_auth, current_household_id, verify_origin
 from app.api.errors import ApiError, not_found, version_conflict
-from app.db.models import MealRequest, MealRequestRevision, Member
+from app.db.models import AdoptedMealPlan, MealRequest, MealRequestRevision, Member
 from app.db.session import get_db
 from app.services import ingredients
+from app.services import recipe_retrieval
 from app.services import jobs as job_service
 from app.services import meal_request as service
+from app.services import t12_planning
+from app.services import knowledge_explanation
+from app.services import meal_plans
+from app.db.session import SessionLocal
 
 router = APIRouter(prefix="/meal-requests", tags=["meal-requests"], dependencies=[Depends(verify_origin)])
 
@@ -20,6 +25,10 @@ router = APIRouter(prefix="/meal-requests", tags=["meal-requests"], dependencies
 class DraftUpdate(BaseModel):
     version: int = Field(ge=1)
     draft: service.MealRequestDraft
+
+
+class NutritionPreviewBody(BaseModel):
+    recipe_ids: list[str] = Field(min_length=1, max_length=10)
 
 
 def _members(db: Session, household_id) -> dict:
@@ -95,6 +104,85 @@ def create_request(draft: service.MealRequestDraft, auth: AuthContext = Depends(
 def get_request(request_id: uuid.UUID, household_id=Depends(current_household_id),
                 db: Session = Depends(get_db)):
     return _out(db, _get_owned(db, household_id, request_id))
+
+
+@router.get("/{request_id}/recipes")
+def retrieve_recipes(request_id: uuid.UUID, household_id=Depends(current_household_id),
+                     db: Session = Depends(get_db)):
+    """T11 preview only; nutrition/budget validation and AI generation belong to T12–T14."""
+    row = _get_owned(db, household_id, request_id)
+    draft = service.load(row.payload)
+    _reject_bad_references(db, household_id, draft)
+    members = _members(db, household_id)
+    issues = service.completeness(draft, members)
+    if issues:
+        raise ApiError(422, "INVALID_INPUT", "請先完成問卷。", {"issues": issues})
+    try:
+        # 略過這一版問卷「不採用」過的組合（2026-11-03）
+        result = meal_plans.current_menu(db, household_id, row, draft, members)
+    except recipe_retrieval.RecipeRetrievalError as exc:
+        raise ApiError(503, exc.code, exc.message) from None
+    adopted = db.scalar(select(AdoptedMealPlan).where(AdoptedMealPlan.meal_request_id == row.id))
+    return {**result, 'input_version': row.version,
+            'fallback_eligible': result['status'] == recipe_retrieval.NO_FEASIBLE,
+            'adopted_plan': meal_plans.summary(adopted) if adopted is not None else None}
+
+
+class RejectBody(BaseModel):
+    version: int = Field(ge=1)
+    recipe_ids: list[str] = Field(min_length=1, max_length=10)
+
+
+@router.post("/{request_id}/menu-rejections", status_code=204)
+def reject_menu(request_id: uuid.UUID, body: RejectBody, auth: AuthContext = Depends(current_auth),
+                household_id=Depends(current_household_id), db: Session = Depends(get_db)):
+    """「不採用，換一份」：記錄這組食譜，同一版問卷下次查詢改給下一組。"""
+    row = _get_owned(db, household_id, request_id, lock=True)
+    meal_plans.reject(db, row, version=body.version, recipe_ids=body.recipe_ids, user_id=auth.user_id)
+    db.commit()
+    return Response(status_code=204)
+
+
+@router.post("/{request_id}/nutrition-preview")
+def nutrition_preview(request_id: uuid.UUID, body: NutritionPreviewBody,
+                      household_id=Depends(current_household_id), db: Session = Depends(get_db)):
+    """T12 result for selected T11 recipe IDs; never accepts client nutrition facts."""
+    row = _get_owned(db, household_id, request_id)
+    draft = service.load(row.payload)
+    members = _members(db, row.household_id)
+    issues = service.completeness(draft, members)
+    if issues:
+        raise ApiError(422, 'INVALID_INPUT', '請先完成問卷。', {'issues': issues})
+    try:
+        return t12_planning.preview(db, draft=draft, members=members, recipe_ids=body.recipe_ids)
+    except t12_planning.T12PlanningUnavailable as exc:
+        raise ApiError(503, exc.code, exc.message) from None
+
+
+@router.post("/{request_id}/knowledge-tips")
+def knowledge_tips(request_id: uuid.UUID, body: NutritionPreviewBody,
+                   household_id=Depends(current_household_id), db: Session = Depends(get_db)):
+    """T12 之後的營養小知識：後端重算最終食材 → T11 檢索審核知識 → 雲端 OpenAI 生成（經 T10）。
+
+    不接受前端傳來的食材或知識；缺知識、知識服務故障或額度不足都不阻擋採用，只回報狀態與原因。
+    """
+    row = _get_owned(db, household_id, request_id)
+    draft = service.load(row.payload)
+    members = _members(db, row.household_id)
+    issues = service.completeness(draft, members)
+    if issues:
+        raise ApiError(422, 'INVALID_INPUT', '請先完成問卷。', {'issues': issues})
+    try:
+        menu = t12_planning.preview(db, draft=draft, members=members, recipe_ids=body.recipe_ids)
+    except t12_planning.T12PlanningUnavailable as exc:
+        raise ApiError(503, exc.code, exc.message) from None
+    food_ids = list(menu.get('final_food_ids') or [])
+    db.rollback()  # 釋放讀取交易；以下的付費呼叫用各自的短交易
+    result = knowledge_explanation.tips_for_menu(
+        SessionLocal, final_food_ids=food_ids, household_id=household_id,
+        request_tag=f'tips:{request_id}:{row.version}', names=ingredients.names(db, food_ids) if food_ids else {})
+    return {**result, 'input_version': row.version, 'recipe_ids': body.recipe_ids,
+            'nutrition_status': menu.get('status')}
 
 
 @router.put("/{request_id}")

@@ -15,6 +15,7 @@ import {
 import FormTextField from '../components/FormTextField'
 import GenerationPanel from '../components/GenerationPanel'
 import IngredientPicker from '../components/IngredientPicker'
+import MenuPreviewPanel from '../components/MenuPreviewPanel'
 import RecognitionCapture from '../components/RecognitionCapture'
 
 const STEPS = ['用餐資訊', '成員與便當', '口味與指定菜', '已有食材', '確認']
@@ -277,6 +278,8 @@ function Editor({ initial, members: memberList }: { initial: MealRequest; member
         {step === 4 && (
           <Stack spacing={3}>
             <Summary row={server} members={memberList} />
+            <Divider />
+            <MenuPreviewPanel row={server} members={memberList} />
             <Divider />
             <GenerationPanel row={server} onChanged={refresh} />
           </Stack>

@@ -207,7 +207,10 @@ def calculate_recipe(recipe_name, recipe_ingredients, cooking_calculator, raw_ca
             and row.get('success') and row.get('nutrition_complete'))
         if not row.get('cooking_adjustment_complete') and not dish_mass_resolves_weight:
             incomplete.append({'ingredient': name, 'reason': row.get('missing_reason') or row.get('error')})
-    partial = {k: sum(r.get('nutrition', {}).get(k) or 0 for r in results if r.get('success')) for k in NUTRIENTS}
+    # A nutrient with no known value anywhere stays None, never a fake 0.
+    known = {k: [r['nutrition'][k] for r in results
+                 if r.get('success') and r.get('nutrition', {}).get(k) is not None] for k in NUTRIENTS}
+    partial = {k: sum(values) if values else None for k, values in known.items()}
     missing = {k: [r['ingredient'] for r in results if r.get('success') and r.get('nutrition', {}).get(k) is None]
                for k in NUTRIENTS}
     total = {k: None if failed or missing[k] else partial[k] for k in NUTRIENTS}
@@ -220,7 +223,7 @@ def calculate_recipe(recipe_name, recipe_ingredients, cooking_calculator, raw_ca
             'total_nutrition': {k: round(v, 2) if v is not None else None for k, v in total.items()},
             # Unrounded values for T12 scaling and ±10% boundary checks; display fields stay rounded.
             'total_nutrition_unrounded': dict(total),
-            'partial_nutrition_totals': {k: round(v, 2) for k, v in partial.items()},
+            'partial_nutrition_totals': {k: round(v, 2) if v is not None else None for k, v in partial.items()},
             'nutrition_complete': complete, 'cooking_adjustment_complete': not incomplete and not failed,
             'missing_nutrients': {k: names for k, names in missing.items() if names},
             'failed_ingredients': failed, 'cooking_incomplete': incomplete,

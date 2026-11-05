@@ -8,9 +8,17 @@ env/
 .env.*
 !.env.example
 !.env.dev.example
+# API 金鑰與憑證檔：只放本機，不進 Git（OPENAI_API_KEY 請寫在 .env／.env.dev）
+*.key
+*.pem
+secrets/
+openai_api_key*
+*api_key*.txt
 __pycache__/
 *.py[cod]
 .pytest_cache/
+.test-tmp/
+.coverage
 
 # 例外：T01 已審核、取得授權的食譜工作簿放進 Git，讓隊友啟動時自動匯入同一份資料
 data/*
@@ -29,3 +37,6 @@ nutrition_model/data/raw/
 
 # 本機開發腳本的執行狀態（PID、匯入報告）
 .dev/
+
+# T11 原文快取：來源未附完整授權，原文不進 Git
+knowledge_rag/.article_cache/

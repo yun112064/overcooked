@@ -19,7 +19,8 @@ from app.services.nutrition_import import (NUTRIENT_COLUMNS, find_nutrition_cand
                                           import_nutrition_bundle, parse_nutrition_workbooks)
 from app.services.recipe_import import WorkbookValidationError
 from app.services.t04_database_nutrition import (calculate_food_nutrition,
-                                                 calculate_recipe_nutrition)
+                                                 calculate_recipe_nutrition,
+                                                 calculate_source_nutrition)
 from recipe_workbook import build, recipe
 
 
@@ -131,7 +132,12 @@ class FoodWorkbookTests(unittest.TestCase):
                 cooking_state="未熟製",
                 cooking_method=None,
                 weight_g=150,
+                weight_basis="raw",
+                consumed_as_is=True,
             )
+            unverified = calculate_food_nutrition(
+                session, import_id=bundle.import_id, food_id="FOOD000005",
+                cooking_state="未熟製", cooking_method=None, weight_g=150)
         self.assertTrue(result["success"])
         self.assertEqual(result["food_id"], "FOOD000005")
         self.assertEqual(result["import_id"], bundle.import_id)
@@ -139,8 +145,114 @@ class FoodWorkbookTests(unittest.TestCase):
         self.assertIsNone(result["nutrition"]["sugars_g"])
         self.assertEqual(result["nutrition"]["sodium_mg"], Decimal("0.00"))
         self.assertEqual(result["missing_fields"], ["sugars_g"])
+        # P03: sugar is display-only, so the required set is still complete.
+        self.assertFalse(result["nutrition_complete"])
+        self.assertEqual(result["required_nutrients"], ["energy_kcal", "protein_g"])
+        self.assertTrue(result["required_nutrition_complete"])
+        self.assertFalse(unverified["required_nutrition_complete"])
         self.assertEqual(result["sources"][0]["provider"], "TFDA")
         self.assertTrue(result["sources"][0]["included_in_calculation"])
+        self.assertTrue(result["source_basis_verified"])
+        self.assertNotIn("reference_nutrition", result)
+        # No declared weight basis: values are reference only, official nutrition stays unknown (AC13).
+        self.assertFalse(unverified["cooking_adjustment_complete"])
+        self.assertEqual(unverified["missing_reason"], "weight_basis_unverified")
+        self.assertIsNone(unverified["nutrition"]["protein_g"])
+        self.assertFalse(unverified["nutrition_complete"])
+        self.assertEqual(unverified["reference_nutrition"]["protein_g"], Decimal("1.50"))
+
+    def test_t04_database_weight_basis_must_match_observation_state(self):
+        bundle = self.parse()
+        self.save(bundle)
+        common = dict(import_id=bundle.import_id, food_id="FOOD000005", cooking_state="未熟製",
+                      cooking_method=None, weight_g=150)
+        with Session(self.engine) as session:
+            raw = calculate_food_nutrition(session, weight_basis="raw", **common)
+            as_is = calculate_food_nutrition(session, weight_basis="raw", consumed_as_is=True, **common)
+            cooked = calculate_food_nutrition(session, weight_basis="cooked", **common)
+            invalid = calculate_food_nutrition(session, weight_basis="edible", **common)
+        # Matching basis alone is not a cooking basis for raw composition.
+        self.assertTrue(raw["weight_basis_verified"])
+        self.assertFalse(raw["cooking_adjustment_complete"])
+        self.assertIsNone(raw["nutrition"]["protein_g"])
+        self.assertTrue(as_is["cooking_adjustment_complete"])
+        self.assertIsNone(as_is["missing_reason"])
+        self.assertEqual(cooked, {"success": False, "error": "weight_basis_mismatch"})
+        self.assertEqual(invalid, {"success": False, "error": "invalid_weight_basis"})
+
+    def test_t04_required_nutrients_match_t12_targets(self):
+        from app.services.t04_database_nutrition import REQUIRED_NUTRIENTS
+        from nutrition_planning.targets import REQUIRED_TARGETS
+        self.assertEqual(REQUIRED_NUTRIENTS, REQUIRED_TARGETS)
+
+    def test_t04_database_recipe_loads_lines_in_constant_queries(self):
+        bundle = self.parse()
+        self.save(bundle)
+        line = {"food_id": "FOOD000005", "cooking_state": "已熟製", "cooking_method": "水煮",
+                "weight_g": 50, "weight_basis": "cooked"}
+        statements = []
+        listener = lambda *args: statements.append(args[2])
+        event.listen(self.engine, "before_cursor_execute", listener)
+        self.addCleanup(event.remove, self.engine, "before_cursor_execute", listener)
+        with Session(self.engine) as session:
+            for count in (1, 4):
+                statements.clear()
+                result = calculate_recipe_nutrition(session, import_id=bundle.import_id, recipe_name="批次",
+                                                    recipe_ingredients=[dict(line) for _ in range(count)])
+                self.assertTrue(result["cooking_adjustment_complete"])
+                self.assertEqual(len(statements), 2, f"{count} lines")
+
+    def test_t04_database_recipe_rejects_invalid_import_id_without_querying(self):
+        line = {"food_id": "FOOD000005", "cooking_state": "已熟製", "cooking_method": "水煮", "weight_g": 50}
+        with Session(self.engine) as session:
+            for import_id in (["x"], {"x": 1}, "", None):
+                with self.subTest(import_id=import_id):
+                    result = calculate_recipe_nutrition(session, import_id=import_id, recipe_name="壞版本",
+                                                        recipe_ingredients=[line])
+                    self.assertFalse(result["success"])
+                    self.assertEqual(result["failed_ingredients"][0]["error"], "invalid_nutrition_input")
+
+    def test_t04_database_partial_calculation_sources_stay_unverified(self):
+        # RI999 is a recipe line the recipe workbook no longer has, so the importer drops its link.
+        self.rows[0].update({"原來源ID": "TFDA_A01\nRI999", "計算來源ID": "TFDA_A01\nRI999",
+                             "原來源筆數": 2, "計算來源筆數": 2})
+        bundle = self.parse()
+        self.save(bundle)
+        with Session(self.engine) as session:
+            result = calculate_food_nutrition(
+                session, import_id=bundle.import_id, food_id="FOOD000005", cooking_state="未熟製",
+                cooking_method=None, weight_g=150, weight_basis="raw", consumed_as_is=True)
+        self.assertIn("recipe_source_line_removed", result["quality_issues"])
+        self.assertTrue(any(source["included_in_calculation"] for source in result["sources"]))
+        self.assertFalse(result["source_basis_verified"])
+        self.assertEqual(result["missing_reason"], "missing_calculation_source")
+        self.assertIsNone(result["nutrition"]["protein_g"])
+
+    def test_t12_line_nutrition_matches_t04_source_conversion(self):
+        from fractions import Fraction
+        from nutrition_planning.service import (IngredientQuantity, NutritionPolicy, RecipeCandidate,
+                                                calculate_nutrition)
+        from nutrition_planning.targets import exact
+        self.sources[0].update({"熱量(kcal/100g)": "31.5", "蛋白質(g/100g)": "12.7"})
+        bundle = self.parse()
+        self.save(bundle)
+        with Session(self.engine) as session:
+            source = session.scalar(select(NutritionSource).where(
+                NutritionSource.import_id == bundle.import_id, NutritionSource.source_record_id == "A01"))
+            t04 = calculate_source_nutrition(session, import_id=bundle.import_id,
+                                             nutrition_source_id=source.source_id, weight_g="137.5")
+            values = {field: exact(source.raw_data[column]) for column, field in NUTRIENT_COLUMNS.items()
+                      if field in ("energy_kcal", "protein_g")}
+        self.assertTrue(t04["success"])
+        record = {"ingredient_id": "A01", "state": "raw", "nutrition_per_100g": values,
+                  "source": {"provider": "TFDA", "source_id": "A01", "source_version": bundle.import_id,
+                             "food_id": "FOOD000005"}}
+        line = IngredientQuantity("L1", "FOOD000005", "A01", "137.5", "raw", True, None)
+        t12 = calculate_nutrition(RecipeCandidate("database_menu", (line,)), policy=NutritionPolicy(
+            Path("unused.json"), {}, ("energy_kcal", "protein_g"), line_nutrition_records={"L1": record}))
+        for field in ("energy_kcal", "protein_g"):
+            self.assertEqual(t12.totals[field], Fraction(t04["nutrition_unrounded"][field]))
+        self.assertEqual(t04["nutrition_unrounded"]["protein_g"], Decimal("17.4625"))
 
     def test_t04_database_recipe_never_falls_back_to_another_variant(self):
         bundle = self.parse()
@@ -163,6 +275,7 @@ class FoodWorkbookTests(unittest.TestCase):
                     "cooking_state": "已熟製",
                     "cooking_method": "水煮",
                     "weight_g": 200,
+                    "weight_basis": "cooked",
                 }],
                 servings=2,
             )

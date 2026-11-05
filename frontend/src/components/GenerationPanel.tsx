@@ -74,6 +74,7 @@ export default function GenerationPanel({ row, onChanged }: Props) {
           {job.status === 'failed' && job.error && (
             <Alert severity={job.error.code === 'GENERATION_NOT_AVAILABLE' ? 'info' : 'error'} sx={{ mt: 1 }}>
               {job.error.message}
+              {job.error.code === 'GENERATION_NOT_AVAILABLE' && '目前可先參考上方的資料庫菜單。'}
             </Alert>
           )}
           {job.status === 'succeeded' && <Alert severity="success" sx={{ mt: 1 }}>已產生結果。</Alert>}

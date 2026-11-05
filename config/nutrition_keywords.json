@@ -1,0 +1,267 @@
+{
+  "version": "nutrition-keywords-v2-bilingual",
+  "note": "T11 最後小知識文字的依據檢查：生成文字中出現的營養／健康效益關鍵字與數字，都必須出自所引用的知識紀錄（fact_zh＋適用條件）。英文別名供論文摘要使用。可增修，改動後需重新驗證。",
+  "keywords": {
+    "膳食纖維": [
+      "dietary fiber",
+      "dietary fibre"
+    ],
+    "纖維": [
+      "fiber",
+      "fibre"
+    ],
+    "維生素": [
+      "vitamin"
+    ],
+    "維他命": [
+      "vitamin"
+    ],
+    "礦物質": [
+      "mineral"
+    ],
+    "蛋白質": [
+      "protein"
+    ],
+    "胺基酸": [
+      "amino acid"
+    ],
+    "熱量": [
+      "calorie",
+      "energy intake",
+      "kcal"
+    ],
+    "卡路里": [
+      "calorie",
+      "kcal"
+    ],
+    "醣類": [
+      "carbohydrate",
+      "sugar"
+    ],
+    "碳水化合物": [
+      "carbohydrate"
+    ],
+    "脂肪": [
+      "fat",
+      "lipid"
+    ],
+    "脂肪酸": [
+      "fatty acid"
+    ],
+    "Omega-3": [
+      "omega-3",
+      "n-3"
+    ],
+    "鈣": [
+      "calcium"
+    ],
+    "鐵質": [
+      "iron"
+    ],
+    "鐵": [
+      "iron"
+    ],
+    "鉀": [
+      "potassium"
+    ],
+    "鎂": [
+      "magnesium"
+    ],
+    "鋅": [
+      "zinc"
+    ],
+    "硒": [
+      "selenium"
+    ],
+    "鈉": [
+      "sodium"
+    ],
+    "葉酸": [
+      "folate",
+      "folic acid"
+    ],
+    "抗氧化": [
+      "antioxidant",
+      "oxidative"
+    ],
+    "茄紅素": [
+      "lycopene"
+    ],
+    "花青素": [
+      "anthocyanin"
+    ],
+    "多酚": [
+      "polyphenol"
+    ],
+    "兒茶素": [
+      "catechin"
+    ],
+    "類黃酮": [
+      "flavonoid"
+    ],
+    "胡蘿蔔素": [
+      "carotene",
+      "carotenoid"
+    ],
+    "葉黃素": [
+      "lutein"
+    ],
+    "益生菌": [
+      "probiotic"
+    ],
+    "寡糖": [
+      "oligosaccharide"
+    ],
+    "血糖": [
+      "glucose",
+      "glycemic",
+      "glycaemic"
+    ],
+    "血壓": [
+      "blood pressure",
+      "hypertension"
+    ],
+    "血脂": [
+      "lipid",
+      "triglyceride"
+    ],
+    "膽固醇": [
+      "cholesterol"
+    ],
+    "腸胃": [
+      "gastrointestinal",
+      "gut"
+    ],
+    "腸道": [
+      "intestinal",
+      "gut"
+    ],
+    "消化": [
+      "digest"
+    ],
+    "蠕動": [
+      "peristal",
+      "motility"
+    ],
+    "便秘": [
+      "constipation"
+    ],
+    "排便": [
+      "bowel",
+      "defecation",
+      "stool"
+    ],
+    "免疫": [
+      "immun"
+    ],
+    "代謝": [
+      "metabol"
+    ],
+    "骨骼": [
+      "bone"
+    ],
+    "骨質": [
+      "bone mineral",
+      "bone density"
+    ],
+    "肌肉": [
+      "muscle"
+    ],
+    "貧血": [
+      "anemia",
+      "anaemia"
+    ],
+    "飽足": [
+      "satiety"
+    ],
+    "發炎": [
+      "inflammat"
+    ],
+    "營養素": [
+      "nutrient"
+    ],
+    "營養價值": [
+      "nutritional value"
+    ],
+    "利尿": [
+      "diuretic",
+      "diuresis"
+    ],
+    "水腫": [
+      "edema",
+      "oedema"
+    ],
+    "體重": [
+      "body weight",
+      "weight"
+    ],
+    "睡眠": [
+      "sleep"
+    ],
+    "認知": [
+      "cognit"
+    ],
+    "噁心": [
+      "nausea"
+    ],
+    "嘔吐": [
+      "vomit"
+    ],
+    "乾眼": [
+      "dry eye"
+    ],
+    "視力": [
+      "vision"
+    ],
+    "視覺": [
+      "vision",
+      "visual"
+    ],
+    "胰島素": [
+      "insulin"
+    ],
+    "死亡率": [
+      "mortality"
+    ],
+    "心血管": [
+      "cardiovascular"
+    ],
+    "便祕": [
+      "constipation"
+    ],
+    "腹瀉": [
+      "diarrh"
+    ],
+    "脹氣": [
+      "bloat",
+      "flatulence"
+    ],
+    "飢餓": [
+      "hunger"
+    ],
+    "食慾": [
+      "appetite"
+    ],
+    "生物素": [
+      "biotin"
+    ],
+    "糖尿病": [
+      "diabetes"
+    ],
+    "癌": [
+      "cancer"
+    ]
+  },
+  "overclaim_terms": [
+    "治療",
+    "治癒",
+    "根治",
+    "痊癒",
+    "保證",
+    "特效",
+    "神效",
+    "取代藥物",
+    "抗癌",
+    "防癌"
+  ]
+}
