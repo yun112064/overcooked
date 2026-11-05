@@ -138,6 +138,7 @@ export default function MealResultView({ requestId, mealDate, onChanged }: Props
   // 缺價不擋採用（2026-10-26）：只提示哪些食材查無價格，可重新查價
   const pricePending = r.prices.budget_status === 'PRICE_INCOMPLETE'
   const missingPriceNames = r.prices.items.filter((i) => i.price_status === 'unknown').map((i) => i.name)
+  const missingQuantityNames = (r.prices.unquantified_items ?? []).map((i) => i.name)
   const confirmed = r.request_status === 'confirmed'
   const priceRetry = r.retries?.price ?? null
   const knowledgeRetry = r.retries?.knowledge ?? null
@@ -373,10 +374,17 @@ export default function MealResultView({ requestId, mealDate, onChanged }: Props
       </Section>
 
       <Section title="需補買食材" aside={computed && r.prices.items.length > 0 ? '調味料與家中已有的不列入' : undefined}>
+        {missingQuantityNames.length > 0 && (
+          <Alert severity="warning" sx={{ mb: 2 }}>
+            用量未定，整餐成本未知：{missingQuantityNames.join('、')}。已知小計只包含有用量及報價的食材。
+          </Alert>
+        )}
         {!computed ? (
           <Typography variant="body2" color="text.secondary">營養計算未完成，無法計算缺料價格。</Typography>
         ) : r.prices.items.length === 0 ? (
-          <Typography variant="body2" color="text.secondary">食材都已在家中，不需補買（成本 0 元）。</Typography>
+          missingQuantityNames.length === 0 && (
+            <Typography variant="body2" color="text.secondary">已知用量的食材無需補買（成本 0 元）。</Typography>
+          )
         ) : (
           <Box sx={{ overflowX: 'auto', mx: { xs: -2, sm: 0 } }}>
             <Table size="small">

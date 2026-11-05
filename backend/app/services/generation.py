@@ -636,13 +636,16 @@ DATABASE_OVER_BUDGET = "DATABASE_MENU_OVER_BUDGET"
 
 
 def _cost_view(ctx, draft, calc, staple_lines, now) -> dict:
+    staple_ids = {line.food_id for line in staple_lines}
+    unquantified = sorted({r["food_id"] for r in calc["unresolved_ingredients"]
+                           if r["food_id"] not in staple_ids})
     if not calc["requirements"]:
-        return {"status": "not_computed", "reason": "NO_FINAL_REQUIREMENTS", "budget_status": None}
+        return {"status": "not_computed", "reason": "NO_FINAL_REQUIREMENTS", "budget_status": None,
+                "unquantified_food_ids": unquantified}
     with ctx.factory() as db:
         cost_view = cost_snapshot(
             meal_cost_from_db(db, calc["requirements"], draft.available_ingredient_ids, draft.budget, now=now))
-    cost_view["unquantified_food_ids"] = sorted({r["food_id"] for r in calc["unresolved_ingredients"]
-                                                 if r["food_id"] not in {s.food_id for s in staple_lines}})
+    cost_view["unquantified_food_ids"] = unquantified
     return cost_view
 
 

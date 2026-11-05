@@ -248,11 +248,15 @@ def _source_name(quote: dict) -> str | None:
 
 def _prices(payload: dict) -> dict:
     cost = payload.get("cost") or {}
+    calculation = payload.get("calculation") or {}
+    names = {r["food_id"]: r["name"] for r in calculation.get("ingredients") or []}
+    unquantified = [{"food_id": food_id, "name": names.get(food_id, food_id)}
+                    for food_id in cost.get("unquantified_food_ids") or []]
     if cost.get("status") != "computed":
         return {"status": cost.get("status", "not_computed"), "reason": cost.get("reason"), "budget": None,
                 "budget_status": None, "price_complete": False, "purchase_total": None, "cost_total": None,
-                "known_purchase_total": None, "known_cost_total": None, "items": []}
-    names = {r["food_id"]: r["name"] for r in (payload.get("calculation") or {}).get("ingredients") or []}
+                "known_purchase_total": None, "known_cost_total": None, "items": [],
+                "unquantified_items": unquantified}
     items = []
     for ln in cost["lines"]:
         if ln["price_status"] not in ("known", "unknown"):
@@ -263,9 +267,14 @@ def _prices(payload: dict) -> dict:
                       "packs": ln.get("packs"), "purchase_price": ln.get("purchase_price"), "cost": ln.get("cost"),
                       "missing_reason": ln.get("missing_reason"), "source_name": _source_name(quote),
                       **{k: quote.get(k) for k in QUOTE_FIELDS}})
-    return {"status": "computed", **{k: cost.get(k) for k in (
+    result = {"status": "computed", **{k: cost.get(k) for k in (
         "budget", "budget_status", "price_complete", "purchase_total", "cost_total", "known_purchase_total",
-        "known_cost_total")}, "items": items}
+        "known_cost_total")}, "items": items, "unquantified_items": unquantified}
+    if unquantified:
+        result.update(price_complete=False, purchase_total=None, cost_total=None)
+        if result["budget_status"] == "OK":
+            result["budget_status"] = None
+    return result
 
 
 def _previous_day(payload: dict) -> dict:

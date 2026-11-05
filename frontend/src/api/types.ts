@@ -440,6 +440,7 @@ export type MealResult = {
     budget: string | null
     budget_status: 'OK' | 'PRICE_INCOMPLETE' | 'BUDGET_EXCEEDED' | null
     price_complete: boolean
+    unquantified_items?: { food_id: string; name: string }[]
     purchase_total: string | null
     cost_total: string | null
     known_purchase_total: string | null

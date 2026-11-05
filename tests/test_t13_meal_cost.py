@@ -72,6 +72,28 @@ class ProportionalCostTests(unittest.TestCase):
         self.assertEqual(result.budget_status, "OK")
 
 
+class PriceProjectionTests(unittest.TestCase):
+    def test_unknown_quantity_hides_complete_totals_but_preserves_known_cost(self):
+        from app.services.meal_results import _prices
+
+        payload = {
+            "cost": {"status": "computed", "price_complete": True, "purchase_total": "60",
+                     "cost_total": "20", "known_purchase_total": "60", "known_cost_total": "20",
+                     "budget_status": "OK", "lines": [], "unquantified_food_ids": [CARROT]},
+            "calculation": {"ingredients": [{"food_id": CARROT, "name": "胡蘿蔔"}]},
+        }
+        result = _prices(payload)
+        self.assertFalse(result["price_complete"])
+        self.assertIsNone(result["purchase_total"])
+        self.assertIsNone(result["cost_total"])
+        self.assertIsNone(result["budget_status"])
+        self.assertEqual(result["known_purchase_total"], "60")
+        self.assertEqual(result["known_cost_total"], "20")
+        self.assertEqual(result["unquantified_items"], [{"food_id": CARROT, "name": "胡蘿蔔"}])
+        payload["cost"]["budget_status"] = "BUDGET_EXCEEDED"
+        self.assertEqual(_prices(payload)["budget_status"], "BUDGET_EXCEEDED")
+
+
 class BudgetTests(unittest.TestCase):
     def test_package_ceiling_uses_exact_ratio_before_rounding(self):
         quote_for, _ = lookup({CABBAGE: quote(CABBAGE, "60", "300")})
