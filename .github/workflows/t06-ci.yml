@@ -43,7 +43,12 @@ jobs:
         run: pip install -r requirements-dev.txt
 
       - name: Check Python syntax
-        run: python -m compileall -q backend migrations tests nutrition_target nutrition_model
+        run: python -m compileall -q backend migrations tests nutrition_target nutrition_model nutrition_planning
+
+      - name: Run T12 nutrition planning tests
+        env:
+          PYTHONPATH: backend
+        run: python -m pytest nutrition_planning/tests --cov=nutrition_planning --cov-report=term-missing -q
 
       - name: Run T03 nutrition target tests
         run: python -m unittest discover -s nutrition_target/tests -t . -p 'test_*.py' -v
@@ -59,12 +64,12 @@ jobs:
           docker exec "${{ job.services.db.id }}" createdb -U postgres meal_planner_1102_v3_t02_test
           DATABASE_URL="$T02_TEST_DATABASE_URL" alembic -c alembic.ini upgrade head
 
-      - name: Run backend tests
+      - name: Run backend tests (unittest and pytest)
         env:
-          PYTHONPATH: backend
+          PYTHONPATH: backend:tests
           # T07 API 測試以 Alembic 在此資料庫重建資料表
-          TEST_DATABASE_URL: ${{ env.DATABASE_URL }}
-        run: python -m pytest tests -ra
+          TEST_DATABASE_URL: postgresql+psycopg://postgres:ci_placeholder@localhost:5432/meal_planner_1102_v3_ci_test
+        run: python -m pytest tests -v
 
       - name: Apply Alembic migrations
         run: |

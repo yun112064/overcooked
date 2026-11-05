@@ -24,7 +24,7 @@ class Settings(BaseSettings):
     ingredient_synonyms_path: Path = PROJECT_ROOT / "config/ingredient_synonyms.json"
 
     nutrition_rules_path: Path = (
-        PROJECT_ROOT / "nutrition_target/rules/hpa-dri8-mvp-0.3.0.json"
+        PROJECT_ROOT / "nutrition_target/rules/hpa-dri8-mvp-0.4.1.json"
     )
     # Explicit, immutable data versions for formal T12 runtime. No legacy JSON fallback.
     generation_recipe_release_id: str | None = None
@@ -83,6 +83,8 @@ class Settings(BaseSettings):
     internal_api_token: str | None = None
     team_access_client_id: str | None = None
     team_access_client_secret: str | None = None
+
+    knowledge_explain_model: str = "gpt-5.4-mini-2026-03-17"
 
     model_config = SettingsConfigDict(
         env_file=".env",

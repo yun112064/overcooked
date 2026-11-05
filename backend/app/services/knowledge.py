@@ -235,3 +235,5 @@ def embed_index_batch(factory: sessionmaker, embedder, index_version: str, batch
     return spend.paid_call(factory, call_key=key, purpose="knowledge_index_embedding", provider="openai",
                            model=embedder.model, max_input_tokens=max(1, sum(len(t.encode("utf-8")) for t in texts)),
                            max_output_tokens=0, call=lambda: embedder.embed(texts))
+
+from app.services.preview_knowledge import OpenAIEmbedder, validate_vectors, retrieve_for_job, unavailable

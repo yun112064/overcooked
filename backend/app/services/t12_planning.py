@@ -6,8 +6,10 @@ from sqlalchemy import select
 from sqlalchemy.exc import SQLAlchemyError
 
 from app.core.config import settings
-from app.services import household, meal_request
-from app.models import RecipeDataRelease, Recipe, NutritionImport
+from app.services import household, meal_request, per_person_nutrition
+from app.services.legacy_t12_preview import _with_spoons
+from app.models import RecipeDataRelease, Recipe, RecipeIngredient, NutritionImport
+from app.models.nutrition import NutritionFoodMapping
 from app.services.nutrition_release import recipe_import_matches
 from nutrition_planning import (NutritionPolicy, NutritionDataUnavailable,
                                 RecipeDataUnavailable, validate_database_menu)
@@ -23,6 +25,11 @@ class T12PlanningUnavailable(Exception):
 def preview(db: Session, *, draft: meal_request.MealRequestDraft, members: dict,
             recipe_ids: list[str]) -> dict:
     """Calculate with only server-side questionnaire, recipe and nutrition data."""
+    if (hasattr(settings, 'generation_recipe_release_id')
+            and not settings.generation_recipe_release_id
+            and not settings.generation_nutrition_import_id):
+        from app.services.legacy_t12_preview import preview as legacy_preview
+        return legacy_preview(db, draft=draft, members=members, recipe_ids=recipe_ids)
     if not settings.generation_nutrition_import_id:
         raise T12PlanningUnavailable(
             'NUTRITION_VERSION_REQUIRED', '營養資料版本尚未確認，請先完成資料來源整合。')
@@ -52,4 +59,31 @@ def preview(db: Session, *, draft: meal_request.MealRequestDraft, members: dict,
         raise T12PlanningUnavailable(exc.code, '營養或食譜資料暫時無法讀取，請稍後重試。') from None
     except SQLAlchemyError:
         raise T12PlanningUnavailable('NUTRITION_DATA_UNAVAILABLE', '營養或食譜資料暫時無法讀取，請稍後重試。') from None
-    return result.to_dict()
+    payload = dict(result.to_dict())
+    if recipe_release_id:
+        # Main's unversioned preview policies never approve a V3 mapping.
+        approved = set(db.scalars(select(NutritionFoodMapping.food_id).where(
+            NutritionFoodMapping.recipe_release_id == recipe_release_id,
+            NutritionFoodMapping.import_id == settings.generation_nutrition_import_id,
+            NutritionFoodMapping.mapping_version == settings.generation_food_mapping_version,
+            NutritionFoodMapping.approval_status == 'approved')))
+        lines = db.execute(select(RecipeIngredient.recipe_id, RecipeIngredient.recipe_ingredient_id,
+                                  RecipeIngredient.food_id).where(RecipeIngredient.recipe_id.in_(recipe_ids)))
+        pending = [{'code': 'nutrition_mapping_pending_review', 'recipe_id': r.recipe_id,
+                    'line_id': r.recipe_ingredient_id, 'message': 'V3 營養對照尚未核准，請先完成 T04 審查。',
+                    'adoption_blocked': True} for r in lines if r.food_id not in approved]
+        if pending:
+            payload.update(status='calculation_incomplete', status_message='V3 營養對照尚未核准',
+                           nutrition_passed=False, adoption_blocked=True, final_food_ids=(),
+                           per_person=(), nutrition_all=None,
+                           input_issues=tuple(payload.get('input_issues') or ()) + tuple(pending))
+            payload['nutrition'] = {'totals': None, 'missing': [r['line_id'] for r in pending]}
+
+    if 'dishes' not in payload:
+        return payload
+    payload['dishes'] = [{**dish, 'ingredients': [_with_spoons(i) for i in dish['ingredients']]}
+                         for dish in payload.get('dishes') or ()]
+    names = {str(mid): m.display_name for mid, m in members.items()}
+    payload['people'] = per_person_nutrition.people(list(payload.get('per_person') or ()), names)
+    payload['daily_reference_meta'] = per_person_nutrition.reference_meta()
+    return payload

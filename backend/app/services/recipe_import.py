@@ -576,6 +576,8 @@ def _apply_source_rights(source_input: list[dict[str, Any]], source_rights: dict
                 row[field] = defaults[field]
 
 
+STEP_EDITOR_NOTE = "本版備料以食材表採值為準。"
+
 REVIEW_FIELDS = {
     # 審核紀錄的 approvals 鍵 → (工作表, 欄位)
     "source_review": ("source_archive", "review_status"),
@@ -610,6 +612,10 @@ def _apply_review_record(raw_sheets: dict[str, list[dict[str, Any]]], record: di
     # 步驟文字找不到關鍵字時，人工指定的烹調方式；工作簿已填者優先。
     methods_by_recipe = record.get("recipe_cooking_methods") or {}
     recipes_by_id = {_text(row.get("recipe_id")): row for row in raw_sheets["recipes"]}
+    for recipe_id, category in (record.get("recipe_categories") or {}).items():
+        if recipe_id not in recipes_by_id or category not in {"主菜", "主食", "湯", "點心"}:
+            raise WorkbookValidationError(f"Invalid reviewed category: {recipe_id}: {category!r}")
+        recipes_by_id[recipe_id]["category"] = category
     for recipe_id, methods in methods_by_recipe.items():
         if recipe_id not in recipes_by_id or not methods or set(methods) - set(METHOD_KEYWORDS):
             raise WorkbookValidationError(f"Invalid cooking methods in review record: {recipe_id}: {methods!r}")
@@ -617,6 +623,8 @@ def _apply_review_record(raw_sheets: dict[str, list[dict[str, Any]]], record: di
             recipes_by_id[recipe_id]["cooking_methods"] = "；".join(methods)
     return {**summary, "applied": True, "approvals": record.get("approvals"),
             "recipe_cooking_methods": methods_by_recipe,
+            "recipe_categories": record.get("recipe_categories") or {},
+            "excluded_name_aliases": record.get("excluded_name_aliases") or {},
             "distinct_recipe_pairs": record.get("distinct_recipe_pairs") or []}
 
 
@@ -765,6 +773,8 @@ def parse_recipe_workbook(path: str | Path, source_rights: dict[str, dict] | Non
     for row in step_input:
         recipe_id = _text(row["recipe_id"])
         instruction = _text(row["instruction_clean"])
+        if instruction is not None and instruction.startswith(STEP_EDITOR_NOTE):
+            instruction = _text(instruction[len(STEP_EDITOR_NOTE):])
         if recipe_id is None or instruction is None:
             raise WorkbookValidationError(f"Invalid recipe step at row {row['__row__']}")
         step_no = _integer(row["step_no"], "step_no")
@@ -928,6 +938,10 @@ def parse_recipe_workbook(path: str | Path, source_rights: dict[str, dict] | Non
         normalized_groups[normalized].append(recipe_id)
         raw_name = _text(source["recipe_name_raw"])
         name_aliases = [raw_name] if raw_name and raw_name != recipe_name else []
+        excluded_aliases = (review_applied or {}).get("excluded_name_aliases", {}).get(recipe_id, [])
+        if not isinstance(excluded_aliases, list):
+            raise WorkbookValidationError(f"Invalid excluded aliases for {recipe_id}")
+        name_aliases = [alias for alias in name_aliases if alias not in excluded_aliases]
         supplied_methods = _split_list(row.get("cooking_methods"))
         methods = supplied_methods or _method_candidates(instructions_by_recipe.get(recipe_id, []))
         method_status = (_text(row.get("cooking_method_status")) or "unreviewed").lower()

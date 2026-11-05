@@ -125,7 +125,7 @@ def parse_nutrition_supplements(data) -> NutritionSupplements:
         if food_id in target:
             raise NutritionSupplementInvalid(f'entry {number}: duplicate {kind} for {food_id}')
         target[food_id] = NutritionSupplement(
-            food_id, _text(entry.get('name')) or '', kind, state if kind == 'values' else '', parsed, provider,
+            food_id, _text(entry.get('name')) or '', kind, str(state) if kind == 'values' else '', parsed, provider,
             source_name or '', _text(entry.get('source_record_id')) or '', url, retrieved, basis or '',
             approver or '', approved_on or '', version)
     return NutritionSupplements(values, fills)

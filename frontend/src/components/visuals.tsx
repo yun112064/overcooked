@@ -1,4 +1,4 @@
-/** 共用的類別用色、餐別與營養素圖示、頭像字；只放常數與函式（元件放在 ui.tsx，讓 Fast Refresh 正常運作）。 */
+/** （取自 t11-t20-demo）共用的類別用色、餐別與營養素圖示、頭像字；只放常數與函式（元件放在 ui.tsx，讓 Fast Refresh 正常運作）。 */
 import CookieOutlined from '@mui/icons-material/CookieOutlined'
 import DarkModeOutlined from '@mui/icons-material/DarkModeOutlined'
 import EggOutlined from '@mui/icons-material/EggOutlined'

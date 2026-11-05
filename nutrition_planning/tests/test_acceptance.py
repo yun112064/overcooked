@@ -31,10 +31,12 @@ def test_five_portions_scale_without_changing_the_target(tmp_path, n, energy, pr
     assert result.nutrition_passed
 
 
+# 2026-11-04: energy has only the 110% ceiling and protein only the 90% floor.
 @pytest.mark.parametrize("energy,protein,passes", [
     ("540", "30", True), ("660", "30", True), ("600", "27", True), ("600", "33", True),
-    ("539.999999", "30", False), ("660.000001", "30", False),
-    ("600", "26.999999", False), ("600", "33.000001", False),
+    ("539.999999", "30", True), ("100", "30", True), ("660.000001", "30", False),
+    ("600", "26.999999", False), ("600", "33.000001", True), ("600", "90", True),
+    ("660.000001", "26.999999", False),
 ])
 def test_independent_energy_and_protein_boundaries(energy, protein, passes):
     estimate = NutritionEstimate({"energy_kcal": F(energy), "protein_g": F(protein)}, (), ())

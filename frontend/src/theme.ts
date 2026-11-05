@@ -1,6 +1,6 @@
 import { alpha, createTheme } from '@mui/material'
 
-/** C 日系簡約：米白和紙底、炭灰文字、靛藍主色；標題用明體，內文用黑體，圓角小、留白多。 */
+/** C 日系簡約（取自 t11-t20-demo）：米白和紙底、炭灰文字、靛藍主色；標題用明體，內文用黑體，圓角小、留白多。 */
 export const tokens = {
   washi: '#F5F1EA', // 頁面底
   paper: '#FBF9F5', // 卡片

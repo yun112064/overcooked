@@ -284,6 +284,11 @@ def _status(deps: Deps) -> dict:
 
 
 def main(argv: list[str] | None = None, *, deps: Deps | None = None) -> int:
+    supplied = argv if argv is not None else sys.argv[1:]
+    if any(flag in supplied for flag in ("--file", "--knowledge-id", "--index-version", "--provider")):
+        from knowledge_rag.preview_admin import main as preview_main
+        preview_main(supplied)
+        return 0
     deps = deps or Deps()
     try:
         args = _parser().parse_args(argv)

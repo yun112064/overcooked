@@ -21,6 +21,7 @@ import { Suspense, lazy } from 'react'
 
 // 圖表（Recharts）與問卷編輯較大，用到才載入，首頁更快
 const MealHistoryPage = lazy(() => import('./pages/MealHistoryPage'))
+const GenerationHistoryPage = lazy(() => import('./pages/GenerationHistoryPage'))
 const MealRequestEditor = lazy(() => import('./pages/MealRequestEditor'))
 import { BrandMark } from './components/ui'
 import { theme, tokens } from './theme'
@@ -66,6 +67,7 @@ function Protected({ requireHousehold = false }: { requireHousehold?: boolean })
 const NAV = [
   { to: '/plan', label: '規劃餐食', short: '規劃', icon: <EventNoteOutlined /> },
   { to: '/history', label: '已採用紀錄', short: '紀錄', icon: <HistoryEduOutlined /> },
+  { to: '/generation-history', label: '營養與採購紀錄', short: '採購紀錄', icon: <HistoryEduOutlined /> },
   { to: '/members', label: '家庭成員', short: '成員', icon: <GroupOutlined /> },
 ]
 
@@ -176,6 +178,7 @@ const router = createBrowserRouter([
             { path: '/plan', element: <MealRequestsPage /> },
             { path: '/plan/:id', element: <MealRequestEditor /> },
             { path: '/history', element: <MealHistoryPage /> },
+            { path: '/generation-history', element: <GenerationHistoryPage /> },
           ],
         },
       ],

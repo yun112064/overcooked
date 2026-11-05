@@ -22,7 +22,7 @@ from sqlalchemy.orm import Session, object_session
 from app.api.errors import ApiError, not_found, version_conflict
 from app.db.models import AdoptedMealPlan, GenerationResult, MealRequest, MealResultDecision
 from app.models import Recipe, SourceArchive
-from app.services import idempotency, meal_history, meal_results, meal_validation
+from app.services import idempotency, meal_history, meal_results, meal_validation, recipe_retrieval, t12_planning
 from app.services.generation import MODE_LABELS
 
 SNAPSHOT_VERSION = "meal_plan_snapshot/v1"
@@ -180,7 +180,10 @@ def adopt(db: Session, *, household_id, user_id, meal_request_id, result_version
 
 def summary(plan: AdoptedMealPlan) -> dict:
     snap = plan.snapshot or {}
+    from app.services.database_menu_plans import summary as preview_summary
     return {
+        **preview_summary(plan),
+        "snapshot": snap,
         "id": str(plan.id), "meal_date": plan.meal_date.isoformat(), "meal_type": plan.meal_type,
         "mode": plan.mode, "mode_label": MODE_LABELS[plan.mode], "ai_generated": plan.mode == "ai_generated_menu",
         "record_label": RECORD_LABEL, "adopted_at": plan.adopted_at.isoformat(),
@@ -198,14 +201,14 @@ def detail(plan: AdoptedMealPlan) -> dict:
     snap = plan.snapshot or {}
     payload = snap.get("result")
     if not payload:  # T11 的最小紀錄（沒有完整快照）
-        return {**out, "snapshot_available": False}
+        return {**out, "snapshot_available": bool(snap), "snapshot": snap}
     sources = snap.get("recipe_sources") or {}
     dishes = meal_results._dishes(payload)
     for d in dishes:
         d["recipe_source"] = sources.get(d["recipe_id"]) if d.get("recipe_id") else None
     targets = payload.get("targets") or {}
     return {
-        **out, "snapshot_available": True,
+        **out, "snapshot": snap, "snapshot_available": True,
         "fallback_reason": payload.get("fallback_reason"),
         "fallback_message": meal_results.FALLBACK_MESSAGES.get(payload.get("fallback_reason"))
         if payload.get("fallback_reason") else None,
@@ -252,6 +255,11 @@ def trend(db: Session, household_id, since: date, until: date) -> list[dict]:
         payload = (plan.snapshot or {}).get("result") or {}
         nutrition = meal_results._nutrition(payload) if payload else {}
         prices = meal_results._prices(payload) if payload else {}
+        if not payload:
+            from app.services.database_menu_plans import trend as preview_trend
+            out.extend(item for item in preview_trend(db, household_id, plan.meal_date, plan.meal_date)
+                       if item["id"] == str(plan.id))
+            continue
         target = nutrition.get("target") or {}
         out.append({
             "meal_date": plan.meal_date.isoformat(), "meal_type": plan.meal_type,

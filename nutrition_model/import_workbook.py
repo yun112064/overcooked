@@ -39,6 +39,23 @@ def number(value):
     return value
 
 
+def is_invalid(value):
+    """Non-blank source value that ``number`` rejects; kept apart from a blank cell.
+
+    Classified on the raw cell: an empty cell (NaN) or whitespace-only text is
+    blank, while infinity, text and negatives are invalid.
+    """
+    if hasattr(value, 'item'):
+        value = value.item()
+    if value is None or (isinstance(value, str) and not value.strip()):
+        return False
+    if isinstance(value, float) and math.isnan(value):
+        return False
+    if isinstance(value, float) and math.isinf(value):
+        return True
+    return number(value) is None
+
+
 def write_json(path, data):
     path.write_text(json.dumps(data, ensure_ascii=False, indent=2, allow_nan=False) + '\n', encoding='utf-8')
 
@@ -51,7 +68,9 @@ def import_workbook(path=SOURCE):
     required_sheets = {'食材營養成分', '食材ID主檔'}
     if not required_sheets.issubset(book.sheet_names):
         raise ValueError('Missing required workbook sheets')
-    foods_df = pd.read_excel(book, sheet_name='食材營養成分')
+    # Read without pandas NA parsing, so text such as 'N/A' or 'inf' is classified
+    # from the raw cell; only truly empty cells become missing below.
+    foods_df = pd.read_excel(book, sheet_name='食材營養成分', keep_default_na=False, na_values=[])
     ids_df = pd.read_excel(book, sheet_name='食材ID主檔')
     required = set(COLUMNS) | {'來源食品ID', '中文食品名稱', '資料來源', '來源紀錄ID',
                                 '來源生熟狀態', '來源版本', '來源描述', '來源網址'}
@@ -59,8 +78,9 @@ def import_workbook(path=SOURCE):
         raise ValueError('Missing required food columns')
     if not {'ingredient_id', 'canonical_name', 'suggested_name'}.issubset(ids_df.columns):
         raise ValueError('Missing ingredient ID columns')
-    foods = [{key: clean(value) for key, value in row.items()}
-             for row in foods_df.to_dict(orient='records')]
+    raw_foods = foods_df.to_dict(orient='records')
+    foods = [{key: None if isinstance(value, str) and not value.strip() else clean(value)
+              for key, value in row.items()} for row in raw_foods]
     ids = [{key: clean(value) for key, value in row.items()}
            for row in ids_df.to_dict(orient='records')]
     food_ids = [str(row['來源食品ID']) for row in foods]
@@ -71,12 +91,13 @@ def import_workbook(path=SOURCE):
     existing_path = BASE / 'ingredient_master.json'
     old = {r['ingredient_id']: r for r in json.loads(existing_path.read_text(encoding='utf-8'))} if existing_path.exists() else {}
     tfda = []
-    for food in foods:
+    for food, raw in zip(foods, raw_foods):
         if food['資料來源'] != 'TFDA':
             continue
         record_id = str(food['來源紀錄ID'])
         values = {field: number(food[column]) for column, field in COLUMNS.items()}
         missing = [field for field, value in values.items() if value is None]
+        invalid = {field: str(raw[column]) for column, field in COLUMNS.items() if is_invalid(raw[column])}
         record = {
             'ingredient_id': record_id,
             'source_food_id': str(food['來源食品ID']),
@@ -87,6 +108,8 @@ def import_workbook(path=SOURCE):
             'nutrition_per_100g': values,
             'nutrition_complete': not missing,
             'missing_fields': missing,
+            # Rejected non-blank values (text, negative, non-finite) stay missing, with the raw value as reason.
+            'invalid_fields': invalid,
             'source': {'provider': 'TFDA', 'source_id': record_id,
                        'source_food_id': str(food['來源食品ID']),
                        'source_file': '食材營養成分表.xlsx', 'source_sheet': '食材營養成分',

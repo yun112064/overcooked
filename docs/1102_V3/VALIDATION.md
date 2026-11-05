@@ -108,3 +108,28 @@ Python 3.12；Node 24.21.0／npm 11.19.0。專案 `.venv` 使用既有 Python �
 - 原啟用 T01 工作簿雜湊 `dd4f75c1377299fdef858c98d8625cfbdee1e21dd7699f3f78e210048cf0289b`。搜尋桌面、文件、下載、專案資料資料夾與可用 Git 歷史，未找到相符版本。桌面新版與 Git 中同名檔的雜湊均不同。原始 `before.json`／`import-result.json` 也未找到。未執行完整舊版匯入驗證器、未改資料庫的審核狀態。
 
 - 2026-11-05 T13 遠端現況核對。透過 GitHub connector 讀取當下 `main@b0a2f0a92cbde0aff57a8d837a4c175eae8aac7d` 的完整 Git tree（360 項，未截斷）、T13 ticket、spec 及回退提交。T13 ticket 仍在且標示尚未實作，R08／AC14／AC15 規格仍在。`613f737` 回退移除了 `meal_cost.py`、`generation.py`、`price_scope.py` 與 `test_t13_meal_cost.py`，當下遠端 main 未恢復這些檔案。先前以本機 `origin/main@838e6bd` 判斷遠端現況的說法已過時。本輪為遠端唯讀核對，未執行測試或資料庫操作。
+
+
+## 2026-11-05 PR #25 對齊最新 main 的衝突處理
+
+- 對 `T13_1105@c88617d` 執行 `git merge --no-commit --no-ff origin/main`，對齊 `main@b0a2f0a92cbde0aff57a8d837a4c175eae8aac7d`。推送前再次 fetch，main 未變。保留 V3 被回退的正式生成、T02/T04 版本綁定、T13 批次查價與精確包數、補價／結果決策、快照與封面；整合 main 的選單預覽、換一份、預覽採用、目標規則 0.4.1、七項營養／每人顯示、來源匯入改善、雲端知識說明、Windows 程序重載及 CI 修正。
+- 共用 `/meal-plans` 依命令格式處理生成結果採用及預覽採用，皆以家庭→問卷順序鎖定。預覽採用檢查 `adoption_blocked` 及命令雜湊；原正式採用的完整營養、預算、歷史重驗及冪等契約保留。新版歷史畫面可連到正式餐食的營養／採購明細；原 T04 前端回饋、問卷限制、預算下限與取消生成亦保留。
+- 新增 `d1105merge1` 合併 schema。兩條已發布採用 migration 對共用欄位／約束作存在檢查；由 main 升級時用原預覽命令重建冪等雜湊，不改既有快照。實測包含空庫升降再升、帶 main 採用快照升到 head、分支降版後保留另一側欄位及重新升版。
+- `config/v3_staples.json`、`config/v3_nutrient_category_zero.json` 保留原 V3 的待審內容；main 原設定仍供預覽使用，不能核准 V3 SQL 對照。T03 預設保留 main 的 0.4.1，另以明確指定 0.3.0 重跑舊版數值與精確運算測試。正式 T12 的雙向 ±10% 驗證不變。
+
+實際執行的驗證：
+
+- Python 3.12：`compileall` 覆蓋 backend、migrations、tests、nutrition_target、nutrition_model、nutrition_planning，通過。
+- 在確認名稱及來源內容後，僅對 `meal_planner_1102_v3_pr25_merge_test` 設定 `TEST_DATABASE_URL`；`pytest tests` **697 passed、7 skipped**。略過為另需固定 T02 測試庫的 6 項，以及不隨程式散布的本機歷史來源包 1 項。
+- 固定 `meal_planner_1102_v3_t02_test` 原有兩筆 `r1/r2`、`P1` 合成報價；先確認只有 legacy 發布、零食譜、無正式發布，才清理此拋棄式測試庫的測試報價並升級。`pytest tests/test_t02_release.py` **17 passed、1 skipped**；僅本機歷史來源包缺檔略過。CI 保留 V3 原有專用 T02 測試庫準備步驟，以及 main 的完整 pytest 與 T12 測試。
+- `pytest nutrition_planning/tests nutrition_target/tests` **207 passed**；T04 `unittest discover` **70 passed**；辨識服務契約 **9 passed**。辨識測試初次缺 cv2，於忽略的本機隔離目錄安裝 CI 指定 NumPy 2.5.4／OpenCV 5.0.0.93 後重跑成功，沒有修改全域環境或載入真實 YOLO 模型。
+- 前端 `npm run lint`、`npm run build` 通過；保留既有大於 500 KB 的 bundle 提醒。Python 本機依賴、測試紀錄、資料庫密碼、`.env`、Excel 審核表與來源包均不加入 Git。
+
+最新真實資料驗證與界線：
+
+- 當下本機正式 V3 已由另一 `Admin_Dashboard` 工作樹升到 `d1105admin2`。本次對原庫沒有執行 migration、stamp、降版、清理、審核或寫入。以 pg_dump／pg_restore 串流複製到 `meal_planner_1102_v3_pr25_real_test`，293 道食譜保留；在本機隔離 migration overlay 讀入兩份 Admin 遷移，僅對複本加上本 PR 的遷移，保留 `d1105admin2` 與 `d1105merge1` 兩個 head。Admin 檔案沒有加入本 PR，也未修改其工作樹。
+- 複本以 `REPEATABLE READ READ ONLY` 讀最新四人草稿（爸爸 65、媽媽 52、兒子 25、女兒 17）。兩個問卷端點可執行，T11 選到 `R0001`；目標規則為 0.4.1。預覽回報 `calculation_incomplete`、`adoption_blocked=true`，含 SQL mapping 待審與來源缺口；正式 T12 回報 `NUTRITION_INCOMPLETE`。SQL 對照仍為 **2,192 待審、0 核准**。未送出 Worker、爬蟲、付費呼叫、正式生成或採用。
+- 同一唯讀複本，以來源克數獨立試算 T13，報價 SQL **1 次**，當下採購 **NT$94**、比例成本 **NT$49.05333333333333333333333333**、預算 **NT$200 / OK**。這是最新庫內報價的獨立價格驗證；不是營養已通過的整餐，也不是沿用先前 NT$116 的舊快照。
+- 原始 V3 的 Admin schema 不在此 PR 的 migration 圖，因此原庫目前不能直接通過本分支 schema gate；須等待 Admin 分支與本分支另作 schema 整合。PR #25 的 main/V3 合併與兩個已發布起點的隔離驗證已完成，不將原庫版本 stamp 成其他版本來假裝通過。
+
+- 提交前補查：專用 T02 測試庫的 `schema_gate` 為 `ok (d1105merge1)`，`alembic check` 回報沒有新升級操作。暫存後的 API 金鑰掃描與 V3 接線契約 **6 passed**；以 `cr-at-eol` 核對暫存 diff 無空白錯誤（版本化規則的原始 CRLF 依 `.gitattributes` 保留，不改其 SHA-256）。`.env`、`.env.dev`、`.test-runtime`、`.worktrees` 均無被追蹤檔案。

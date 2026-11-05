@@ -1,7 +1,8 @@
-import { Box, Paper, Stack, Tooltip, Typography, type SxProps, type Theme } from '@mui/material'
+/** 版面元件（取自 t11-t20-demo 的 ui.tsx）。 */
+import { Box, Paper, Tooltip, Typography, type SxProps, type Theme } from '@mui/material'
 import type { ReactNode } from 'react'
 import { tokens } from '../theme'
-import { initial, TONES, type Tone } from './visuals'
+import { TONES, type Tone } from './visuals'
 
 /** 圓角方塊裡放一個圖示；純裝飾（aria-hidden），意義由旁邊的文字表達。 */
 export function IconTile({ icon, tone = 'ink', size = 40 }: { icon: ReactNode; tone?: Tone; size?: number }) {
@@ -14,16 +15,25 @@ export function IconTile({ icon, tone = 'ink', size = 40 }: { icon: ReactNode; t
   )
 }
 
-const AVATAR_TONES: Tone[] = ['brick', 'indigo', 'matcha', 'amber']
+const AVATAR_TONES = [
+  { fg: tokens.brick, bg: tokens.brickTint }, { fg: tokens.indigo, bg: tokens.indigoTint },
+  { fg: tokens.matcha, bg: tokens.matchaTint }, { fg: tokens.amber, bg: tokens.amberTint },
+]
+
+/** 成員頭像字：中文名取第二個字（林媽媽→媽、小宇→宇），其他取第一個字母。 */
+function initial(name: string) {
+  const n = name.trim()
+  return /^\p{Script=Han}/u.test(n) && n.length >= 2 ? n[1] : n.slice(0, 1).toUpperCase()
+}
 
 /** 成員頭像；依順序輪替點綴色。 */
 export function MemberAvatar({ name, index = 0, size = 40, ring }: { name: string; index?: number; size?: number; ring?: string }) {
-  const c = TONES[AVATAR_TONES[index % AVATAR_TONES.length]]
+  const c = AVATAR_TONES[index % AVATAR_TONES.length]
   return (
     <Box aria-hidden sx={{
       width: size, height: size, borderRadius: '50%', flexShrink: 0, display: 'grid', placeItems: 'center',
-      bgcolor: c.bg, color: c.fg, fontFamily: tokens.serif, fontSize: size * 0.42,
       ...(ring ? { boxShadow: `0 0 0 2px ${ring}` } : {}),
+      bgcolor: c.bg, color: c.fg, fontFamily: tokens.serif, fontSize: size * 0.42,
     }}>{initial(name)}</Box>
   )
 }
@@ -56,25 +66,7 @@ export function BrandMark({ size = 32 }: { size?: number }) {
   )
 }
 
-/** 頁首：小字英文眉標、明體標題、說明與右側動作。 */
-export function PageHeader({ eyebrow, title, description, action }: {
-  eyebrow?: string; title: ReactNode; description?: ReactNode; action?: ReactNode
-}) {
-  return (
-    <Box sx={{ display: 'flex', alignItems: { sm: 'flex-end' }, gap: 2, flexWrap: 'wrap', pb: 1 }}>
-      <Box sx={{ flexGrow: 1, minWidth: 0 }}>
-        {eyebrow && <Typography variant="overline" component="p">{eyebrow}</Typography>}
-        <Typography variant="h4" component="h1">{title}</Typography>
-        {description && (
-          <Typography color="text.secondary" variant="body2" sx={{ mt: 1, maxWidth: 560 }}>{description}</Typography>
-        )}
-      </Box>
-      {action && <Box sx={{ display: 'flex', gap: 1, flexShrink: 0 }}>{action}</Box>}
-    </Box>
-  )
-}
-
-/** 內容區塊：標題列＋細線＋內容，用在結果頁與紀錄頁的各段。 */
+/** 內容區塊：標題列＋細線＋內容。 */
 export function Section({ title, aside, children, sx }: {
   title: ReactNode; aside?: ReactNode; children: ReactNode; sx?: SxProps<Theme>
 }) {
@@ -87,23 +79,6 @@ export function Section({ title, aside, children, sx }: {
       </Box>
       {children}
     </Paper>
-  )
-}
-
-/** 空狀態：圖示、明體標題、一句說明與動作。 */
-export function EmptyState({ icon, title, description, action }: {
-  icon?: ReactNode; title: string; description?: string; action?: ReactNode
-}) {
-  return (
-    <Stack spacing={1.5} sx={{
-      alignItems: 'center', textAlign: 'center', py: { xs: 6, sm: 8 }, px: 3,
-      border: `1px dashed ${tokens.lineStrong}`, borderRadius: 1,
-    }}>
-      {icon && <Box sx={{ color: tokens.inkMuted, '& svg': { fontSize: 40 } }}>{icon}</Box>}
-      <Typography variant="h6" component="p">{title}</Typography>
-      {description && <Typography variant="body2" color="text.secondary" sx={{ maxWidth: 420 }}>{description}</Typography>}
-      {action && <Box sx={{ pt: 1 }}>{action}</Box>}
-    </Stack>
   )
 }
 
@@ -136,6 +111,41 @@ export function StatRow({ children }: { children: ReactNode }) {
       '& > *:first-of-type': { pl: { sm: 0 } },
     }}>
       {children}
+    </Box>
+  )
+}
+
+/** 頁首：小字英文眉標、明體標題、說明與右側動作。 */
+export function PageHeader({ eyebrow, title, description, action }: {
+  eyebrow?: string; title: ReactNode; description?: ReactNode; action?: ReactNode
+}) {
+  return (
+    <Box sx={{ display: 'flex', alignItems: { sm: 'flex-end' }, gap: 2, flexWrap: 'wrap', pb: 1 }}>
+      <Box sx={{ flexGrow: 1, minWidth: 0 }}>
+        {eyebrow && <Typography variant="overline" component="p">{eyebrow}</Typography>}
+        <Typography variant="h4" component="h1">{title}</Typography>
+        {description && (
+          <Typography color="text.secondary" variant="body2" sx={{ mt: 1, maxWidth: 560 }}>{description}</Typography>
+        )}
+      </Box>
+      {action && <Box sx={{ display: 'flex', gap: 1, flexShrink: 0 }}>{action}</Box>}
+    </Box>
+  )
+}
+
+/** 空狀態：圖示、明體標題、一句說明與動作。 */
+export function EmptyState({ icon, title, description, action }: {
+  icon?: ReactNode; title: string; description?: string; action?: ReactNode
+}) {
+  return (
+    <Box sx={{
+      display: 'flex', flexDirection: 'column', gap: 1.5, alignItems: 'center', textAlign: 'center', py: { xs: 6, sm: 8 }, px: 3,
+      border: `1px dashed ${tokens.lineStrong}`, borderRadius: 1,
+    }}>
+      {icon && <Box sx={{ color: tokens.inkMuted, '& svg': { fontSize: 40 } }}>{icon}</Box>}
+      <Typography variant="h6" component="p">{title}</Typography>
+      {description && <Typography variant="body2" color="text.secondary" sx={{ maxWidth: 420 }}>{description}</Typography>}
+      {action && <Box sx={{ pt: 1 }}>{action}</Box>}
     </Box>
   )
 }

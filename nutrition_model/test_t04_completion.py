@@ -15,7 +15,7 @@ class T04CompletionTests(unittest.TestCase):
         result = calculate_recipe_nutrition(
             recipe_name="可驗證食譜",
             recipe_ingredients=[
-                {"name": "雞胸肉", "weight_g": 150},
+                {"name": "雞胸肉", "weight_g": 150, "consumed_as_is": True},
                 {"name": "不存在的食材", "weight_g": 80},
             ],
         )
@@ -25,7 +25,17 @@ class T04CompletionTests(unittest.TestCase):
         self.assertEqual(result["failed_ingredients"][0]["ingredient"], "不存在的食材")
         self.assertIsNone(result["total_nutrition"]["energy_kcal"])
         self.assertIsNone(result["total_nutrition"]["protein_g"])
-        self.assertIsNotNone(result["partial_nutrition_totals"]["energy_kcal"])
+        self.assertGreater(result["partial_nutrition_totals"]["energy_kcal"], 0)
+
+    def test_partial_total_stays_unknown_when_no_ingredient_has_the_value(self):
+        # Raw chicken without a cooking basis has no usable nutrients; unknown must not become 0.
+        result = calculate_recipe_nutrition(
+            recipe_name="缺值食譜",
+            recipe_ingredients=[{"name": "雞胸肉", "weight_g": 150}],
+        )
+
+        self.assertIsNone(result["total_nutrition"]["energy_kcal"])
+        self.assertIsNone(result["partial_nutrition_totals"]["energy_kcal"])
 
 
 if __name__ == "__main__":

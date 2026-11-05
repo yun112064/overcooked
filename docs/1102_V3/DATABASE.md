@@ -54,3 +54,11 @@ release_id
 ## 架構驗證方式
 
 `scripts/audit_branch_architecture.py` 僅讀 Git tree；`scripts/verify_v3_source_freeze.py` 僅比對已追蹤原檔。Alembic head／ORM DDL 檢查沒有連資料庫。PostgreSQL 升降版、pgvector、容器與正式來源驗證尚未執行，不能由 SQLite 結果替代。
+
+## PR #25 與 main 合併後的契約（2026-11-05）
+
+- 程式 head 為 `d1105merge1`，合併 `d1104t01vol1`（V3）與 `c4d8e2a6f1b3`（main 預覽採用）。兩條既有遷移會辨識共用採用欄位；main 既有快照的冪等雜湊由原命令重建，既有快照內容不變。各分支降版保留另一分支仍需的欄位。
+- `POST /meal-plans` 同時接受正式結果的 `result_version`，以及 main 預覽的 `recipe_ids`。兩者依相同家庭→問卷鎖定順序處理，共用同一筆採用紀錄；預覽仍須後端重算並檢查 `adoption_blocked`。
+- 正式 V3 主食與分類補零契約移到 `config/v3_staples.json`、`config/v3_nutrient_category_zero.json`，原待審內容不變。main 的 `config/staples.json` 與 `config/nutrient_category_zero.json` 保留預覽功能。明確綁定 V3 時，預覽也要通過指定版本的 SQL 對照審查，不能因 main 的設定而採用待審資料。
+- 預設 T03 為 main 的 `0.4.1`；明確指定 `NUTRITION_RULES_PATH=nutrition_target/rules/hpa-dri8-mvp-0.3.0.json` 仍可使用舊規則。`scripts/verify_t03_v3.py` 是舊 `0.3.0` 的固定驗證器，執行時應明確選擇該版。
+- 本機實庫另有 `Admin_Dashboard` 的 `d1105admin2`；該工作樹不屬於本 PR 的合併來源。本次只在隔離複本保留其 schema 並加入本 PR 遷移，沒有對原庫 stamp、降版、遷移或回寫審核。原庫需等待兩個工作分支的 schema 一起整合後才能通過本分支 schema gate。

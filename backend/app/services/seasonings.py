@@ -22,6 +22,29 @@ def _read(path: Path) -> dict:
     return json.loads(path.read_text(encoding="utf-8"))
 
 
+GARNISH_PATH = Path(__file__).resolve().parents[3] / "config/garnish_ingredients.json"
+
+
+@lru_cache(maxsize=2)
+def _garnishes(path: str = str(GARNISH_PATH)) -> frozenset[str]:
+    p = Path(path)
+    return frozenset(json.loads(p.read_text(encoding="utf-8")).get("ingredients", {})) if p.is_file() else frozenset()
+
+
+def display_group(food_id: str | None) -> str:
+    """食譜畫面的分組：調味（調味料清單）／佐料（config/garnish_ingredients.json）／主食材（其餘）。"""
+    if food_id and food_id in _seasoning_ids(str(SEASONINGS_PATH)):
+        return "調味"
+    if food_id and food_id in _garnishes():
+        return "佐料"
+    return "主食材"
+
+
+@lru_cache(maxsize=4)
+def _seasoning_ids(path: str) -> frozenset[str]:
+    return frozenset(_read(Path(path)).get("ingredients", {}))
+
+
 def load_seasonings(path: str | Path = SEASONINGS_PATH) -> set[str]:
     """生效的調味料 FOOD 編號；檔案不存在時視為沒有調味料。"""
     return set(_read(Path(path)).get("ingredients", {}))

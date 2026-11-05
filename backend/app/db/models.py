@@ -492,3 +492,17 @@ class ConversionFactorEstimate(Base):
     tfda_sample_id: Mapped[str | None] = mapped_column(String(32), nullable=True)
     # decisions #32（kind=nutrient_fill）：food_id 為 TFDA 樣本 ID、factor_key 為營養素，此欄為每 100 g 推估值
     nutrient_per_100g: Mapped[Decimal | None] = mapped_column(Numeric(10, 4), nullable=True)
+
+
+class MealMenuRejection(Base):
+    """「不採用，換一份」：同一問卷版本下次查詢時略過這組食譜。"""
+    __tablename__ = "meal_menu_rejections"
+    __table_args__ = (Index("ix_meal_menu_rejections_request", "meal_request_id", "request_version"),)
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    meal_request_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("meal_requests.id", ondelete="CASCADE"), nullable=False)
+    request_version: Mapped[int] = mapped_column(Integer, nullable=False)
+    recipe_ids: Mapped[list] = mapped_column(JSONB, nullable=False)
+    created_by: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, nullable=False)

@@ -343,7 +343,7 @@ def test_invalid_mapping_file_blocks_preview_instead_of_guessing(imported_menu, 
         target_service=service, policy=policy, profiles=None, nutrition_import_id=IMPORT_ID,
         conversion='factor_one').to_dict()
     assert payload['status'] == 'calculation_incomplete'
-    assert [i['code'] for i in payload['input_issues']] == ['nutrition_mapping_invalid']
+    assert [i['code'] for i in cast(list, payload['input_issues'])] == ['nutrition_mapping_invalid']
 
 
 def test_repository_mapping_file_is_valid_and_has_no_unapproved_effect():
@@ -462,7 +462,7 @@ def test_brown_rice_is_not_offered_outside_the_factor_one_preview(imported_menu)
     payload = validate_database_menu(db, ['R1'], staple='糙米飯', participations=participations,
         target_service=service, policy=policy, profiles=None, nutrition_import_id=IMPORT_ID,
         conversion='t04').to_dict()
-    assert [i['code'] for i in payload['input_issues']] == ['staple_not_supported']
+    assert [i['code'] for i in cast(list, payload['input_issues'])] == ['staple_not_supported']
 
 
 def test_changed_brown_rice_policy_fails_closed(imported_menu, monkeypatch):
@@ -479,4 +479,25 @@ def test_changed_brown_rice_policy_fails_closed(imported_menu, monkeypatch):
     payload = validate_database_menu(db, ['R1'], staple='糙米飯', participations=participations,
         target_service=service, policy=policy, profiles=None, nutrition_import_id=IMPORT_ID,
         conversion='factor_one', nutrition_mappings={}, nutrition_supplements=_no_supplements()).to_dict()
-    assert [i['code'] for i in payload['input_issues']] == ['staple_policy_unreviewed_or_changed']
+    assert [i['code'] for i in cast(list, payload['input_issues'])] == ['staple_policy_unreviewed_or_changed']
+
+
+def test_passed_menu_payload_has_seven_nutrients_and_per_person_shares(imported_menu):
+    """2026-11-03：通過的菜單回傳七種營養素（缺值不當 0）與每人份額（全部加總為 1）。"""
+    from fractions import Fraction
+    db, _, _, _, _, policy, service, participations = imported_menu
+    _set_main(db, state='未熟製')
+    payload = validate_database_menu(db, ['R1'], staple='不需要主食', participations=participations,
+        target_service=service, policy=policy, profiles=None, nutrition_import_id=IMPORT_ID,
+        conversion='factor_one', nutrition_mappings={}, nutrition_supplements=_no_supplements()).to_dict()
+    assert payload['status'] == 'nutrition_passed'
+    seven = cast(Mapping, payload['nutrition_all'])
+    assert set(seven['totals']) == {'energy_kcal', 'protein_g', 'fat_g', 'carbohydrate_g', 'sugars_g',
+                                    'sodium_mg', 'dietary_fiber_g'}
+    assert seven['totals']['energy_kcal'] == cast(Mapping, payload['nutrition'])['totals']['energy_kcal']
+    people = cast(list, payload['per_person'])
+    assert sum(Fraction(p['dish_share']) for p in people) == 1
+    assert seven["known_partial"], "fixture should leave at least one nutrient incomplete"
+    for p in people:  # every value, including partial sums of incomplete nutrients, is an exact number
+        for value in [*p['nutrition_all'].values(), *p['nutrition_known_partial'].values()]:
+            assert value is None or Fraction(value) >= 0

@@ -12,6 +12,12 @@ from nutrition_target import TargetInputError
 from scripts.verify_t03_v3 import require_v3, synthetic_members
 
 
+@pytest.fixture(autouse=True)
+def legacy_v3_rule(monkeypatch):
+    from app.core.config import PROJECT_ROOT, settings
+    monkeypatch.setattr(settings, 'nutrition_rules_path',
+                        PROJECT_ROOT / 'nutrition_target/rules/hpa-dri8-mvp-0.3.0.json')
+
 @pytest.mark.parametrize('database,host,port', [
     ('meal_planner_1102_v1', '127.0.0.1', 55434),
     ('meal_planner_1102_v1', '127.0.0.1', 55435),

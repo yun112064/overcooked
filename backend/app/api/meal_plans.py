@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session
 
 from app.api.deps import AuthContext, current_auth, current_household_id, verify_origin
 from app.api.errors import not_found
+from app.api.database_menu_plans import AdoptBody as PreviewAdoptBody, adopt as adopt_preview
 from app.db.models import AdoptedMealPlan
 from app.db.session import get_db
 from app.services import meal_plans as service
@@ -24,10 +25,12 @@ class AdoptBody(BaseModel):
 
 
 @router.post("")
-def adopt(body: AdoptBody, response: Response, idempotency_key: str = Header(min_length=8, max_length=100),
+def adopt(body: AdoptBody | PreviewAdoptBody, response: Response, idempotency_key: str = Header(min_length=8, max_length=100),
           auth: AuthContext = Depends(current_auth), household_id=Depends(current_household_id),
           db: Session = Depends(get_db)):
     """單一交易：重驗版本、資格、缺價接受紀錄與前一日歷史，保存完整快照，問卷改為 confirmed。"""
+    if isinstance(body, PreviewAdoptBody):
+        return adopt_preview(body, response, idempotency_key, auth, household_id, db)
     plan, created = service.adopt(
         db, household_id=household_id, user_id=auth.user_id, meal_request_id=body.meal_request_id,
         result_version=body.result_version, request_version=body.request_version,

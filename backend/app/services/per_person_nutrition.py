@@ -11,6 +11,7 @@
 from __future__ import annotations
 
 import json
+from fractions import Fraction
 from decimal import Decimal
 from functools import lru_cache
 from pathlib import Path
@@ -115,3 +116,31 @@ def reference_meta() -> dict:
     ref = load_reference()
     return {"version": ref["version"], "source": ref["source"],
             "high_sodium_dish_mg": ref["high_sodium_dish"]["mg_per_serving"]}
+
+def _decimal(value: str) -> Decimal:
+    exact = Fraction(value)
+    return Decimal(exact.numerator) / Decimal(exact.denominator)
+
+def _portion(part: dict) -> dict:
+    """畫面用的一份：份量、這一份應占每日比例、七種營養素攝取量與缺值時的已知部分。"""
+    intake = dict(part.get("nutrition_all") or {})
+    # 熱量、蛋白質用驗證過的精確值（與 nutrition_all 相同來源）
+    intake.update({key: value for key, value in (part.get("nutrition") or {}).items() if value is not None})
+    return {"participation_id": part["participation_id"], "n": part["n"], "share": part["share"],
+            "meal": part["meal"], "meal_ratio": part["meal_ratio"], "dish_share": part["dish_share"],
+            "dish_ids": part["dish_ids"], "staple_g": part["staple_g"], "intake": intake,
+            "known_partial": dict(part.get("nutrition_known_partial") or {})}
+
+def people(per_participation: list[dict], names: dict[str, str | None]) -> list[dict]:
+    """依成員合併 T12 每份結果：dining 為這一餐，bento 另列；附每人每日建議。"""
+    grouped: dict[str, dict] = {}
+    for part in per_participation:
+        person = grouped.setdefault(part["member_id"], {
+            "member_id": part["member_id"], "name": names.get(part["member_id"]), "kinds": [],
+            "dining": None, "bento": None,
+            "daily": daily_reference(_decimal(part["daily"]["energy_kcal"]), _decimal(part["daily"]["protein_g"]))})
+        kind = "bento" if part["kind"] == "bento" else "dining"
+        person[kind] = _portion(part)
+        if part["kind"] not in person["kinds"]:
+            person["kinds"].append(part["kind"])
+    return list(grouped.values())

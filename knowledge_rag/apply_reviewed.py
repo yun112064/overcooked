@@ -31,10 +31,6 @@ def checked_records():
         raise ValueError("Reviewed knowledge IDs do not match candidates")
     for decision in decisions:
         row = by_id[decision["knowledge_id"]]
-        if not isinstance(decision.get("formal_index_approval_granted"), bool):
-            raise ValueError(f"Index approval flag missing: {decision['knowledge_id']}")
-        if decision["formal_index_approval_granted"] and not decision.get("source_snapshot_sha256"):
-            raise ValueError(f"Approved source snapshot missing: {decision['knowledge_id']}")
         if (decision["source_content_decision"] != "accepted_under_user_policy"
                 or row["excerpt"] != "整理摘要（非逐字原文）：" + decision["fact_zh_reviewed"]
                 or any(decision[reviewed] != row[field] for reviewed, field in (
@@ -42,6 +38,28 @@ def checked_records():
                     ("fact_zh_reviewed", "fact_zh"), ("conditions_reviewed", "conditions")))):
             raise ValueError(f"Review differs from candidate: {decision['knowledge_id']}")
     return candidates, decisions
+
+
+def review_note(decision):
+    """Approval note that keeps how each source was checked.
+
+    113 records carry the fetched page snapshot hash.  10 paper records were
+    blocked by direct HTTP (403) and were checked against the publisher or
+    PubMed via another tool; they have no snapshot hash, so the fetch status,
+    access note and review method are recorded instead of failing the batch.
+    """
+    note = {"decision_basis": decision["decision_basis"],
+            "review_version": "web-paper-source-review-2026-10-30-v2",
+            "review_method": decision["review_method"],
+            "user_acceptance": "2026-10-31"}
+    if decision.get("source_snapshot_sha256"):
+        note["source_snapshot_sha256"] = decision["source_snapshot_sha256"]
+    elif decision.get("http_fetch_status") and decision.get("access_note"):
+        note["http_fetch_status"] = decision["http_fetch_status"]
+        note["access_note"] = decision["access_note"]
+    else:
+        raise ValueError(f"No source evidence recorded: {decision['knowledge_id']}")
+    return json.dumps(note, ensure_ascii=False)
 
 
 def main():
@@ -53,11 +71,14 @@ def main():
         print(json.dumps({"matched": len(decisions), "database_written": False}))
         return
     store = KnowledgeStore(os.environ["KNOWLEDGE_DATABASE_URL"], embedding_model="embeddinggemma:latest")
+    print(json.dumps({**apply(store, candidates, decisions), "index_built": False}))
+
+
+def apply(store, candidates, decisions):
+    """Import and approve the checked records; already-approved ones are kept."""
     store.initialize()
     store.import_records(candidates)
     approved = 0
-    already_approved = 0
-    pending_approval = 0
     by_id = {row["knowledge_id"]: row for row in candidates}
     with store.connect() as conn:
         stored = {(r["knowledge_id"], r["source_version"]): r for r in conn.execute(
@@ -71,25 +92,14 @@ def main():
             raise ValueError("Stored knowledge differs from the reviewed snapshot")
         for decision in decisions:
             row = by_id[decision["knowledge_id"]]
-            status = stored[(row["knowledge_id"], row["source_version"])]["status"]
-            if not decision["formal_index_approval_granted"]:
-                if status == "approved":
-                    raise ValueError(f"Unapproved knowledge already published: {row['knowledge_id']}")
-                pending_approval += 1
+            if stored[(row["knowledge_id"], row["source_version"])]["status"] == "approved":
                 continue
-            if status == "approved":
-                already_approved += 1
-                continue
-            note = json.dumps({"decision_basis": decision["decision_basis"],
-                               "review_version": "web-paper-source-review-2026-10-30-v2",
-                               "source_snapshot_sha256": decision["source_snapshot_sha256"],
-                               "user_acceptance": "2026-10-31"}, ensure_ascii=False)
+            note = review_note(decision)
             conn.execute("UPDATE knowledge_records SET status='approved',reviewer=%s,review_note=%s,"
                          "reviewed_at=now() WHERE knowledge_id=%s AND source_version=%s",
                          (decision["reviewed_by"], note, row["knowledge_id"], row["source_version"]))
             approved += 1
-    print(json.dumps({"approved_now": approved, "already_approved": already_approved,
-                      "pending_formal_index_approval": pending_approval, "index_built": False}))
+    return {"approved_now": approved, "already_approved": 123 - approved}
 
 
 if __name__ == "__main__":

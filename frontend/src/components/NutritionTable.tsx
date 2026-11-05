@@ -1,5 +1,5 @@
 import { Box, Table, TableBody, TableCell, TableHead, TableRow, Typography } from '@mui/material'
-import { amount, NUTRIENTS, nutrientText, type Nutrition } from '../api/nutrition'
+import { amount, NUTRIENTS, nutrientText, type Nutrition } from '../api/resultNutrition'
 
 /** 整餐營養表：標題註明整餐與份數 N；目標、估算、差距皆為整餐值。 */
 export default function NutritionTable({ nutrition, title = '營養估算' }: { nutrition: Nutrition; title?: string | null }) {

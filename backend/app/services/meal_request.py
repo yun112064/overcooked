@@ -182,6 +182,13 @@ def staple_options() -> dict:
     from app.services import staples
 
     config = staples.table()
+    if not config.get('options') and not getattr(household_service.settings, 'generation_recipe_release_id', None):
+        import json
+        from app.core.config import PROJECT_ROOT
+        preview = json.loads((PROJECT_ROOT / 'config/staples.json').read_text(encoding='utf-8'))
+        if preview.get('review_status') == 'user_confirmed':
+            config = {**config, 'version': preview['version'],
+                      'options': {label: {'tfda_name': label} for label in ('白飯', '糙米飯')}}
     none_values = list(config.get("none_values") or [])
     return {
         "options": [{"label": label, "aliases": list(o.get("aliases") or [])}
@@ -198,6 +205,13 @@ def staple_issue(text: str | None) -> dict | None:
 
     if text is None:
         return None
+    if not getattr(household_service.settings, 'generation_recipe_release_id', None):
+        # Standalone main preview accepts its reviewed rice choices; V3 uses its own pending contract.
+        import json
+        from app.core.config import PROJECT_ROOT
+        policy = json.loads((PROJECT_ROOT / 'config/staples.json').read_text(encoding='utf-8'))
+        if policy.get('review_status') == 'user_confirmed' and text in ('白飯', '糙米飯'):
+            return None
     staple = staples.resolve(text)
     if staple is None or staple.line.grams_per_n is not None:
         return None
@@ -344,5 +358,5 @@ def target_preview(draft: MealRequestDraft, members: dict) -> dict:
              "meal_ratio": p["meal_ratio"], "n": p["n"], "scaled_target": p["scaled_target"]}
             for p in result["participations"]
         ],
-        "approved_for_adoption": False,
+        "approved_for_adoption": result.get("approved_for_adoption") is True,
     }

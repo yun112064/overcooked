@@ -5,6 +5,7 @@
 """
 import tempfile
 import unittest
+from unittest.mock import patch
 from decimal import Decimal
 from fractions import Fraction
 from pathlib import Path
@@ -18,10 +19,13 @@ D = Decimal
 
 
 class TargetCompositionTests(unittest.TestCase):
-    def test_v3_default_t03_rule_uses_030(self):
+    def test_explicit_v3_t03_rule_030_remains_supported(self):
         from app.services.household import target_service
 
-        self.assertEqual(target_service().rule_version, "hpa-dri8-mvp-0.3.0")
+        from app.core.config import PROJECT_ROOT, settings
+        with patch.object(settings, 'nutrition_rules_path',
+                          PROJECT_ROOT / 'nutrition_target/rules/hpa-dri8-mvp-0.3.0.json'):
+            self.assertEqual(target_service().rule_version, "hpa-dri8-mvp-0.3.0")
 
     def test_600_30_with_n_1_3_gives_final_target_780_39(self):
         targets = mc.compose_targets([mc.ParticipationBaseline("a:dining", D("600"), D("30"), D("1.3"))])

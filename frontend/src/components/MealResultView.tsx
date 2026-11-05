@@ -2,8 +2,8 @@ import CheckCircleOutlineOutlined from '@mui/icons-material/CheckCircleOutlineOu
 import {
   Alert, Box, Button, Chip, Link, Stack, Table, TableBody, TableCell, TableHead, TableRow, Typography,
 } from '@mui/material'
-import { amount } from '../api/nutrition'
-import PersonNutrition, { MacroBar } from './PersonNutrition'
+import { amount } from '../api/resultNutrition'
+import PersonNutrition, { MacroBar } from './ResultPersonNutrition'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useEffect, useRef } from 'react'
 import { Link as RouterLink } from 'react-router'

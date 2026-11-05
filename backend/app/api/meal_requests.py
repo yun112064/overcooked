@@ -8,12 +8,16 @@ from sqlalchemy.orm import Session
 
 from app.api.deps import AuthContext, current_auth, current_household_id, verify_origin
 from app.api.errors import ApiError, already_adopted, not_found, version_conflict
-from app.db.models import MealRequest, MealRequestRevision, Member
+from app.db.models import AdoptedMealPlan, MealRequest, MealRequestRevision, Member
 from app.db.session import get_db
 from app.services import ingredients
+from app.services import recipe_retrieval
 from app.services import jobs as job_service
 from app.services import meal_request as service
-from app.services import recipe_retrieval, t12_planning
+from app.services import t12_planning
+from app.services import knowledge_explanation
+from app.services import database_menu_plans as meal_plans
+from app.db.session import SessionLocal
 
 router = APIRouter(prefix="/meal-requests", tags=["meal-requests"], dependencies=[Depends(verify_origin)])
 
@@ -41,7 +45,6 @@ def _check(db: Session, draft: service.MealRequestDraft, members: dict) -> tuple
         issues.append(low)
     return issues, preview, floor
 
-
 def _out(db: Session, row: MealRequest) -> dict:
     draft = service.load(row.payload)
     members = _members(db, row.household_id)
@@ -62,8 +65,7 @@ def _out(db: Session, row: MealRequest) -> dict:
     }
 
 
-def get_owned_request(db: Session, household_id, request_id: uuid.UUID, *, lock: bool = False) -> MealRequest:
-    """本家庭的問卷（他家庭一律 404）；lock 時 SELECT ... FOR UPDATE。結果與決定 API 共用。"""
+def _get_owned(db: Session, household_id, request_id: uuid.UUID, *, lock: bool = False) -> MealRequest:
     query = select(MealRequest).where(MealRequest.id == request_id)
     if lock:
         query = query.with_for_update()
@@ -71,6 +73,9 @@ def get_owned_request(db: Session, household_id, request_id: uuid.UUID, *, lock:
     if row is None or row.household_id != household_id:
         raise not_found("找不到此問卷。")
     return row
+
+
+get_owned_request = _get_owned
 
 
 def _reject_bad_references(db: Session, household_id, draft: service.MealRequestDraft) -> None:
@@ -97,7 +102,6 @@ def list_requests(household_id=Depends(current_household_id), db: Session = Depe
 
 @router.get("/staple-options")
 def staple_options(household_id=Depends(current_household_id)):
-    """決策 #52：問卷主食欄只能從此清單選（含「不需要主食」）；需在 /{request_id} 之前註冊。"""
     return service.staple_options()
 
 
@@ -118,36 +122,54 @@ def create_request(draft: service.MealRequestDraft, auth: AuthContext = Depends(
 @router.get("/{request_id}")
 def get_request(request_id: uuid.UUID, household_id=Depends(current_household_id),
                 db: Session = Depends(get_db)):
-    return _out(db, get_owned_request(db, household_id, request_id))
+    return _out(db, _get_owned(db, household_id, request_id))
 
 
 @router.get("/{request_id}/recipes")
 def retrieve_recipes(request_id: uuid.UUID, household_id=Depends(current_household_id),
                      db: Session = Depends(get_db)):
-    row = get_owned_request(db, household_id, request_id)
+    """T11 preview only; nutrition/budget validation and AI generation belong to T12–T14."""
+    row = _get_owned(db, household_id, request_id)
     draft = service.load(row.payload)
     _reject_bad_references(db, household_id, draft)
     members = _members(db, household_id)
     issues = service.completeness(draft, members)
     if issues:
         raise ApiError(422, "INVALID_INPUT", "請先完成問卷。", {"issues": issues})
-    restrictions = service.restrictions(db, draft, members)
     try:
-        result = recipe_retrieval.retrieve_database_menu(
-            db, household_id, draft, excluded_food_ids=restrictions['excluded_food_ids'])
+        # 略過這一版問卷「不採用」過的組合（2026-11-03）
+        result = meal_plans.current_menu(db, household_id, row, draft, members)
     except recipe_retrieval.RecipeRetrievalError as exc:
         raise ApiError(503, exc.code, exc.message) from None
-    return {**result.to_dict(), 'input_version': row.version,
-            'fallback_eligible': result.status == recipe_retrieval.NO_FEASIBLE}
+    adopted = db.scalar(select(AdoptedMealPlan).where(AdoptedMealPlan.meal_request_id == row.id))
+    return {**result, 'input_version': row.version,
+            'fallback_eligible': result['status'] == recipe_retrieval.NO_FEASIBLE,
+            'adopted_plan': meal_plans.summary(adopted) if adopted is not None else None}
+
+
+class RejectBody(BaseModel):
+    version: int = Field(ge=1)
+    recipe_ids: list[str] = Field(min_length=1, max_length=10)
+
+
+@router.post("/{request_id}/menu-rejections", status_code=204)
+def reject_menu(request_id: uuid.UUID, body: RejectBody, auth: AuthContext = Depends(current_auth),
+                household_id=Depends(current_household_id), db: Session = Depends(get_db)):
+    """「不採用，換一份」：記錄這組食譜，同一版問卷下次查詢改給下一組。"""
+    row = _get_owned(db, household_id, request_id, lock=True)
+    meal_plans.reject(db, row, version=body.version, recipe_ids=body.recipe_ids, user_id=auth.user_id)
+    db.commit()
+    return Response(status_code=204)
 
 
 @router.post("/{request_id}/nutrition-preview")
 def nutrition_preview(request_id: uuid.UUID, body: NutritionPreviewBody,
                       household_id=Depends(current_household_id), db: Session = Depends(get_db)):
-    row = get_owned_request(db, household_id, request_id)
+    """T12 result for selected T11 recipe IDs; never accepts client nutrition facts."""
+    row = _get_owned(db, household_id, request_id)
     draft = service.load(row.payload)
-    _reject_bad_references(db, household_id, draft)
-    members = _members(db, household_id)
+    _reject_bad_references(db, row.household_id, draft)
+    members = _members(db, row.household_id)
     issues = service.completeness(draft, members)
     if issues:
         raise ApiError(422, 'INVALID_INPUT', '請先完成問卷。', {'issues': issues})
@@ -157,10 +179,37 @@ def nutrition_preview(request_id: uuid.UUID, body: NutritionPreviewBody,
         raise ApiError(503, exc.code, exc.message) from None
 
 
+@router.post("/{request_id}/knowledge-tips")
+def knowledge_tips(request_id: uuid.UUID, body: NutritionPreviewBody,
+                   household_id=Depends(current_household_id), db: Session = Depends(get_db)):
+    """T12 之後的營養小知識：後端重算最終食材 → T11 檢索審核知識 → 雲端 OpenAI 生成（經 T10）。
+
+    不接受前端傳來的食材或知識；缺知識、知識服務故障或額度不足都不阻擋採用，只回報狀態與原因。
+    """
+    row = _get_owned(db, household_id, request_id)
+    draft = service.load(row.payload)
+    _reject_bad_references(db, row.household_id, draft)
+    members = _members(db, row.household_id)
+    issues = service.completeness(draft, members)
+    if issues:
+        raise ApiError(422, 'INVALID_INPUT', '請先完成問卷。', {'issues': issues})
+    try:
+        menu = t12_planning.preview(db, draft=draft, members=members, recipe_ids=body.recipe_ids)
+    except t12_planning.T12PlanningUnavailable as exc:
+        raise ApiError(503, exc.code, exc.message) from None
+    food_ids = list(menu.get('final_food_ids') or [])
+    db.rollback()  # 釋放讀取交易；以下的付費呼叫用各自的短交易
+    result = knowledge_explanation.tips_for_menu(
+        SessionLocal, final_food_ids=food_ids, household_id=household_id,
+        request_tag=f'tips:{request_id}:{row.version}', names=ingredients.names(db, food_ids) if food_ids else {})
+    return {**result, 'input_version': row.version, 'recipe_ids': body.recipe_ids,
+            'nutrition_status': menu.get('status')}
+
+
 @router.put("/{request_id}")
 def update_request(request_id: uuid.UUID, body: DraftUpdate, auth: AuthContext = Depends(current_auth),
                    household_id=Depends(current_household_id), db: Session = Depends(get_db)):
-    row = get_owned_request(db, household_id, request_id, lock=True)
+    row = _get_owned(db, household_id, request_id, lock=True)
     payload = service.dump(body.draft)
     if row.status in ("queued", "running"):
         raise ApiError(409, "VERSION_CONFLICT", "此問卷正在生成中，請等待結果後再修改。",
@@ -189,7 +238,7 @@ def update_request(request_id: uuid.UUID, body: DraftUpdate, auth: AuthContext =
 @router.get("/{request_id}/versions/{version}")
 def get_revision(request_id: uuid.UUID, version: int, household_id=Depends(current_household_id),
                  db: Session = Depends(get_db)):
-    get_owned_request(db, household_id, request_id)
+    _get_owned(db, household_id, request_id)
     revision = db.get(MealRequestRevision, (request_id, version))
     if revision is None:
         raise not_found("找不到此版本。")
@@ -200,7 +249,7 @@ def get_revision(request_id: uuid.UUID, version: int, household_id=Depends(curre
 @router.delete("/{request_id}", status_code=204)
 def delete_request(request_id: uuid.UUID, household_id=Depends(current_household_id),
                    db: Session = Depends(get_db)):
-    row = get_owned_request(db, household_id, request_id)
+    row = _get_owned(db, household_id, request_id)
     if row.status in ("queued", "running"):
         raise ApiError(409, "VERSION_CONFLICT", "此問卷正在生成中，不能刪除。",
                        {"reason": "GENERATION_IN_PROGRESS"})
@@ -218,7 +267,7 @@ def submit_request(request_id: uuid.UUID, body: SubmitBody,
                    idempotency_key: str = Header(min_length=8, max_length=100),
                    household_id=Depends(current_household_id), db: Session = Depends(get_db)):
     """送出生成：相同 Idempotency-Key 與相同問卷版本回傳同一工作，不重複建立或扣額度。"""
-    row = get_owned_request(db, household_id, request_id, lock=True)
+    row = _get_owned(db, household_id, request_id, lock=True)
     complete = not _check(db, service.load(row.payload), _members(db, household_id))[0]
     job, created = job_service.submit_generation(
         db, household_id=household_id, meal_request=row, version=body.version,

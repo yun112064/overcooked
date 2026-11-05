@@ -174,13 +174,25 @@ def _distinct_vegetables(menu: list[dict], vegetable_of: dict[str, str | None]) 
 
 
 def _group(recipes: list[dict]) -> list[_Dish]:
-    """依菜名重新計算標準菜色 ID 分組（決策 #36）：異體字規則上線前匯入、存成不同 ID 的
-    「番茄炒蛋／蕃茄炒蛋」仍是同一道菜，不必等重新匯入。"""
-    groups: dict[str, _Dish] = {}
+    """Stored standard ID OR normalized primary name identifies the same dish.
+
+    Shared generic aliases alone stay ambiguous (e.g. two different 炒青菜).
+    """
+    groups: list[_Dish] = []
     for r in recipes:
-        key = standard_dish_id(r["recipe_name"])
-        groups.setdefault(key, _Dish(key, [])).recipes.append(r)
-    return list(groups.values())
+        matches = [g for g in groups if any(
+            old['standard_dish_id'] == r['standard_dish_id']
+            or normalize_name(old['recipe_name']) == normalize_name(r['recipe_name'])
+            for old in g.recipes)]
+        if not matches:
+            groups.append(_Dish(r['standard_dish_id'], [r]))
+            continue
+        first = matches[0]
+        first.recipes.append(r)
+        for group in matches[1:]:
+            first.recipes.extend(group.recipes)
+            groups.remove(group)
+    return groups
 
 
 def _resolve_specified(dishes: list[_Dish], names: list[str]) -> tuple[dict[str, _Dish], list[str], dict]:
@@ -279,11 +291,64 @@ def retrieve_database_menu(db: Session, household_id, draft: MealRequestDraft, *
                                    "食譜資料庫暫時無法查詢；問卷已保留，請稍後重試。") from exc
 
 
+def _catalog_matches(identity: dict, dishes: list[_Dish]) -> list[_Dish]:
+    exact = [d for d in dishes if any(r['standard_dish_id'] == identity['standard_dish_id'] for r in d.recipes)]
+    primary = [d for d in dishes if any(normalize_name(r['recipe_name']) == normalize_name(identity['dish_name']) for r in d.recipes)]
+    aliases = [d for d in dishes if meal_history.same_dish(identity, d.identity())]
+    return exact or primary or aliases
+
+
+def resolve_menu_identities(db: Session, identities: list[dict]) -> tuple[list[dict], list[dict]]:
+    """Resolve proposed menu dishes with the same ID/name/alias rules as history."""
+    catalog = _group(_load_recipes(db))
+    resolved, errors = [], []
+    for identity in identities:
+        matches = _catalog_matches(identity, catalog)
+        if len(matches) > 1:
+            errors.append({'dish': identity, 'candidates': [d.identity() for d in matches]})
+        resolved.append({**identity, 'resolved_standard_dish_id': matches[0].standard_dish_id} if len(matches) == 1
+                        else identity)
+    return resolved, errors
+
+
+def _resolve_catalog_history(context: dict, dishes: list[_Dish]) -> dict:
+    # Resolve historical identity before applying exceptions. A generic alias alone
+    # must not silently exclude several different dishes or exempt the wrong one.
+    specified_ids = set(context['specified_dish_ids'])
+    context['specified_exceptions'] = []
+    resolved_history = set()
+    history_ambiguous = []
+    kept = []
+    for old in context['excluded_dishes']:
+        matches = _catalog_matches(old, dishes)
+        if len(matches) > 1:
+            history_ambiguous.append({'dish': old, 'candidates': [d.identity() for d in matches]})
+            continue
+        if matches:
+            resolved_id = matches[0].standard_dish_id
+            if resolved_id in specified_ids:
+                context['specified_exceptions'].append(resolved_id)
+                continue
+            resolved_history.add(resolved_id)
+            old = {**old, 'resolved_standard_dish_id': resolved_id}
+        kept.append(old)
+    context['excluded_dishes'] = kept
+    context['resolved_history_ids'] = sorted(resolved_history)
+    context['identity_resolution'] = 'catalog-v1'
+    context['identity_errors'] = history_ambiguous
+    return context
+
+
+def resolve_previous_day_context(db: Session, context: dict) -> dict:
+    """Use the same catalog resolution at retrieval and adoption recheck."""
+    return _resolve_catalog_history(context, _group(_load_recipes(db)))
+
+
 def _retrieve(db: Session, household_id, draft: MealRequestDraft, excluded: set[str]) -> RetrievalResult:
     dishes = _group(_load_recipes(db))
     found, missing, ambiguous = _resolve_specified(dishes, draft.specified_dishes)
     context = meal_history.previous_day_context(
-        db, household_id, draft.meal_date, specified_dish_ids=[d.standard_dish_id for d in found.values()],
+        db, household_id, draft.meal_date, specified_dish_ids=[],
         meal_type=draft.meal_type)
 
     if ambiguous:
@@ -292,6 +357,13 @@ def _retrieve(db: Session, household_id, draft: MealRequestDraft, excluded: set[
     if missing:
         return RetrievalResult(NO_FEASIBLE, reason="SPECIFIED_DISH_NOT_IN_DATABASE",
                                details={"specified_dishes": missing}, previous_day=context)
+
+    context['specified_dish_ids'] = sorted({d.standard_dish_id for d in found.values()})
+    context = _resolve_catalog_history(context, dishes)
+    if context['identity_errors']:
+        return RetrievalResult(UNRESOLVED, reason='PREVIOUS_DISH_AMBIGUOUS',
+                               details={'ambiguous': context['identity_errors']}, previous_day=context)
+    resolved_history = set(context['resolved_history_ids'])
 
     available = synonyms.confirmed_equivalents(draft.available_ingredient_ids)
     taste = draft.taste_preferences
@@ -308,9 +380,7 @@ def _retrieve(db: Session, household_id, draft: MealRequestDraft, excluded: set[
         return not excluded.intersection(recipe["food_ids"])
 
     def yesterday(dish: _Dish) -> bool:
-        identity = {"standard_dish_id": dish.standard_dish_id, "dish_name": dish.recipes[0]["recipe_name"],
-                    "aliases": sorted(dish.names)}
-        return bool(meal_history.conflicts(context, [identity]))
+        return dish.standard_dish_id in resolved_history
 
     specified: list[list[dict]] = []  # 每道指定菜依排名的可用食譜
     conflicts: list[dict] = []
@@ -347,8 +417,10 @@ def _retrieve(db: Session, household_id, draft: MealRequestDraft, excluded: set[
         if yesterday(dish):
             continue
         pool.append((options, dish))
-    candidates = list(selected) + [_summary(r, d, False) for options, d in pool for r in options]
     pool.sort(key=lambda item: rank(item[0][0]))
+
+    ranked_recipes = sorted(((r, d) for options, d in pool for r in options), key=lambda item: rank(item[0]))
+    candidates = list(selected) + [_summary(r, d, False) for r, d in ranked_recipes]
 
     needed = draft.dish_count - len(selected)
     if needed > len(pool):

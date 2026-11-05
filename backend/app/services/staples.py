@@ -17,7 +17,7 @@ from app.core.config import PROJECT_ROOT
 from app.services.meal_calculation import IngredientLine
 from app.services.recipe_import import normalize_name
 
-STAPLES_PATH = PROJECT_ROOT / "config" / "staples.json"
+STAPLES_PATH = PROJECT_ROOT / "config" / "v3_staples.json"
 STAPLE_DISH_ID = "staple"
 STAPLE_CONFIG = "staple_config"
 NEGATIONS = ("不", "無", "免", "沒")

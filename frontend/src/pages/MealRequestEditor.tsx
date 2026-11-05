@@ -15,6 +15,7 @@ import {
   type StapleOptions,
 } from '../api/types'
 import FormTextField from '../components/FormTextField'
+import MenuPreviewPanel from '../components/MenuPreviewPanel'
 import GenerationPanel from '../components/GenerationPanel'
 import IngredientPicker from '../components/IngredientPicker'
 import RecognitionCapture from '../components/RecognitionCapture'
@@ -347,6 +348,8 @@ function Editor({ initial, members: memberList }: { initial: MealRequest; member
         {step === 4 && (
           <Stack spacing={3}>
             <Summary row={server} members={memberList} />
+            <Divider />
+            <MenuPreviewPanel row={server} members={memberList} />
             <Divider />
             <GenerationPanel row={server} onChanged={refresh} />
           </Stack>

@@ -11,6 +11,8 @@ from fractions import Fraction
 from pathlib import Path
 from typing import Literal
 
+from app.services.t04_database_nutrition import scale_per_100g
+
 from .targets import MealTargets, PlanningInputError, REQUIRED_TARGETS, exact
 
 Number = str | int | Decimal | Fraction
@@ -90,7 +92,7 @@ class NutritionEstimate:
 @dataclass(frozen=True)
 class ToleranceResult:
     passed: bool
-    bounds: Mapping[str, tuple[Fraction, Fraction]]
+    bounds: Mapping[str, tuple[Fraction | None, Fraction | None]]
     difference: Mapping[str, Fraction | None]
 
 
@@ -216,6 +218,8 @@ def calculate_nutrition(recipe: RecipeCandidate, *, policy: NutritionPolicy) -> 
                         "cooked_edible_weight_g": cooked_weight,
                         "evidence_id": ev.evidence_id if ev else None,
                         "cooking_evidence": asdict(ev) if ev else None})
+        per_100g: dict[str, Fraction] = {}
+        retentions: dict[str, Fraction] = {}
         for key in totals:
             value = record.get("nutrition_per_100g", {}).get(key)
             retention: Fraction | None = Fraction(1) if state == "cooked" or is_direct else None
@@ -232,19 +236,39 @@ def calculate_nutrition(recipe: RecipeCandidate, *, policy: NutritionPolicy) -> 
                 missing.append(f"{line.line_id}:{key}:invalid_tfda_value")
                 totals[key] = None
                 continue
+            per_100g[key], retentions[key] = amount_value, retention
+        # The per-100g → weight step is T04's converter, so T04 and T12 agree exactly.
+        line_values = scale_per_100g(per_100g, usable_weight, retentions) if per_100g else {}
+        for key, line_value in line_values.items():
             previous = totals[key]
             if previous is not None:
-                totals[key] = previous + amount_value * usable_weight * retention / 100
+                totals[key] = previous + line_value
     return NutritionEstimate(totals, tuple(missing), tuple(sources))
 
 
+# 2026-11-04 標準：熱量不可高於目標 10%（低於不限）；蛋白質不可低於目標 10%（高於不限）。
+TOLERANCE_RATIOS: Mapping[str, tuple[Fraction | None, Fraction | None]] = {
+    "energy_kcal": (None, Fraction(11, 10)),
+    "protein_g": (Fraction(9, 10), None),
+}
+
+
+def tolerance_bounds(target: Fraction, key: str) -> tuple[Fraction | None, Fraction | None]:
+    low, high = TOLERANCE_RATIOS[key]
+    return (target * low if low is not None else None, target * high if high is not None else None)
+
+
+def within_tolerance(value: Fraction, target: Fraction, key: str) -> bool:
+    low, high = tolerance_bounds(target, key)
+    return (low is None or low <= value) and (high is None or value <= high)
+
+
 def check_tolerance(actual: NutritionEstimate, expected: Mapping[str, Fraction]) -> ToleranceResult:
-    bounds = {k: (exact(expected[k]) * Fraction(9, 10), exact(expected[k]) * Fraction(11, 10))
-              for k in REQUIRED_TARGETS}
+    bounds = {k: tolerance_bounds(exact(expected[k]), k) for k in REQUIRED_TARGETS}
     values = {k: actual.totals.get(k) for k in REQUIRED_TARGETS}
     difference = {k: (value - exact(expected[k]) if value is not None else None)
                   for k, value in values.items()}
-    passed = not actual.missing and all(value is not None and bounds[k][0] <= value <= bounds[k][1]
+    passed = not actual.missing and all(value is not None and within_tolerance(value, exact(expected[k]), k)
                                        for k, value in values.items())
     return ToleranceResult(passed, bounds, difference)
 
@@ -309,6 +333,8 @@ def align_baseline(recipe: RecipeCandidate, targets: MealTargets, *, policy: Nut
                                       (0, check.bounds["energy_kcal"][1], False),
                                       (1, check.bounds["protein_g"][0], True),
                                       (1, check.bounds["protein_g"][1], False)):
+            if bound is None:
+                continue
             points = _clip(points, axis, bound, is_lower)
             if not points:
                 break

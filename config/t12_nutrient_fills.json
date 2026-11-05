@@ -1,0 +1,4114 @@
+{
+ "schema_version": "t12-nutrient-fill-v1",
+ "note": "T12 畫面用的營養缺值推估（熱量、蛋白質以外的 5 項只供顯示，不參與 ±10% 驗證與採用資格）。TFDA 欄位空白時，先套 config/nutrient_category_zero.json 的「必然為 0」規則，其餘才用這裡的推估值；TFDA 有值一律以 TFDA 為準。鍵為 TFDA 樣本 ID＋營養素。2026-11-03 使用者決定沿用 t11-t20-demo 的做法，畫面不標示推估，來源留在回傳資料的 display_fills。新增推估：python scripts/estimate_nutrient_fills.py",
+ "fills": [
+  {
+   "sample_id": "A0320202",
+   "nutrient": "sugars_g",
+   "food_name": "低筋麵粉",
+   "value_per_100g": "0.3000",
+   "basis": "llm_estimated",
+   "model": "gpt-5.4-mini-2026-03-17",
+   "prompt_version": "nutrient-fill-prompt-v2",
+   "created_at": "2026-10-21T08:25:34.723381+00:00",
+   "assumptions": [
+    "Low-gluten flour is unsweetened; sugars are only trace naturally occurring sugars.",
+    "Estimated a very low residual sugar level consistent with standard wheat flour and the given carbohydrate total."
+   ],
+   "origin": "t11-t20-demo data/seed/conversion_factor_estimates.json",
+   "review_status": "llm_estimated"
+  },
+  {
+   "sample_id": "A0320301",
+   "nutrient": "sugars_g",
+   "food_name": "中筋麵粉",
+   "value_per_100g": "0.4000",
+   "basis": "llm_estimated",
+   "model": "gpt-5.4-mini-2026-03-17",
+   "prompt_version": "nutrient-fill-prompt-v2",
+   "created_at": "2026-10-21T08:25:37.840077+00:00",
+   "assumptions": [
+    "中筋麵粉本身幾乎不含游離糖，糖量主要來自天然殘留醣類。",
+    "以一般未加糖的白麵粉估計，sugars 約占碳水化合物的很小一部分。"
+   ],
+   "origin": "t11-t20-demo data/seed/conversion_factor_estimates.json",
+   "review_status": "llm_estimated"
+  },
+  {
+   "sample_id": "A0320404",
+   "nutrient": "sugars_g",
+   "food_name": "高筋麵粉",
+   "value_per_100g": "1.5000",
+   "basis": "llm_estimated",
+   "model": "gpt-5.4-mini-2026-03-17",
+   "prompt_version": "nutrient-fill-prompt-v2",
+   "created_at": "2026-10-21T08:25:55.488141+00:00",
+   "assumptions": [
+    "High-gluten flour is a plain grain ingredient with very little naturally occurring sugar.",
+    "Estimated sugars as a small fraction of total carbohydrate, consistent with wheat flour composition."
+   ],
+   "origin": "t11-t20-demo data/seed/conversion_factor_estimates.json",
+   "review_status": "llm_estimated"
+  },
+  {
+   "sample_id": "A0500801",
+   "nutrient": "sugars_g",
+   "food_name": "黑秈糯糙米",
+   "value_per_100g": "0.5000",
+   "basis": "llm_estimated",
+   "model": "gpt-5.4-mini-2026-03-17",
+   "prompt_version": "nutrient-fill-prompt-v2",
+   "created_at": "2026-10-21T08:27:04.240800+00:00",
+   "assumptions": [
+    "Raw black glutinous brown rice typically has very low naturally occurring sugars.",
+    "Estimated sugars are kept well below total carbohydrate and consistent with whole-grain rice composition."
+   ],
+   "origin": "t11-t20-demo data/seed/conversion_factor_estimates.json",
+   "review_status": "llm_estimated"
+  },
+  {
+   "sample_id": "A0550601",
+   "nutrient": "sugars_g",
+   "food_name": "白飯",
+   "value_per_100g": "0.1000",
+   "basis": "llm_estimated",
+   "model": "gpt-5.4-mini-2026-03-17",
+   "prompt_version": "nutrient-fill-prompt-v2",
+   "created_at": "2026-10-21T08:26:14.560511+00:00",
+   "assumptions": [
+    "Plain cooked white rice has very little free sugar; most carbohydrate is starch.",
+    "Estimated a trace sugar level consistent with the listed carbohydrate and energy values."
+   ],
+   "origin": "t11-t20-demo data/seed/conversion_factor_estimates.json",
+   "review_status": "llm_estimated"
+  },
+  {
+   "sample_id": "A0810101",
+   "nutrient": "sugars_g",
+   "food_name": "燕麥片",
+   "value_per_100g": "0.8000",
+   "basis": "llm_estimated",
+   "model": "gpt-5.4-mini-2026-03-17",
+   "prompt_version": "nutrient-fill-prompt-v2",
+   "created_at": "2026-10-21T08:28:10.675087+00:00",
+   "assumptions": [
+    "Estimate for plain quick-cooking oatmeal/oat flakes with no added sugar; sugars are only trace amounts naturally present in oats.",
+    "Kept well below total carbohydrate and consistent with the low sodium/plain ingredient profile."
+   ],
+   "origin": "t11-t20-demo data/seed/conversion_factor_estimates.json",
+   "review_status": "llm_estimated"
+  },
+  {
+   "sample_id": "B0500101",
+   "nutrient": "sugars_g",
+   "food_name": "芋頭",
+   "value_per_100g": "0.6000",
+   "basis": "llm_estimated",
+   "model": "gpt-5.4-mini-2026-03-17",
+   "prompt_version": "nutrient-fill-prompt-v2",
+   "created_at": "2026-10-21T08:27:19.204925+00:00",
+   "assumptions": [
+    "Raw taro is starchy with only a small natural sugar fraction.",
+    "Estimated sugars are kept well below total carbohydrate and consistent with typical tuber composition."
+   ],
+   "origin": "t11-t20-demo data/seed/conversion_factor_estimates.json",
+   "review_status": "llm_estimated"
+  },
+  {
+   "sample_id": "B0700201",
+   "nutrient": "sugars_g",
+   "food_name": "馬鈴薯",
+   "value_per_100g": "0.8000",
+   "basis": "llm_estimated",
+   "model": "gpt-5.4-mini-2026-03-17",
+   "prompt_version": "nutrient-fill-prompt-v2",
+   "created_at": "2026-10-21T08:26:33.061294+00:00",
+   "assumptions": [
+    "Raw peeled potato typically has about 0.5–1.0 g sugars per 100 g.",
+    "Chosen value is consistent with total carbohydrate 15.8 g/100 g and the sample’s raw state."
+   ],
+   "origin": "t11-t20-demo data/seed/conversion_factor_estimates.json",
+   "review_status": "llm_estimated"
+  },
+  {
+   "sample_id": "B0720101",
+   "nutrient": "sugars_g",
+   "food_name": "馬鈴薯粉",
+   "value_per_100g": "0.0000",
+   "basis": "llm_estimated",
+   "model": "gpt-5.4-mini-2026-03-17",
+   "prompt_version": "nutrient-fill-prompt-v2",
+   "created_at": "2026-10-21T08:25:36.305058+00:00",
+   "assumptions": [
+    "Potato starch is refined starch with essentially no sugars.",
+    "Kept sugars below total carbohydrate and consistent with the very low protein/fat profile."
+   ],
+   "origin": "t11-t20-demo data/seed/conversion_factor_estimates.json",
+   "review_status": "llm_estimated"
+  },
+  {
+   "sample_id": "B0920101",
+   "nutrient": "sugars_g",
+   "food_name": "蓮藕粉",
+   "value_per_100g": "0.2000",
+   "basis": "llm_estimated",
+   "model": "gpt-5.4-mini-2026-03-17",
+   "prompt_version": "nutrient-fill-prompt-v2",
+   "created_at": "2026-10-21T08:27:13.709803+00:00",
+   "assumptions": [
+    "蓮藕粉以澱粉為主，天然糖含量通常很低。",
+    "依已知碳水化合物與能量判斷，糖分應只占極小部分，估約 0.2 g/100 g。"
+   ],
+   "origin": "t11-t20-demo data/seed/conversion_factor_estimates.json",
+   "review_status": "llm_estimated"
+  },
+  {
+   "sample_id": "E0400301",
+   "nutrient": "sugars_g",
+   "food_name": "青蘿蔔",
+   "value_per_100g": "3.4000",
+   "basis": "llm_estimated",
+   "model": "gpt-5.4-mini-2026-03-17",
+   "prompt_version": "nutrient-fill-prompt-v2",
+   "created_at": "2026-10-21T08:28:17.444183+00:00",
+   "assumptions": [
+    "Raw green radish has most carbohydrate as natural sugars with some starch/fiber; sugars estimated as about half of total carbohydrate.",
+    "Estimated value kept below total carbohydrate and consistent with similar raw radish composition."
+   ],
+   "origin": "t11-t20-demo data/seed/conversion_factor_estimates.json",
+   "review_status": "llm_estimated"
+  },
+  {
+   "sample_id": "E2100301",
+   "nutrient": "sugars_g",
+   "food_name": "蒜苗",
+   "value_per_100g": "2.0000",
+   "basis": "llm_estimated",
+   "model": "gpt-5.4-mini-2026-03-17",
+   "prompt_version": "nutrient-fill-prompt-v2",
+   "created_at": "2026-10-21T08:27:32.225565+00:00",
+   "assumptions": [
+    "Raw garlic chive shoots typically have modest natural sugars, with most carbohydrates coming from fiber and other non-sugar carbs.",
+    "Estimated sugars are kept well below total carbohydrate and consistent with the reported energy and macronutrients."
+   ],
+   "origin": "t11-t20-demo data/seed/conversion_factor_estimates.json",
+   "review_status": "llm_estimated"
+  },
+  {
+   "sample_id": "E2300102",
+   "nutrient": "sugars_g",
+   "food_name": "山東大蔥",
+   "value_per_100g": "2.2000",
+   "basis": "llm_estimated",
+   "model": "gpt-5.4-mini-2026-03-17",
+   "prompt_version": "nutrient-fill-prompt-v2",
+   "created_at": "2026-10-21T08:28:05.614927+00:00",
+   "assumptions": [
+    "Raw scallion/green onion typically has sugars as about one-third of total carbohydrate.",
+    "Kept below total carbohydrate (6.7 g/100 g) and consistent with low fat/protein energy."
+   ],
+   "origin": "t11-t20-demo data/seed/conversion_factor_estimates.json",
+   "review_status": "llm_estimated"
+  },
+  {
+   "sample_id": "E2500101",
+   "nutrient": "sugars_g",
+   "food_name": "紅蔥頭",
+   "value_per_100g": "6.2000",
+   "basis": "llm_estimated",
+   "model": "gpt-5.4-mini-2026-03-17",
+   "prompt_version": "nutrient-fill-prompt-v2",
+   "created_at": "2026-10-21T08:26:13.144189+00:00",
+   "assumptions": [
+    "Raw shallot typically has sugars making up a substantial share of its 16.4 g carbohydrate per 100 g.",
+    "Estimated sugars are below total carbohydrate and consistent with the sample's energy and fiber values."
+   ],
+   "origin": "t11-t20-demo data/seed/conversion_factor_estimates.json",
+   "review_status": "llm_estimated"
+  },
+  {
+   "sample_id": "E3200605",
+   "nutrient": "sugars_g",
+   "food_name": "小白菜",
+   "value_per_100g": "0.8000",
+   "basis": "llm_estimated",
+   "model": "gpt-5.4-mini-2026-03-17",
+   "prompt_version": "nutrient-fill-prompt-v2",
+   "created_at": "2026-11-03T15:11:15+00:00",
+   "assumptions": [
+    "Estimated as a low-sugar fresh leafy vegetable; most carbohydrate is not sugar.",
+    "Kept below total carbohydrate and consistent with the very low energy value."
+   ],
+   "origin": "scripts/estimate_nutrient_fills.py",
+   "review_status": "llm_estimated"
+  },
+  {
+   "sample_id": "E3201001",
+   "nutrient": "sugars_g",
+   "food_name": "油菜心",
+   "value_per_100g": "1.1000",
+   "basis": "llm_estimated",
+   "model": "gpt-5.4-mini-2026-03-17",
+   "prompt_version": "nutrient-fill-prompt-v2",
+   "created_at": "2026-10-21T08:28:45.523137+00:00",
+   "assumptions": [
+    "Raw leafy vegetable; sugars are a small fraction of total carbohydrate.",
+    "Estimated sugars to fit within carbohydrate 4.0 g/100 g and typical Brassica greens composition."
+   ],
+   "origin": "t11-t20-demo data/seed/conversion_factor_estimates.json",
+   "review_status": "llm_estimated"
+  },
+  {
+   "sample_id": "E3201201",
+   "nutrient": "sugars_g",
+   "food_name": "青江菜(土植)(1月取樣)",
+   "value_per_100g": "0.5000",
+   "basis": "llm_estimated",
+   "model": "gpt-5.4-mini-2026-03-17",
+   "prompt_version": "nutrient-fill-prompt-v2",
+   "created_at": "2026-10-21T08:28:00.433597+00:00",
+   "assumptions": [
+    "Raw leafy bok choy typically has low natural sugars; estimated sugars are about one-third of total carbohydrate.",
+    "Kept below total carbohydrate (1.6 g/100 g) and consistent with very low energy and fat."
+   ],
+   "origin": "t11-t20-demo data/seed/conversion_factor_estimates.json",
+   "review_status": "llm_estimated"
+  },
+  {
+   "sample_id": "E37002",
+   "nutrient": "sugars_g",
+   "food_name": "芹菜",
+   "value_per_100g": "1.3000",
+   "basis": "llm_estimated",
+   "model": "gpt-5.4-mini-2026-03-17",
+   "prompt_version": "nutrient-fill-prompt-v2",
+   "created_at": "2026-11-03T15:11:18+00:00",
+   "assumptions": [
+    "Estimated sugars as a typical fraction of celery's available carbohydrate.",
+    "Kept sugars below total carbohydrate and consistent with the low-energy, high-fiber profile."
+   ],
+   "origin": "scripts/estimate_nutrient_fills.py",
+   "review_status": "llm_estimated"
+  },
+  {
+   "sample_id": "E3700202",
+   "nutrient": "sugars_g",
+   "food_name": "芹菜",
+   "value_per_100g": "1.7000",
+   "basis": "llm_estimated",
+   "model": "gpt-5.4-mini-2026-03-17",
+   "prompt_version": "nutrient-fill-prompt-v2",
+   "created_at": "2026-10-21T08:27:16.818831+00:00",
+   "assumptions": [
+    "Estimated sugars as the main soluble carbohydrate portion of raw celery, consistent with total carbohydrate 3.8 g/100 g and dietary fiber 1.6 g/100 g.",
+    "Used a typical raw celery profile where sugars are around half of total carbohydrates."
+   ],
+   "origin": "t11-t20-demo data/seed/conversion_factor_estimates.json",
+   "review_status": "llm_estimated"
+  },
+  {
+   "sample_id": "E4000101",
+   "nutrient": "sugars_g",
+   "food_name": "芫荽",
+   "value_per_100g": "0.9000",
+   "basis": "llm_estimated",
+   "model": "gpt-5.4-mini-2026-03-17",
+   "prompt_version": "nutrient-fill-prompt-v2",
+   "created_at": "2026-10-21T08:27:27.249224+00:00",
+   "assumptions": [
+    "Raw coriander typically has low sugar; sugars are a small fraction of total carbohydrate.",
+    "Estimated sugars to fit carbohydrate 4.5 g/100 g and fresh herb composition."
+   ],
+   "origin": "t11-t20-demo data/seed/conversion_factor_estimates.json",
+   "review_status": "llm_estimated"
+  },
+  {
+   "sample_id": "E4300101",
+   "nutrient": "sugars_g",
+   "food_name": "香樁",
+   "value_per_100g": "2.8000",
+   "basis": "llm_estimated",
+   "model": "gpt-5.4-mini-2026-03-17",
+   "prompt_version": "nutrient-fill-prompt-v2",
+   "created_at": "2026-10-21T08:27:48.294810+00:00",
+   "assumptions": [
+    "Assumed a small share of total carbohydrate is naturally occurring sugars in raw tree leaves.",
+    "Kept sugars below total carbohydrate and consistent with the low-sodium, high-fiber leafy sample."
+   ],
+   "origin": "t11-t20-demo data/seed/conversion_factor_estimates.json",
+   "review_status": "llm_estimated"
+  },
+  {
+   "sample_id": "E5600101",
+   "nutrient": "sugars_g",
+   "food_name": "蕹菜(土植)(1月取樣)",
+   "value_per_100g": "1.0000",
+   "basis": "llm_estimated",
+   "model": "gpt-5.4-mini-2026-03-17",
+   "prompt_version": "nutrient-fill-prompt-v2",
+   "created_at": "2026-10-21T08:27:11.279182+00:00",
+   "assumptions": [
+    "Raw leafy vegetable; sugars are a small fraction of total carbohydrate.",
+    "Estimated sugars kept well below total carbohydrate and consistent with typical water spinach composition."
+   ],
+   "origin": "t11-t20-demo data/seed/conversion_factor_estimates.json",
+   "review_status": "llm_estimated"
+  },
+  {
+   "sample_id": "E5800501",
+   "nutrient": "sugars_g",
+   "food_name": "冷凍青花菜",
+   "value_per_100g": "1.0000",
+   "basis": "llm_estimated",
+   "model": "gpt-5.4-mini-2026-03-17",
+   "prompt_version": "nutrient-fill-prompt-v2",
+   "created_at": "2026-10-21T08:28:16.158898+00:00",
+   "assumptions": [
+    "Frozen broccoli is a plain vegetable with naturally low sugar; estimated sugars are about 1 g/100 g.",
+    "Kept below total carbohydrate and consistent with the listed energy and fiber values."
+   ],
+   "origin": "t11-t20-demo data/seed/conversion_factor_estimates.json",
+   "review_status": "llm_estimated"
+  },
+  {
+   "sample_id": "E6200101",
+   "nutrient": "sugars_g",
+   "food_name": "冬瓜",
+   "value_per_100g": "1.2000",
+   "basis": "llm_estimated",
+   "model": "gpt-5.4-mini-2026-03-17",
+   "prompt_version": "nutrient-fill-prompt-v2",
+   "created_at": "2026-10-21T08:28:37.429320+00:00",
+   "assumptions": [
+    "Raw peeled winter melon has low natural sugar; sugars are estimated as roughly half of total carbohydrate.",
+    "Consistent with the stated carbohydrate, fiber, and low energy values for a fresh gourd vegetable."
+   ],
+   "origin": "t11-t20-demo data/seed/conversion_factor_estimates.json",
+   "review_status": "llm_estimated"
+  },
+  {
+   "sample_id": "E7100201",
+   "nutrient": "sugars_g",
+   "food_name": "綠櫛瓜",
+   "value_per_100g": "0.9000",
+   "basis": "llm_estimated",
+   "model": "gpt-5.4-mini-2026-03-17",
+   "prompt_version": "nutrient-fill-prompt-v2",
+   "created_at": "2026-10-21T08:28:14.826174+00:00",
+   "assumptions": [
+    "Raw zucchini typically has very little sugar; estimated as about half of total carbohydrate.",
+    "Kept within known carbohydrate (1.8 g/100 g) and consistent with low-calorie raw vegetable profile."
+   ],
+   "origin": "t11-t20-demo data/seed/conversion_factor_estimates.json",
+   "review_status": "llm_estimated"
+  },
+  {
+   "sample_id": "E7500201",
+   "nutrient": "sugars_g",
+   "food_name": "甜椒(紅皮)",
+   "value_per_100g": "4.2000",
+   "basis": "llm_estimated",
+   "model": "gpt-5.4-mini-2026-03-17",
+   "prompt_version": "nutrient-fill-prompt-v2",
+   "created_at": "2026-10-21T08:26:37.050274+00:00",
+   "assumptions": [
+    "Raw red sweet pepper typically has most carbohydrate as natural sugars.",
+    "Estimated sugars to fit the listed carbohydrate amount and typical composition of red bell pepper."
+   ],
+   "origin": "t11-t20-demo data/seed/conversion_factor_estimates.json",
+   "review_status": "llm_estimated"
+  },
+  {
+   "sample_id": "E7500301",
+   "nutrient": "sugars_g",
+   "food_name": "甜椒(黃皮)",
+   "value_per_100g": "4.1000",
+   "basis": "llm_estimated",
+   "model": "gpt-5.4-mini-2026-03-17",
+   "prompt_version": "nutrient-fill-prompt-v2",
+   "created_at": "2026-10-21T08:26:38.159264+00:00",
+   "assumptions": [
+    "Raw yellow sweet pepper typically has sugars making up most of total carbohydrate.",
+    "Estimated sugars are below total carbohydrate (6.0 g) and consistent with common composition of yellow bell pepper."
+   ],
+   "origin": "t11-t20-demo data/seed/conversion_factor_estimates.json",
+   "review_status": "llm_estimated"
+  },
+  {
+   "sample_id": "F0710101",
+   "nutrient": "sugars_g",
+   "food_name": "海帶",
+   "value_per_100g": "0.0000",
+   "basis": "llm_estimated",
+   "model": "gpt-5.4-mini-2026-03-17",
+   "prompt_version": "nutrient-fill-prompt-v2",
+   "created_at": "2026-11-03T15:11:21+00:00",
+   "assumptions": [
+    "Dried kelp/seaweed typically has negligible intrinsic sugars.",
+    "Given carbohydrate is mostly fiber and the sample has no indication of added sweeteners, sugars are estimated as trace or zero."
+   ],
+   "origin": "scripts/estimate_nutrient_fills.py",
+   "review_status": "llm_estimated"
+  },
+  {
+   "sample_id": "F0810101",
+   "nutrient": "sugars_g",
+   "food_name": "乾裙帶菜",
+   "value_per_100g": "0.5000",
+   "basis": "llm_estimated",
+   "model": "gpt-5.4-mini-2026-03-17",
+   "prompt_version": "nutrient-fill-prompt-v2",
+   "created_at": "2026-10-21T08:26:54.312543+00:00",
+   "assumptions": [
+    "乾裙帶菜屬乾貨海藻，天然糖分通常很低；其碳水主要以膳食纖維為主。",
+    "依已知碳水與纖維數值推估可溶性糖僅占少量，估計約0.5 g/100 g。"
+   ],
+   "origin": "t11-t20-demo data/seed/conversion_factor_estimates.json",
+   "review_status": "llm_estimated"
+  },
+  {
+   "sample_id": "H1000101",
+   "nutrient": "sugars_g",
+   "food_name": "粉豆莢",
+   "value_per_100g": "2.2000",
+   "basis": "llm_estimated",
+   "model": "gpt-5.4-mini-2026-03-17",
+   "prompt_version": "nutrient-fill-prompt-v2",
+   "created_at": "2026-10-21T08:28:21.208428+00:00",
+   "assumptions": [
+    "Raw green beans typically have sugars around 2–3 g per 100 g.",
+    "Estimated sugars were kept below total carbohydrate (5.0 g/100 g) and consistent with the low energy value."
+   ],
+   "origin": "t11-t20-demo data/seed/conversion_factor_estimates.json",
+   "review_status": "llm_estimated"
+  },
+  {
+   "sample_id": "I0100201",
+   "nutrient": "sugars_g",
+   "food_name": "牛肋條",
+   "value_per_100g": "0.0000",
+   "basis": "llm_estimated",
+   "model": "gpt-5.4-mini-2026-03-17",
+   "prompt_version": "nutrient-fill-prompt-v2",
+   "created_at": "2026-10-21T08:27:28.451116+00:00",
+   "assumptions": [
+    "Raw beef rib strips contain negligible sugars; the small carbohydrate value is likely from trace glycogen or rounding.",
+    "Kept sugars at 0 g/100 g to remain consistent with typical unseasoned raw meat composition."
+   ],
+   "origin": "t11-t20-demo data/seed/conversion_factor_estimates.json",
+   "review_status": "llm_estimated"
+  },
+  {
+   "sample_id": "I0104101",
+   "nutrient": "sugars_g",
+   "food_name": "牛前胸肉",
+   "value_per_100g": "0.0000",
+   "basis": "llm_estimated",
+   "model": "gpt-5.4-mini-2026-03-17",
+   "prompt_version": "nutrient-fill-prompt-v2",
+   "created_at": "2026-10-21T08:27:44.575199+00:00",
+   "assumptions": [
+    "Raw beef brisket normally contains no added sugar.",
+    "With carbohydrate already listed as 0 g, sugars are estimated as essentially zero."
+   ],
+   "origin": "t11-t20-demo data/seed/conversion_factor_estimates.json",
+   "review_status": "llm_estimated"
+  },
+  {
+   "sample_id": "I0108301",
+   "nutrient": "sugars_g",
+   "food_name": "牛後腿腱子心",
+   "value_per_100g": "0.0000",
+   "basis": "llm_estimated",
+   "model": "gpt-5.4-mini-2026-03-17",
+   "prompt_version": "nutrient-fill-prompt-v2",
+   "created_at": "2026-10-21T08:26:35.699273+00:00",
+   "assumptions": [
+    "Raw plain beef shank cut with no added ingredients, so sugars are assumed negligible.",
+    "Known carbohydrate is 0 g per 100 g, consistent with essentially zero sugars in unseasoned meat."
+   ],
+   "origin": "t11-t20-demo data/seed/conversion_factor_estimates.json",
+   "review_status": "llm_estimated"
+  },
+  {
+   "sample_id": "I0210101",
+   "nutrient": "sugars_g",
+   "food_name": "綿羊肉切片",
+   "value_per_100g": "0.0000",
+   "basis": "llm_estimated",
+   "model": "gpt-5.4-mini-2026-03-17",
+   "prompt_version": "nutrient-fill-prompt-v2",
+   "created_at": "2026-10-21T08:27:08.214279+00:00",
+   "assumptions": [
+    "Raw frozen sliced lamb is an unseasoned meat product, so sugars are typically absent.",
+    "Carbohydrate is listed as 0 g, supporting an estimate of 0 g sugars per 100 g."
+   ],
+   "origin": "t11-t20-demo data/seed/conversion_factor_estimates.json",
+   "review_status": "llm_estimated"
+  },
+  {
+   "sample_id": "I0300101",
+   "nutrient": "sugars_g",
+   "food_name": "豬下肩肉",
+   "value_per_100g": "0.0000",
+   "basis": "llm_estimated",
+   "model": "gpt-5.4-mini-2026-03-17",
+   "prompt_version": "nutrient-fill-prompt-v2",
+   "created_at": "2026-10-21T08:27:12.488026+00:00",
+   "assumptions": [
+    "Raw plain pork shoulder has essentially no sugars.",
+    "No marinade, seasoning, or curing ingredients are included."
+   ],
+   "origin": "t11-t20-demo data/seed/conversion_factor_estimates.json",
+   "review_status": "llm_estimated"
+  },
+  {
+   "sample_id": "I0300501",
+   "nutrient": "sugars_g",
+   "food_name": "豬肩胛排",
+   "value_per_100g": "0.0000",
+   "basis": "llm_estimated",
+   "model": "gpt-5.4-mini-2026-03-17",
+   "prompt_version": "nutrient-fill-prompt-v2",
+   "created_at": "2026-10-21T08:27:26.000252+00:00",
+   "assumptions": [
+    "Raw unseasoned pork shoulder chop has essentially no natural sugars.",
+    "Known carbohydrate is 0 g, so sugars are estimated as 0 g per 100 g."
+   ],
+   "origin": "t11-t20-demo data/seed/conversion_factor_estimates.json",
+   "review_status": "llm_estimated"
+  },
+  {
+   "sample_id": "I0302201",
+   "nutrient": "sugars_g",
+   "food_name": "豬後腿肉",
+   "value_per_100g": "0.0000",
+   "basis": "llm_estimated",
+   "model": "gpt-5.4-mini-2026-03-17",
+   "prompt_version": "nutrient-fill-prompt-v2",
+   "created_at": "2026-10-21T08:27:20.439472+00:00",
+   "assumptions": [
+    "Raw lean pork has negligible naturally occurring sugar; the listed carbohydrate is likely mostly trace glycogen and analytical residue.",
+    "Kept sugars at 0 g/100 g to stay consistent with the very low carbohydrate value and unprocessed meat state."
+   ],
+   "origin": "t11-t20-demo data/seed/conversion_factor_estimates.json",
+   "review_status": "llm_estimated"
+  },
+  {
+   "sample_id": "I03214",
+   "nutrient": "sugars_g",
+   "food_name": "豬骨湯平均值",
+   "value_per_100g": "0.0000",
+   "basis": "llm_estimated",
+   "model": "gpt-5.4-mini-2026-03-17",
+   "prompt_version": "nutrient-fill-prompt-v2",
+   "created_at": "2026-10-21T08:26:29.265401+00:00",
+   "assumptions": [
+    "豬骨湯/高湯通常不含明顯添加糖，且已知碳水化合物為0.0 g/100g。",
+    "以清湯型熬煮骨湯估計，糖分可視為接近0。"
+   ],
+   "origin": "t11-t20-demo data/seed/conversion_factor_estimates.json",
+   "review_status": "llm_estimated"
+  },
+  {
+   "sample_id": "I0400201",
+   "nutrient": "sugars_g",
+   "food_name": "肉雞",
+   "value_per_100g": "0.0000",
+   "basis": "llm_estimated",
+   "model": "gpt-5.4-mini-2026-03-17",
+   "prompt_version": "nutrient-fill-prompt-v2",
+   "created_at": "2026-10-21T08:26:24.086018+00:00",
+   "assumptions": [
+    "Raw chicken has essentially no intrinsic sugars; measured carbohydrates are 0.0 g/100 g, so sugars are estimated at 0 g/100 g.",
+    "No seasoning or marinade is indicated in the sample description."
+   ],
+   "origin": "t11-t20-demo data/seed/conversion_factor_estimates.json",
+   "review_status": "llm_estimated"
+  },
+  {
+   "sample_id": "I0402102",
+   "nutrient": "sugars_g",
+   "food_name": "里肌肉(肉雞)",
+   "value_per_100g": "0.0000",
+   "basis": "llm_estimated",
+   "model": "gpt-5.4-mini-2026-03-17",
+   "prompt_version": "nutrient-fill-prompt-v2",
+   "created_at": "2026-10-21T08:27:34.928543+00:00",
+   "assumptions": [
+    "Raw chicken breast/ tenderloin naturally contains no measurable sugars.",
+    "Known carbohydrate is 0.0 g per 100 g, so sugars are estimated as 0 g per 100 g."
+   ],
+   "origin": "t11-t20-demo data/seed/conversion_factor_estimates.json",
+   "review_status": "llm_estimated"
+  },
+  {
+   "sample_id": "I0404201",
+   "nutrient": "sugars_g",
+   "food_name": "清腿(土雞)",
+   "value_per_100g": "0.0000",
+   "basis": "llm_estimated",
+   "model": "gpt-5.4-mini-2026-03-17",
+   "prompt_version": "nutrient-fill-prompt-v2",
+   "created_at": "2026-10-21T08:26:49.237228+00:00",
+   "assumptions": [
+    "Raw chicken leg meat has no meaningful intrinsic sugar; any residual carbohydrate is typically negligible.",
+    "Known carbohydrate is 0.0 g, so sugars are estimated as 0 g per 100 g."
+   ],
+   "origin": "t11-t20-demo data/seed/conversion_factor_estimates.json",
+   "review_status": "llm_estimated"
+  },
+  {
+   "sample_id": "I0404202",
+   "nutrient": "sugars_g",
+   "food_name": "清腿(肉雞)",
+   "value_per_100g": "0.0000",
+   "basis": "llm_estimated",
+   "model": "gpt-5.4-mini-2026-03-17",
+   "prompt_version": "nutrient-fill-prompt-v2",
+   "created_at": "2026-10-21T08:26:21.112224+00:00",
+   "assumptions": [
+    "Raw plain chicken leg meat contains essentially no sugars.",
+    "Listed carbohydrate is 0.0 g, so sugars are estimated at 0.0 g per 100 g."
+   ],
+   "origin": "t11-t20-demo data/seed/conversion_factor_estimates.json",
+   "review_status": "llm_estimated"
+  },
+  {
+   "sample_id": "I0420601",
+   "nutrient": "sugars_g",
+   "food_name": "雞胸骨湯",
+   "value_per_100g": "0.0000",
+   "basis": "llm_estimated",
+   "model": "gpt-5.4-mini-2026-03-17",
+   "prompt_version": "nutrient-fill-prompt-v2",
+   "created_at": "2026-10-21T08:26:39.894254+00:00",
+   "assumptions": [
+    "This is an unsweetened clear chicken stock with very low carbohydrate content.",
+    "Any sugars present would be negligible, so sugars are estimated at 0 g per 100 g while staying within the reported 0.2 g carbohydrate."
+   ],
+   "origin": "t11-t20-demo data/seed/conversion_factor_estimates.json",
+   "review_status": "llm_estimated"
+  },
+  {
+   "sample_id": "J0401801",
+   "nutrient": "sugars_g",
+   "food_name": "斑海鯰",
+   "value_per_100g": "0.0000",
+   "basis": "llm_estimated",
+   "model": "gpt-5.4-mini-2026-03-17",
+   "prompt_version": "nutrient-fill-prompt-v2",
+   "created_at": "2026-10-21T08:26:30.455697+00:00",
+   "assumptions": [
+    "Raw fish flesh typically contains negligible sugars.",
+    "Known carbohydrate is 0.0 g, so sugars should also be 0 g per 100 g."
+   ],
+   "origin": "t11-t20-demo data/seed/conversion_factor_estimates.json",
+   "review_status": "llm_estimated"
+  },
+  {
+   "sample_id": "J0402301",
+   "nutrient": "sugars_g",
+   "food_name": "鮭魚",
+   "value_per_100g": "0.0000",
+   "basis": "llm_estimated",
+   "model": "gpt-5.4-mini-2026-03-17",
+   "prompt_version": "nutrient-fill-prompt-v2",
+   "created_at": "2026-11-03T15:11:23+00:00",
+   "assumptions": [
+    "Plain salmon contains essentially no sugars.",
+    "Carbohydrate is listed as 0 g, so sugars are estimated at 0 g per 100 g."
+   ],
+   "origin": "scripts/estimate_nutrient_fills.py",
+   "review_status": "llm_estimated"
+  },
+  {
+   "sample_id": "J04044",
+   "nutrient": "sugars_g",
+   "food_name": "日本花鱸平均值",
+   "value_per_100g": "0.0000",
+   "basis": "llm_estimated",
+   "model": "gpt-5.4-mini-2026-03-17",
+   "prompt_version": "nutrient-fill-prompt-v2",
+   "created_at": "2026-10-21T08:26:41.631155+00:00",
+   "assumptions": [
+    "Raw fish typically contains negligible sugars; the listed carbohydrate is likely from trace glycogen and rounding.",
+    "Kept sugars at 0 g to stay consistent with very low carbohydrate in plain unseasoned fish."
+   ],
+   "origin": "t11-t20-demo data/seed/conversion_factor_estimates.json",
+   "review_status": "llm_estimated"
+  },
+  {
+   "sample_id": "J0412001",
+   "nutrient": "sugars_g",
+   "food_name": "紅色吳郭魚",
+   "value_per_100g": "0.0000",
+   "basis": "llm_estimated",
+   "model": "gpt-5.4-mini-2026-03-17",
+   "prompt_version": "nutrient-fill-prompt-v2",
+   "created_at": "2026-10-21T08:26:42.831104+00:00",
+   "assumptions": [
+    "Raw fish naturally contains negligible sugars.",
+    "Carbohydrate is likely mostly non-sugar components, so sugars are set near zero and kept within the reported carbohydrate value."
+   ],
+   "origin": "t11-t20-demo data/seed/conversion_factor_estimates.json",
+   "review_status": "llm_estimated"
+  },
+  {
+   "sample_id": "J0412002",
+   "nutrient": "sugars_g",
+   "food_name": "台灣鯛魚片(生)",
+   "value_per_100g": "0.0000",
+   "basis": "llm_estimated",
+   "model": "gpt-5.4-mini-2026-03-17",
+   "prompt_version": "nutrient-fill-prompt-v2",
+   "created_at": "2026-10-21T08:27:57.127987+00:00",
+   "assumptions": [
+    "Raw plain tilapia fillet typically contains no meaningful sugar.",
+    "Carbohydrate reported is likely from trace glycogen/measurement noise, so sugars are estimated at zero while staying within known totals."
+   ],
+   "origin": "t11-t20-demo data/seed/conversion_factor_estimates.json",
+   "review_status": "llm_estimated"
+  },
+  {
+   "sample_id": "J0412301",
+   "nutrient": "sugars_g",
+   "food_name": "莫三比克口孵非鯽",
+   "value_per_100g": "0.0000",
+   "basis": "llm_estimated",
+   "model": "gpt-5.4-mini-2026-03-17",
+   "prompt_version": "nutrient-fill-prompt-v2",
+   "created_at": "2026-10-21T08:26:46.533509+00:00",
+   "assumptions": [
+    "Raw fish muscle contains essentially no sugars.",
+    "Known carbohydrate is 0 g, so sugars are estimated as 0 g to stay consistent."
+   ],
+   "origin": "t11-t20-demo data/seed/conversion_factor_estimates.json",
+   "review_status": "llm_estimated"
+  },
+  {
+   "sample_id": "J0414601",
+   "nutrient": "sugars_g",
+   "food_name": "鮪魚生魚片",
+   "value_per_100g": "0.0000",
+   "basis": "llm_estimated",
+   "model": "gpt-5.4-mini-2026-03-17",
+   "prompt_version": "nutrient-fill-prompt-v2",
+   "created_at": "2026-10-21T08:28:13.604973+00:00",
+   "assumptions": [
+    "Raw tuna sashimi has negligible natural sugars.",
+    "Known carbohydrate is 0.0 g, so sugars are estimated as 0 g per 100 g."
+   ],
+   "origin": "t11-t20-demo data/seed/conversion_factor_estimates.json",
+   "review_status": "llm_estimated"
+  },
+  {
+   "sample_id": "J0414701",
+   "nutrient": "sugars_g",
+   "food_name": "鯖魚(生)",
+   "value_per_100g": "0.0000",
+   "basis": "llm_estimated",
+   "model": "gpt-5.4-mini-2026-03-17",
+   "prompt_version": "nutrient-fill-prompt-v2",
+   "created_at": "2026-10-21T08:27:58.596350+00:00",
+   "assumptions": [
+    "Raw mackerel naturally contains negligible sugars; the listed carbohydrate is likely from trace analytical variation.",
+    "No added sweeteners in the raw sample."
+   ],
+   "origin": "t11-t20-demo data/seed/conversion_factor_estimates.json",
+   "review_status": "llm_estimated"
+  },
+  {
+   "sample_id": "J0600101",
+   "nutrient": "dietary_fiber_g",
+   "food_name": "圓鱈魚鰓肉",
+   "value_per_100g": "0.0000",
+   "basis": "llm_estimated",
+   "model": "gpt-5.4-mini-2026-03-17",
+   "prompt_version": "nutrient-fill-prompt-v2",
+   "created_at": "2026-10-21T08:27:55.832346+00:00",
+   "assumptions": [
+    "Raw fish tissue typically contains no dietary fiber.",
+    "Known macronutrients already fit a non-plant food profile; any small carbohydrate present is likely from processing/added ingredients, not fiber."
+   ],
+   "origin": "t11-t20-demo data/seed/conversion_factor_estimates.json",
+   "review_status": "llm_estimated"
+  },
+  {
+   "sample_id": "J0800401",
+   "nutrient": "sugars_g",
+   "food_name": "柴魚片",
+   "value_per_100g": "0.0000",
+   "basis": "llm_estimated",
+   "model": "gpt-5.4-mini-2026-03-17",
+   "prompt_version": "nutrient-fill-prompt-v2",
+   "created_at": "2026-10-21T08:26:45.381549+00:00",
+   "assumptions": [
+    "Katsuobushi (柴魚片) is a dried fish product with very low natural sugars.",
+    "Carbohydrate is only 2.6 g/100 g, so sugars are estimated as near zero and not exceeding total carbohydrate."
+   ],
+   "origin": "t11-t20-demo data/seed/conversion_factor_estimates.json",
+   "review_status": "llm_estimated"
+  },
+  {
+   "sample_id": "J2100701",
+   "nutrient": "sugars_g",
+   "food_name": "中國對蝦",
+   "value_per_100g": "0.0000",
+   "basis": "llm_estimated",
+   "model": "gpt-5.4-mini-2026-03-17",
+   "prompt_version": "nutrient-fill-prompt-v2",
+   "created_at": "2026-10-21T08:27:23.090586+00:00",
+   "assumptions": [
+    "Raw shrimp naturally contains negligible sugars; carbohydrate is mostly non-sugar components.",
+    "Kept consistent with the listed 1.0 g carbohydrate per 100 g and high protein/low fat profile."
+   ],
+   "origin": "t11-t20-demo data/seed/conversion_factor_estimates.json",
+   "review_status": "llm_estimated"
+  },
+  {
+   "sample_id": "J2200201",
+   "nutrient": "sugars_g",
+   "food_name": "明蝦仁",
+   "value_per_100g": "0.0000",
+   "basis": "llm_estimated",
+   "model": "gpt-5.4-mini-2026-03-17",
+   "prompt_version": "nutrient-fill-prompt-v2",
+   "created_at": "2026-10-21T08:26:31.862656+00:00",
+   "assumptions": [
+    "Raw shrimp meat naturally contains negligible sugars and the sample lists 0.0 g carbohydrate per 100 g.",
+    "Estimated sugars set to 0 g/100 g to stay consistent with the known macronutrients."
+   ],
+   "origin": "t11-t20-demo data/seed/conversion_factor_estimates.json",
+   "review_status": "llm_estimated"
+  },
+  {
+   "sample_id": "J2300101",
+   "nutrient": "sugars_g",
+   "food_name": "蝦皮",
+   "value_per_100g": "0.0000",
+   "basis": "llm_estimated",
+   "model": "gpt-5.4-mini-2026-03-17",
+   "prompt_version": "nutrient-fill-prompt-v2",
+   "created_at": "2026-10-21T08:26:15.684955+00:00",
+   "assumptions": [
+    "Dried shrimp (蝦皮) is a naturally very low-sugar seafood product.",
+    "Estimated sugars set to zero while staying within the known carbohydrate total."
+   ],
+   "origin": "t11-t20-demo data/seed/conversion_factor_estimates.json",
+   "review_status": "llm_estimated"
+  },
+  {
+   "sample_id": "J3500401",
+   "nutrient": "sugars_g",
+   "food_name": "泡魷魚",
+   "value_per_100g": "0.5000",
+   "basis": "llm_estimated",
+   "model": "gpt-5.4-mini-2026-03-17",
+   "prompt_version": "nutrient-fill-prompt-v2",
+   "created_at": "2026-10-21T08:27:53.432298+00:00",
+   "assumptions": [
+    "Raw squid contains very little naturally occurring sugar; estimated trace amount only.",
+    "Kept sugars well below total carbohydrate and consistent with the low-carb, high-protein composition."
+   ],
+   "origin": "t11-t20-demo data/seed/conversion_factor_estimates.json",
+   "review_status": "llm_estimated"
+  },
+  {
+   "sample_id": "J3500501",
+   "nutrient": "sugars_g",
+   "food_name": "台灣鎖管",
+   "value_per_100g": "0.0000",
+   "basis": "llm_estimated",
+   "model": "gpt-5.4-mini-2026-03-17",
+   "prompt_version": "nutrient-fill-prompt-v2",
+   "created_at": "2026-10-21T08:27:29.620670+00:00",
+   "assumptions": [
+    "Raw squid naturally contains negligible sugars; the listed carbohydrate is likely mostly non-sugar components.",
+    "Kept sugars at 0 g/100 g to fit the very low carbohydrate content and raw seafood profile."
+   ],
+   "origin": "t11-t20-demo data/seed/conversion_factor_estimates.json",
+   "review_status": "llm_estimated"
+  },
+  {
+   "sample_id": "K0111101",
+   "nutrient": "sugars_g",
+   "food_name": "雞水煮蛋",
+   "value_per_100g": "0.7000",
+   "basis": "llm_estimated",
+   "model": "gpt-5.4-mini-2026-03-17",
+   "prompt_version": "nutrient-fill-prompt-v2",
+   "created_at": "2026-10-21T08:28:19.976766+00:00",
+   "assumptions": [
+    "Plain boiled egg has negligible sugar; most of the 1.7 g carbohydrate is small residual sugars/other carbs.",
+    "Estimated sugars are kept below total carbohydrate and consistent with a typical whole boiled chicken egg."
+   ],
+   "origin": "t11-t20-demo data/seed/conversion_factor_estimates.json",
+   "review_status": "llm_estimated"
+  },
+  {
+   "sample_id": "K0123101",
+   "nutrient": "sugars_g",
+   "food_name": "荷包蛋(不加油)",
+   "value_per_100g": "0.7000",
+   "basis": "llm_estimated",
+   "model": "gpt-5.4-mini-2026-03-17",
+   "prompt_version": "nutrient-fill-prompt-v2",
+   "created_at": "2026-10-21T08:28:12.462100+00:00",
+   "assumptions": [
+    "Fried egg without added oil contains only trace natural sugars from egg, so sugars are low.",
+    "Estimated sugars are kept below total carbohydrate and consistent with typical whole egg composition."
+   ],
+   "origin": "t11-t20-demo data/seed/conversion_factor_estimates.json",
+   "review_status": "llm_estimated"
+  },
+  {
+   "sample_id": "L0100101",
+   "nutrient": "dietary_fiber_g",
+   "food_name": "高脂鮮乳",
+   "value_per_100g": "0.0000",
+   "basis": "llm_estimated",
+   "model": "gpt-5.4-mini-2026-03-17",
+   "prompt_version": "nutrient-fill-prompt-v2",
+   "created_at": "2026-10-21T08:25:46.556570+00:00",
+   "assumptions": [
+    "Fresh whole milk naturally contains no dietary fiber.",
+    "Sample is plain milk with no added fiber ingredients."
+   ],
+   "origin": "t11-t20-demo data/seed/conversion_factor_estimates.json",
+   "review_status": "llm_estimated"
+  },
+  {
+   "sample_id": "L0308101",
+   "nutrient": "dietary_fiber_g",
+   "food_name": "脫脂稀釋發酵乳",
+   "value_per_100g": "0.0000",
+   "basis": "llm_estimated",
+   "model": "gpt-5.4-mini-2026-03-17",
+   "prompt_version": "nutrient-fill-prompt-v2",
+   "created_at": "2026-10-21T08:27:33.534733+00:00",
+   "assumptions": [
+    "脫脂稀釋發酵乳/乳酸飲料通常不含膳食纖維。",
+    "已知成分以糖與乳成分為主，未見添加纖維來源。"
+   ],
+   "origin": "t11-t20-demo data/seed/conversion_factor_estimates.json",
+   "review_status": "llm_estimated"
+  },
+  {
+   "sample_id": "L0312101",
+   "nutrient": "dietary_fiber_g",
+   "food_name": "全脂濃稠發酵乳",
+   "value_per_100g": "0.0000",
+   "basis": "llm_estimated",
+   "model": "gpt-5.4-mini-2026-03-17",
+   "prompt_version": "nutrient-fill-prompt-v2",
+   "created_at": "2026-11-03T15:11:25+00:00",
+   "assumptions": [
+    "Plain fermented dairy products like thick whole-milk yogurt typically contain no dietary fiber.",
+    "Estimated as a dairy product without added fiber ingredients."
+   ],
+   "origin": "scripts/estimate_nutrient_fills.py",
+   "review_status": "llm_estimated"
+  },
+  {
+   "sample_id": "L0322101",
+   "nutrient": "dietary_fiber_g",
+   "food_name": "全脂凝態發酵乳",
+   "value_per_100g": "0.0000",
+   "basis": "llm_estimated",
+   "model": "gpt-5.4-mini-2026-03-17",
+   "prompt_version": "nutrient-fill-prompt-v2",
+   "created_at": "2026-10-21T08:27:01.086290+00:00",
+   "assumptions": [
+    "Plain whole-milk fermented yogurt typically contains negligible dietary fiber unless fruit/cereal is added.",
+    "Known sugars, carbohydrate, protein, fat, and sodium fit a standard plain yogurt profile, so fiber is estimated at 0 g/100 g."
+   ],
+   "origin": "t11-t20-demo data/seed/conversion_factor_estimates.json",
+   "review_status": "llm_estimated"
+  },
+  {
+   "sample_id": "L0400201",
+   "nutrient": "dietary_fiber_g",
+   "food_name": "加糖部份脫脂煉乳",
+   "value_per_100g": "0.0000",
+   "basis": "llm_estimated",
+   "model": "gpt-5.4-mini-2026-03-17",
+   "prompt_version": "nutrient-fill-prompt-v2",
+   "created_at": "2026-10-21T08:28:06.836928+00:00",
+   "assumptions": [
+    "Sweetened partly skimmed condensed milk is dairy-based and typically contains no dietary fiber.",
+    "Estimated as zero while keeping consistency with the listed macronutrients and sugars."
+   ],
+   "origin": "t11-t20-demo data/seed/conversion_factor_estimates.json",
+   "review_status": "llm_estimated"
+  },
+  {
+   "sample_id": "L0500101",
+   "nutrient": "dietary_fiber_g",
+   "food_name": "切片乾酪",
+   "value_per_100g": "0.0000",
+   "basis": "llm_estimated",
+   "model": "gpt-5.4-mini-2026-03-17",
+   "prompt_version": "nutrient-fill-prompt-v2",
+   "created_at": "2026-10-21T08:25:58.387458+00:00",
+   "assumptions": [
+    "切片乾酪為乳製品，通常不含膳食纖維。",
+    "已知成分與能量、蛋白質、脂肪及糖分相符，纖維估為0。"
+   ],
+   "origin": "t11-t20-demo data/seed/conversion_factor_estimates.json",
+   "review_status": "llm_estimated"
+  },
+  {
+   "sample_id": "L0500301",
+   "nutrient": "dietary_fiber_g",
+   "food_name": "刨絲乾酪",
+   "value_per_100g": "0.0000",
+   "basis": "llm_estimated",
+   "model": "gpt-5.4-mini-2026-03-17",
+   "prompt_version": "nutrient-fill-prompt-v2",
+   "created_at": "2026-10-21T08:26:59.750695+00:00",
+   "assumptions": [
+    "刨絲乾酪為乳酪類產品，通常幾乎不含膳食纖維。",
+    "已知碳水、蛋白質、脂肪與糖含量也符合無纖維的乳酪特性。"
+   ],
+   "origin": "t11-t20-demo data/seed/conversion_factor_estimates.json",
+   "review_status": "llm_estimated"
+  },
+  {
+   "sample_id": "L0500401",
+   "nutrient": "dietary_fiber_g",
+   "food_name": "乾酪粉",
+   "value_per_100g": "0.0000",
+   "basis": "llm_estimated",
+   "model": "gpt-5.4-mini-2026-03-17",
+   "prompt_version": "nutrient-fill-prompt-v2",
+   "created_at": "2026-10-21T08:28:35.839489+00:00",
+   "assumptions": [
+    "Dry cheese powder typically contains negligible dietary fiber.",
+    "Known macronutrients already account for the product; fiber is expected to be effectively zero."
+   ],
+   "origin": "t11-t20-demo data/seed/conversion_factor_estimates.json",
+   "review_status": "llm_estimated"
+  },
+  {
+   "sample_id": "M0900101",
+   "nutrient": "dietary_fiber_g",
+   "food_name": "奶油(固態,不加鹽)",
+   "value_per_100g": "0.0000",
+   "basis": "llm_estimated",
+   "model": "gpt-5.4-mini-2026-03-17",
+   "prompt_version": "nutrient-fill-prompt-v2",
+   "created_at": "2026-10-21T08:26:00.781714+00:00",
+   "assumptions": [
+    "Butter contains essentially no dietary fiber.",
+    "Values given are consistent with a pure dairy fat product, so fiber is estimated as zero per 100 g."
+   ],
+   "origin": "t11-t20-demo data/seed/conversion_factor_estimates.json",
+   "review_status": "llm_estimated"
+  },
+  {
+   "sample_id": "M0900201",
+   "nutrient": "dietary_fiber_g",
+   "food_name": "奶油",
+   "value_per_100g": "0.0000",
+   "basis": "llm_estimated",
+   "model": "gpt-5.4-mini-2026-03-17",
+   "prompt_version": "nutrient-fill-prompt-v2",
+   "created_at": "2026-11-03T15:11:30+00:00",
+   "assumptions": [
+    "Butter is essentially a dairy fat product with negligible dietary fiber.",
+    "Small carbohydrate/lactose content does not imply meaningful fiber."
+   ],
+   "origin": "scripts/estimate_nutrient_fills.py",
+   "review_status": "llm_estimated"
+  },
+  {
+   "sample_id": "M0900301",
+   "nutrient": "dietary_fiber_g",
+   "food_name": "奶油(液態)",
+   "value_per_100g": "0.0000",
+   "basis": "llm_estimated",
+   "model": "gpt-5.4-mini-2026-03-17",
+   "prompt_version": "nutrient-fill-prompt-v2",
+   "created_at": "2026-10-21T10:24:10.379088+00:00",
+   "assumptions": [
+    "Liquid dairy cream typically contains no dietary fiber.",
+    "Consistent with the listed carbohydrate being 0 g and no plant ingredients in the sample."
+   ],
+   "origin": "t11-t20-demo data/seed/conversion_factor_estimates.json",
+   "review_status": "llm_estimated"
+  },
+  {
+   "sample_id": "MEXT_しらたき",
+   "nutrient": "sugars_g",
+   "food_name": "蒟蒻烏龍麵",
+   "value_per_100g": "0.2000",
+   "basis": "llm_estimated",
+   "model": "gpt-5.4-mini-2026-03-17",
+   "prompt_version": "nutrient-fill-prompt-v2",
+   "created_at": "2026-11-03T15:11:32+00:00",
+   "assumptions": [
+    "Konjac shirataki-style noodles have very little inherent sugar; most carbohydrate is non-sugar fiber-like glucomannan.",
+    "Estimated sugars kept well below total carbohydrate and consistent with very low energy and sodium."
+   ],
+   "origin": "scripts/estimate_nutrient_fills.py",
+   "review_status": "llm_estimated"
+  },
+  {
+   "sample_id": "N0100101",
+   "nutrient": "protein_g",
+   "food_name": "方糖",
+   "value_per_100g": "0.0000",
+   "basis": "llm_estimated",
+   "model": "gpt-5.4-mini-2026-03-17",
+   "prompt_version": "nutrient-fill-prompt-v1",
+   "created_at": "2026-10-21T04:41:45.366974+00:00",
+   "assumptions": [
+    "Sample is rock sugar/pure sugar; protein is effectively zero.",
+    "Known composition is almost entirely carbohydrate with negligible non-carbohydrate constituents."
+   ],
+   "origin": "t11-t20-demo data/seed/conversion_factor_estimates.json",
+   "review_status": "llm_estimated"
+  },
+  {
+   "sample_id": "N0100101",
+   "nutrient": "sugars_g",
+   "food_name": "方糖",
+   "value_per_100g": "99.6000",
+   "basis": "llm_estimated",
+   "model": "gpt-5.4-mini-2026-03-17",
+   "prompt_version": "nutrient-fill-prompt-v2",
+   "created_at": "2026-10-21T08:25:40.988879+00:00",
+   "assumptions": [
+    "Sample is pure sugar (方糖/砂糖) with negligible moisture and other nutrients.",
+    "Sugars are essentially equal to total carbohydrate for this product."
+   ],
+   "origin": "t11-t20-demo data/seed/conversion_factor_estimates.json",
+   "review_status": "llm_estimated"
+  },
+  {
+   "sample_id": "N0100201",
+   "nutrient": "protein_g",
+   "food_name": "冰糖",
+   "value_per_100g": "0.0000",
+   "basis": "llm_estimated",
+   "model": "gpt-5.4-mini-2026-03-17",
+   "prompt_version": "nutrient-fill-prompt-v1",
+   "created_at": "2026-10-21T04:41:46.551731+00:00",
+   "assumptions": [
+    "冰糖屬蔗糖製品，幾乎不含蛋白質。",
+    "已知每100g碳水與糖幾乎全為糖，能量主要來自糖，與蛋白質應接近0相符。"
+   ],
+   "origin": "t11-t20-demo data/seed/conversion_factor_estimates.json",
+   "review_status": "llm_estimated"
+  },
+  {
+   "sample_id": "N0200101",
+   "nutrient": "dietary_fiber_g",
+   "food_name": "麥芽糖",
+   "value_per_100g": "0.0000",
+   "basis": "llm_estimated",
+   "model": "gpt-5.4-mini-2026-03-17",
+   "prompt_version": "nutrient-fill-prompt-v2",
+   "created_at": "2026-10-21T08:28:34.470559+00:00",
+   "assumptions": [
+    "Maltose syrup is a refined sugar product with negligible dietary fiber.",
+    "Known carbohydrate and sugars values indicate no meaningful fiber contribution."
+   ],
+   "origin": "t11-t20-demo data/seed/conversion_factor_estimates.json",
+   "review_status": "llm_estimated"
+  },
+  {
+   "sample_id": "N0200101",
+   "nutrient": "fat_g",
+   "food_name": "麥芽糖",
+   "value_per_100g": "0.0000",
+   "basis": "llm_estimated",
+   "model": "gpt-5.4-mini-2026-03-17",
+   "prompt_version": "nutrient-fill-prompt-v2",
+   "created_at": "2026-10-21T08:28:33.089258+00:00",
+   "assumptions": [
+    "Maltose syrup (麥芽糖) is primarily carbohydrate with negligible fat.",
+    "Used the stated composition and typical product profile to keep fat at ~0 g per 100 g."
+   ],
+   "origin": "t11-t20-demo data/seed/conversion_factor_estimates.json",
+   "review_status": "llm_estimated"
+  },
+  {
+   "sample_id": "N0200101",
+   "nutrient": "protein_g",
+   "food_name": "麥芽糖",
+   "value_per_100g": "0.0000",
+   "basis": "llm_estimated",
+   "model": "gpt-5.4-mini-2026-03-17",
+   "prompt_version": "nutrient-fill-prompt-v1",
+   "created_at": "2026-10-21T04:41:56.594723+00:00",
+   "assumptions": [
+    "麥芽糖為純糖類原料，蛋白質通常可視為 0 g/100 g。",
+    "已知能量與碳水含量高，且鈉為 0，符合幾乎不含蛋白質的糖漿類樣品。"
+   ],
+   "origin": "t11-t20-demo data/seed/conversion_factor_estimates.json",
+   "review_status": "llm_estimated"
+  },
+  {
+   "sample_id": "N0700101",
+   "nutrient": "dietary_fiber_g",
+   "food_name": "蜂蜜",
+   "value_per_100g": "0.0000",
+   "basis": "llm_estimated",
+   "model": "gpt-5.4-mini-2026-03-17",
+   "prompt_version": "nutrient-fill-prompt-v2",
+   "created_at": "2026-11-03T15:11:38+00:00",
+   "assumptions": [
+    "Honey is essentially free of dietary fiber in standard food composition tables.",
+    "Value chosen to be consistent with the listed high carbohydrate and negligible protein/fat."
+   ],
+   "origin": "scripts/estimate_nutrient_fills.py",
+   "review_status": "llm_estimated"
+  },
+  {
+   "sample_id": "N0700101",
+   "nutrient": "sodium_mg",
+   "food_name": "蜂蜜",
+   "value_per_100g": "5.0000",
+   "basis": "llm_estimated",
+   "model": "gpt-5.4-mini-2026-03-17",
+   "prompt_version": "nutrient-fill-prompt-v2",
+   "created_at": "2026-11-03T15:11:36+00:00",
+   "assumptions": [
+    "Pure honey normally contains only trace sodium.",
+    "Estimated to fit a typical Taiwanese honey composition with very low mineral content."
+   ],
+   "origin": "scripts/estimate_nutrient_fills.py",
+   "review_status": "llm_estimated"
+  },
+  {
+   "sample_id": "N0700101",
+   "nutrient": "sugars_g",
+   "food_name": "蜂蜜",
+   "value_per_100g": "81.0000",
+   "basis": "llm_estimated",
+   "model": "gpt-5.4-mini-2026-03-17",
+   "prompt_version": "nutrient-fill-prompt-v2",
+   "created_at": "2026-11-03T15:11:34+00:00",
+   "assumptions": [
+    "Honey is almost entirely sugars; sugars are taken to be close to total carbohydrate.",
+    "Kept slightly below carbohydrate to allow for trace non-sugar carbohydrates and rounding."
+   ],
+   "origin": "scripts/estimate_nutrient_fills.py",
+   "review_status": "llm_estimated"
+  },
+  {
+   "sample_id": "N0700201",
+   "nutrient": "dietary_fiber_g",
+   "food_name": "蜂蜜(春蜜)",
+   "value_per_100g": "0.0000",
+   "basis": "llm_estimated",
+   "model": "gpt-5.4-mini-2026-03-17",
+   "prompt_version": "nutrient-fill-prompt-v2",
+   "created_at": "2026-10-21T08:25:47.917928+00:00",
+   "assumptions": [
+    "蜂蜜幾乎不含膳食纖維；春蜜為純蜂蜜混合樣品，纖維可視為接近零。",
+    "已知碳水與糖含量符合一般蜂蜜特性，因此估計 dietary fiber 為 0 g/100 g。"
+   ],
+   "origin": "t11-t20-demo data/seed/conversion_factor_estimates.json",
+   "review_status": "llm_estimated"
+  },
+  {
+   "sample_id": "N0700201",
+   "nutrient": "sodium_mg",
+   "food_name": "蜂蜜(春蜜)",
+   "value_per_100g": "4.0000",
+   "basis": "llm_estimated",
+   "model": "gpt-5.4-mini-2026-03-17",
+   "prompt_version": "nutrient-fill-prompt-v2",
+   "created_at": "2026-10-21T08:25:49.431403+00:00",
+   "assumptions": [
+    "Honey naturally contains only trace sodium; estimated as a very low value consistent with plain mixed floral honey.",
+    "Kept sodium low because the sample is unsweetened honey with no added salt ingredients."
+   ],
+   "origin": "t11-t20-demo data/seed/conversion_factor_estimates.json",
+   "review_status": "llm_estimated"
+  },
+  {
+   "sample_id": "O0600101",
+   "nutrient": "fat_g",
+   "food_name": "可樂",
+   "value_per_100g": "0.0000",
+   "basis": "llm_estimated",
+   "model": "gpt-5.4-mini-2026-03-17",
+   "prompt_version": "nutrient-fill-prompt-v2",
+   "created_at": "2026-10-21T08:27:40.559675+00:00",
+   "assumptions": [
+    "Cola is a sugar-sweetened carbonated beverage with essentially no fat.",
+    "Estimated fat kept at 0 g/100 g to match typical Taiwanese cola composition and the given energy from carbohydrate."
+   ],
+   "origin": "t11-t20-demo data/seed/conversion_factor_estimates.json",
+   "review_status": "llm_estimated"
+  },
+  {
+   "sample_id": "O0600101",
+   "nutrient": "protein_g",
+   "food_name": "可樂",
+   "value_per_100g": "0.0000",
+   "basis": "llm_estimated",
+   "model": "gpt-5.4-mini-2026-03-17",
+   "prompt_version": "nutrient-fill-prompt-v1",
+   "created_at": "2026-10-21T04:41:53.215304+00:00",
+   "assumptions": [
+    "可樂為含糖碳酸飲料，蛋白質通常可視為 0 g/100 g。",
+    "已知每 100 g 能量 51 kcal，符合主要由糖提供熱量，蛋白質不應高估。"
+   ],
+   "origin": "t11-t20-demo data/seed/conversion_factor_estimates.json",
+   "review_status": "llm_estimated"
+  },
+  {
+   "sample_id": "O0600101",
+   "nutrient": "sugars_g",
+   "food_name": "可樂",
+   "value_per_100g": "12.8000",
+   "basis": "llm_estimated",
+   "model": "gpt-5.4-mini-2026-03-17",
+   "prompt_version": "nutrient-fill-prompt-v2",
+   "created_at": "2026-10-21T08:27:42.070934+00:00",
+   "assumptions": [
+    "Cola sugars are assumed to account for nearly all carbohydrate in this beverage.",
+    "Used the listed carbohydrate value as the sugar estimate; fiber is zero and sodium is negligible."
+   ],
+   "origin": "t11-t20-demo data/seed/conversion_factor_estimates.json",
+   "review_status": "llm_estimated"
+  },
+  {
+   "sample_id": "O0700501",
+   "nutrient": "fat_g",
+   "food_name": "紅茶茶湯",
+   "value_per_100g": "0.0000",
+   "basis": "llm_estimated",
+   "model": "gpt-5.4-mini-2026-03-17",
+   "prompt_version": "nutrient-fill-prompt-v2",
+   "created_at": "2026-10-21T08:27:49.526917+00:00",
+   "assumptions": [
+    "Black tea infusion is essentially fat-free when brewed with water only.",
+    "Given the listed near-zero energy and carbohydrate, fat is estimated as 0 g per 100 g."
+   ],
+   "origin": "t11-t20-demo data/seed/conversion_factor_estimates.json",
+   "review_status": "llm_estimated"
+  },
+  {
+   "sample_id": "O0700501",
+   "nutrient": "sodium_mg",
+   "food_name": "紅茶茶湯",
+   "value_per_100g": "1.0000",
+   "basis": "llm_estimated",
+   "model": "gpt-5.4-mini-2026-03-17",
+   "prompt_version": "nutrient-fill-prompt-v2",
+   "created_at": "2026-10-21T08:27:52.210219+00:00",
+   "assumptions": [
+    "Black tea infusion brewed with plain tap water has very little sodium.",
+    "No salt or sodium-containing additives are indicated in the preparation."
+   ],
+   "origin": "t11-t20-demo data/seed/conversion_factor_estimates.json",
+   "review_status": "llm_estimated"
+  },
+  {
+   "sample_id": "O0700501",
+   "nutrient": "sugars_g",
+   "food_name": "紅茶茶湯",
+   "value_per_100g": "0.0000",
+   "basis": "llm_estimated",
+   "model": "gpt-5.4-mini-2026-03-17",
+   "prompt_version": "nutrient-fill-prompt-v2",
+   "created_at": "2026-10-21T08:27:50.715919+00:00",
+   "assumptions": [
+    "Black tea infusion without added sugar typically contains negligible sugars.",
+    "Given carbohydrate is 0.0 g/100 g and this is plain tea broth, sugars are estimated as 0 g/100 g."
+   ],
+   "origin": "t11-t20-demo data/seed/conversion_factor_estimates.json",
+   "review_status": "llm_estimated"
+  },
+  {
+   "sample_id": "O0702901",
+   "nutrient": "sugars_g",
+   "food_name": "乳酸飲料",
+   "value_per_100g": "10.8000",
+   "basis": "llm_estimated",
+   "model": "gpt-5.4-mini-2026-03-17",
+   "prompt_version": "nutrient-fill-prompt-v2",
+   "created_at": "2026-11-03T15:11:39+00:00",
+   "assumptions": [
+    "Fermented milk drink with most carbohydrate coming from added sugar and lactose.",
+    "Kept sugars slightly below total carbohydrate (11.0 g/100 g) and consistent with the listed energy."
+   ],
+   "origin": "scripts/estimate_nutrient_fills.py",
+   "review_status": "llm_estimated"
+  },
+  {
+   "sample_id": "O0900101",
+   "nutrient": "sugars_g",
+   "food_name": "即溶咖啡粉",
+   "value_per_100g": "0.5000",
+   "basis": "llm_estimated",
+   "model": "gpt-5.4-mini-2026-03-17",
+   "prompt_version": "nutrient-fill-prompt-v2",
+   "created_at": "2026-10-21T08:27:02.945523+00:00",
+   "assumptions": [
+    "即溶咖啡粉本身幾乎不含糖，少量糖分可來自原料中的天然可溶性碳水或加工差異。",
+    "依已知碳水含量與熱量推估，糖含量應很低，遠低於總碳水。"
+   ],
+   "origin": "t11-t20-demo data/seed/conversion_factor_estimates.json",
+   "review_status": "llm_estimated"
+  },
+  {
+   "sample_id": "P0100101",
+   "nutrient": "sugars_g",
+   "food_name": "八角",
+   "value_per_100g": "0.0000",
+   "basis": "llm_estimated",
+   "model": "gpt-5.4-mini-2026-03-17",
+   "prompt_version": "nutrient-fill-prompt-v2",
+   "created_at": "2026-10-21T08:26:28.068687+00:00",
+   "assumptions": [
+    "八角屬香辛料，主要碳水來自膳食纖維，天然糖含量通常很低。",
+    "依已知數值碳水 76.2 g、膳食纖維 55.8 g，推估可溶性糖僅為微量，接近 0。"
+   ],
+   "origin": "t11-t20-demo data/seed/conversion_factor_estimates.json",
+   "review_status": "llm_estimated"
+  },
+  {
+   "sample_id": "P0100301",
+   "nutrient": "sugars_g",
+   "food_name": "山葵粉",
+   "value_per_100g": "2.0000",
+   "basis": "llm_estimated",
+   "model": "gpt-5.4-mini-2026-03-17",
+   "prompt_version": "nutrient-fill-prompt-v2",
+   "created_at": "2026-10-21T08:27:43.355543+00:00",
+   "assumptions": [
+    "Estimate based on a dry wasabi powder mix with starch and mustard; most carbohydrate is starch, so sugars are low.",
+    "No added sweetener is indicated, but trace natural sugars from plant ingredients are possible."
+   ],
+   "origin": "t11-t20-demo data/seed/conversion_factor_estimates.json",
+   "review_status": "llm_estimated"
+  },
+  {
+   "sample_id": "P0100401",
+   "nutrient": "sugars_g",
+   "food_name": "五香粉",
+   "value_per_100g": "1.5000",
+   "basis": "llm_estimated",
+   "model": "gpt-5.4-mini-2026-03-17",
+   "prompt_version": "nutrient-fill-prompt-v2",
+   "created_at": "2026-10-21T08:26:11.983685+00:00",
+   "assumptions": [
+    "五香粉為乾燥香料混合物，天然糖分不高，糖主要來自甘草等成分。",
+    "以碳水化合物 68.1 g 為主，估計其中只有少部分為可測得糖分。"
+   ],
+   "origin": "t11-t20-demo data/seed/conversion_factor_estimates.json",
+   "review_status": "llm_estimated"
+  },
+  {
+   "sample_id": "P0100501",
+   "nutrient": "sugars_g",
+   "food_name": "甘草粉",
+   "value_per_100g": "0.5000",
+   "basis": "llm_estimated",
+   "model": "gpt-5.4-mini-2026-03-17",
+   "prompt_version": "nutrient-fill-prompt-v2",
+   "created_at": "2026-10-21T08:28:38.818561+00:00",
+   "assumptions": [
+    "甘草粉以甘草根粉為主，屬乾燥粉末，糖分通常很低，僅含少量天然可溶性糖。",
+    "已知碳水化合物多來自膳食纖維，故 sugars_g 估為接近 0、但保留少量背景值。"
+   ],
+   "origin": "t11-t20-demo data/seed/conversion_factor_estimates.json",
+   "review_status": "llm_estimated"
+  },
+  {
+   "sample_id": "P0100801",
+   "nutrient": "sugars_g",
+   "food_name": "花椒粉",
+   "value_per_100g": "1.5000",
+   "basis": "llm_estimated",
+   "model": "gpt-5.4-mini-2026-03-17",
+   "prompt_version": "nutrient-fill-prompt-v2",
+   "created_at": "2026-10-21T08:28:04.360138+00:00",
+   "assumptions": [
+    "Estimated as a dry ground pepper spice with naturally occurring small sugars; most carbohydrate is fiber, so sugars are low.",
+    "Kept sugars well below total carbohydrate and consistent with typical spice composition."
+   ],
+   "origin": "t11-t20-demo data/seed/conversion_factor_estimates.json",
+   "review_status": "llm_estimated"
+  },
+  {
+   "sample_id": "P0101101",
+   "nutrient": "sugars_g",
+   "food_name": "白胡椒粉",
+   "value_per_100g": "1.5000",
+   "basis": "llm_estimated",
+   "model": "gpt-5.4-mini-2026-03-17",
+   "prompt_version": "nutrient-fill-prompt-v2",
+   "created_at": "2026-10-21T08:25:39.166499+00:00",
+   "assumptions": [
+    "White pepper powder is an unsweetened spice, so sugars are only trace amounts.",
+    "Estimated as a small fraction of total carbohydrate from natural spice components."
+   ],
+   "origin": "t11-t20-demo data/seed/conversion_factor_estimates.json",
+   "review_status": "llm_estimated"
+  },
+  {
+   "sample_id": "P0101301",
+   "nutrient": "sugars_g",
+   "food_name": "黑胡椒粉",
+   "value_per_100g": "0.6000",
+   "basis": "llm_estimated",
+   "model": "gpt-5.4-mini-2026-03-17",
+   "prompt_version": "nutrient-fill-prompt-v2",
+   "created_at": "2026-10-21T08:25:52.350566+00:00",
+   "assumptions": [
+    "Black pepper powder is a pure spice with very little naturally occurring sugar.",
+    "Sugars are estimated as a small fraction of total carbohydrates, consistent with the listed nutrient profile."
+   ],
+   "origin": "t11-t20-demo data/seed/conversion_factor_estimates.json",
+   "review_status": "llm_estimated"
+  },
+  {
+   "sample_id": "P0101801",
+   "nutrient": "sugars_g",
+   "food_name": "辣椒粉",
+   "value_per_100g": "2.5000",
+   "basis": "llm_estimated",
+   "model": "gpt-5.4-mini-2026-03-17",
+   "prompt_version": "nutrient-fill-prompt-v2",
+   "created_at": "2026-10-21T08:27:54.638554+00:00",
+   "assumptions": [
+    "Estimated as a low intrinsic sugar level for plain chili powder with no added sweeteners.",
+    "Kept well below total carbohydrate and consistent with a dried spice profile."
+   ],
+   "origin": "t11-t20-demo data/seed/conversion_factor_estimates.json",
+   "review_status": "llm_estimated"
+  },
+  {
+   "sample_id": "P0200601",
+   "nutrient": "sugars_g",
+   "food_name": "油蔥酥",
+   "value_per_100g": "6.5000",
+   "basis": "llm_estimated",
+   "model": "gpt-5.4-mini-2026-03-17",
+   "prompt_version": "nutrient-fill-prompt-v2",
+   "created_at": "2026-10-21T08:26:02.146860+00:00",
+   "assumptions": [
+    "油蔥酥主要由紅蔥頭與油製成，含少量天然糖分與炒製後的焦糖化成分。",
+    "以碳水化合物57.1 g為上限，估計其中約一成多為糖。"
+   ],
+   "origin": "t11-t20-demo data/seed/conversion_factor_estimates.json",
+   "review_status": "llm_estimated"
+  },
+  {
+   "sample_id": "P0400201",
+   "nutrient": "dietary_fiber_g",
+   "food_name": "高鮮味精",
+   "value_per_100g": "0.0000",
+   "basis": "llm_estimated",
+   "model": "gpt-5.4-mini-2026-03-17",
+   "prompt_version": "nutrient-fill-prompt-v2",
+   "created_at": "2026-10-21T08:28:30.422860+00:00",
+   "assumptions": [
+    "Monosodium glutamate seasoning is essentially free of dietary fiber.",
+    "Estimated as zero to stay consistent with the processed seasoning composition and known macronutrients."
+   ],
+   "origin": "t11-t20-demo data/seed/conversion_factor_estimates.json",
+   "review_status": "llm_estimated"
+  },
+  {
+   "sample_id": "P0400201",
+   "nutrient": "fat_g",
+   "food_name": "高鮮味精",
+   "value_per_100g": "0.0000",
+   "basis": "llm_estimated",
+   "model": "gpt-5.4-mini-2026-03-17",
+   "prompt_version": "nutrient-fill-prompt-v2",
+   "created_at": "2026-10-21T08:28:27.978184+00:00",
+   "assumptions": [
+    "味精類調味料通常幾乎不含脂肪。",
+    "已知蛋白質、碳水與熱量合理，推估脂肪接近 0 g/100 g。"
+   ],
+   "origin": "t11-t20-demo data/seed/conversion_factor_estimates.json",
+   "review_status": "llm_estimated"
+  },
+  {
+   "sample_id": "P0400201",
+   "nutrient": "sugars_g",
+   "food_name": "高鮮味精",
+   "value_per_100g": "0.0000",
+   "basis": "llm_estimated",
+   "model": "gpt-5.4-mini-2026-03-17",
+   "prompt_version": "nutrient-fill-prompt-v2",
+   "created_at": "2026-10-21T08:28:29.134957+00:00",
+   "assumptions": [
+    "MSG-style seasoning has essentially no sugars.",
+    "Carbohydrate is mainly non-sugar components; set sugars to trace level near zero."
+   ],
+   "origin": "t11-t20-demo data/seed/conversion_factor_estimates.json",
+   "review_status": "llm_estimated"
+  },
+  {
+   "sample_id": "P0400301",
+   "nutrient": "sugars_g",
+   "food_name": "鮮雞精",
+   "value_per_100g": "4.5000",
+   "basis": "llm_estimated",
+   "model": "gpt-5.4-mini-2026-03-17",
+   "prompt_version": "nutrient-fill-prompt-v2",
+   "created_at": "2026-10-21T08:28:22.470251+00:00",
+   "assumptions": [
+    "Estimate based on ingredients listing salt, sugar, and corn starch; sugars should be a moderate fraction of total carbohydrate.",
+    "Kept sugars below carbohydrate_g (33.3 g/100 g) and consistent with a seasoned powdered chicken product."
+   ],
+   "origin": "t11-t20-demo data/seed/conversion_factor_estimates.json",
+   "review_status": "llm_estimated"
+  },
+  {
+   "sample_id": "P0500201",
+   "nutrient": "sugars_g",
+   "food_name": "高湯塊(雞肉)",
+   "value_per_100g": "5.2000",
+   "basis": "llm_estimated",
+   "model": "gpt-5.4-mini-2026-03-17",
+   "prompt_version": "nutrient-fill-prompt-v2",
+   "created_at": "2026-10-21T08:26:47.923171+00:00",
+   "assumptions": [
+    "雞肉高湯塊屬調味濃縮塊，配方含糖與味素，蔗糖/葡萄糖類含量通常不高但明顯存在。",
+    "糖分需低於總碳水化合物14.5 g/100 g，估計約占其中三分之一左右。"
+   ],
+   "origin": "t11-t20-demo data/seed/conversion_factor_estimates.json",
+   "review_status": "llm_estimated"
+  },
+  {
+   "sample_id": "P0500301",
+   "nutrient": "dietary_fiber_g",
+   "food_name": "豬大骨高湯",
+   "value_per_100g": "0.0000",
+   "basis": "llm_estimated",
+   "model": "gpt-5.4-mini-2026-03-17",
+   "prompt_version": "nutrient-fill-prompt-v2",
+   "created_at": "2026-11-03T15:11:46+00:00",
+   "assumptions": [
+    "豬大骨高湯屬肉骨湯底，通常不含植物性纖維。",
+    "已知碳水主要來自調味料或湯中溶出物，纖維可視為接近 0。"
+   ],
+   "origin": "scripts/estimate_nutrient_fills.py",
+   "review_status": "llm_estimated"
+  },
+  {
+   "sample_id": "P0500301",
+   "nutrient": "sugars_g",
+   "food_name": "豬大骨高湯",
+   "value_per_100g": "0.5000",
+   "basis": "llm_estimated",
+   "model": "gpt-5.4-mini-2026-03-17",
+   "prompt_version": "nutrient-fill-prompt-v2",
+   "created_at": "2026-11-03T15:11:42+00:00",
+   "assumptions": [
+    "Pork bone broth typically has very little sugar unless seasoned; most carbohydrate is from dissolved starches/seasoning solids.",
+    "Estimated sugars kept low and below total carbohydrate, consistent with the high-sodium soup profile."
+   ],
+   "origin": "scripts/estimate_nutrient_fills.py",
+   "review_status": "llm_estimated"
+  },
+  {
+   "sample_id": "P0500401",
+   "nutrient": "dietary_fiber_g",
+   "food_name": "低脂高湯",
+   "value_per_100g": "0.0000",
+   "basis": "llm_estimated",
+   "model": "gpt-5.4-mini-2026-03-17",
+   "prompt_version": "nutrient-fill-prompt-v2",
+   "created_at": "2026-10-21T08:26:19.940650+00:00",
+   "assumptions": [
+    "This is a clear broth/high-soup product with negligible insoluble material.",
+    "Known carbohydrate and protein are very low, so dietary fiber is assumed to be essentially zero."
+   ],
+   "origin": "t11-t20-demo data/seed/conversion_factor_estimates.json",
+   "review_status": "llm_estimated"
+  },
+  {
+   "sample_id": "P0500401",
+   "nutrient": "sugars_g",
+   "food_name": "低脂高湯",
+   "value_per_100g": "0.0000",
+   "basis": "llm_estimated",
+   "model": "gpt-5.4-mini-2026-03-17",
+   "prompt_version": "nutrient-fill-prompt-v2",
+   "created_at": "2026-10-21T08:26:18.816951+00:00",
+   "assumptions": [
+    "This is a clear low-fat broth with very low carbohydrate and no explicit sweeteners, so sugars are assumed near zero.",
+    "Carbohydrate is only 0.3 g/100 g and sodium is high, consistent with salted stock rather than sweetened sauce."
+   ],
+   "origin": "t11-t20-demo data/seed/conversion_factor_estimates.json",
+   "review_status": "llm_estimated"
+  },
+  {
+   "sample_id": "P0600101",
+   "nutrient": "dietary_fiber_g",
+   "food_name": "米醋",
+   "value_per_100g": "0.0000",
+   "basis": "llm_estimated",
+   "model": "gpt-5.4-mini-2026-03-17",
+   "prompt_version": "nutrient-fill-prompt-v2",
+   "created_at": "2026-10-21T08:26:53.059786+00:00",
+   "assumptions": [
+    "White rice vinegar is essentially filtered vinegar with negligible solids, so dietary fiber is assumed to be zero.",
+    "Known carbohydrate and energy values are consistent with a dilute acidic condiment without fiber."
+   ],
+   "origin": "t11-t20-demo data/seed/conversion_factor_estimates.json",
+   "review_status": "llm_estimated"
+  },
+  {
+   "sample_id": "P0600101",
+   "nutrient": "fat_g",
+   "food_name": "米醋",
+   "value_per_100g": "0.0000",
+   "basis": "llm_estimated",
+   "model": "gpt-5.4-mini-2026-03-17",
+   "prompt_version": "nutrient-fill-prompt-v2",
+   "created_at": "2026-10-21T08:26:50.445016+00:00",
+   "assumptions": [
+    "White rice vinegar is essentially fat-free.",
+    "Given the low energy and carbohydrate values, fat should be negligible in this sample."
+   ],
+   "origin": "t11-t20-demo data/seed/conversion_factor_estimates.json",
+   "review_status": "llm_estimated"
+  },
+  {
+   "sample_id": "P0600101",
+   "nutrient": "protein_g",
+   "food_name": "米醋",
+   "value_per_100g": "0.1000",
+   "basis": "llm_estimated",
+   "model": "gpt-5.4-mini-2026-03-17",
+   "prompt_version": "nutrient-fill-prompt-v1",
+   "created_at": "2026-10-21T04:41:51.789104+00:00",
+   "assumptions": [
+    "White rice vinegar is typically a near-zero protein condiment.",
+    "Estimated to stay consistent with low energy (10 kcal/100 g) and low carbohydrate (2.4 g/100 g)."
+   ],
+   "origin": "t11-t20-demo data/seed/conversion_factor_estimates.json",
+   "review_status": "llm_estimated"
+  },
+  {
+   "sample_id": "P0600101",
+   "nutrient": "sugars_g",
+   "food_name": "米醋",
+   "value_per_100g": "0.3000",
+   "basis": "llm_estimated",
+   "model": "gpt-5.4-mini-2026-03-17",
+   "prompt_version": "nutrient-fill-prompt-v2",
+   "created_at": "2026-10-21T08:26:51.850831+00:00",
+   "assumptions": [
+    "White rice vinegar typically has very low sugar; most carbohydrate is from residual acetic acid/byproducts rather than sugars.",
+    "Estimated sugars kept well below total carbohydrate (2.4 g/100 g) and consistent with low energy and sodium."
+   ],
+   "origin": "t11-t20-demo data/seed/conversion_factor_estimates.json",
+   "review_status": "llm_estimated"
+  },
+  {
+   "sample_id": "P0600201",
+   "nutrient": "sugars_g",
+   "food_name": "糯米醋",
+   "value_per_100g": "2.5000",
+   "basis": "llm_estimated",
+   "model": "gpt-5.4-mini-2026-03-17",
+   "prompt_version": "nutrient-fill-prompt-v2",
+   "created_at": "2026-11-03T15:11:49+00:00",
+   "assumptions": [
+    "Estimated as a glutinous rice vinegar with modest residual sugars from fermentation, typical of Taiwanese vinegar products.",
+    "Kept sugars below total carbohydrate and consistent with the low energy value."
+   ],
+   "origin": "scripts/estimate_nutrient_fills.py",
+   "review_status": "llm_estimated"
+  },
+  {
+   "sample_id": "P0600301",
+   "nutrient": "dietary_fiber_g",
+   "food_name": "高梁醋",
+   "value_per_100g": "0.0000",
+   "basis": "llm_estimated",
+   "model": "gpt-5.4-mini-2026-03-17",
+   "prompt_version": "nutrient-fill-prompt-v2",
+   "created_at": "2026-10-21T08:28:26.682637+00:00",
+   "assumptions": [
+    "高梁醋屬液態醋類，通常不含膳食纖維。",
+    "已知碳水與熱量屬發酵醋本身的少量殘留，不代表纖維含量。"
+   ],
+   "origin": "t11-t20-demo data/seed/conversion_factor_estimates.json",
+   "review_status": "llm_estimated"
+  },
+  {
+   "sample_id": "P0600301",
+   "nutrient": "fat_g",
+   "food_name": "高梁醋",
+   "value_per_100g": "0.0000",
+   "basis": "llm_estimated",
+   "model": "gpt-5.4-mini-2026-03-17",
+   "prompt_version": "nutrient-fill-prompt-v2",
+   "created_at": "2026-10-21T08:28:23.736904+00:00",
+   "assumptions": [
+    "Rice/sorghum vinegar is essentially fat-free; estimated fat is 0 g per 100 g.",
+    "Known energy and carbohydrate values fit a vinegar product with negligible lipid content."
+   ],
+   "origin": "t11-t20-demo data/seed/conversion_factor_estimates.json",
+   "review_status": "llm_estimated"
+  },
+  {
+   "sample_id": "P0600301",
+   "nutrient": "protein_g",
+   "food_name": "高梁醋",
+   "value_per_100g": "0.1000",
+   "basis": "llm_estimated",
+   "model": "gpt-5.4-mini-2026-03-17",
+   "prompt_version": "nutrient-fill-prompt-v1",
+   "created_at": "2026-10-21T04:41:54.619332+00:00",
+   "assumptions": [
+    "高梁醋屬醋類，蛋白質通常接近 0。",
+    "已知每100g熱量 27 kcal，推估蛋白質應極低，取接近零的合理小值。"
+   ],
+   "origin": "t11-t20-demo data/seed/conversion_factor_estimates.json",
+   "review_status": "llm_estimated"
+  },
+  {
+   "sample_id": "P0600301",
+   "nutrient": "sugars_g",
+   "food_name": "高梁醋",
+   "value_per_100g": "0.2000",
+   "basis": "llm_estimated",
+   "model": "gpt-5.4-mini-2026-03-17",
+   "prompt_version": "nutrient-fill-prompt-v2",
+   "created_at": "2026-10-21T08:28:25.155147+00:00",
+   "assumptions": [
+    "High-grain vinegar is mostly acetic acid with very little residual sugar; estimated trace sugars only.",
+    "Kept sugars well below total carbohydrate (6.8 g/100 g) and consistent with the low energy value."
+   ],
+   "origin": "t11-t20-demo data/seed/conversion_factor_estimates.json",
+   "review_status": "llm_estimated"
+  },
+  {
+   "sample_id": "P0600701",
+   "nutrient": "sugars_g",
+   "food_name": "烏醋",
+   "value_per_100g": "7.5000",
+   "basis": "llm_estimated",
+   "model": "gpt-5.4-mini-2026-03-17",
+   "prompt_version": "nutrient-fill-prompt-v2",
+   "created_at": "2026-10-21T08:27:21.767048+00:00",
+   "assumptions": [
+    "Black vinegar here is a sweetened condiment with added sugar, so sugars make up most of the 8.7 g carbohydrate.",
+    "Kept sugars below total carbohydrate and consistent with the listed energy and sodium levels."
+   ],
+   "origin": "t11-t20-demo data/seed/conversion_factor_estimates.json",
+   "review_status": "llm_estimated"
+  },
+  {
+   "sample_id": "P0700101",
+   "nutrient": "dietary_fiber_g",
+   "food_name": "醬油",
+   "value_per_100g": "0.0000",
+   "basis": "llm_estimated",
+   "model": "gpt-5.4-mini-2026-03-17",
+   "prompt_version": "nutrient-fill-prompt-v2",
+   "created_at": "2026-10-21T08:26:10.372353+00:00",
+   "assumptions": [
+    "Soy sauce is typically filtered/fermented, so dietary fiber is essentially zero.",
+    "Known carbohydrate and protein values suggest no meaningful insoluble solids remain in the final sauce."
+   ],
+   "origin": "t11-t20-demo data/seed/conversion_factor_estimates.json",
+   "review_status": "llm_estimated"
+  },
+  {
+   "sample_id": "P0700101",
+   "nutrient": "fat_g",
+   "food_name": "醬油",
+   "value_per_100g": "0.1000",
+   "basis": "llm_estimated",
+   "model": "gpt-5.4-mini-2026-03-17",
+   "prompt_version": "nutrient-fill-prompt-v2",
+   "created_at": "2026-10-21T08:26:07.836056+00:00",
+   "assumptions": [
+    "Soy sauce is typically very low in fat; most calories come from protein and carbohydrate.",
+    "Chosen a near-zero fat value consistent with the given energy, protein, carbohydrate, and sodium levels."
+   ],
+   "origin": "t11-t20-demo data/seed/conversion_factor_estimates.json",
+   "review_status": "llm_estimated"
+  },
+  {
+   "sample_id": "P0700101",
+   "nutrient": "sugars_g",
+   "food_name": "醬油",
+   "value_per_100g": "6.0000",
+   "basis": "llm_estimated",
+   "model": "gpt-5.4-mini-2026-03-17",
+   "prompt_version": "nutrient-fill-prompt-v2",
+   "created_at": "2026-10-21T08:26:09.146614+00:00",
+   "assumptions": [
+    "Typical Taiwanese soy sauce contains added sugar, but sugars are a minority of total carbohydrates.",
+    "Kept sugars well below total carbohydrate (14.7 g/100 g) and consistent with the savory, high-sodium profile."
+   ],
+   "origin": "t11-t20-demo data/seed/conversion_factor_estimates.json",
+   "review_status": "llm_estimated"
+  },
+  {
+   "sample_id": "P0700701",
+   "nutrient": "dietary_fiber_g",
+   "food_name": "醬油膏",
+   "value_per_100g": "0.6000",
+   "basis": "llm_estimated",
+   "model": "gpt-5.4-mini-2026-03-17",
+   "prompt_version": "nutrient-fill-prompt-v2",
+   "created_at": "2026-10-21T08:26:06.174936+00:00",
+   "assumptions": [
+    "醬油膏以醬油、糖、澱粉調製，膳食纖維通常很低。",
+    "依其碳水與能量推估，纖維約為 0.5–1 g/100 g，取中低值。"
+   ],
+   "origin": "t11-t20-demo data/seed/conversion_factor_estimates.json",
+   "review_status": "llm_estimated"
+  },
+  {
+   "sample_id": "P0700701",
+   "nutrient": "fat_g",
+   "food_name": "醬油膏",
+   "value_per_100g": "0.5000",
+   "basis": "llm_estimated",
+   "model": "gpt-5.4-mini-2026-03-17",
+   "prompt_version": "nutrient-fill-prompt-v2",
+   "created_at": "2026-10-21T08:26:03.525549+00:00",
+   "assumptions": [
+    "醬油膏以醬油、糖、澱粉為主，脂肪含量通常很低。",
+    "依已知蛋白質、碳水與熱量推估，脂肪應接近零，但保留少量來符合傳統製程與原料雜質。"
+   ],
+   "origin": "t11-t20-demo data/seed/conversion_factor_estimates.json",
+   "review_status": "llm_estimated"
+  },
+  {
+   "sample_id": "P0700701",
+   "nutrient": "sugars_g",
+   "food_name": "醬油膏",
+   "value_per_100g": "12.0000",
+   "basis": "llm_estimated",
+   "model": "gpt-5.4-mini-2026-03-17",
+   "prompt_version": "nutrient-fill-prompt-v2",
+   "created_at": "2026-10-21T08:26:04.885801+00:00",
+   "assumptions": [
+    "醬油膏通常含糖與澱粉增稠，糖分約佔碳水化合物的多數。",
+    "已知每100g碳水 19 g、鈉很高，推估糖約 10–14 g，取中間值 12 g。"
+   ],
+   "origin": "t11-t20-demo data/seed/conversion_factor_estimates.json",
+   "review_status": "llm_estimated"
+  },
+  {
+   "sample_id": "P0800201",
+   "nutrient": "sugars_g",
+   "food_name": "鮮味露",
+   "value_per_100g": "0.0000",
+   "basis": "llm_estimated",
+   "model": "gpt-5.4-mini-2026-03-17",
+   "prompt_version": "nutrient-fill-prompt-v2",
+   "created_at": "2026-10-21T08:28:02.945732+00:00",
+   "assumptions": [
+    "醬油/鮮味露類調味料通常以鹽和胺基酸為主，未標示碳水化合物時糖分多半極低。",
+    "已知碳水化合物為0.0 g/100g，因此糖分估為0.0 g/100g以保持一致。"
+   ],
+   "origin": "t11-t20-demo data/seed/conversion_factor_estimates.json",
+   "review_status": "llm_estimated"
+  },
+  {
+   "sample_id": "P0800301",
+   "nutrient": "sugars_g",
+   "food_name": "蠔油",
+   "value_per_100g": "17.5000",
+   "basis": "llm_estimated",
+   "model": "gpt-5.4-mini-2026-03-17",
+   "prompt_version": "nutrient-fill-prompt-v2",
+   "created_at": "2026-10-21T08:26:17.460910+00:00",
+   "assumptions": [
+    "Oyster sauce is typically a sweetened savory sauce; sugars are estimated at about half of total carbohydrate.",
+    "Kept consistent with the listed carbohydrate (32.2 g/100 g) and high sodium content."
+   ],
+   "origin": "t11-t20-demo data/seed/conversion_factor_estimates.json",
+   "review_status": "llm_estimated"
+  },
+  {
+   "sample_id": "P0800401",
+   "nutrient": "dietary_fiber_g",
+   "food_name": "魚露",
+   "value_per_100g": "0.0000",
+   "basis": "llm_estimated",
+   "model": "gpt-5.4-mini-2026-03-17",
+   "prompt_version": "nutrient-fill-prompt-v2",
+   "created_at": "2026-10-21T08:26:55.896958+00:00",
+   "assumptions": [
+    "Fish sauce is typically filtered and contains no meaningful plant fiber.",
+    "Estimated as zero dietary fiber for the mixed sample."
+   ],
+   "origin": "t11-t20-demo data/seed/conversion_factor_estimates.json",
+   "review_status": "llm_estimated"
+  },
+  {
+   "sample_id": "P0900201",
+   "nutrient": "protein_g",
+   "food_name": "香油",
+   "value_per_100g": "0.0000",
+   "basis": "llm_estimated",
+   "model": "gpt-5.4-mini-2026-03-17",
+   "prompt_version": "nutrient-fill-prompt-v1",
+   "created_at": "2026-10-21T04:41:48.306111+00:00",
+   "assumptions": [
+    "This is an oil blend (sesame oil and salad oil), so protein is assumed to be negligible.",
+    "Known energy and fat are consistent with a pure fat product; protein is set to 0 g per 100 g."
+   ],
+   "origin": "t11-t20-demo data/seed/conversion_factor_estimates.json",
+   "review_status": "llm_estimated"
+  },
+  {
+   "sample_id": "P1001701",
+   "nutrient": "sugars_g",
+   "food_name": "沙茶醬",
+   "value_per_100g": "1.8000",
+   "basis": "llm_estimated",
+   "model": "gpt-5.4-mini-2026-03-17",
+   "prompt_version": "nutrient-fill-prompt-v2",
+   "created_at": "2026-10-21T08:27:09.603696+00:00",
+   "assumptions": [
+    "沙茶醬為鹹香調味醬，碳水化合物中只有一部分來自糖類；其餘多為香料、澱粉/纖維與調味成分。",
+    "依其高脂肪、高蛋白且鈉含量中等偏高的特性，估計每100g糖約1–2 g，取中間值1.8 g。"
+   ],
+   "origin": "t11-t20-demo data/seed/conversion_factor_estimates.json",
+   "review_status": "llm_estimated"
+  },
+  {
+   "sample_id": "P1002301",
+   "nutrient": "sugars_g",
+   "food_name": "烤肉醬",
+   "value_per_100g": "22.0000",
+   "basis": "llm_estimated",
+   "model": "gpt-5.4-mini-2026-03-17",
+   "prompt_version": "nutrient-fill-prompt-v2",
+   "created_at": "2026-10-21T08:28:40.480465+00:00",
+   "assumptions": [
+    "烤肉醬以糖、醬油與澱粉為主，糖分通常占碳水的大部分。",
+    "已知碳水 32.1 g/100 g，估計其中約 2/3 為糖，且符合醬料常見配方。"
+   ],
+   "origin": "t11-t20-demo data/seed/conversion_factor_estimates.json",
+   "review_status": "llm_estimated"
+  },
+  {
+   "sample_id": "P1002601",
+   "nutrient": "sugars_g",
+   "food_name": "甜麵醬",
+   "value_per_100g": "22.0000",
+   "basis": "llm_estimated",
+   "model": "gpt-5.4-mini-2026-03-17",
+   "prompt_version": "nutrient-fill-prompt-v2",
+   "created_at": "2026-10-21T08:27:05.689287+00:00",
+   "assumptions": [
+    "甜麵醬屬甜味醬料，碳水中相當一部分來自添加糖，推估糖含量約占總碳水的一半。",
+    "已知每100克碳水44克、鈉偏高，符合含糖鹽醬料特性，因此以約22克/100克估算。"
+   ],
+   "origin": "t11-t20-demo data/seed/conversion_factor_estimates.json",
+   "review_status": "llm_estimated"
+  },
+  {
+   "sample_id": "P1003201",
+   "nutrient": "sugars_g",
+   "food_name": "辣椒醬",
+   "value_per_100g": "6.5000",
+   "basis": "llm_estimated",
+   "model": "gpt-5.4-mini-2026-03-17",
+   "prompt_version": "nutrient-fill-prompt-v2",
+   "created_at": "2026-10-21T08:27:06.938746+00:00",
+   "assumptions": [
+    "Sample is a spicy chili sauce/paste with added sugar, so sugars should be a substantial fraction of total carbohydrate.",
+    "Estimated sugars are kept below total carbohydrate (11.5 g/100 g) and consistent with the sweet-salty Taiwanese chili sauce style."
+   ],
+   "origin": "t11-t20-demo data/seed/conversion_factor_estimates.json",
+   "review_status": "llm_estimated"
+  },
+  {
+   "sample_id": "P1003501",
+   "nutrient": "sugars_g",
+   "food_name": "蕃茄醬",
+   "value_per_100g": "22.5000",
+   "basis": "llm_estimated",
+   "model": "gpt-5.4-mini-2026-03-17",
+   "prompt_version": "nutrient-fill-prompt-v2",
+   "created_at": "2026-10-21T08:25:53.805532+00:00",
+   "assumptions": [
+    "Tomato ketchup typically has most carbohydrate as added sugar.",
+    "Estimated sugars as about 84% of total carbohydrates, consistent with Taiwanese ketchup/sauce profiles and the stated ingredients."
+   ],
+   "origin": "t11-t20-demo data/seed/conversion_factor_estimates.json",
+   "review_status": "llm_estimated"
+  },
+  {
+   "sample_id": "P1004101",
+   "nutrient": "sugars_g",
+   "food_name": "豆瓣醬",
+   "value_per_100g": "4.5000",
+   "basis": "llm_estimated",
+   "model": "gpt-5.4-mini-2026-03-17",
+   "prompt_version": "nutrient-fill-prompt-v2",
+   "created_at": "2026-10-21T08:27:15.366479+00:00",
+   "assumptions": [
+    "估計為傳統豆瓣醬，碳水主要來自豆類與麵粉，糖分占比不高但有少量發酵/調味添加糖。",
+    "以總碳水 12.2 g 估算，糖約占三到四成，取 4.5 g/100g 並符合已知營養值。"
+   ],
+   "origin": "t11-t20-demo data/seed/conversion_factor_estimates.json",
+   "review_status": "llm_estimated"
+  },
+  {
+   "sample_id": "P1004201",
+   "nutrient": "sugars_g",
+   "food_name": "辣豆瓣醬",
+   "value_per_100g": "5.5000",
+   "basis": "llm_estimated",
+   "model": "gpt-5.4-mini-2026-03-17",
+   "prompt_version": "nutrient-fill-prompt-v2",
+   "created_at": "2026-10-21T08:27:39.113967+00:00",
+   "assumptions": [
+    "辣豆瓣醬屬發酵豆瓣與辣椒調味醬，糖通常占碳水的一部分且常有額外加糖。",
+    "依碳水13.1 g、蛋白4.5 g、脂肪3.3 g與高鈉特性，推估糖含量約落在5–6 g/100 g。"
+   ],
+   "origin": "t11-t20-demo data/seed/conversion_factor_estimates.json",
+   "review_status": "llm_estimated"
+  },
+  {
+   "sample_id": "P1100101",
+   "nutrient": "sugars_g",
+   "food_name": "沙拉醬",
+   "value_per_100g": "7.5000",
+   "basis": "llm_estimated",
+   "model": "gpt-5.4-mini-2026-03-17",
+   "prompt_version": "nutrient-fill-prompt-v2",
+   "created_at": "2026-10-21T08:25:51.195729+00:00",
+   "assumptions": [
+    "沙拉醬/美乃滋類產品通常含明顯添加糖，且糖含量多落在碳水中的大部分。",
+    "已知碳水 11.4 g，估計其中約 7–8 g 為糖，與蛋黃醬型沙拉醬的常見配方相符。"
+   ],
+   "origin": "t11-t20-demo data/seed/conversion_factor_estimates.json",
+   "review_status": "llm_estimated"
+  },
+  {
+   "sample_id": "P1300901",
+   "nutrient": "sugars_g",
+   "food_name": "花生醬",
+   "value_per_100g": "6.2000",
+   "basis": "llm_estimated",
+   "model": "gpt-5.4-mini-2026-03-17",
+   "prompt_version": "nutrient-fill-prompt-v2",
+   "created_at": "2026-10-21T08:25:59.616986+00:00",
+   "assumptions": [
+    "Peanut butter typically has about 5-7 g sugars per 100 g when no exact label is given.",
+    "Estimated to fit the listed carbohydrate content and common Taiwanese peanut butter formulations with added sugar and oil."
+   ],
+   "origin": "t11-t20-demo data/seed/conversion_factor_estimates.json",
+   "review_status": "llm_estimated"
+  },
+  {
+   "sample_id": "P1500601",
+   "nutrient": "sugars_g",
+   "food_name": "酵母粉",
+   "value_per_100g": "1.2000",
+   "basis": "llm_estimated",
+   "model": "gpt-5.4-mini-2026-03-17",
+   "prompt_version": "nutrient-fill-prompt-v2",
+   "created_at": "2026-10-21T08:25:56.887160+00:00",
+   "assumptions": [
+    "Estimated as a low but nonzero sugar level for yeast powder/instant yeast, with most carbohydrate coming from fiber and other non-sugar carbs.",
+    "Kept sugars well below total carbohydrate and consistent with the product being unsweetened."
+   ],
+   "origin": "t11-t20-demo data/seed/conversion_factor_estimates.json",
+   "review_status": "llm_estimated"
+  },
+  {
+   "sample_id": "Q0100201",
+   "nutrient": "sugars_g",
+   "food_name": "冷藏甜年糕",
+   "value_per_100g": "6.5000",
+   "basis": "llm_estimated",
+   "model": "gpt-5.4-mini-2026-03-17",
+   "prompt_version": "nutrient-fill-prompt-v2",
+   "created_at": "2026-10-21T08:28:08.108901+00:00",
+   "assumptions": [
+    "Estimated as a sweet rice cake with added sugar; sugars likely a moderate fraction of total carbohydrate.",
+    "Kept below total carbohydrate (57.2 g/100 g) and consistent with the low fat, low sodium profile."
+   ],
+   "origin": "t11-t20-demo data/seed/conversion_factor_estimates.json",
+   "review_status": "llm_estimated"
+  },
+  {
+   "sample_id": "Q6100101",
+   "nutrient": "dietary_fiber_g",
+   "food_name": "牛奶巧克力",
+   "value_per_100g": "0.0000",
+   "basis": "llm_estimated",
+   "model": "gpt-5.4-mini-2026-03-17",
+   "prompt_version": "nutrient-fill-prompt-v2",
+   "created_at": "2026-11-03T15:11:51+00:00",
+   "assumptions": [
+    "Milk chocolate is typically made from cocoa, milk solids, sugar, and fat with very little dietary fiber.",
+    "Given the high sugar and fat profile, dietary fiber is expected to be negligible per 100 g."
+   ],
+   "origin": "scripts/estimate_nutrient_fills.py",
+   "review_status": "llm_estimated"
+  },
+  {
+   "sample_id": "R1100301",
+   "nutrient": "sugars_g",
+   "food_name": "細米粉",
+   "value_per_100g": "0.5000",
+   "basis": "llm_estimated",
+   "model": "gpt-5.4-mini-2026-03-17",
+   "prompt_version": "nutrient-fill-prompt-v2",
+   "created_at": "2026-11-03T15:11:53+00:00",
+   "assumptions": [
+    "細米粉為未加糖的乾燥米製麵條，糖含量通常很低。",
+    "以碳水化合物幾乎全來自澱粉為主，少量糖約占碳水的一小部分。"
+   ],
+   "origin": "scripts/estimate_nutrient_fills.py",
+   "review_status": "llm_estimated"
+  },
+  {
+   "sample_id": "R1700101",
+   "nutrient": "sugars_g",
+   "food_name": "麵筋(未調味)",
+   "value_per_100g": "0.0000",
+   "basis": "llm_estimated",
+   "model": "gpt-5.4-mini-2026-03-17",
+   "prompt_version": "nutrient-fill-prompt-v2",
+   "created_at": "2026-10-21T08:28:31.718392+00:00",
+   "assumptions": [
+    "Unseasoned gluten is expected to contain negligible sugars.",
+    "Carbohydrate is listed as 0.0 g, so sugars should also be approximately 0 g per 100 g."
+   ],
+   "origin": "t11-t20-demo data/seed/conversion_factor_estimates.json",
+   "review_status": "llm_estimated"
+  },
+  {
+   "sample_id": "R1800101",
+   "nutrient": "sugars_g",
+   "food_name": "水餃皮",
+   "value_per_100g": "2.0000",
+   "basis": "llm_estimated",
+   "model": "gpt-5.4-mini-2026-03-17",
+   "prompt_version": "nutrient-fill-prompt-v2",
+   "created_at": "2026-10-21T08:28:42.906017+00:00",
+   "assumptions": [
+    "水餃皮以小麥粉為主，糖含量通常不高，但製作麵皮時可能有少量添加糖或麵粉天然殘糖。",
+    "已知碳水化合物57 g，糖分估計約占其中很小一部分，取常見麵食皮的低糖值。"
+   ],
+   "origin": "t11-t20-demo data/seed/conversion_factor_estimates.json",
+   "review_status": "llm_estimated"
+  },
+  {
+   "sample_id": "R1800301",
+   "nutrient": "sugars_g",
+   "food_name": "餛飩皮",
+   "value_per_100g": "1.2000",
+   "basis": "llm_estimated",
+   "model": "gpt-5.4-mini-2026-03-17",
+   "prompt_version": "nutrient-fill-prompt-v2",
+   "created_at": "2026-10-21T08:28:09.432372+00:00",
+   "assumptions": [
+    "Wonton wrappers are a plain wheat product with little naturally occurring sugar.",
+    "Estimated sugars as a small fraction of total carbohydrate, consistent with the listed macronutrients and sodium level."
+   ],
+   "origin": "t11-t20-demo data/seed/conversion_factor_estimates.json",
+   "review_status": "llm_estimated"
+  },
+  {
+   "sample_id": "R2000401",
+   "nutrient": "sugars_g",
+   "food_name": "通心麵",
+   "value_per_100g": "1.2000",
+   "basis": "llm_estimated",
+   "model": "gpt-5.4-mini-2026-03-17",
+   "prompt_version": "nutrient-fill-prompt-v2",
+   "created_at": "2026-10-21T08:28:18.715144+00:00",
+   "assumptions": [
+    "Dry plain pasta with egg/flour typically contains only a small amount of naturally occurring sugars.",
+    "Estimated sugars are well below total carbohydrate and consistent with the listed nutrition profile."
+   ],
+   "origin": "t11-t20-demo data/seed/conversion_factor_estimates.json",
+   "review_status": "llm_estimated"
+  },
+  {
+   "sample_id": "R2000901",
+   "nutrient": "sugars_g",
+   "food_name": "拉麵",
+   "value_per_100g": "0.8000",
+   "basis": "llm_estimated",
+   "model": "gpt-5.4-mini-2026-03-17",
+   "prompt_version": "nutrient-fill-prompt-v2",
+   "created_at": "2026-10-21T08:27:24.474181+00:00",
+   "assumptions": [
+    "拉麵為濕麵條，糖含量通常很低，主要來自麵粉天然少量糖類。",
+    "依已知碳水化合物62.1 g推估，其中糖僅占很小部分，取接近0.5–1.0 g/100 g。"
+   ],
+   "origin": "t11-t20-demo data/seed/conversion_factor_estimates.json",
+   "review_status": "llm_estimated"
+  },
+  {
+   "sample_id": "R2001101",
+   "nutrient": "sugars_g",
+   "food_name": "衛生油麵",
+   "value_per_100g": "1.2000",
+   "basis": "llm_estimated",
+   "model": "gpt-5.4-mini-2026-03-17",
+   "prompt_version": "nutrient-fill-prompt-v2",
+   "created_at": "2026-11-03T15:11:55+00:00",
+   "assumptions": [
+    "Fresh cooked wheat noodles typically contain very little sugar; most carbohydrate is starch.",
+    "Estimated to be modestly above zero and well below total carbohydrate, consistent with plain seasoned noodle product."
+   ],
+   "origin": "scripts/estimate_nutrient_fills.py",
+   "review_status": "llm_estimated"
+  },
+  {
+   "sample_id": "R4400701",
+   "nutrient": "sugars_g",
+   "food_name": "桂竹筍片",
+   "value_per_100g": "0.8000",
+   "basis": "llm_estimated",
+   "model": "gpt-5.4-mini-2026-03-17",
+   "prompt_version": "nutrient-fill-prompt-v2",
+   "created_at": "2026-11-03T15:11:57+00:00",
+   "assumptions": [
+    "Estimated as a small fraction of total carbohydrate, consistent with bamboo shoots in seasoned brine.",
+    "Kept sugars below carbohydrate and aligned with the relatively low energy and high sodium profile."
+   ],
+   "origin": "scripts/estimate_nutrient_fills.py",
+   "review_status": "llm_estimated"
+  },
+  {
+   "sample_id": "R4401601",
+   "nutrient": "sugars_g",
+   "food_name": "醃漬花胡瓜",
+   "value_per_100g": "12.5000",
+   "basis": "llm_estimated",
+   "model": "gpt-5.4-mini-2026-03-17",
+   "prompt_version": "nutrient-fill-prompt-v2",
+   "created_at": "2026-10-21T08:26:22.698219+00:00",
+   "assumptions": [
+    "以醃漬花胡瓜的碳水化合物為主，糖分占比偏高但仍低於總碳水。",
+    "參考罐頭/醃漬瓜類與醬汁含糖特性，估計糖約占 carbohydrate 的 65% 左右。",
+    "需符合已知數值，且 sugars_g 不高於 carbohydrate_g。"
+   ],
+   "origin": "t11-t20-demo data/seed/conversion_factor_estimates.json",
+   "review_status": "llm_estimated"
+  },
+  {
+   "sample_id": "R4401701",
+   "nutrient": "sugars_g",
+   "food_name": "醃漬越瓜",
+   "value_per_100g": "1.2000",
+   "basis": "llm_estimated",
+   "model": "gpt-5.4-mini-2026-03-17",
+   "prompt_version": "nutrient-fill-prompt-v2",
+   "created_at": "2026-11-03T15:11:59+00:00",
+   "assumptions": [
+    "Estimated as a pickled cucumber/vegetable product with some added sugar but much of the carbohydrate is non-sugar fiber and natural carbs.",
+    "Kept sugars below total carbohydrate and consistent with the low-energy, high-sodium pickled profile."
+   ],
+   "origin": "scripts/estimate_nutrient_fills.py",
+   "review_status": "llm_estimated"
+  },
+  {
+   "sample_id": "R4600201",
+   "nutrient": "sugars_g",
+   "food_name": "冬粉",
+   "value_per_100g": "0.5000",
+   "basis": "llm_estimated",
+   "model": "gpt-5.4-mini-2026-03-17",
+   "prompt_version": "nutrient-fill-prompt-v2",
+   "created_at": "2026-10-21T08:28:44.291252+00:00",
+   "assumptions": [
+    "冬粉/粉絲屬澱粉類乾製品，未調味情況下天然糖含量很低。",
+    "依碳水化合物 87.5 g/100 g 與能量、蛋白質/脂肪含量判斷，糖分應僅占少量，估約 0.5 g/100 g。"
+   ],
+   "origin": "t11-t20-demo data/seed/conversion_factor_estimates.json",
+   "review_status": "llm_estimated"
+  },
+  {
+   "sample_id": "R4700203",
+   "nutrient": "sugars_g",
+   "food_name": "小方豆干",
+   "value_per_100g": "0.5000",
+   "basis": "llm_estimated",
+   "model": "gpt-5.4-mini-2026-03-17",
+   "prompt_version": "nutrient-fill-prompt-v2",
+   "created_at": "2026-10-21T08:28:48.778014+00:00",
+   "assumptions": [
+    "小方豆干屬於豆干類，糖分通常不高，僅少量來自調味料或加工殘留。",
+    "已知碳水 3.5 g、膳食纖維 3.3 g，推估可溶性糖約佔其中很小部分。"
+   ],
+   "origin": "t11-t20-demo data/seed/conversion_factor_estimates.json",
+   "review_status": "llm_estimated"
+  },
+  {
+   "sample_id": "R4700501",
+   "nutrient": "sugars_g",
+   "food_name": "日式炸豆皮",
+   "value_per_100g": "0.6000",
+   "basis": "llm_estimated",
+   "model": "gpt-5.4-mini-2026-03-17",
+   "prompt_version": "nutrient-fill-prompt-v2",
+   "created_at": "2026-11-03T15:12:01+00:00",
+   "assumptions": [
+    "Based on the very low carbohydrate content of fried tofu skin, sugars should be only a small fraction of total carbs.",
+    "No indication of added sweet sauce; estimate uses a near-zero natural sugar level consistent with similar Taiwanese fried soy products."
+   ],
+   "origin": "scripts/estimate_nutrient_fills.py",
+   "review_status": "llm_estimated"
+  },
+  {
+   "sample_id": "R4700901",
+   "nutrient": "sugars_g",
+   "food_name": "傳統豆腐",
+   "value_per_100g": "1.0000",
+   "basis": "llm_estimated",
+   "model": "gpt-5.4-mini-2026-03-17",
+   "prompt_version": "nutrient-fill-prompt-v2",
+   "created_at": "2026-10-21T08:26:44.153345+00:00",
+   "assumptions": [
+    "Traditional firm tofu is naturally low in sugar; most carbohydrate is from non-sugar components.",
+    "Estimated sugars to be a small fraction of total carbohydrate, consistent with plain unsweetened tofu."
+   ],
+   "origin": "t11-t20-demo data/seed/conversion_factor_estimates.json",
+   "review_status": "llm_estimated"
+  },
+  {
+   "sample_id": "R5100301",
+   "nutrient": "dietary_fiber_g",
+   "food_name": "切片火腿(豬肉)",
+   "value_per_100g": "0.0000",
+   "basis": "llm_estimated",
+   "model": "gpt-5.4-mini-2026-03-17",
+   "prompt_version": "nutrient-fill-prompt-v2",
+   "created_at": "2026-10-21T08:25:44.029295+00:00",
+   "assumptions": [
+    "Sliced pork ham is a meat product with no meaningful plant-derived fiber.",
+    "Estimated dietary fiber is effectively zero in the unspecified state."
+   ],
+   "origin": "t11-t20-demo data/seed/conversion_factor_estimates.json",
+   "review_status": "llm_estimated"
+  },
+  {
+   "sample_id": "R5100801",
+   "nutrient": "dietary_fiber_g",
+   "food_name": "培根",
+   "value_per_100g": "0.0000",
+   "basis": "llm_estimated",
+   "model": "gpt-5.4-mini-2026-03-17",
+   "prompt_version": "nutrient-fill-prompt-v2",
+   "created_at": "2026-10-21T10:24:08.944491+00:00",
+   "assumptions": [
+    "Raw bacon is meat-based and typically contains no dietary fiber.",
+    "Known carbohydrate and sugars come from curing ingredients, not fiber sources."
+   ],
+   "origin": "t11-t20-demo data/seed/conversion_factor_estimates.json",
+   "review_status": "llm_estimated"
+  },
+  {
+   "sample_id": "R5100902",
+   "nutrient": "dietary_fiber_g",
+   "food_name": "腿肉臘肉",
+   "value_per_100g": "0.0000",
+   "basis": "llm_estimated",
+   "model": "gpt-5.4-mini-2026-03-17",
+   "prompt_version": "nutrient-fill-prompt-v2",
+   "created_at": "2026-11-03T15:12:03+00:00",
+   "assumptions": [
+    "Chinese cured pork leg meat is a meat product and typically contains no dietary fiber.",
+    "Known carbohydrate is likely from seasoning/sugar, not fiber."
+   ],
+   "origin": "scripts/estimate_nutrient_fills.py",
+   "review_status": "llm_estimated"
+  },
+  {
+   "sample_id": "R5300201",
+   "nutrient": "dietary_fiber_g",
+   "food_name": "香腸",
+   "value_per_100g": "0.2000",
+   "basis": "llm_estimated",
+   "model": "gpt-5.4-mini-2026-03-17",
+   "prompt_version": "nutrient-fill-prompt-v2",
+   "created_at": "2026-10-21T08:28:46.876142+00:00",
+   "assumptions": [
+    "Raw pork sausage has negligible dietary fiber; small amount may come from added sugar/spices/binders.",
+    "Estimated to stay consistent with the listed macronutrients and sugars."
+   ],
+   "origin": "t11-t20-demo data/seed/conversion_factor_estimates.json",
+   "review_status": "llm_estimated"
+  },
+  {
+   "sample_id": "R5400201",
+   "nutrient": "dietary_fiber_g",
+   "food_name": "冷凍貢丸",
+   "value_per_100g": "0.0000",
+   "basis": "llm_estimated",
+   "model": "gpt-5.4-mini-2026-03-17",
+   "prompt_version": "nutrient-fill-prompt-v2",
+   "created_at": "2026-10-21T10:24:12.117824+00:00",
+   "assumptions": [
+    "Frozen pork meatball is a meat product with no meaningful plant ingredients, so dietary fiber is effectively zero.",
+    "Known carbohydrate is 0 g and sugars are only from minor seasoning; fiber should not be present."
+   ],
+   "origin": "t11-t20-demo data/seed/conversion_factor_estimates.json",
+   "review_status": "llm_estimated"
+  },
+  {
+   "sample_id": "R6700101",
+   "nutrient": "dietary_fiber_g",
+   "food_name": "冷凍蟹味棒",
+   "value_per_100g": "0.0000",
+   "basis": "llm_estimated",
+   "model": "gpt-5.4-mini-2026-03-17",
+   "prompt_version": "nutrient-fill-prompt-v2",
+   "created_at": "2026-10-21T08:27:18.030082+00:00",
+   "assumptions": [
+    "蟹味棒為魚漿製品，通常膳食纖維極低或無。",
+    "已知碳水、蛋白質、脂肪與熱量合理，估計纖維接近0 g/100 g。"
+   ],
+   "origin": "t11-t20-demo data/seed/conversion_factor_estimates.json",
+   "review_status": "llm_estimated"
+  },
+  {
+   "sample_id": "R6900101",
+   "nutrient": "sugars_g",
+   "food_name": "香筍鮪魚罐頭",
+   "value_per_100g": "0.3000",
+   "basis": "llm_estimated",
+   "model": "gpt-5.4-mini-2026-03-17",
+   "prompt_version": "nutrient-fill-prompt-v2",
+   "created_at": "2026-10-21T08:25:42.223667+00:00",
+   "assumptions": [
+    "This is a tuna-and-bamboo-shoot canned product with very low total carbohydrate, so sugars are only a small fraction of carbohydrates.",
+    "Estimated sugars are kept below carbohydrate_g (0.9 g/100 g) and aligned with typical seasoned canned tuna products."
+   ],
+   "origin": "t11-t20-demo data/seed/conversion_factor_estimates.json",
+   "review_status": "llm_estimated"
+  },
+  {
+   "sample_id": "R9900101",
+   "nutrient": "dietary_fiber_g",
+   "food_name": "生啤酒",
+   "value_per_100g": "0.0000",
+   "basis": "llm_estimated",
+   "model": "gpt-5.4-mini-2026-03-17",
+   "prompt_version": "nutrient-fill-prompt-v2",
+   "created_at": "2026-10-21T08:26:58.497375+00:00",
+   "assumptions": [
+    "生啤酒主要成分為水、酒精與少量糖類，通常不含膳食纖維。",
+    "依已知碳水與蛋白、脂肪含量推估，纖維應為 0 g/100g。"
+   ],
+   "origin": "t11-t20-demo data/seed/conversion_factor_estimates.json",
+   "review_status": "llm_estimated"
+  },
+  {
+   "sample_id": "R9900101",
+   "nutrient": "sugars_g",
+   "food_name": "生啤酒",
+   "value_per_100g": "7.9000",
+   "basis": "llm_estimated",
+   "model": "gpt-5.4-mini-2026-03-17",
+   "prompt_version": "nutrient-fill-prompt-v2",
+   "created_at": "2026-10-21T08:26:57.187937+00:00",
+   "assumptions": [
+    "生啤酒的碳水主要來自殘留發酵糖；總碳水 8.2 g/100 g 中大部分可視為糖類。",
+    "少量非糖類碳水與四捨五入誤差存在，因此糖分略低於總碳水。"
+   ],
+   "origin": "t11-t20-demo data/seed/conversion_factor_estimates.json",
+   "review_status": "llm_estimated"
+  },
+  {
+   "sample_id": "R9900102",
+   "nutrient": "dietary_fiber_g",
+   "food_name": "啤酒",
+   "value_per_100g": "0.0000",
+   "basis": "llm_estimated",
+   "model": "gpt-5.4-mini-2026-03-17",
+   "prompt_version": "nutrient-fill-prompt-v2",
+   "created_at": "2026-10-21T08:26:26.764141+00:00",
+   "assumptions": [
+    "Beer is a fermented beverage; most fermentable carbohydrates are converted during brewing, leaving negligible dietary fiber.",
+    "Used the listed 8.9 g carbohydrate and 49 kcal to keep the estimate consistent with a typical Taiwan beer profile."
+   ],
+   "origin": "t11-t20-demo data/seed/conversion_factor_estimates.json",
+   "review_status": "llm_estimated"
+  },
+  {
+   "sample_id": "R9900102",
+   "nutrient": "protein_g",
+   "food_name": "啤酒",
+   "value_per_100g": "0.3000",
+   "basis": "llm_estimated",
+   "model": "gpt-5.4-mini-2026-03-17",
+   "prompt_version": "nutrient-fill-prompt-v1",
+   "created_at": "2026-10-21T04:41:49.640879+00:00",
+   "assumptions": [
+    "Beer contains only a small amount of protein from malt/grain residues.",
+    "Estimated to be low enough to remain consistent with 49 kcal and 8.9 g carbohydrate per 100 g."
+   ],
+   "origin": "t11-t20-demo data/seed/conversion_factor_estimates.json",
+   "review_status": "llm_estimated"
+  },
+  {
+   "sample_id": "R9900102",
+   "nutrient": "sugars_g",
+   "food_name": "啤酒",
+   "value_per_100g": "0.0000",
+   "basis": "llm_estimated",
+   "model": "gpt-5.4-mini-2026-03-17",
+   "prompt_version": "nutrient-fill-prompt-v2",
+   "created_at": "2026-10-21T08:26:25.343376+00:00",
+   "assumptions": [
+    "Beer carbohydrates are mostly fermentable/non-sugar carbohydrates; residual sugars are typically very low.",
+    "Set sugars to near zero while keeping it consistent with 8.9 g carbohydrate per 100 g and 49 kcal."
+   ],
+   "origin": "t11-t20-demo data/seed/conversion_factor_estimates.json",
+   "review_status": "llm_estimated"
+  },
+  {
+   "sample_id": "R9900201",
+   "nutrient": "dietary_fiber_g",
+   "food_name": "陳年紹興酒",
+   "value_per_100g": "0.0000",
+   "basis": "llm_estimated",
+   "model": "gpt-5.4-mini-2026-03-17",
+   "prompt_version": "nutrient-fill-prompt-v2",
+   "created_at": "2026-10-21T08:27:37.554763+00:00",
+   "assumptions": [
+    "陳年紹興酒屬發酵酒類，通常可溶性碳水來自殘留糖分，膳食纖維幾乎不含。",
+    "已知碳水與能量、蛋白質數值合理，纖維估為0 g/100 g。"
+   ],
+   "origin": "t11-t20-demo data/seed/conversion_factor_estimates.json",
+   "review_status": "llm_estimated"
+  },
+  {
+   "sample_id": "R9900201",
+   "nutrient": "sugars_g",
+   "food_name": "陳年紹興酒",
+   "value_per_100g": "0.2000",
+   "basis": "llm_estimated",
+   "model": "gpt-5.4-mini-2026-03-17",
+   "prompt_version": "nutrient-fill-prompt-v2",
+   "created_at": "2026-10-21T08:27:36.177612+00:00",
+   "assumptions": [
+    "Shaoxing wine is a fermented alcoholic beverage with very little residual sugar; estimated sugars are trace-level and below total carbohydrate.",
+    "Value is kept low to remain consistent with 19.1 g carbohydrate and 133 kcal per 100 g."
+   ],
+   "origin": "t11-t20-demo data/seed/conversion_factor_estimates.json",
+   "review_status": "llm_estimated"
+  },
+  {
+   "sample_id": "R9900302",
+   "nutrient": "dietary_fiber_g",
+   "food_name": "紅葡萄酒",
+   "value_per_100g": "0.0000",
+   "basis": "llm_estimated",
+   "model": "gpt-5.4-mini-2026-03-17",
+   "prompt_version": "nutrient-fill-prompt-v2",
+   "created_at": "2026-10-21T08:27:47.107906+00:00",
+   "assumptions": [
+    "紅葡萄酒屬液體酒類，經發酵與過濾後通常幾乎不含膳食纖維。",
+    "已知碳水與熱量主要來自糖分，纖維估計為0 g/100 g。"
+   ],
+   "origin": "t11-t20-demo data/seed/conversion_factor_estimates.json",
+   "review_status": "llm_estimated"
+  },
+  {
+   "sample_id": "R9900302",
+   "nutrient": "sugars_g",
+   "food_name": "紅葡萄酒",
+   "value_per_100g": "12.8000",
+   "basis": "llm_estimated",
+   "model": "gpt-5.4-mini-2026-03-17",
+   "prompt_version": "nutrient-fill-prompt-v2",
+   "created_at": "2026-10-21T08:27:45.845226+00:00",
+   "assumptions": [
+    "Assumed most of the carbohydrate in this sweet red wine comes from residual grape sugar and added sugar, so sugars are close to total carbohydrate.",
+    "Kept sugars below total carbohydrate (14.8 g/100 g) and consistent with the stated ingredients (red grapes, sugar)."
+   ],
+   "origin": "t11-t20-demo data/seed/conversion_factor_estimates.json",
+   "review_status": "llm_estimated"
+  },
+  {
+   "sample_id": "USDA_FDC_167723",
+   "nutrient": "dietary_fiber_g",
+   "food_name": "米酒",
+   "value_per_100g": "0.0000",
+   "basis": "llm_estimated",
+   "model": "gpt-5.4-mini-2026-03-17",
+   "prompt_version": "nutrient-fill-prompt-v2",
+   "created_at": "2026-11-03T15:12:05+00:00",
+   "assumptions": [
+    "Rice wine is a distilled/fermented alcoholic beverage with negligible dietary fiber.",
+    "Estimated fiber set to zero to match typical clear liquor composition."
+   ],
+   "origin": "scripts/estimate_nutrient_fills.py",
+   "review_status": "llm_estimated"
+  },
+  {
+   "sample_id": "USDA_FDC_167812",
+   "nutrient": "dietary_fiber_g",
+   "food_name": "五花肉",
+   "value_per_100g": "0.0000",
+   "basis": "llm_estimated",
+   "model": "gpt-5.4-mini-2026-03-17",
+   "prompt_version": "nutrient-fill-prompt-v2",
+   "created_at": "2026-11-03T15:12:10+00:00",
+   "assumptions": [
+    "Pork belly is an animal food with no dietary fiber.",
+    "Carbohydrate is 0 g, so fiber is expected to be 0 g per 100 g."
+   ],
+   "origin": "scripts/estimate_nutrient_fills.py",
+   "review_status": "llm_estimated"
+  },
+  {
+   "sample_id": "USDA_FDC_167812",
+   "nutrient": "sugars_g",
+   "food_name": "五花肉",
+   "value_per_100g": "0.0000",
+   "basis": "llm_estimated",
+   "model": "gpt-5.4-mini-2026-03-17",
+   "prompt_version": "nutrient-fill-prompt-v2",
+   "created_at": "2026-11-03T15:12:07+00:00",
+   "assumptions": [
+    "Unseasoned pork belly (五花肉) has negligible carbohydrate and no added sugars.",
+    "Estimated sugars are effectively zero per 100 g in the raw meat state."
+   ],
+   "origin": "scripts/estimate_nutrient_fills.py",
+   "review_status": "llm_estimated"
+  },
+  {
+   "sample_id": "USDA_FDC_168664",
+   "nutrient": "dietary_fiber_g",
+   "food_name": "牛腩",
+   "value_per_100g": "0.0000",
+   "basis": "llm_estimated",
+   "model": "gpt-5.4-mini-2026-03-17",
+   "prompt_version": "nutrient-fill-prompt-v2",
+   "created_at": "2026-11-03T15:12:15+00:00",
+   "assumptions": [
+    "Beef brisket is an animal meat cut with essentially no dietary fiber.",
+    "Kept consistent with the very low carbohydrate value already listed."
+   ],
+   "origin": "scripts/estimate_nutrient_fills.py",
+   "review_status": "llm_estimated"
+  },
+  {
+   "sample_id": "USDA_FDC_168664",
+   "nutrient": "sugars_g",
+   "food_name": "牛腩",
+   "value_per_100g": "0.0000",
+   "basis": "llm_estimated",
+   "model": "gpt-5.4-mini-2026-03-17",
+   "prompt_version": "nutrient-fill-prompt-v2",
+   "created_at": "2026-11-03T15:12:12+00:00",
+   "assumptions": [
+    "Beef brisket is an unseasoned meat cut with negligible intrinsic sugars.",
+    "Carbohydrate is very low, so sugars are estimated at zero per 100 g."
+   ],
+   "origin": "scripts/estimate_nutrient_fills.py",
+   "review_status": "llm_estimated"
+  },
+  {
+   "sample_id": "USDA_FDC_168875",
+   "nutrient": "sugars_g",
+   "food_name": "糙米飯",
+   "value_per_100g": "0.3000",
+   "basis": "llm_estimated",
+   "model": "gpt-5.4-mini-2026-03-17",
+   "prompt_version": "nutrient-fill-prompt-v2",
+   "created_at": "2026-11-03T15:12:17+00:00",
+   "assumptions": [
+    "Brown rice cooked plain typically has very little naturally occurring sugar.",
+    "Estimated sugars are kept well below total carbohydrate and consistent with unsweetened rice."
+   ],
+   "origin": "scripts/estimate_nutrient_fills.py",
+   "review_status": "llm_estimated"
+  },
+  {
+   "sample_id": "USDA_FDC_169127",
+   "nutrient": "dietary_fiber_g",
+   "food_name": "鳳梨罐頭",
+   "value_per_100g": "1.2000",
+   "basis": "llm_estimated",
+   "model": "gpt-5.4-mini-2026-03-17",
+   "prompt_version": "nutrient-fill-prompt-v2",
+   "created_at": "2026-11-03T15:12:19+00:00",
+   "assumptions": [
+    "Estimated from typical canned pineapple in syrup; most carbohydrate is sugar, with low fiber retained from fruit pulp.",
+    "Chose a modest fiber value consistent with the listed carbohydrate, sugars, and energy."
+   ],
+   "origin": "scripts/estimate_nutrient_fills.py",
+   "review_status": "llm_estimated"
+  },
+  {
+   "sample_id": "USDA_FDC_169441",
+   "nutrient": "dietary_fiber_g",
+   "food_name": "牛腱肉",
+   "value_per_100g": "0.0000",
+   "basis": "llm_estimated",
+   "model": "gpt-5.4-mini-2026-03-17",
+   "prompt_version": "nutrient-fill-prompt-v2",
+   "created_at": "2026-11-03T15:12:27+00:00",
+   "assumptions": [
+    "Beef shank/meat contains no dietary fiber because it is an animal product.",
+    "Known carbohydrate is 0 g, consistent with zero fiber."
+   ],
+   "origin": "scripts/estimate_nutrient_fills.py",
+   "review_status": "llm_estimated"
+  },
+  {
+   "sample_id": "USDA_FDC_169441",
+   "nutrient": "sugars_g",
+   "food_name": "牛腱肉",
+   "value_per_100g": "0.0000",
+   "basis": "llm_estimated",
+   "model": "gpt-5.4-mini-2026-03-17",
+   "prompt_version": "nutrient-fill-prompt-v2",
+   "created_at": "2026-11-03T15:12:25+00:00",
+   "assumptions": [
+    "Plain beef shank cuts typically contain no carbohydrates or added sugar.",
+    "With carbohydrate reported as 0 g and no seasoning/sauce indicated, sugars are estimated as 0 g per 100 g."
+   ],
+   "origin": "scripts/estimate_nutrient_fills.py",
+   "review_status": "llm_estimated"
+  },
+  {
+   "sample_id": "USDA_FDC_169599",
+   "nutrient": "dietary_fiber_g",
+   "food_name": "吉利丁片",
+   "value_per_100g": "0.0000",
+   "basis": "llm_estimated",
+   "model": "gpt-5.4-mini-2026-03-17",
+   "prompt_version": "nutrient-fill-prompt-v2",
+   "created_at": "2026-11-03T15:12:31+00:00",
+   "assumptions": [
+    "Gelatin sheets are animal-derived protein and contain essentially no dietary fiber.",
+    "Estimated to match the listed zero carbohydrate and very high protein composition."
+   ],
+   "origin": "scripts/estimate_nutrient_fills.py",
+   "review_status": "llm_estimated"
+  },
+  {
+   "sample_id": "USDA_FDC_169599",
+   "nutrient": "sugars_g",
+   "food_name": "吉利丁片",
+   "value_per_100g": "0.0000",
+   "basis": "llm_estimated",
+   "model": "gpt-5.4-mini-2026-03-17",
+   "prompt_version": "nutrient-fill-prompt-v2",
+   "created_at": "2026-11-03T15:12:29+00:00",
+   "assumptions": [
+    "Gelatin sheets are essentially pure protein with negligible carbohydrate and added sugar.",
+    "Set sugars to zero because the listed carbohydrate is 0 g/100 g and this product is not sweetened."
+   ],
+   "origin": "scripts/estimate_nutrient_fills.py",
+   "review_status": "llm_estimated"
+  },
+  {
+   "sample_id": "USDA_FDC_169994",
+   "nutrient": "dietary_fiber_g",
+   "food_name": "韭菜",
+   "value_per_100g": "2.7000",
+   "basis": "llm_estimated",
+   "model": "gpt-5.4-mini-2026-03-17",
+   "prompt_version": "nutrient-fill-prompt-v2",
+   "created_at": "2026-11-03T15:12:37+00:00",
+   "assumptions": [
+    "Estimated as raw chive/leek-like leafy allium with typical fiber content around 2–3 g per 100 g.",
+    "Kept consistent with the given carbohydrate, protein, fat, and low-sodium raw vegetable profile."
+   ],
+   "origin": "scripts/estimate_nutrient_fills.py",
+   "review_status": "llm_estimated"
+  },
+  {
+   "sample_id": "USDA_FDC_169994",
+   "nutrient": "sugars_g",
+   "food_name": "韭菜",
+   "value_per_100g": "1.0000",
+   "basis": "llm_estimated",
+   "model": "gpt-5.4-mini-2026-03-17",
+   "prompt_version": "nutrient-fill-prompt-v2",
+   "created_at": "2026-11-03T15:12:35+00:00",
+   "assumptions": [
+    "Chives are a low-sugar leafy vegetable; sugars are a modest fraction of total carbohydrate.",
+    "Estimated value is kept below total carbohydrate and consistent with typical raw chive composition."
+   ],
+   "origin": "scripts/estimate_nutrient_fills.py",
+   "review_status": "llm_estimated"
+  },
+  {
+   "sample_id": "USDA_FDC_170416",
+   "nutrient": "dietary_fiber_g",
+   "food_name": "巴西里",
+   "value_per_100g": "3.3000",
+   "basis": "llm_estimated",
+   "model": "gpt-5.4-mini-2026-03-17",
+   "prompt_version": "nutrient-fill-prompt-v2",
+   "created_at": "2026-11-03T15:12:41+00:00",
+   "assumptions": [
+    "Fresh parsley typically has about 3–4 g dietary fiber per 100 g.",
+    "Kept consistent with the listed carbohydrate and energy values for an uncooked herb."
+   ],
+   "origin": "scripts/estimate_nutrient_fills.py",
+   "review_status": "llm_estimated"
+  },
+  {
+   "sample_id": "USDA_FDC_170416",
+   "nutrient": "sugars_g",
+   "food_name": "巴西里",
+   "value_per_100g": "0.8500",
+   "basis": "llm_estimated",
+   "model": "gpt-5.4-mini-2026-03-17",
+   "prompt_version": "nutrient-fill-prompt-v2",
+   "created_at": "2026-11-03T15:12:39+00:00",
+   "assumptions": [
+    "Estimated as fresh parsley, where sugars are a small fraction of total carbohydrate.",
+    "Kept sugars below total carbohydrate and consistent with the low-calorie, herb-like profile."
+   ],
+   "origin": "scripts/estimate_nutrient_fills.py",
+   "review_status": "llm_estimated"
+  },
+  {
+   "sample_id": "USDA_FDC_170459",
+   "nutrient": "dietary_fiber_g",
+   "food_name": "蕃茄膏",
+   "value_per_100g": "4.1000",
+   "basis": "llm_estimated",
+   "model": "gpt-5.4-mini-2026-03-17",
+   "prompt_version": "nutrient-fill-prompt-v2",
+   "created_at": "2026-11-03T15:12:45+00:00",
+   "assumptions": [
+    "Estimated dietary fiber for tomato paste from typical concentrated tomato products.",
+    "Kept fiber below total carbohydrate and consistent with the high carbohydrate content per 100 g."
+   ],
+   "origin": "scripts/estimate_nutrient_fills.py",
+   "review_status": "llm_estimated"
+  },
+  {
+   "sample_id": "USDA_FDC_170459",
+   "nutrient": "sugars_g",
+   "food_name": "蕃茄膏",
+   "value_per_100g": "13.0000",
+   "basis": "llm_estimated",
+   "model": "gpt-5.4-mini-2026-03-17",
+   "prompt_version": "nutrient-fill-prompt-v2",
+   "created_at": "2026-11-03T15:12:44+00:00",
+   "assumptions": [
+    "Estimated sugars as most of the carbohydrate in tomato paste is naturally occurring tomato sugar.",
+    "Kept sugars below total carbohydrate and consistent with the high-solids, unsweetened tomato paste profile."
+   ],
+   "origin": "scripts/estimate_nutrient_fills.py",
+   "review_status": "llm_estimated"
+  },
+  {
+   "sample_id": "USDA_FDC_170917",
+   "nutrient": "dietary_fiber_g",
+   "food_name": "月桂葉",
+   "value_per_100g": "26.3000",
+   "basis": "llm_estimated",
+   "model": "gpt-5.4-mini-2026-03-17",
+   "prompt_version": "nutrient-fill-prompt-v2",
+   "created_at": "2026-11-03T15:17:29+00:00",
+   "assumptions": [
+    "Estimate based on dried bay leaf composition; most carbohydrate is insoluble fiber.",
+    "Kept fiber consistent with the high total carbohydrate and low protein/fat profile."
+   ],
+   "origin": "scripts/estimate_nutrient_fills.py",
+   "review_status": "llm_estimated"
+  },
+  {
+   "sample_id": "USDA_FDC_170917",
+   "nutrient": "sugars_g",
+   "food_name": "月桂葉",
+   "value_per_100g": "1.0000",
+   "basis": "llm_estimated",
+   "model": "gpt-5.4-mini-2026-03-17",
+   "prompt_version": "nutrient-fill-prompt-v2",
+   "created_at": "2026-11-03T15:12:47+00:00",
+   "assumptions": [
+    "Bay leaf is a dried herb with very low intrinsic sugar; most carbohydrate is fiber/starch-like material rather than sugars.",
+    "Estimated sugars are kept well below total carbohydrate and consistent with typical dried spice composition."
+   ],
+   "origin": "scripts/estimate_nutrient_fills.py",
+   "review_status": "llm_estimated"
+  },
+  {
+   "sample_id": "USDA_FDC_170938",
+   "nutrient": "dietary_fiber_g",
+   "food_name": "法式香料",
+   "value_per_100g": "22.0000",
+   "basis": "llm_estimated",
+   "model": "gpt-5.4-mini-2026-03-17",
+   "prompt_version": "nutrient-fill-prompt-v2",
+   "created_at": "2026-11-03T15:12:55+00:00",
+   "assumptions": [
+    "Dried French-style herb/spice blend typically contains a large proportion of fiber-rich dried herbs and seeds.",
+    "Estimated fiber is kept within the remaining carbohydrate fraction and consistent with the low sodium and moderate fat/protein values."
+   ],
+   "origin": "scripts/estimate_nutrient_fills.py",
+   "review_status": "llm_estimated"
+  },
+  {
+   "sample_id": "USDA_FDC_170938",
+   "nutrient": "sugars_g",
+   "food_name": "法式香料",
+   "value_per_100g": "2.0000",
+   "basis": "llm_estimated",
+   "model": "gpt-5.4-mini-2026-03-17",
+   "prompt_version": "nutrient-fill-prompt-v2",
+   "created_at": "2026-11-03T15:12:52+00:00",
+   "assumptions": [
+    "Estimated as a dry herb/spice blend with very low intrinsic sugar.",
+    "Kept sugars well below total carbohydrate and consistent with typical seasoning mixes."
+   ],
+   "origin": "scripts/estimate_nutrient_fills.py",
+   "review_status": "llm_estimated"
+  },
+  {
+   "sample_id": "USDA_FDC_171417",
+   "nutrient": "carbohydrate_g",
+   "food_name": "橄欖油檸檬沙拉醬",
+   "value_per_100g": "3.2000",
+   "basis": "llm_estimated",
+   "model": "gpt-5.4-mini-2026-03-17",
+   "prompt_version": "nutrient-fill-prompt-v2",
+   "created_at": "2026-11-03T15:12:57+00:00",
+   "assumptions": [
+    "Estimated from a typical olive oil lemon salad dressing with small amounts of lemon juice/sugar; most weight is oil, so carbohydrate is low.",
+    "Kept consistent with the listed energy and fat, assuming negligible protein and only minor carbs from citrus/sweetener."
+   ],
+   "origin": "scripts/estimate_nutrient_fills.py",
+   "review_status": "llm_estimated"
+  },
+  {
+   "sample_id": "USDA_FDC_171417",
+   "nutrient": "dietary_fiber_g",
+   "food_name": "橄欖油檸檬沙拉醬",
+   "value_per_100g": "0.0000",
+   "basis": "llm_estimated",
+   "model": "gpt-5.4-mini-2026-03-17",
+   "prompt_version": "nutrient-fill-prompt-v2",
+   "created_at": "2026-11-03T15:13:04+00:00",
+   "assumptions": [
+    "Olive oil lemon salad dressing is typically oil-based with lemon juice and contains no meaningful dietary fiber.",
+    "Estimated to be essentially fiber-free per 100 g."
+   ],
+   "origin": "scripts/estimate_nutrient_fills.py",
+   "review_status": "llm_estimated"
+  },
+  {
+   "sample_id": "USDA_FDC_171417",
+   "nutrient": "sodium_mg",
+   "food_name": "橄欖油檸檬沙拉醬",
+   "value_per_100g": "180.0000",
+   "basis": "llm_estimated",
+   "model": "gpt-5.4-mini-2026-03-17",
+   "prompt_version": "nutrient-fill-prompt-v2",
+   "created_at": "2026-11-03T15:13:01+00:00",
+   "assumptions": [
+    "Estimated as a bottled olive oil lemon salad dressing with added salt/seasoning.",
+    "Oil-based dressings in Taiwan typically contain modest sodium from lemon juice, salt, or stabilizers, around 100–250 mg/100 g."
+   ],
+   "origin": "scripts/estimate_nutrient_fills.py",
+   "review_status": "llm_estimated"
+  },
+  {
+   "sample_id": "USDA_FDC_171417",
+   "nutrient": "sugars_g",
+   "food_name": "橄欖油檸檬沙拉醬",
+   "value_per_100g": "1.5000",
+   "basis": "llm_estimated",
+   "model": "gpt-5.4-mini-2026-03-17",
+   "prompt_version": "nutrient-fill-prompt-v2",
+   "created_at": "2026-11-03T15:12:59+00:00",
+   "assumptions": [
+    "Estimated as a lemon-based salad dressing with olive oil and added sweetener.",
+    "Sugar kept low to fit a savory dressing and remain below total carbohydrate implied by the sample."
+   ],
+   "origin": "scripts/estimate_nutrient_fills.py",
+   "review_status": "llm_estimated"
+  },
+  {
+   "sample_id": "USDA_FDC_171985",
+   "nutrient": "dietary_fiber_g",
+   "food_name": "燻鮭魚",
+   "value_per_100g": "0.0000",
+   "basis": "llm_estimated",
+   "model": "gpt-5.4-mini-2026-03-17",
+   "prompt_version": "nutrient-fill-prompt-v2",
+   "created_at": "2026-11-03T15:13:08+00:00",
+   "assumptions": [
+    "Smoked salmon is a fish product with essentially no dietary fiber.",
+    "Carbohydrate is 0 g, so fiber is expected to be 0 g per 100 g."
+   ],
+   "origin": "scripts/estimate_nutrient_fills.py",
+   "review_status": "llm_estimated"
+  },
+  {
+   "sample_id": "USDA_FDC_171985",
+   "nutrient": "sugars_g",
+   "food_name": "燻鮭魚",
+   "value_per_100g": "0.0000",
+   "basis": "llm_estimated",
+   "model": "gpt-5.4-mini-2026-03-17",
+   "prompt_version": "nutrient-fill-prompt-v2",
+   "created_at": "2026-11-03T15:13:06+00:00",
+   "assumptions": [
+    "Smoked salmon typically contains no added sugars; carbohydrate is listed as 0 g, so sugars are estimated at 0 g per 100 g.",
+    "Value kept consistent with the stated nutrition profile and typical unsweetened smoked fish products."
+   ],
+   "origin": "scripts/estimate_nutrient_fills.py",
+   "review_status": "llm_estimated"
+  },
+  {
+   "sample_id": "USDA_FDC_172234",
+   "nutrient": "dietary_fiber_g",
+   "food_name": "黃芥末醬",
+   "value_per_100g": "3.5000",
+   "basis": "llm_estimated",
+   "model": "gpt-5.4-mini-2026-03-17",
+   "prompt_version": "nutrient-fill-prompt-v2",
+   "created_at": "2026-11-03T15:13:16+00:00",
+   "assumptions": [
+    "Yellow mustard sauce typically contains mustard seed solids and spices, giving a small but nonzero fiber content.",
+    "Estimated to fit the stated carbohydrate amount and similar condiment compositions."
+   ],
+   "origin": "scripts/estimate_nutrient_fills.py",
+   "review_status": "llm_estimated"
+  },
+  {
+   "sample_id": "USDA_FDC_172234",
+   "nutrient": "sugars_g",
+   "food_name": "黃芥末醬",
+   "value_per_100g": "1.8000",
+   "basis": "llm_estimated",
+   "model": "gpt-5.4-mini-2026-03-17",
+   "prompt_version": "nutrient-fill-prompt-v2",
+   "created_at": "2026-11-03T15:13:13+00:00",
+   "assumptions": [
+    "Estimated as a typical sweet-tangy yellow mustard sauce with a modest portion of the 5.83 g carbohydrate coming from sugars.",
+    "Kept sugars below total carbohydrate and consistent with the product's high sodium condiment profile."
+   ],
+   "origin": "scripts/estimate_nutrient_fills.py",
+   "review_status": "llm_estimated"
+  },
+  {
+   "sample_id": "USDA_FDC_172390",
+   "nutrient": "dietary_fiber_g",
+   "food_name": "雞翅",
+   "value_per_100g": "0.0000",
+   "basis": "llm_estimated",
+   "model": "gpt-5.4-mini-2026-03-17",
+   "prompt_version": "nutrient-fill-prompt-v2",
+   "created_at": "2026-11-03T15:13:21+00:00",
+   "assumptions": [
+    "Chicken wings are an animal product and contain essentially no dietary fiber.",
+    "Known macronutrients are consistent with a plain cooked chicken wing."
+   ],
+   "origin": "scripts/estimate_nutrient_fills.py",
+   "review_status": "llm_estimated"
+  },
+  {
+   "sample_id": "USDA_FDC_172390",
+   "nutrient": "sugars_g",
+   "food_name": "雞翅",
+   "value_per_100g": "0.0000",
+   "basis": "llm_estimated",
+   "model": "gpt-5.4-mini-2026-03-17",
+   "prompt_version": "nutrient-fill-prompt-v2",
+   "created_at": "2026-11-03T15:13:18+00:00",
+   "assumptions": [
+    "Chicken wings are plain meat with no added sugar in the listed state.",
+    "Carbohydrate is 0 g per 100 g, so sugars are estimated as 0 g per 100 g."
+   ],
+   "origin": "scripts/estimate_nutrient_fills.py",
+   "review_status": "llm_estimated"
+  },
+  {
+   "sample_id": "USDA_FDC_173190",
+   "nutrient": "dietary_fiber_g",
+   "food_name": "紅酒",
+   "value_per_100g": "0.0000",
+   "basis": "llm_estimated",
+   "model": "gpt-5.4-mini-2026-03-17",
+   "prompt_version": "nutrient-fill-prompt-v2",
+   "created_at": "2026-11-03T15:13:25+00:00",
+   "assumptions": [
+    "Red wine is a filtered beverage with no meaningful dietary fiber.",
+    "Estimated fiber set to zero to stay consistent with the low carbohydrate content."
+   ],
+   "origin": "scripts/estimate_nutrient_fills.py",
+   "review_status": "llm_estimated"
+  },
+  {
+   "sample_id": "USDA_FDC_173190",
+   "nutrient": "sugars_g",
+   "food_name": "紅酒",
+   "value_per_100g": "0.6000",
+   "basis": "llm_estimated",
+   "model": "gpt-5.4-mini-2026-03-17",
+   "prompt_version": "nutrient-fill-prompt-v2",
+   "created_at": "2026-11-03T15:13:23+00:00",
+   "assumptions": [
+    "Dry red wine typically has low residual sugar; estimated as a semi-dry style within the given carbohydrate total.",
+    "Kept sugars below total carbohydrate and consistent with the listed energy and sodium values."
+   ],
+   "origin": "scripts/estimate_nutrient_fills.py",
+   "review_status": "llm_estimated"
+  },
+  {
+   "sample_id": "USDA_FDC_173573",
+   "nutrient": "dietary_fiber_g",
+   "food_name": "酪梨油",
+   "value_per_100g": "0.0000",
+   "basis": "llm_estimated",
+   "model": "gpt-5.4-mini-2026-03-17",
+   "prompt_version": "nutrient-fill-prompt-v2",
+   "created_at": "2026-11-03T15:13:29+00:00",
+   "assumptions": [
+    "Avocado oil is a refined oil with virtually no carbohydrates, protein, or dietary fiber.",
+    "Kept consistent with 100 g fat and 884 kcal per 100 g."
+   ],
+   "origin": "scripts/estimate_nutrient_fills.py",
+   "review_status": "llm_estimated"
+  },
+  {
+   "sample_id": "USDA_FDC_173573",
+   "nutrient": "sugars_g",
+   "food_name": "酪梨油",
+   "value_per_100g": "0.0000",
+   "basis": "llm_estimated",
+   "model": "gpt-5.4-mini-2026-03-17",
+   "prompt_version": "nutrient-fill-prompt-v2",
+   "created_at": "2026-11-03T15:13:27+00:00",
+   "assumptions": [
+    "Avocado oil is a pure fat/oil product with essentially no carbohydrate.",
+    "Sugars are expected to be zero per 100 g in refined oil."
+   ],
+   "origin": "scripts/estimate_nutrient_fills.py",
+   "review_status": "llm_estimated"
+  },
+  {
+   "sample_id": "USDA_FDC_173664",
+   "nutrient": "dietary_fiber_g",
+   "food_name": "高粱酒",
+   "value_per_100g": "0.0000",
+   "basis": "llm_estimated",
+   "model": "gpt-5.4-mini-2026-03-17",
+   "prompt_version": "nutrient-fill-prompt-v2",
+   "created_at": "2026-11-03T15:13:49+00:00",
+   "assumptions": [
+    "High-proof sorghum liquor contains no dietary fiber.",
+    "Estimated as 0 g per 100 g edible portion."
+   ],
+   "origin": "scripts/estimate_nutrient_fills.py",
+   "review_status": "llm_estimated"
+  },
+  {
+   "sample_id": "USDA_FDC_173664",
+   "nutrient": "sugars_g",
+   "food_name": "高粱酒",
+   "value_per_100g": "0.0000",
+   "basis": "llm_estimated",
+   "model": "gpt-5.4-mini-2026-03-17",
+   "prompt_version": "nutrient-fill-prompt-v2",
+   "created_at": "2026-11-03T15:13:47+00:00",
+   "assumptions": [
+    "High-proof sorghum liquor is distilled, so it contains essentially no sugar.",
+    "Known carbohydrate is 0 g and energy comes from alcohol rather than sugars."
+   ],
+   "origin": "scripts/estimate_nutrient_fills.py",
+   "review_status": "llm_estimated"
+  },
+  {
+   "sample_id": "USDA_FDC_173709",
+   "nutrient": "dietary_fiber_g",
+   "food_name": "鮪魚罐頭",
+   "value_per_100g": "0.0000",
+   "basis": "llm_estimated",
+   "model": "gpt-5.4-mini-2026-03-17",
+   "prompt_version": "nutrient-fill-prompt-v2",
+   "created_at": "2026-11-03T15:13:55+00:00",
+   "assumptions": [
+    "Canned tuna is made from fish with no plant material, so dietary fiber is essentially zero.",
+    "Known carbohydrates are 0 g, consistent with no fiber in the edible portion."
+   ],
+   "origin": "scripts/estimate_nutrient_fills.py",
+   "review_status": "llm_estimated"
+  },
+  {
+   "sample_id": "USDA_FDC_173709",
+   "nutrient": "sugars_g",
+   "food_name": "鮪魚罐頭",
+   "value_per_100g": "0.0000",
+   "basis": "llm_estimated",
+   "model": "gpt-5.4-mini-2026-03-17",
+   "prompt_version": "nutrient-fill-prompt-v2",
+   "created_at": "2026-11-03T15:13:52+00:00",
+   "assumptions": [
+    "Plain canned tuna in water/juice typically has no measurable sugars.",
+    "Carbohydrate is reported as 0.0 g, so sugars should also be 0.0 g per 100 g."
+   ],
+   "origin": "scripts/estimate_nutrient_fills.py",
+   "review_status": "llm_estimated"
+  },
+  {
+   "sample_id": "USDA_FDC_174372",
+   "nutrient": "dietary_fiber_g",
+   "food_name": "火鍋羊肉片",
+   "value_per_100g": "0.0000",
+   "basis": "llm_estimated",
+   "model": "gpt-5.4-mini-2026-03-17",
+   "prompt_version": "nutrient-fill-prompt-v2",
+   "created_at": "2026-11-03T15:14:03+00:00",
+   "assumptions": [
+    "火鍋羊肉片屬於純肉類涮鍋食材，通常不含膳食纖維。",
+    "已知碳水化合物為0 g，與纖維存在量一致，估計纖維為0 g/100 g。"
+   ],
+   "origin": "scripts/estimate_nutrient_fills.py",
+   "review_status": "llm_estimated"
+  },
+  {
+   "sample_id": "USDA_FDC_174372",
+   "nutrient": "sugars_g",
+   "food_name": "火鍋羊肉片",
+   "value_per_100g": "0.0000",
+   "basis": "llm_estimated",
+   "model": "gpt-5.4-mini-2026-03-17",
+   "prompt_version": "nutrient-fill-prompt-v2",
+   "created_at": "2026-11-03T15:13:57+00:00",
+   "assumptions": [
+    "Thinly sliced plain lamb hotpot meat typically contains no added sugar.",
+    "Carbohydrate is listed as 0 g, so sugars are estimated at 0 g per 100 g."
+   ],
+   "origin": "scripts/estimate_nutrient_fills.py",
+   "review_status": "llm_estimated"
+  },
+  {
+   "sample_id": "USDA_NDB_10080",
+   "nutrient": "dietary_fiber_g",
+   "food_name": "梅花肉",
+   "value_per_100g": "0.0000",
+   "basis": "llm_estimated",
+   "model": "gpt-5.4-mini-2026-03-17",
+   "prompt_version": "nutrient-fill-prompt-v2",
+   "created_at": "2026-11-03T15:14:13+00:00",
+   "assumptions": [
+    "Pork shoulder/collar meat contains no dietary fiber in the edible portion.",
+    "Known macronutrients are consistent with a fresh meat sample, so fiber is estimated as zero."
+   ],
+   "origin": "scripts/estimate_nutrient_fills.py",
+   "review_status": "llm_estimated"
+  },
+  {
+   "sample_id": "USDA_NDB_10080",
+   "nutrient": "sodium_mg",
+   "food_name": "梅花肉",
+   "value_per_100g": "72.0000",
+   "basis": "llm_estimated",
+   "model": "gpt-5.4-mini-2026-03-17",
+   "prompt_version": "nutrient-fill-prompt-v2",
+   "created_at": "2026-11-03T15:14:09+00:00",
+   "assumptions": [
+    "Plain raw pork shoulder blade meat (梅花肉) without added seasoning or brine.",
+    "Sodium is estimated at typical fresh pork natural sodium content, with no added salt."
+   ],
+   "origin": "scripts/estimate_nutrient_fills.py",
+   "review_status": "llm_estimated"
+  },
+  {
+   "sample_id": "USDA_NDB_10080",
+   "nutrient": "sugars_g",
+   "food_name": "梅花肉",
+   "value_per_100g": "0.0000",
+   "basis": "llm_estimated",
+   "model": "gpt-5.4-mini-2026-03-17",
+   "prompt_version": "nutrient-fill-prompt-v2",
+   "created_at": "2026-11-03T15:14:06+00:00",
+   "assumptions": [
+    "Plain pork cut with no added ingredients; naturally contains negligible sugars.",
+    "Consistent with zero carbohydrate listed in the sample."
+   ],
+   "origin": "scripts/estimate_nutrient_fills.py",
+   "review_status": "llm_estimated"
+  },
+  {
+   "sample_id": "USER_CONFIRMED:FOOD000119",
+   "nutrient": "dietary_fiber_g",
+   "food_name": "水",
+   "value_per_100g": "0.0000",
+   "basis": "llm_estimated",
+   "model": "gpt-5.4-mini-2026-03-17",
+   "prompt_version": "nutrient-fill-prompt-v2",
+   "created_at": "2026-11-03T15:14:17+00:00",
+   "assumptions": [
+    "Sample is plain water with no edible solids, so dietary fiber is 0 g per 100 g."
+   ],
+   "origin": "scripts/estimate_nutrient_fills.py",
+   "review_status": "llm_estimated"
+  },
+  {
+   "sample_id": "USER_CONFIRMED:FOOD000119",
+   "nutrient": "sodium_mg",
+   "food_name": "水",
+   "value_per_100g": "0.0000",
+   "basis": "llm_estimated",
+   "model": "gpt-5.4-mini-2026-03-17",
+   "prompt_version": "nutrient-fill-prompt-v2",
+   "created_at": "2026-11-03T15:14:15+00:00",
+   "assumptions": [
+    "Plain water is assumed to contain no measurable sodium in this food composition entry.",
+    "Known macronutrients are all zero, consistent with pure water."
+   ],
+   "origin": "scripts/estimate_nutrient_fills.py",
+   "review_status": "llm_estimated"
+  },
+  {
+   "sample_id": "USER_CONFIRMED:FOOD000120",
+   "nutrient": "dietary_fiber_g",
+   "food_name": "水 各",
+   "value_per_100g": "0.0000",
+   "basis": "llm_estimated",
+   "model": "gpt-5.4-mini-2026-03-17",
+   "prompt_version": "nutrient-fill-prompt-v2",
+   "created_at": "2026-11-03T15:14:35+00:00",
+   "assumptions": [
+    "Item appears to be plain water, which contains no dietary fiber.",
+    "Known macronutrients are all zero, consistent with fiber-free water."
+   ],
+   "origin": "scripts/estimate_nutrient_fills.py",
+   "review_status": "llm_estimated"
+  },
+  {
+   "sample_id": "USER_CONFIRMED:FOOD000120",
+   "nutrient": "sodium_mg",
+   "food_name": "水 各",
+   "value_per_100g": "0.0000",
+   "basis": "llm_estimated",
+   "model": "gpt-5.4-mini-2026-03-17",
+   "prompt_version": "nutrient-fill-prompt-v2",
+   "created_at": "2026-11-03T15:14:26+00:00",
+   "assumptions": [
+    "Plain water has essentially no sodium.",
+    "Known values indicate a zero-nutrient water sample."
+   ],
+   "origin": "scripts/estimate_nutrient_fills.py",
+   "review_status": "llm_estimated"
+  },
+  {
+   "sample_id": "USER_CONFIRMED:FOOD000353",
+   "nutrient": "carbohydrate_g",
+   "food_name": "米粕",
+   "value_per_100g": "0.0000",
+   "basis": "llm_estimated",
+   "model": "gpt-5.4-mini-2026-03-17",
+   "prompt_version": "nutrient-fill-prompt-v2",
+   "created_at": "2026-11-03T15:14:40+00:00",
+   "assumptions": [
+    "Rice bran cake/lees-like residue is assumed to be an inedible or nearly fully insoluble byproduct with negligible available carbohydrate.",
+    "Known energy and protein are both 0, so carbohydrate is estimated as 0 g per 100 g to stay consistent."
+   ],
+   "origin": "scripts/estimate_nutrient_fills.py",
+   "review_status": "llm_estimated"
+  },
+  {
+   "sample_id": "USER_CONFIRMED:FOOD000353",
+   "nutrient": "dietary_fiber_g",
+   "food_name": "米粕",
+   "value_per_100g": "0.0000",
+   "basis": "llm_estimated",
+   "model": "gpt-5.4-mini-2026-03-17",
+   "prompt_version": "nutrient-fill-prompt-v2",
+   "created_at": "2026-11-03T15:14:49+00:00",
+   "assumptions": [
+    "Rice residue with only energy and protein listed as zero is assumed to have negligible edible dietary fiber in this state.",
+    "Estimate kept at 0 to remain consistent with the sample's reported composition."
+   ],
+   "origin": "scripts/estimate_nutrient_fills.py",
+   "review_status": "llm_estimated"
+  },
+  {
+   "sample_id": "USER_CONFIRMED:FOOD000353",
+   "nutrient": "fat_g",
+   "food_name": "米粕",
+   "value_per_100g": "0.0000",
+   "basis": "llm_estimated",
+   "model": "gpt-5.4-mini-2026-03-17",
+   "prompt_version": "nutrient-fill-prompt-v2",
+   "created_at": "2026-11-03T15:14:38+00:00",
+   "assumptions": [
+    "Rice bran dregs with zero listed energy and protein in this sample imply negligible edible fat.",
+    "Estimated to be effectively fat-free in the reported state."
+   ],
+   "origin": "scripts/estimate_nutrient_fills.py",
+   "review_status": "llm_estimated"
+  },
+  {
+   "sample_id": "USER_CONFIRMED:FOOD000353",
+   "nutrient": "sodium_mg",
+   "food_name": "米粕",
+   "value_per_100g": "0.0000",
+   "basis": "llm_estimated",
+   "model": "gpt-5.4-mini-2026-03-17",
+   "prompt_version": "nutrient-fill-prompt-v2",
+   "created_at": "2026-11-03T15:14:46+00:00",
+   "assumptions": [
+    "Rice bran residue itself is unsalted and has no added seasoning.",
+    "No evidence of processing with salt in the sample description, so sodium is estimated near zero."
+   ],
+   "origin": "scripts/estimate_nutrient_fills.py",
+   "review_status": "llm_estimated"
+  },
+  {
+   "sample_id": "USER_CONFIRMED:FOOD000353",
+   "nutrient": "sugars_g",
+   "food_name": "米粕",
+   "value_per_100g": "0.0000",
+   "basis": "llm_estimated",
+   "model": "gpt-5.4-mini-2026-03-17",
+   "prompt_version": "nutrient-fill-prompt-v2",
+   "created_at": "2026-11-03T15:14:43+00:00",
+   "assumptions": [
+    "Rice bran residue with no measurable free sugars; energy and protein are recorded as 0, so sugars are assumed negligible."
+   ],
+   "origin": "scripts/estimate_nutrient_fills.py",
+   "review_status": "llm_estimated"
+  },
+  {
+   "sample_id": "USER_CONFIRMED:FOOD000494",
+   "nutrient": "dietary_fiber_g",
+   "food_name": "泡香菇的水",
+   "value_per_100g": "0.0000",
+   "basis": "llm_estimated",
+   "model": "gpt-5.4-mini-2026-03-17",
+   "prompt_version": "nutrient-fill-prompt-v2",
+   "created_at": "2026-11-03T15:14:53+00:00",
+   "assumptions": [
+    "Mushroom soaking water is treated as essentially free of dietary fiber.",
+    "No solid mushroom particles are assumed to be present in the liquid sample."
+   ],
+   "origin": "scripts/estimate_nutrient_fills.py",
+   "review_status": "llm_estimated"
+  },
+  {
+   "sample_id": "USER_CONFIRMED:FOOD000494",
+   "nutrient": "sodium_mg",
+   "food_name": "泡香菇的水",
+   "value_per_100g": "5.0000",
+   "basis": "llm_estimated",
+   "model": "gpt-5.4-mini-2026-03-17",
+   "prompt_version": "nutrient-fill-prompt-v2",
+   "created_at": "2026-11-03T15:14:51+00:00",
+   "assumptions": [
+    "泡香菇的浸泡水屬稀釋液體，僅有少量香菇天然礦物質溶出。",
+    "未加鹽或調味的前提下，鈉含量應接近零但非完全為零。"
+   ],
+   "origin": "scripts/estimate_nutrient_fills.py",
+   "review_status": "llm_estimated"
+  },
+  {
+   "sample_id": "USER_CONFIRMED:FOOD000496",
+   "nutrient": "dietary_fiber_g",
+   "food_name": "泡蝦米水",
+   "value_per_100g": "0.0000",
+   "basis": "llm_estimated",
+   "model": "gpt-5.4-mini-2026-03-17",
+   "prompt_version": "nutrient-fill-prompt-v2",
+   "created_at": "2026-11-03T15:14:58+00:00",
+   "assumptions": [
+    "Clear shrimp-soaking water with no visible solids; dietary fiber is effectively absent.",
+    "Known zero energy, protein, fat, carbohydrate, and sugars support a zero fiber estimate."
+   ],
+   "origin": "scripts/estimate_nutrient_fills.py",
+   "review_status": "llm_estimated"
+  },
+  {
+   "sample_id": "USER_CONFIRMED:FOOD000496",
+   "nutrient": "sodium_mg",
+   "food_name": "泡蝦米水",
+   "value_per_100g": "5.0000",
+   "basis": "llm_estimated",
+   "model": "gpt-5.4-mini-2026-03-17",
+   "prompt_version": "nutrient-fill-prompt-v2",
+   "created_at": "2026-11-03T15:14:55+00:00",
+   "assumptions": [
+    "Prepared shrimp-infused water is essentially unsalted and very dilute.",
+    "A small amount of sodium is still expected from shrimp extraction into the water."
+   ],
+   "origin": "scripts/estimate_nutrient_fills.py",
+   "review_status": "llm_estimated"
+  },
+  {
+   "sample_id": "USER_CONFIRMED:FOOD000649",
+   "nutrient": "carbohydrate_g",
+   "food_name": "紅茶葉",
+   "value_per_100g": "0.0000",
+   "basis": "llm_estimated",
+   "model": "gpt-5.4-mini-2026-03-17",
+   "prompt_version": "nutrient-fill-prompt-v2",
+   "created_at": "2026-11-03T15:15:02+00:00",
+   "assumptions": [
+    "Plain dried black tea leaves contain negligible digestible carbohydrate per 100 g.",
+    "Use 0 g to stay consistent with the listed 0 kcal and 0 g protein for this sample."
+   ],
+   "origin": "scripts/estimate_nutrient_fills.py",
+   "review_status": "llm_estimated"
+  },
+  {
+   "sample_id": "USER_CONFIRMED:FOOD000649",
+   "nutrient": "dietary_fiber_g",
+   "food_name": "紅茶葉",
+   "value_per_100g": "0.0000",
+   "basis": "llm_estimated",
+   "model": "gpt-5.4-mini-2026-03-17",
+   "prompt_version": "nutrient-fill-prompt-v2",
+   "created_at": "2026-11-03T15:15:11+00:00",
+   "assumptions": [
+    "Black tea leaves are a brewed beverage ingredient with negligible edible dietary fiber in the listed state.",
+    "The sample shows 0 kcal and 0 g protein per 100 g, consistent with a near-zero estimate for fiber."
+   ],
+   "origin": "scripts/estimate_nutrient_fills.py",
+   "review_status": "llm_estimated"
+  },
+  {
+   "sample_id": "USER_CONFIRMED:FOOD000649",
+   "nutrient": "fat_g",
+   "food_name": "紅茶葉",
+   "value_per_100g": "0.0000",
+   "basis": "llm_estimated",
+   "model": "gpt-5.4-mini-2026-03-17",
+   "prompt_version": "nutrient-fill-prompt-v2",
+   "created_at": "2026-11-03T15:15:00+00:00",
+   "assumptions": [
+    "Black tea leaves are virtually fat-free in the dry product state.",
+    "Known values show 0 kcal and 0 protein, consistent with an unsweetened tea leaf sample."
+   ],
+   "origin": "scripts/estimate_nutrient_fills.py",
+   "review_status": "llm_estimated"
+  },
+  {
+   "sample_id": "USER_CONFIRMED:FOOD000649",
+   "nutrient": "sodium_mg",
+   "food_name": "紅茶葉",
+   "value_per_100g": "4.0000",
+   "basis": "llm_estimated",
+   "model": "gpt-5.4-mini-2026-03-17",
+   "prompt_version": "nutrient-fill-prompt-v2",
+   "created_at": "2026-11-03T15:15:09+00:00",
+   "assumptions": [
+    "Plain dried black tea leaves contain only trace sodium; estimated from naturally occurring plant minerals with no added salt."
+   ],
+   "origin": "scripts/estimate_nutrient_fills.py",
+   "review_status": "llm_estimated"
+  },
+  {
+   "sample_id": "USER_CONFIRMED:FOOD000649",
+   "nutrient": "sugars_g",
+   "food_name": "紅茶葉",
+   "value_per_100g": "0.0000",
+   "basis": "llm_estimated",
+   "model": "gpt-5.4-mini-2026-03-17",
+   "prompt_version": "nutrient-fill-prompt-v2",
+   "created_at": "2026-11-03T15:15:06+00:00",
+   "assumptions": [
+    "Plain dried black tea leaves contain no measurable sugars per 100 g edible portion.",
+    "Sample energy and protein are both 0, consistent with an unsweetened tea leaf ingredient."
+   ],
+   "origin": "scripts/estimate_nutrient_fills.py",
+   "review_status": "llm_estimated"
+  },
+  {
+   "sample_id": "USER_CONFIRMED:FOOD000701",
+   "nutrient": "dietary_fiber_g",
+   "food_name": "香菇水",
+   "value_per_100g": "0.0000",
+   "basis": "llm_estimated",
+   "model": "gpt-5.4-mini-2026-03-17",
+   "prompt_version": "nutrient-fill-prompt-v2",
+   "created_at": "2026-11-03T15:15:16+00:00",
+   "assumptions": [
+    "Mushroom water/stock is essentially clear broth with negligible solids.",
+    "No evidence of added pulp or thickening, so dietary fiber is estimated as zero."
+   ],
+   "origin": "scripts/estimate_nutrient_fills.py",
+   "review_status": "llm_estimated"
+  },
+  {
+   "sample_id": "USER_CONFIRMED:FOOD000701",
+   "nutrient": "sodium_mg",
+   "food_name": "香菇水",
+   "value_per_100g": "1.0000",
+   "basis": "llm_estimated",
+   "model": "gpt-5.4-mini-2026-03-17",
+   "prompt_version": "nutrient-fill-prompt-v2",
+   "created_at": "2026-11-03T15:15:14+00:00",
+   "assumptions": [
+    "Assumed plain mushroom soaking/cooking water with no added salt or seasoning, so sodium is very low but not exactly zero due to natural leaching from mushrooms and water."
+   ],
+   "origin": "scripts/estimate_nutrient_fills.py",
+   "review_status": "llm_estimated"
+  },
+  {
+   "sample_id": "USER_CONFIRMED:FOOD000827",
+   "nutrient": "carbohydrate_g",
+   "food_name": "草果",
+   "value_per_100g": "0.0000",
+   "basis": "llm_estimated",
+   "model": "gpt-5.4-mini-2026-03-17",
+   "prompt_version": "nutrient-fill-prompt-v2",
+   "created_at": "2026-11-03T15:15:20+00:00",
+   "assumptions": [
+    "Whole spice/seasoning sample with negligible available carbohydrate in the reported state.",
+    "Energy and protein are 0, so carbohydrate is estimated as 0 g per 100 g to stay consistent."
+   ],
+   "origin": "scripts/estimate_nutrient_fills.py",
+   "review_status": "llm_estimated"
+  },
+  {
+   "sample_id": "USER_CONFIRMED:FOOD000827",
+   "nutrient": "dietary_fiber_g",
+   "food_name": "草果",
+   "value_per_100g": "0.0000",
+   "basis": "llm_estimated",
+   "model": "gpt-5.4-mini-2026-03-17",
+   "prompt_version": "nutrient-fill-prompt-v2",
+   "created_at": "2026-11-03T15:15:27+00:00",
+   "assumptions": [
+    "Spice-like whole fruit/seed item with negligible edible fiber in the reported state.",
+    "Known values show 0 kcal and 0 g protein, so dietary fiber is estimated as 0 g per 100 g to stay consistent."
+   ],
+   "origin": "scripts/estimate_nutrient_fills.py",
+   "review_status": "llm_estimated"
+  },
+  {
+   "sample_id": "USER_CONFIRMED:FOOD000827",
+   "nutrient": "fat_g",
+   "food_name": "草果",
+   "value_per_100g": "0.0000",
+   "basis": "llm_estimated",
+   "model": "gpt-5.4-mini-2026-03-17",
+   "prompt_version": "nutrient-fill-prompt-v2",
+   "created_at": "2026-11-03T15:15:18+00:00",
+   "assumptions": [
+    "Dried spice with negligible fat in the listed state.",
+    "Given energy and protein are both 0, fat is estimated as 0 g per 100 g."
+   ],
+   "origin": "scripts/estimate_nutrient_fills.py",
+   "review_status": "llm_estimated"
+  },
+  {
+   "sample_id": "USER_CONFIRMED:FOOD000827",
+   "nutrient": "sodium_mg",
+   "food_name": "草果",
+   "value_per_100g": "2.0000",
+   "basis": "llm_estimated",
+   "model": "gpt-5.4-mini-2026-03-17",
+   "prompt_version": "nutrient-fill-prompt-v2",
+   "created_at": "2026-11-03T15:15:25+00:00",
+   "assumptions": [
+    "Dried whole spice with naturally very low sodium and no added salt assumed.",
+    "Estimated from typical unseasoned spice composition in TFDA-style listings."
+   ],
+   "origin": "scripts/estimate_nutrient_fills.py",
+   "review_status": "llm_estimated"
+  },
+  {
+   "sample_id": "USER_CONFIRMED:FOOD000827",
+   "nutrient": "sugars_g",
+   "food_name": "草果",
+   "value_per_100g": "0.0000",
+   "basis": "llm_estimated",
+   "model": "gpt-5.4-mini-2026-03-17",
+   "prompt_version": "nutrient-fill-prompt-v2",
+   "created_at": "2026-11-03T15:15:22+00:00",
+   "assumptions": [
+    "Dried spice/herb sample with no reported energy or protein, so sugars are assumed negligible.",
+    "Estimated as unsweetened whole spice material with no added sugar."
+   ],
+   "origin": "scripts/estimate_nutrient_fills.py",
+   "review_status": "llm_estimated"
+  },
+  {
+   "sample_id": "USER_CONFIRMED:FOOD001058",
+   "nutrient": "carbohydrate_g",
+   "food_name": "蛤蜊汁",
+   "value_per_100g": "0.0000",
+   "basis": "llm_estimated",
+   "model": "gpt-5.4-mini-2026-03-17",
+   "prompt_version": "nutrient-fill-prompt-v2",
+   "created_at": "2026-11-03T15:15:31+00:00",
+   "assumptions": [
+    "Clam juice is typically very low in carbohydrate when no added sugar is indicated.",
+    "The sample lists 0 kcal and 0 g protein, so carbohydrate is estimated as essentially zero per 100 g."
+   ],
+   "origin": "scripts/estimate_nutrient_fills.py",
+   "review_status": "llm_estimated"
+  },
+  {
+   "sample_id": "USER_CONFIRMED:FOOD001058",
+   "nutrient": "dietary_fiber_g",
+   "food_name": "蛤蜊汁",
+   "value_per_100g": "0.0000",
+   "basis": "llm_estimated",
+   "model": "gpt-5.4-mini-2026-03-17",
+   "prompt_version": "nutrient-fill-prompt-v2",
+   "created_at": "2026-11-03T15:15:40+00:00",
+   "assumptions": [
+    "Clam juice is a filtered liquid seasoning; dietary fiber is typically absent.",
+    "Known values indicate a clear liquid with no plant solids."
+   ],
+   "origin": "scripts/estimate_nutrient_fills.py",
+   "review_status": "llm_estimated"
+  },
+  {
+   "sample_id": "USER_CONFIRMED:FOOD001058",
+   "nutrient": "fat_g",
+   "food_name": "蛤蜊汁",
+   "value_per_100g": "0.0000",
+   "basis": "llm_estimated",
+   "model": "gpt-5.4-mini-2026-03-17",
+   "prompt_version": "nutrient-fill-prompt-v2",
+   "created_at": "2026-11-03T15:15:28+00:00",
+   "assumptions": [
+    "Clam juice is a clear broth-like liquid with negligible fat.",
+    "Known values show 0 kcal and 0 g protein, so fat should also be essentially zero."
+   ],
+   "origin": "scripts/estimate_nutrient_fills.py",
+   "review_status": "llm_estimated"
+  },
+  {
+   "sample_id": "USER_CONFIRMED:FOOD001058",
+   "nutrient": "sodium_mg",
+   "food_name": "蛤蜊汁",
+   "value_per_100g": "5500.0000",
+   "basis": "llm_estimated",
+   "model": "gpt-5.4-mini-2026-03-17",
+   "prompt_version": "nutrient-fill-prompt-v2",
+   "created_at": "2026-11-03T15:15:38+00:00",
+   "assumptions": [
+    "Clam juice/seasoning liquid is typically very high in sodium due to salt and natural shellfish minerals.",
+    "Estimated as a concentrated savory liquid rather than plain broth, with sodium around 5.5 g per 100 g."
+   ],
+   "origin": "scripts/estimate_nutrient_fills.py",
+   "review_status": "llm_estimated"
+  },
+  {
+   "sample_id": "USER_CONFIRMED:FOOD001058",
+   "nutrient": "sugars_g",
+   "food_name": "蛤蜊汁",
+   "value_per_100g": "0.0000",
+   "basis": "llm_estimated",
+   "model": "gpt-5.4-mini-2026-03-17",
+   "prompt_version": "nutrient-fill-prompt-v2",
+   "created_at": "2026-11-03T15:15:34+00:00",
+   "assumptions": [
+    "Clam juice is typically an unsweetened broth-like ingredient.",
+    "No carbohydrate-containing ingredients are indicated in the known values."
+   ],
+   "origin": "scripts/estimate_nutrient_fills.py",
+   "review_status": "llm_estimated"
+  },
+  {
+   "sample_id": "USER_CONFIRMED:FOOD001145",
+   "nutrient": "carbohydrate_g",
+   "food_name": "當歸",
+   "value_per_100g": "0.0000",
+   "basis": "llm_estimated",
+   "model": "gpt-5.4-mini-2026-03-17",
+   "prompt_version": "nutrient-fill-prompt-v2",
+   "created_at": "2026-11-03T15:15:47+00:00",
+   "assumptions": [
+    "Dry herb/root spice with no measurable carbohydrate in the listed edible portion.",
+    "Energy and protein are both 0, so carbohydrate is estimated as 0 to stay consistent."
+   ],
+   "origin": "scripts/estimate_nutrient_fills.py",
+   "review_status": "llm_estimated"
+  },
+  {
+   "sample_id": "USER_CONFIRMED:FOOD001145",
+   "nutrient": "dietary_fiber_g",
+   "food_name": "當歸",
+   "value_per_100g": "0.0000",
+   "basis": "llm_estimated",
+   "model": "gpt-5.4-mini-2026-03-17",
+   "prompt_version": "nutrient-fill-prompt-v2",
+   "created_at": "2026-11-03T15:15:52+00:00",
+   "assumptions": [
+    "Dong quai is a herbal root used as a seasoning/ingredient; edible portion is typically treated as negligible fiber in the listed state.",
+    "Known energy and protein are 0, so dietary fiber is estimated as 0 g per 100 g to stay consistent."
+   ],
+   "origin": "scripts/estimate_nutrient_fills.py",
+   "review_status": "llm_estimated"
+  },
+  {
+   "sample_id": "USER_CONFIRMED:FOOD001145",
+   "nutrient": "fat_g",
+   "food_name": "當歸",
+   "value_per_100g": "0.0000",
+   "basis": "llm_estimated",
+   "model": "gpt-5.4-mini-2026-03-17",
+   "prompt_version": "nutrient-fill-prompt-v2",
+   "created_at": "2026-11-03T15:15:44+00:00",
+   "assumptions": [
+    "當歸為乾燥中藥材/香辛類原料，幾乎不含脂肪",
+    "已知熱量與蛋白質皆為0，推定脂肪也為接近0"
+   ],
+   "origin": "scripts/estimate_nutrient_fills.py",
+   "review_status": "llm_estimated"
+  },
+  {
+   "sample_id": "USER_CONFIRMED:FOOD001145",
+   "nutrient": "sodium_mg",
+   "food_name": "當歸",
+   "value_per_100g": "10.0000",
+   "basis": "llm_estimated",
+   "model": "gpt-5.4-mini-2026-03-17",
+   "prompt_version": "nutrient-fill-prompt-v2",
+   "created_at": "2026-11-03T15:15:51+00:00",
+   "assumptions": [
+    "Dried herb/spice with no added salt; sodium is naturally low.",
+    "Estimated as a very small trace amount typical for plain dried herbs."
+   ],
+   "origin": "scripts/estimate_nutrient_fills.py",
+   "review_status": "llm_estimated"
+  },
+  {
+   "sample_id": "USER_CONFIRMED:FOOD001145",
+   "nutrient": "sugars_g",
+   "food_name": "當歸",
+   "value_per_100g": "0.0000",
+   "basis": "llm_estimated",
+   "model": "gpt-5.4-mini-2026-03-17",
+   "prompt_version": "nutrient-fill-prompt-v2",
+   "created_at": "2026-11-03T15:15:49+00:00",
+   "assumptions": [
+    "Dried herb/seasoning root with no appreciable natural sugars reported.",
+    "Energy and protein are both 0, so sugars are estimated as absent or negligible."
+   ],
+   "origin": "scripts/estimate_nutrient_fills.py",
+   "review_status": "llm_estimated"
+  },
+  {
+   "sample_id": "USER_CONFIRMED:FOOD001208",
+   "nutrient": "dietary_fiber_g",
+   "food_name": "滾水",
+   "value_per_100g": "0.0000",
+   "basis": "llm_estimated",
+   "model": "gpt-5.4-mini-2026-03-17",
+   "prompt_version": "nutrient-fill-prompt-v2",
+   "created_at": "2026-11-03T15:15:57+00:00",
+   "assumptions": [
+    "Plain boiled water contains no dietary fiber.",
+    "All known nutrients are zero, consistent with water."
+   ],
+   "origin": "scripts/estimate_nutrient_fills.py",
+   "review_status": "llm_estimated"
+  },
+  {
+   "sample_id": "USER_CONFIRMED:FOOD001208",
+   "nutrient": "sodium_mg",
+   "food_name": "滾水",
+   "value_per_100g": "0.0000",
+   "basis": "llm_estimated",
+   "model": "gpt-5.4-mini-2026-03-17",
+   "prompt_version": "nutrient-fill-prompt-v2",
+   "created_at": "2026-11-03T15:15:55+00:00",
+   "assumptions": [
+    "Plain boiling water has no meaningful sodium.",
+    "No added salt or minerals are indicated in the sample."
+   ],
+   "origin": "scripts/estimate_nutrient_fills.py",
+   "review_status": "llm_estimated"
+  },
+  {
+   "sample_id": "USER_CONFIRMED:FOOD001579",
+   "nutrient": "carbohydrate_g",
+   "food_name": "雞腿骨",
+   "value_per_100g": "0.0000",
+   "basis": "llm_estimated",
+   "model": "gpt-5.4-mini-2026-03-17",
+   "prompt_version": "nutrient-fill-prompt-v2",
+   "created_at": "2026-11-03T15:16:00+00:00",
+   "assumptions": [
+    "Chicken leg bone has no edible carbohydrate content.",
+    "Known protein and energy are both 0, consistent with an inedible bone sample."
+   ],
+   "origin": "scripts/estimate_nutrient_fills.py",
+   "review_status": "llm_estimated"
+  },
+  {
+   "sample_id": "USER_CONFIRMED:FOOD001579",
+   "nutrient": "dietary_fiber_g",
+   "food_name": "雞腿骨",
+   "value_per_100g": "0.0000",
+   "basis": "llm_estimated",
+   "model": "gpt-5.4-mini-2026-03-17",
+   "prompt_version": "nutrient-fill-prompt-v2",
+   "created_at": "2026-11-03T15:16:06+00:00",
+   "assumptions": [
+    "Chicken leg bone contains no dietary fiber.",
+    "Edible portion is bone only, with no plant-derived ingredients."
+   ],
+   "origin": "scripts/estimate_nutrient_fills.py",
+   "review_status": "llm_estimated"
+  },
+  {
+   "sample_id": "USER_CONFIRMED:FOOD001579",
+   "nutrient": "fat_g",
+   "food_name": "雞腿骨",
+   "value_per_100g": "0.0000",
+   "basis": "llm_estimated",
+   "model": "gpt-5.4-mini-2026-03-17",
+   "prompt_version": "nutrient-fill-prompt-v2",
+   "created_at": "2026-11-03T15:15:59+00:00",
+   "assumptions": [
+    "Edible portion is chicken leg bone only, with no measurable fat.",
+    "Energy and protein are both listed as 0, so fat is estimated as 0 g per 100 g."
+   ],
+   "origin": "scripts/estimate_nutrient_fills.py",
+   "review_status": "llm_estimated"
+  },
+  {
+   "sample_id": "USER_CONFIRMED:FOOD001579",
+   "nutrient": "sodium_mg",
+   "food_name": "雞腿骨",
+   "value_per_100g": "0.0000",
+   "basis": "llm_estimated",
+   "model": "gpt-5.4-mini-2026-03-17",
+   "prompt_version": "nutrient-fill-prompt-v2",
+   "created_at": "2026-11-03T15:16:04+00:00",
+   "assumptions": [
+    "Pure chicken leg bone with no added salt or seasoning; sodium is negligible in the edible portion."
+   ],
+   "origin": "scripts/estimate_nutrient_fills.py",
+   "review_status": "llm_estimated"
+  },
+  {
+   "sample_id": "USER_CONFIRMED:FOOD001579",
+   "nutrient": "sugars_g",
+   "food_name": "雞腿骨",
+   "value_per_100g": "0.0000",
+   "basis": "llm_estimated",
+   "model": "gpt-5.4-mini-2026-03-17",
+   "prompt_version": "nutrient-fill-prompt-v2",
+   "created_at": "2026-11-03T15:16:02+00:00",
+   "assumptions": [
+    "Chicken leg bone contains no meaningful sugars; estimated as zero per 100 g edible portion.",
+    "Energy and protein are both 0, consistent with an inedible bone sample rather than a sweetened food."
+   ],
+   "origin": "scripts/estimate_nutrient_fills.py",
+   "review_status": "llm_estimated"
+  }
+ ]
+}

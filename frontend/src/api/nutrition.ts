@@ -1,40 +1,58 @@
-import type { MealResult } from './types'
+/** 營養顯示共用的常數與換算（畫面用；計算與判定由後端以精確值完成）。 */
 
-export type Nutrition = MealResult['nutrition']
+/** 七種營養素（顯示順序與單位） */
+export const NUTRIENTS = [
+  { key: 'energy_kcal', label: '熱量', unit: 'kcal' },
+  { key: 'protein_g', label: '蛋白質', unit: 'g' },
+  { key: 'carbohydrate_g', label: '碳水化合物', unit: 'g' },
+  { key: 'fat_g', label: '脂肪', unit: 'g' },
+  { key: 'sugars_g', label: '糖', unit: 'g' },
+  { key: 'sodium_mg', label: '鈉', unit: 'mg' },
+  { key: 'dietary_fiber_g', label: '膳食纖維', unit: 'g' },
+] as const
 
-/** 7 種營養素（整餐值）；熱量、蛋白質為必要營養，有目標與差距，其餘僅顯示、不擋採用（決策 #4）。 */
-export const NUTRIENTS: { key: string; label: string; unit: string; required: boolean }[] = [
-  { key: 'energy_kcal', label: '熱量', unit: 'kcal', required: true },
-  { key: 'protein_g', label: '蛋白質', unit: 'g', required: true },
-  { key: 'carbohydrate_g', label: '碳水化合物', unit: 'g', required: false },
-  { key: 'fat_g', label: '脂肪', unit: 'g', required: false },
-  { key: 'sugars_g', label: '糖', unit: 'g', required: false },
-  { key: 'sodium_mg', label: '鈉', unit: 'mg', required: false },
-  { key: 'dietary_fiber_g', label: '膳食纖維', unit: 'g', required: false },
-]
-
-/** 顯示取整到 0.1；null／undefined 一律「未知」，不以 0 代替（0 仍顯示 0.0）。 */
-export const amount = (v: string | null | undefined, unit: string) =>
-  v === null || v === undefined ? '未知' : `${Number(v).toFixed(1)} ${unit}`
-
-function total(n: Nutrition, key: string): string | null | undefined {
-  if (key === 'energy_kcal') return n.energy_kcal
-  if (key === 'protein_g') return n.protein_g
-  return n.other_nutrients?.[key]
+/** 精確字串（含 a/b 分數）轉成數字；null 表示未知。 */
+/** T12 標準（2026-11-04）：熱量不可超過目標 110%（低於不限）；蛋白質不可低於目標 90%（高於不限）。ratio＝實際 ÷ 目標。 */
+export function withinTarget(key: 'energy_kcal' | 'protein_g', ratio: number) {
+  return key === 'energy_kcal' ? ratio <= 1.1 : ratio >= 0.9
 }
 
-/**
- * 決策 #53：值為 null 時顯示「未知（已知 X，缺：A、B）」，比照價格的「未知（已知 X 元）」。
- * 已知部分與缺值食材由後端提供（known_partial／missing_by_nutrient）；舊資料沒有時退回 missing_nutrients。
- */
-export function nutrientText(n: Nutrition, key: string, unit: string): string {
-  const value = total(n, key)
-  if (value !== null && value !== undefined) return amount(value, unit)
-  const known = n.known_partial?.[key]
-  const missing = [...new Set(n.missing_by_nutrient?.[key] ?? n.missing_nutrients?.[key] ?? [])]
-  const parts = [
-    known !== null && known !== undefined ? `已知 ${amount(known, unit)}` : null,
-    missing.length ? `缺：${missing.join('、')}` : null,
-  ].filter(Boolean)
-  return parts.length ? `未知（${parts.join('，')}）` : '未知'
+export function toNumber(value: string | null | undefined): number | null {
+  if (value == null) return null
+  const [a, b] = value.split('/')
+  const n = b === undefined ? Number(a) : Number(a) / Number(b)
+  return Number.isFinite(n) ? n : null
+}
+
+/** 飯顯示總克數並附碗數：160 克為一碗，取到 0.1 碗（例：304 g（約 1.9 碗））。 */
+export const GRAMS_PER_BOWL = 160
+export function rice(grams: string | null | undefined) {
+  const g = toNumber(grams)
+  if (g === null) return '用量未知'
+  const b = Math.round((g / GRAMS_PER_BOWL) * 10) / 10
+  return `${Math.round(g)} g（約 ${b === 0 ? '不到 0.1' : String(b)} 碗）`
+}
+
+/** 食譜裡的飯：顯示總克數並附碗數 */
+const RICE_NAMES = new Set(['白飯', '糙米飯', '飯', '米飯', '五穀飯', '紫米飯'])
+
+const SPOON_FRACTIONS: Record<number, string> = { 0.25: '¼', 0.5: '½', 0.75: '¾' }
+/** 量匙用量到 ¼（1.5 → 1½、0.25 → ¼）。 */
+function spoonAmount(value: string) {
+  const n = Number(value)
+  const whole = Math.floor(n)
+  const frac = SPOON_FRACTIONS[Math.round((n - whole) * 100) / 100]
+  if (!frac) return String(n)
+  return whole > 0 ? `${whole}${frac}` : frac
+}
+
+/** 畫面用量：調味料顯示小匙／大匙（或「少許」），飯顯示克數與碗數，其他顯示克數（10 克以下到 0.1）。 */
+export function ingredientAmount(i: {
+  name: string; grams: string | null; display_amount: string | null; display_unit: string | null; display_text: string | null
+}) {
+  if (i.display_text) return i.display_text
+  if (i.display_amount != null && i.display_unit) return `${spoonAmount(i.display_amount)} ${i.display_unit}`
+  if (RICE_NAMES.has(i.name)) return rice(i.grams)
+  const g = toNumber(i.grams)
+  return g === null ? '用量未知' : `${g < 10 ? g.toFixed(1) : g.toFixed(0)} g`
 }
