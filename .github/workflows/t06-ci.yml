@@ -45,6 +45,8 @@ jobs:
         run: python -m compileall -q backend migrations tests nutrition_target nutrition_model nutrition_planning
 
       - name: Run T12 nutrition planning tests
+        env:
+          PYTHONPATH: backend
         run: python -m pytest nutrition_planning/tests --cov=nutrition_planning --cov-report=term-missing -q
 
       - name: Run T03 nutrition target tests
@@ -56,12 +58,12 @@ jobs:
           PYTHONUTF8: "1"
         run: python -m unittest discover -s nutrition_model -p 'test_*.py' -v
 
-      - name: Run T06, T07 and AC26 tests
+      - name: Run backend tests (unittest and pytest)
         env:
-          PYTHONPATH: backend
+          PYTHONPATH: backend:tests
           # T07 API 測試以 Alembic 在此資料庫重建資料表
           TEST_DATABASE_URL: postgresql+psycopg://postgres:ci_placeholder@localhost:5432/meal_planner
-        run: python -m unittest discover -s tests -p 'test_*.py' -v
+        run: python -m pytest tests -v
 
       - name: Apply Alembic migrations
         run: |

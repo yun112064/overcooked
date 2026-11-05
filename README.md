@@ -50,8 +50,19 @@ python -m nutrition_target --rules nutrition_target/rules/hpa-dri8-mvp-0.3.0.jso
 - 費用追查：`python -m app.jobs.admin budget` 顯示本月額度帳與未結清呼叫；`python -m app.jobs.admin reconcile <id> <實際金額> <說明>` 依帳單核對結果不明的呼叫。
 - 菜單生成（Ticket 14）尚未完成：送出生成會建立工作並明確回報「生成功能尚未開放」，問卷保留可再送出。
 
-需要資料庫的 API 測試以 `TEST_DATABASE_URL` 指定一個可清空的 PostgreSQL（含 pgvector），測試會以 Alembic 重建資料表；未設定時這些測試會略過。
+後端測試統一使用 pytest，同時執行 unittest 類別與 pytest 函式／參數化測試。先安裝 `requirements-dev.txt`。需要資料庫的 API 測試以 `TEST_DATABASE_URL` 指定一個可清空的 PostgreSQL（含 pgvector），測試會以 Alembic 重建資料表；未設定時這些測試會略過。以下命令在專案根目錄執行，`DATABASE_URL` 也指向同一個測試資料庫。
 
 ```sh
-TEST_DATABASE_URL=postgresql+psycopg://postgres:<密碼>@localhost:5432/meal_planner_test PYTHONPATH=backend python -m unittest discover -s tests -p 'test_*.py' -v
+DATABASE_URL='postgresql+psycopg://postgres:<密碼>@localhost:5432/meal_planner_test' \
+TEST_DATABASE_URL='postgresql+psycopg://postgres:<密碼>@localhost:5432/meal_planner_test' \
+PYTHONPATH=backend:tests python -m pytest tests -v
+```
+
+Windows PowerShell：
+
+```powershell
+$env:DATABASE_URL = 'postgresql+psycopg://postgres:<密碼>@localhost:5432/meal_planner_test'
+$env:TEST_DATABASE_URL = $env:DATABASE_URL
+$env:PYTHONPATH = 'backend;tests'
+python -m pytest tests -v
 ```

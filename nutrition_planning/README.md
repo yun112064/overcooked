@@ -45,6 +45,19 @@ PR17 的 `recipe_dataset_1017.xlsx` 已人工確認所有食材列的 `weight_g`
 9. **精確克數**：食譜克數除以份數（如 10 g ÷ 3 人份）無法以 0.000001 g 精確表示時，固定食材只允許小於半微克的表示誤差；以烹調單位改變固定食材的情況仍被拒絕。最終營養標準以取整後克數計算。
 10. **營養標準（2026-11-04 使用者決定）**：熱量不可超過當餐目標 110%，低於目標不限；蛋白質不可低於當餐目標 90%，高於目標不限（`service.TOLERANCE_RATIOS`）。兩項皆含邊界；`check_tolerance`、份量搜尋（`portion_fit.py`，版本 `dish-portion-2026-11-04-v3`）、每人 `within_10pct` 與畫面顏色都用同一規則。`bounds` 中不設限的一側為 `null`。
 
-驗證：`python -m pytest nutrition_planning/tests --cov=nutrition_planning --cov-report=term-missing -q`。開發依賴見 `requirements-dev.txt`；不需呼叫模型或外部 API。
+驗證前先安裝 `requirements-dev.txt`，並在專案根目錄設定 `PYTHONPATH`，讓 T12 能載入 `backend/app` 的共用換算函式；不需呼叫模型或外部 API。
+
+Linux／macOS：
+
+```sh
+PYTHONPATH=backend python -m pytest nutrition_planning/tests --cov=nutrition_planning --cov-report=term-missing -q
+```
+
+Windows PowerShell：
+
+```powershell
+$env:PYTHONPATH = 'backend'
+python -m pytest nutrition_planning/tests --cov=nutrition_planning --cov-report=term-missing -q
+```
 
 型別檢查：`python -m pyright --project nutrition_planning/pyrightconfig.json`（本機使用專案 `.venv`）。
