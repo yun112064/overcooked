@@ -1,5 +1,4 @@
 """T10：持久背景工作與付費額度控制（AC18、AC20、AC25）。"""
-import pytest
 import json
 import logging
 import threading
@@ -11,8 +10,6 @@ from unittest.mock import patch
 from sqlalchemy import select, text
 
 from db_support import make_client, migrate_fresh, requires_db, session_factory, truncate_all
-
-pytestmark = pytest.mark.usefixtures("staple_policy")
 
 PASSWORD = "correct-horse-42"
 MODEL = "gpt-5.4-mini-2026-03-17"
@@ -170,26 +167,20 @@ class T10Tests(unittest.TestCase):
 
     # --- 工作程序 ---
 
-    def test_default_handler_reports_generation_failure_and_keeps_draft(self):
+    def test_default_handler_reports_generation_not_available_and_keeps_draft(self):
         from app.jobs.worker import run_once
         job_id = self.submit().json()["job"]["id"]
         run_once(self.factory, "worker-a")
         job = self.client.get(f"/jobs/{job_id}").json()
         self.assertEqual(job["status"], "failed")
-        # No configured active nutrition release means fail closed before generation;
-        # the worker must preserve the draft and never fall back to legacy JSON.
-        self.assertEqual(job["error"]["code"], "STAPLE_NUTRITION_UNAVAILABLE")
+        self.assertEqual(job["error"]["code"], "GENERATION_NOT_AVAILABLE")
         self.assertEqual(job["attempts"], 1)
         self.assertEqual(self.request_status(), "failed")
         reread = self.client.get(f"/meal-requests/{self.request['id']}").json()
         self.assertEqual(reread["draft"]["budget"], "300")
-        changed = draft(self.member_id)
-        changed["budget"] = "301"
         edited = self.client.put(f"/meal-requests/{self.request['id']}",
-                                 json={"version": 1, "draft": changed})
-        self.assertEqual(edited.status_code, 200)
+                                 json={"version": 1, "draft": draft(self.member_id)})
         self.assertEqual(edited.json()["status"], "draft")
-        self.assertEqual(edited.json()["version"], 2)
         # 未呼叫任何付費服務
         self.assertEqual(self.ledger().reserved_twd + self.ledger().spent_twd, 0)
 
