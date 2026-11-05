@@ -133,3 +133,11 @@ Python 3.12；Node 24.21.0／npm 11.19.0。專案 `.venv` 使用既有 Python �
 - 原始 V3 的 Admin schema 不在此 PR 的 migration 圖，因此原庫目前不能直接通過本分支 schema gate；須等待 Admin 分支與本分支另作 schema 整合。PR #25 的 main/V3 合併與兩個已發布起點的隔離驗證已完成，不將原庫版本 stamp 成其他版本來假裝通過。
 
 - 提交前補查：專用 T02 測試庫的 `schema_gate` 為 `ok (d1105merge1)`，`alembic check` 回報沒有新升級操作。暫存後的 API 金鑰掃描與 V3 接線契約 **6 passed**；以 `cr-at-eol` 核對暫存 diff 無空白錯誤（版本化規則的原始 CRLF 依 `.gitattributes` 保留，不改其 SHA-256）。`.env`、`.env.dev`、`.test-runtime`、`.worktrees` 均無被追蹤檔案。
+
+## 2026-11-05 測試時鐘修正（PR #25 合併後）
+
+- 基底為 `main@4fc740783d71f45f60fe712863d7fa9188a7aafa`。PR #25 已先合併，其 main CI [41998410782](https://github.com/yun112064/overcooked/actions/runs/41998410782) 三個工作均成功。
+- 獨立 Windows／Docker 驗證曾捕捉到測試 helper 以 PostgreSQL `now()` 寫入的 available_at 比 worker 的 Python 判斷時間晚 0.104–1.591 毫秒，造成 queued 工作未被領取。只將 `GenerationTestCase.run_job()` 與 `T10Tests.make_available()` 改用 `jobs._now() - timedelta(seconds=1)` 並以 SQL 參數寫入；正式 worker 的領取條件及退避邏輯保持原樣。
+- Windows／Python 3.12.10、全新 pgvector 0.8.6／PostgreSQL 17.11 容器，建立兩個經核對的 V3 拋棄式測試庫。原 5 項失敗案例各執行 10 輪，**50/50 通過**，使用原測試命令且未載入診斷外掛。
+- 完整後端（archive 中排除 2 項需 Git 的測試）**701 passed、1 skipped、153 subtests passed**；兩項 Git 機密／忽略規則測試另以獨立 index 執行，**2 passed**。唯一後端略過原因為未隨程式散布的本機歷史價格來源包。
+- T12 **174 passed**、T03 **33 項通過**；Alembic upgrade／current／check、schema gate、database／pgvector health 均通過，head 為 `d1105merge1`。拋棄式容器已清理，未連接既有 V1／V3／Admin 資料庫，也未啟動爬蟲、付費模型或真實 YOLO。

@@ -7,7 +7,7 @@ Extracted from origin/1102_V1 tests/test_t14_generation.py lines 1–178.
 """
 import json
 import unittest
-from datetime import date
+from datetime import date, timedelta
 from decimal import Decimal
 from unittest.mock import patch
 
@@ -146,9 +146,13 @@ class GenerationTestCase(unittest.TestCase):
         handler = make_generation_handler(responder=responder, knowledge_client=knowledge, embedder=embedder,
                                           calculator=calculator or self.calculator_for())
         if available:
+            from app.services import jobs
             from sqlalchemy import text
+            # Use the worker's clock; database time may be slightly ahead on Docker.
+            ready_at = jobs._now() - timedelta(seconds=1)
             with self.factory() as db, db.begin():
-                db.execute(text("UPDATE background_jobs SET available_at = now() WHERE status = 'queued'"))
+                db.execute(text("UPDATE background_jobs SET available_at = :ready_at WHERE status = 'queued'"),
+                           {"ready_at": ready_at})
         return run_once(self.factory, "worker-a", {"meal_generation": handler})
 
     def job(self, job_id):

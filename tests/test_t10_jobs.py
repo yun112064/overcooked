@@ -83,8 +83,12 @@ class T10Tests(unittest.TestCase):
                             "WHERE id = :id"), {"id": job_id})
 
     def make_available(self, job_id):
+        from app.services import jobs
+        # Match claim()'s clock instead of depending on host/database clock alignment.
+        ready_at = jobs._now() - timedelta(seconds=1)
         with self.factory() as db, db.begin():
-            db.execute(text("UPDATE background_jobs SET available_at = now() WHERE id = :id"), {"id": job_id})
+            db.execute(text("UPDATE background_jobs SET available_at = :ready_at WHERE id = :id"),
+                       {"ready_at": ready_at, "id": job_id})
 
     def ledger(self):
         from app.db.models import BudgetMonth
