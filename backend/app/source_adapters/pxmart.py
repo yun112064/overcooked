@@ -402,6 +402,7 @@ def build_price_quote_from_candidates(
 
 class PxMartAdapter:
     retailer = "PX Mart"
+    block_markers: tuple[str, ...] = BLOCK_MARKERS
 
     def __init__(
         self,
@@ -409,7 +410,7 @@ class PxMartAdapter:
         client: HttpClient | None = None,
         timeout: float = 15.0,
         retries: int = 1,
-        retry_delay: float = 1.0,
+        retry_delay: float = 2.0,
         sleep: Callable[[float], None] = time.sleep,
     ) -> None:
         if retries < 0 or retries > 3:
@@ -485,7 +486,7 @@ class PxMartAdapter:
 
             body_lower = response.text.lower()
             if response.status_code in {401, 403, 429} or any(
-                marker in body_lower for marker in BLOCK_MARKERS
+                marker in body_lower for marker in self.block_markers
             ):
                 return response, (
                     f"source blocked or rate-limited the request (HTTP {response.status_code}); "

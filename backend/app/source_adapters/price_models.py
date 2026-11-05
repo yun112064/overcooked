@@ -168,6 +168,11 @@ class PriceQuote(BaseModel):
     rejection_summary: dict[str, int] = Field(default_factory=dict)
     query_terms: list[str] = Field(default_factory=list)
     source_request_count: int = 0
+    # Filled by trusted database reads, not by the external retailer.
+    recipe_release_id: str | None = None
+    price_data_release_id: str | None = None
+    snapshot_id: int | None = None
+    usage_status: str | None = None
 
     @model_validator(mode="after")
     def missing_values_must_be_explicit(self) -> "PriceQuote":

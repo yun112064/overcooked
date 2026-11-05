@@ -18,6 +18,7 @@ def make_app(store,token,embedder=None):
         if not hmac.compare_digest(authorization.encode(),('Bearer '+token).encode()):
             raise HTTPException(401,'AUTH_FAILED')
 
+    @app.post('/v1/knowledge/search',dependencies=[Depends(authorize)])
     @app.post('/v1/search',dependencies=[Depends(authorize)])
     def search(body:dict):
         try:
@@ -26,7 +27,20 @@ def make_app(store,token,embedder=None):
         except (KeyError,ValueError,TypeError):
             raise HTTPException(422,'INVALID_QUERY') from None
         except KnowledgeStoreError as exc:
+            if exc.code == 'EMBEDDING_MODEL_MISMATCH':
+                raise HTTPException(409, exc.code) from None
             raise HTTPException(503,exc.code) from None
+
+    @app.get('/v1/health',dependencies=[Depends(authorize)])
+    def health():
+        try:
+            index = store.active_index()
+        except Exception:
+            raise HTTPException(503, 'STORE_UNAVAILABLE') from None
+        if index is None:
+            return {'status': 'not_ready', 'index_version': None, 'embedding_model': None}
+        return {'status': 'ok', 'index_version': index['index_version'],
+                'embedding_model': index['embedding_model']}
 
     @app.post('/v1/retrieve',dependencies=[Depends(authorize)])
     def retrieve(body:dict):

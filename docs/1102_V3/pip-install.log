@@ -1,0 +1,18 @@
+Collecting pip
+  Downloading pip-26.3-py3-none-any.whl.metadata (4.6 kB)
+Collecting argon2-cffi
+  Using cached argon2_cffi-25.1.0-py3-none-any.whl.metadata (4.1 kB)
+Collecting argon2-cffi-bindings (from argon2-cffi)
+  Using cached argon2_cffi_bindings-26.1.0-cp310-abi3-win_amd64.whl.metadata (7.5 kB)
+Collecting cffi>=1.0.1 (from argon2-cffi-bindings->argon2-cffi)
+  Using cached cffi-2.1.1-cp312-cp312-win_amd64.whl.metadata (2.6 kB)
+Collecting pycparser (from cffi>=1.0.1->argon2-cffi-bindings->argon2-cffi)
+  Using cached pycparser-3.12-py3-none-any.whl.metadata (9.7 kB)
+Downloading pip-26.3-py3-none-any.whl (2.0 MB)
+   ---------------------------------------- 2.0/2.0 MB 15.5 MB/s eta 0:00:00
+Using cached argon2_cffi-25.1.0-py3-none-any.whl (14 kB)
+Using cached argon2_cffi_bindings-26.1.0-cp310-abi3-win_amd64.whl (25 kB)
+Using cached cffi-2.1.1-cp312-cp312-win_amd64.whl (185 kB)
+Using cached pycparser-3.12-py3-none-any.whl (62 kB)
+Installing collected packages: pycparser, pip, cffi, argon2-cffi-bindings, argon2-cffi
+Successfully installed argon2-cffi-25.1.0 argon2-cffi-bindings-26.1.0 cffi-2.1.1 pip-26.3 pycparser-3.12

@@ -2,11 +2,11 @@
  *  只有按「採用」的餐食會出現。本分支尚未整合 T13 價格，所以只有熱量趨勢，沒有成本。 */
 import HistoryEduOutlined from '@mui/icons-material/HistoryEduOutlined'
 import {
-  Alert, Box, Chip, CircularProgress, Stack, TextField, ToggleButton, ToggleButtonGroup, Typography,
+  Alert, Box, Button, Chip, CircularProgress, Stack, TextField, ToggleButton, ToggleButtonGroup, Typography,
 } from '@mui/material'
 import { useQuery } from '@tanstack/react-query'
 import { useMemo, useState } from 'react'
-import { useSearchParams } from 'react-router'
+import { Link, useSearchParams } from 'react-router'
 import {
   Bar, CartesianGrid, ComposedChart, Line, ResponsiveContainer, Tooltip, XAxis, YAxis,
 } from 'recharts'
@@ -175,6 +175,13 @@ function Trends({ selected, onPick }: { selected: string; onPick: (date: string)
 
 /** 單筆已採用餐食：顯示的都是採用當下保存的快照，來源之後更新不會改變。 */
 function PlanCard({ plan }: { plan: MealPlanDetail }) {
+  if (plan.result_version != null) {
+    return <Section title={`${MEAL_LABELS[plan.meal_type]}・${plan.dishes.map((d) => d.dish_name).join('、')}`}>
+      <Button component={Link} to={`/generation-history?date=${plan.meal_date}`}>
+        查看完整餐食、營養與採購明細
+      </Button>
+    </Section>
+  }
   const s = plan.snapshot
   const energy = toNumber(s.nutrition?.totals?.energy_kcal)
   const protein = toNumber(s.nutrition?.totals?.protein_g)

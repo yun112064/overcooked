@@ -7,7 +7,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.api.deps import AuthContext, current_auth, current_household_id, verify_origin
-from app.api.errors import ApiError, not_found, version_conflict
+from app.api.errors import ApiError, already_adopted, not_found, version_conflict
 from app.db.models import AdoptedMealPlan, MealRequest, MealRequestRevision, Member
 from app.db.session import get_db
 from app.services import ingredients
@@ -16,7 +16,7 @@ from app.services import jobs as job_service
 from app.services import meal_request as service
 from app.services import t12_planning
 from app.services import knowledge_explanation
-from app.services import meal_plans
+from app.services import database_menu_plans as meal_plans
 from app.db.session import SessionLocal
 
 router = APIRouter(prefix="/meal-requests", tags=["meal-requests"], dependencies=[Depends(verify_origin)])
@@ -35,10 +35,20 @@ def _members(db: Session, household_id) -> dict:
     return {m.id: m for m in db.scalars(select(Member).where(Member.household_id == household_id))}
 
 
+def _check(db: Session, draft: service.MealRequestDraft, members: dict) -> tuple[list[dict], dict, object]:
+    """待補項目（含預算下限）、目標預覽與預算下限；問卷讀取與送出共用同一套判斷。"""
+    issues = service.completeness(draft, members)
+    preview = service.target_preview(draft, members)
+    floor = service.budget_floor(db, draft, preview)
+    low = service.budget_issue(draft, floor)
+    if low:
+        issues.append(low)
+    return issues, preview, floor
+
 def _out(db: Session, row: MealRequest) -> dict:
     draft = service.load(row.payload)
     members = _members(db, row.household_id)
-    issues = service.completeness(draft, members)
+    issues, preview, floor = _check(db, draft, members)
     return {
         "id": str(row.id),
         "status": row.status,
@@ -48,7 +58,8 @@ def _out(db: Session, row: MealRequest) -> dict:
         "available_ingredients": ingredients.describe(db, draft.available_ingredient_ids),
         "items": service.items(draft),
         "restrictions": service.restrictions(db, draft, members),
-        "targets_preview": service.target_preview(draft, members),
+        "targets_preview": preview,
+        "budget_floor": f"{floor:f}" if floor is not None else None,
         "issues": issues,
         "complete": not issues,
     }
@@ -62,6 +73,9 @@ def _get_owned(db: Session, household_id, request_id: uuid.UUID, *, lock: bool =
     if row is None or row.household_id != household_id:
         raise not_found("找不到此問卷。")
     return row
+
+
+get_owned_request = _get_owned
 
 
 def _reject_bad_references(db: Session, household_id, draft: service.MealRequestDraft) -> None:
@@ -84,6 +98,11 @@ def list_requests(household_id=Depends(current_household_id), db: Session = Depe
          "meal_type": r.payload.get("meal_type"), "updated_at": r.updated_at.isoformat()}
         for r in rows
     ]}
+
+
+@router.get("/staple-options")
+def staple_options(household_id=Depends(current_household_id)):
+    return service.staple_options()
 
 
 @router.post("", status_code=201)
@@ -149,6 +168,7 @@ def nutrition_preview(request_id: uuid.UUID, body: NutritionPreviewBody,
     """T12 result for selected T11 recipe IDs; never accepts client nutrition facts."""
     row = _get_owned(db, household_id, request_id)
     draft = service.load(row.payload)
+    _reject_bad_references(db, row.household_id, draft)
     members = _members(db, row.household_id)
     issues = service.completeness(draft, members)
     if issues:
@@ -168,6 +188,7 @@ def knowledge_tips(request_id: uuid.UUID, body: NutritionPreviewBody,
     """
     row = _get_owned(db, household_id, request_id)
     draft = service.load(row.payload)
+    _reject_bad_references(db, row.household_id, draft)
     members = _members(db, row.household_id)
     issues = service.completeness(draft, members)
     if issues:
@@ -189,13 +210,19 @@ def knowledge_tips(request_id: uuid.UUID, body: NutritionPreviewBody,
 def update_request(request_id: uuid.UUID, body: DraftUpdate, auth: AuthContext = Depends(current_auth),
                    household_id=Depends(current_household_id), db: Session = Depends(get_db)):
     row = _get_owned(db, household_id, request_id, lock=True)
+    payload = service.dump(body.draft)
     if row.status in ("queued", "running"):
         raise ApiError(409, "VERSION_CONFLICT", "此問卷正在生成中，請等待結果後再修改。",
                        {"reason": "GENERATION_IN_PROGRESS"})
+    if row.version == body.version and payload == row.payload:
+        # 內容沒變（例如回看問卷）：不升版、不改狀態，已有的結果與採用都保留
+        db.rollback()
+        return _out(db, row)
+    if row.status == "confirmed":
+        raise already_adopted()
     if row.version != body.version:
         raise version_conflict()
     _reject_bad_references(db, household_id, body.draft)
-    payload = service.dump(body.draft)
     row.version += 1
     # 失敗或已有結果後再修改：回到草稿，新版本需重新送出生成
     row.status = "draft"
@@ -241,9 +268,21 @@ def submit_request(request_id: uuid.UUID, body: SubmitBody,
                    household_id=Depends(current_household_id), db: Session = Depends(get_db)):
     """送出生成：相同 Idempotency-Key 與相同問卷版本回傳同一工作，不重複建立或扣額度。"""
     row = _get_owned(db, household_id, request_id, lock=True)
-    complete = not service.completeness(service.load(row.payload), _members(db, household_id))
+    complete = not _check(db, service.load(row.payload), _members(db, household_id))[0]
     job, created = job_service.submit_generation(
         db, household_id=household_id, meal_request=row, version=body.version,
         idempotency_key=idempotency_key, complete=complete)
     db.commit()
     return {"job": job_service.public_view(job), "created": created}
+
+
+@router.post("/{request_id}/cancel")
+def cancel_generation(request_id: uuid.UUID, household_id=Depends(current_household_id),
+                      db: Session = Depends(get_db)):
+    """取消排隊中或執行中的生成；問卷回到送出前的狀態，可再修改或重新送出。"""
+    row = get_owned_request(db, household_id, request_id, lock=True)
+    job = job_service.cancel_generation(db, row)
+    if job is None:
+        raise ApiError(409, "VERSION_CONFLICT", "這份問卷目前沒有進行中的生成。", {"reason": "NOTHING_TO_CANCEL"})
+    db.commit()
+    return {"job": job_service.public_view(job), "meal_request": _out(db, row)}

@@ -9,6 +9,7 @@ from decimal import Decimal
 from typing import Literal
 
 from pydantic import BaseModel, Field, field_validator, model_validator
+from pydantic_core import PydanticCustomError
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -19,6 +20,32 @@ from nutrition_target import TargetInputError
 
 MealType = Literal["breakfast", "lunch", "dinner"]
 MAX_DISHES = 10
+
+
+# 「不知道」「都可以」這類回答不是菜名（2026-10-28 使用者要求擋下）。
+# 句中出現就擋：這些詞不會是菜名的一部分
+NON_DISH_PHRASES = (
+    "不知道", "不曉得", "不清楚", "不確定", "隨便", "隨意", "都可以", "都行", "都好", "皆可",
+    "無所謂", "沒意見", "沒想法", "你決定", "你選", "幫我選", "看著辦", "看你", "想不到", "不指定",
+    "不用指定", "沒有指定", "未指定", "亂打", "亂填",
+)
+# 去掉語助詞與標點後整句等於這些才擋：它們可能出現在真正的菜名裡（如「無骨雞排」「任意門」不算）
+NON_DISH_ANSWERS = {
+    "沒有", "沒", "無", "否", "不要", "不用", "不需要", "任意", "任何", "什麼", "啥", "都", "好", "可以", "嗯", "喔",
+    "測試", "idk", "none", "null", "na", "no", "any", "anything", "whatever", "random", "test", "asdf", "qwer",
+}
+_FILLER = set("我也都就吧啦啦耶欸誒喔哦呢啊阿嗯呀哈～~ ")
+
+
+def not_a_dish_name(text: str) -> str | None:
+    """不是菜名時回傳原因（給使用者看），是菜名回傳 None。"""
+    if not any(ch.isalpha() for ch in text):
+        return "不是菜名，請輸入菜名（不能只有數字或符號）。"
+    letters = "".join(ch for ch in text.lower() if ch.isalnum() or ch.isspace())
+    core = "".join(ch for ch in letters if ch not in _FILLER)
+    if any(p in core for p in NON_DISH_PHRASES) or core in NON_DISH_ANSWERS or not core:
+        return "不是菜名；沒有想吃的菜請留空，系統會自動配菜。"
+    return None
 
 
 class Participant(BaseModel):
@@ -58,6 +85,12 @@ class MealRequestDraft(BaseModel):
         cleaned = list(dict.fromkeys(v.strip() for v in values if v.strip()))
         if any(len(v) > 50 for v in cleaned):
             raise ValueError("指定菜色名稱最多 50 個字。")
+        # 亂輸入防護：「123」「不知道」「隨便」都不是菜名，放行會被當成資料庫沒有的菜交給 AI 硬做
+        for v in cleaned:
+            reason = not_a_dish_name(v)
+            if reason:
+                raise PydanticCustomError("dish_name_invalid", "指定菜色「{name}」{reason}",
+                                          {"name": v, "reason": reason})
         return cleaned
 
     @field_validator("available_ingredient_ids")
@@ -127,6 +160,9 @@ def completeness(draft: MealRequestDraft, members: dict) -> list[dict]:
     for field, message in required:
         if getattr(draft, field) is None:
             issues.append(_issue(field, "REQUIRED", message))
+    staple_problem = staple_issue(draft.staple)
+    if staple_problem:
+        issues.append(staple_problem)
     if not items(draft):
         issues.append(_issue("participants", "REQUIRED", "請至少選擇一位用餐或帶便當的成員。"))
     if any(p.member_id not in members for p in draft.participants):
@@ -136,6 +172,54 @@ def completeness(draft: MealRequestDraft, members: dict) -> list[dict]:
                              f"指定菜色有 {len(draft.specified_dishes)} 道，超過菜數 {draft.dish_count}；"
                              "指定菜會計入菜數，請增加菜數或減少指定菜。"))
     return issues
+
+
+def staple_options() -> dict:
+    """決策 #52：可選主食清單（後端設定檔 config/staples.json，前端不寫死）。
+
+    只列有營養資料（有 TFDA 食材）的選項；none_value 是「不需要主食」的標準寫法。
+    """
+    from app.services import staples
+
+    config = staples.table()
+    if not config.get('options') and not getattr(household_service.settings, 'generation_recipe_release_id', None):
+        import json
+        from app.core.config import PROJECT_ROOT
+        preview = json.loads((PROJECT_ROOT / 'config/staples.json').read_text(encoding='utf-8'))
+        if preview.get('review_status') == 'user_confirmed':
+            config = {**config, 'version': preview['version'],
+                      'options': {label: {'tfda_name': label} for label in ('白飯', '糙米飯')}}
+    none_values = list(config.get("none_values") or [])
+    return {
+        "options": [{"label": label, "aliases": list(o.get("aliases") or [])}
+                    for label, o in config["options"].items() if o.get("tfda_name")],
+        "none_value": none_values[0] if none_values else "不需要主食",
+        "none_values": none_values,
+        "config_version": config.get("version"),
+    }
+
+
+def staple_issue(text: str | None) -> dict | None:
+    """主食不在清單（或該選項沒有營養資料）→ STAPLE_NOT_SUPPORTED；草稿照存，送出前擋下。"""
+    from app.services import staples
+
+    if text is None:
+        return None
+    if not getattr(household_service.settings, 'generation_recipe_release_id', None):
+        # Standalone main preview accepts its reviewed rice choices; V3 uses its own pending contract.
+        import json
+        from app.core.config import PROJECT_ROOT
+        policy = json.loads((PROJECT_ROOT / 'config/staples.json').read_text(encoding='utf-8'))
+        if policy.get('review_status') == 'user_confirmed' and text in ('白飯', '糙米飯'):
+            return None
+    staple = staples.resolve(text)
+    if staple is None or staple.line.grams_per_n is not None:
+        return None
+    if staple.line.unresolved_reason == "staple_not_supported":
+        message = f"主食「{text}」不在可選清單中，請從清單選擇（不需要主食也請選「不需要主食」）。"
+    else:
+        message = f"主食「{staple.label}」目前沒有營養資料，整餐營養無法計算，請改選其他主食。"
+    return _issue("staple", "STAPLE_NOT_SUPPORTED", message)
 
 
 def restrictions(db: Session, draft: MealRequestDraft, members: dict) -> dict:
@@ -159,7 +243,19 @@ def restrictions(db: Session, draft: MealRequestDraft, members: dict) -> dict:
                     row["member_names"].append(member.display_name)
     # 同義食材（含待確認的組）也一併排除，例如對「番茄」過敏也排除「蕃茄」
     expanded: dict[str, dict] = {}
-    for base_id, extras in synonyms.restriction_expansion(list(union)).items():
+    expansions = synonyms.restriction_expansion(list(union))
+    allergy_ids = [food_id for food_id, row in union.items() if "allergen" in row["kinds"]]
+    group_path = allergen_groups.default_path()
+    if allergy_ids and group_path.is_file():
+        try:
+            groups = allergen_groups.expansion(allergy_ids, group_path)
+        except allergen_groups.AllergenGroupsInvalid:
+            from app.api.errors import ApiError
+
+            raise ApiError(503, "ALLERGEN_GROUPS_UNAVAILABLE", "無法讀取過敏原群組設定。") from None
+        for base_id, extras in groups.items():
+            expansions.setdefault(base_id, []).extend(extras)
+    for base_id, extras in expansions.items():
         for extra in extras:
             if extra["food_id"] in union:
                 continue
@@ -167,39 +263,13 @@ def restrictions(db: Session, draft: MealRequestDraft, members: dict) -> dict:
                 "ingredient_id": extra["food_id"], "relation": extra["relation"], "status": extra["status"],
                 "via": [], "kinds": [], "member_names": [],
             })
-            row["via"].append(base_id)
-            for key in ("kinds", "member_names"):
-                for value in union[base_id][key]:
-                    if value not in row[key]:
-                        row[key].append(value)
-    # T11 過敏原群組：對「雞蛋」過敏也排除皮蛋、鹹蛋、蛋豆腐等（只套用「過敏」，不套用「不吃」）
-    allergic: dict[str, list[str]] = {}
-    for p in draft.participants:
-        member = members.get(p.member_id)
-        if member is None or not (p.bento or (p.dining and draft.meal_type)):
-            continue
-        for ingredient_id in member.allergen_ingredient_ids:
-            names_for = allergic.setdefault(ingredient_id, [])
-            if member.display_name not in names_for:
-                names_for.append(member.display_name)
-    triggers = {**{fid: fid for fid in allergic},
-                **{extra["food_id"]: base for base, extras in synonyms.restriction_expansion(list(allergic)).items()
-                   for extra in extras if extra["food_id"] not in allergic}}
-    for trigger, base_id in triggers.items():
-        for extra in allergen_groups.expansion([trigger])[trigger]:
-            if extra["food_id"] in union:
-                continue
-            row = expanded.setdefault(extra["food_id"], {
-                "ingredient_id": extra["food_id"], "relation": extra["relation"], "status": extra["status"],
-                "group_name": extra["group_name"], "via": [], "kinds": [], "member_names": [],
-            })
             if base_id not in row["via"]:
                 row["via"].append(base_id)
-            if "allergen" not in row["kinds"]:
-                row["kinds"].append("allergen")
-            for value in allergic[base_id]:
-                if value not in row["member_names"]:
-                    row["member_names"].append(value)
+            for key in ("kinds", "member_names"):
+                values = ["allergen"] if key == "kinds" and extra["relation"] == "allergen_group" else union[base_id][key]
+                for value in values:
+                    if value not in row[key]:
+                        row[key].append(value)
     extra_names = ingredients.names(db, list(expanded))
     for row in expanded.values():
         row["name"] = extra_names.get(row["ingredient_id"])
@@ -215,15 +285,63 @@ def restrictions(db: Session, draft: MealRequestDraft, members: dict) -> dict:
     }
 
 
+def budget_floor(db: Session, draft: MealRequestDraft, preview: dict) -> Decimal | None:
+    """本餐預算下限（budget_floor 模組）；菜數或目標未定時不估算。"""
+    from app.services import budget_floor as floor_service
+    from app.services import staples
+    if draft.dish_count is None or preview.get("status") != "available":
+        return None
+    return floor_service.minimum_budget(db, dish_count=draft.dish_count, total_n=Decimal(str(preview["total_n"])),
+                                        available_food_ids=draft.available_ingredient_ids,
+                                        has_staple=staples.resolve(draft.staple) is not None)
+
+
+def budget_issue(draft: MealRequestDraft, floor: Decimal | None) -> dict | None:
+    """預算低於估算的最低合理金額：列為待補項目，不能送出生成（2026-10-28 使用者決定）。"""
+    if draft.budget is None or floor is None or draft.budget >= floor:
+        return None
+    return _issue("budget", "BUDGET_TOO_LOW",
+                  f"預算 {draft.budget.normalize():f} 元低於這一餐估算的最低金額約 {floor:f} 元"
+                  f"（{draft.dish_count} 道菜），請調高預算後再送出。")
+
+
+def target_participations(draft: MealRequestDraft, members: dict) -> list[dict]:
+    """Build T03 inputs from server-side members and the stored questionnaire."""
+    if draft.meal_date is None:
+        raise ValueError('meal_date is required')
+    participations = []
+    for entry in items(draft):
+        member = members.get(uuid.UUID(entry['member_id']))
+        if member is None:
+            raise ValueError('member is unavailable')
+        fields = {c: getattr(member, c) for c in (
+            'birth_date', 'equation_sex', 'weight_kg', 'activity_category', 'goal')}
+        participations.append({
+            'participation_id': entry['participation_id'], 'kind': entry['kind'],
+            'meal': entry['meal'], 'n': household_service.plain_decimal(member.portion),
+            'member': household_service.target_input(fields, member_id=entry['member_id'], on=draft.meal_date),
+        })
+    return participations
+
+
 def target_preview(draft: MealRequestDraft, members: dict) -> dict:
     """以 T03 規則預覽本餐目標；未乘配方、不代表可採用。"""
     entries = items(draft)
     if not entries or draft.meal_date is None:
         return {"status": "incomplete"}
-    try:
-        participations = target_participations(draft, members)
-    except (TargetInputError, ValueError):
-        return {"status": "incomplete"}
+    participations = []
+    for entry in entries:
+        member = members.get(uuid.UUID(entry["member_id"]))
+        if member is None:
+            return {"status": "incomplete"}
+        fields = {c: getattr(member, c) for c in ("birth_date", "equation_sex", "weight_kg", "activity_category", "goal")}
+        participations.append({
+            "participation_id": entry["participation_id"],
+            "kind": entry["kind"],
+            "meal": entry["meal"],
+            "n": household_service.plain_decimal(member.portion),
+            "member": household_service.target_input(fields, member_id=entry["member_id"], on=draft.meal_date),
+        })
     try:
         result = household_service.target_service().aggregate_meal_targets(participations)
     except TargetInputError as exc:
@@ -242,24 +360,3 @@ def target_preview(draft: MealRequestDraft, members: dict) -> dict:
         ],
         "approved_for_adoption": result.get("approved_for_adoption") is True,
     }
-
-
-def target_participations(draft: MealRequestDraft, members: dict) -> list[dict]:
-    """Trusted T03 inputs derived from the stored questionnaire and members."""
-    if draft.meal_date is None:
-        raise ValueError('meal_date is required')
-    entries = items(draft)
-    participations = []
-    for entry in entries:
-        member = members.get(uuid.UUID(entry["member_id"]))
-        if member is None:
-            raise ValueError('member is unavailable')
-        fields = {c: getattr(member, c) for c in ("birth_date", "equation_sex", "weight_kg", "activity_category", "goal")}
-        participations.append({
-            "participation_id": entry["participation_id"],
-            "kind": entry["kind"],
-            "meal": entry["meal"],
-            "n": household_service.plain_decimal(member.portion),
-            "member": household_service.target_input(fields, member_id=entry["member_id"], on=draft.meal_date),
-        })
-    return participations

@@ -9,9 +9,11 @@ RUN pip install --no-cache-dir -r /app/requirements.txt
 COPY backend /app/backend
 # T07 起後端直接使用 T03 版本化規則；標準食材字典（FOOD 編號）由 T01 匯入資料庫
 COPY nutrition_target /app/nutrition_target
-# T12 exact calculations and the versioned TFDA catalog/mapping dependencies.
 COPY nutrition_planning /app/nutrition_planning
 COPY nutrition_model /app/nutrition_model
+COPY knowledge_rag /app/knowledge_rag
+COPY ops /app/ops
+COPY config /app/config
 # T10 付費呼叫預留與結算用的模型價格表
 COPY config/model_pricing.json /app/config/model_pricing.json
 # T09 YOLO 類別名稱對照（待 T05 定版）
@@ -20,16 +22,8 @@ COPY config/recognition_labels.json /app/config/recognition_labels.json
 COPY config/price_exempt_ingredients.json /app/config/price_exempt_ingredients.json
 # 同義食材對照（過敏全套用、已有食材與查價只用已確認組）
 COPY config/ingredient_synonyms.json /app/config/ingredient_synonyms.json
-COPY config/staples.json /app/config/staples.json
-COPY config/seasoning_ingredients.json /app/config/seasoning_ingredients.json
-COPY config/daily_reference_nutrients.json /app/config/daily_reference_nutrients.json
-COPY config/nutrient_category_zero.json config/t12_nutrient_fills.json config/garnish_ingredients.json /app/config/
-# T11 最後小知識文字：雲端生成的共用提示詞與驗證（純標準函式庫）
-COPY knowledge_rag/__init__.py knowledge_rag/explain.py /app/knowledge_rag/
-COPY config/nutrition_keywords.json /app/config/nutrition_keywords.json
-# T12 delegates raw-record cooking estimates to the established T04 modules.
-ENV PYTHONPATH=/app:/app/nutrition_model
+ENV PYTHONPATH=/app
 COPY alembic.ini /app/alembic.ini
 COPY migrations /app/migrations
 
-CMD ["sh", "-c", "alembic -c /app/alembic.ini upgrade head && exec uvicorn app.main:app --host 0.0.0.0 --port 8000 --no-access-log"]
+CMD ["sh", "-c", "python -m app.core.schema_gate && exec uvicorn app.main:app --host 0.0.0.0 --port 8000 --no-access-log"]

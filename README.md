@@ -17,9 +17,9 @@
 
 T11知識維護資料已更新為123筆網頁／論文來源（2026-10-30），食材ID依提供的標準表A／C欄。逐筆來源內容核對123筆符合使用者準則（含接受Hello醫師與健康醫療網的平台來源）；尚未匯入正式庫或發布索引，詳見上方T11 README。
 
-T03 已決議以 Spec 為準，使用版本化規則 `hpa-dri8-mvp-0.3.0` 的目標限制。2026-10-30 已決議 T12 可直接使用 T04 驗證後的 LLM 烹調係數，保留估算標示與來源；採用所需的完整必要營養欄位仍待對齊。T12 預設使用指定版本的匯入營養資料；舊版 TFDA JSON 對映僅保留為明確指定的相容模式，遇缺值不得宣稱營養驗證通過。
+T03 預設沿用 main 的 `hpa-dri8-mvp-0.4.1`；舊 `0.3.0` 規則仍可由 `NUTRITION_RULES_PATH` 明確指定。main 的資料庫選單預覽／換一份／採用及雲端知識說明，與 V3 的正式生成、批次查價、補價、結果決策及採用快照並存。
 
-**程式碼合併與目錄整理不代表 G03／G04／G07 通過，也不代表主系統 API、容器或營養方案採用驗收完成。** 詳細限制與實際測試記錄見上方文件。
+V3 正式流程仍綁定明確的食譜、營養匯入與 mapping 版本，只使用核准對照和烹調憑據。`config/v3_staples.json` 與 `config/v3_nutrient_category_zero.json` 保留待審設定；main 的預覽設定不會替 V3 核准資料。四人真實案例目前仍停於 `NUTRITION_INCOMPLETE`。詳細檢查與限制見 [V3 驗證紀錄](docs/1102_V3/VALIDATION.md)。
 
 T03 快速驗證，在專案根目錄執行：
 
@@ -36,19 +36,20 @@ python -m nutrition_target --rules nutrition_target/rules/hpa-dri8-mvp-0.3.0.jso
 
 - 第一次執行時由 `.env.dev.example` 建立 `.env.dev`，密碼與 token 隨機產生；YOLO 權重等路徑請依自己的電腦修改。
 - 沒有 `.venv` 就自動建立；`requirements.txt` 或 `package-lock.json` 有變動時重新安裝套件。
-- 資料庫容器 `overcooked-dev-db` 不存在就建立（資料存在具名 volume `overcooked-dev-pgdata`），每次都會執行 `alembic upgrade head`；資料庫還沒有食譜時，自動從 `data/recipe_dataset_1017.xlsx` 匯入。
-- 後端（含 `--reload`）、worker、前端、YOLO 全部在同一個視窗執行，輸出以 `[backend]`、`[frontend]` 等前綴區分；在該視窗按 Ctrl+C 即全部關閉。YOLO 第一次會自動建立 `.venv-yolo`；設 `DEV_SKIP_YOLO=1` 可略過，辨識顯示不可用，仍可手動輸入食材。開發環境不啟動 scheduler，所以不會在本機每天抓取全聯價格。
+- 開發環境預設使用專用容器 `overcooked-1102-v3-db`、資料庫 `meal_planner_1102_v3`、本機連接埠 `55435`。沿用既有容器時，`.env.dev` 的密碼須與該容器相符。腳本只檢查 schema；目前程式要求 Alembic head `d1105merge1`。
+- 新環境請依 `.env.example` 和 `.env.dev.example` 準備本機設定，並依 [資料庫整合規格](docs/1102_V3/DATABASE.md) 完成專用 V3 的遷移與來源安裝。1103_V3 工作簿與資料包另行提供。匯入前先核對發行清單與檔案 SHA-256；既有 active release 可直接使用庫內資料。
+- 後端（Windows 隔離程序與檔案變更重啟）、worker、前端、YOLO 全部在同一個視窗執行，輸出以 `[backend]`、`[frontend]` 等前綴區分；在該視窗按 Ctrl+C 即全部關閉。YOLO 第一次會自動建立 `.venv-yolo`；設 `DEV_SKIP_YOLO=1` 可略過，辨識顯示不可用，仍可手動輸入食材。開發環境不啟動 scheduler，所以不會在本機每天抓取全聯價格。
 
 `.env.dev` 裡的其他設定（例如之後的 API key）會原樣傳給後端與 worker。只有新增獨立程序（例如 T11 的知識 RAG 服務）時，才需要在腳本加一個 `Start-Service-Window`。
 
 ## 系統啟動（T06–T10）
 
-`docker compose up -d --build` 會啟動資料庫、後端 API（啟動時自動執行 Alembic 遷移）、生成工作程序 `worker`、單一排程程序 `scheduler` 與前端。先依 `.env.example` 建立 `.env`，至少設定 `POSTGRES_PASSWORD`。
+`docker compose up -d --build` 會啟動資料庫、後端 API（先由 schema gate 確認版本；遷移須於部署前備份後執行）、生成工作程序 `worker`、單一排程程序 `scheduler` 與前端。先依 `.env.example` 建立 `.env`，至少設定 `POSTGRES_PASSWORD`。
 
 - 工作程序：`python -m app.jobs.worker`，可視負載開多個副本；以短交易與 `SKIP LOCKED` 領取工作。
 - 排程程序：`python -m app.jobs.scheduler`，以 PostgreSQL advisory lock 保證只有一個在執行，負責回收逾時工作與每日日誌清理。
 - 費用追查：`python -m app.jobs.admin budget` 顯示本月額度帳與未結清呼叫；`python -m app.jobs.admin reconcile <id> <實際金額> <說明>` 依帳單核對結果不明的呼叫。
-- 菜單生成（Ticket 14）尚未完成：送出生成會建立工作並明確回報「生成功能尚未開放」，問卷保留可再送出。
+- 正式生成與結果重試使用持久工作程序；缺用量、必要營養、版本對照或主食政策時回報阻擋，問卷與未知值保留。外部服務需另外完成設定。
 
 後端測試統一使用 pytest，同時執行 unittest 類別與 pytest 函式／參數化測試。先安裝 `requirements-dev.txt`。需要資料庫的 API 測試以 `TEST_DATABASE_URL` 指定一個可清空的 PostgreSQL（含 pgvector），測試會以 Alembic 重建資料表；未設定時這些測試會略過。以下命令在專案根目錄執行，`DATABASE_URL` 也指向同一個測試資料庫。
 

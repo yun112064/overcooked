@@ -8,8 +8,7 @@
     - 沒有 .venv → 建立；requirements.txt 有變 → 重新安裝
     - package-lock.json 有變 → npm ci
     - 資料庫容器不存在 → 建立（資料存在具名 volume）；已存在 → 啟動
-    - alembic upgrade head 套用新的 migration
-    - 資料庫沒有食譜 → 從工作簿匯入
+    - 僅檢查 V3 schema；資料遷移與來源安裝須明確執行
   所有服務都在同一個視窗執行，輸出以 [backend]、[frontend] 等前綴區分；
   在該視窗按 Ctrl+C 或執行 scripts/stop-dev.ps1 全部關閉。
   只有新增「獨立程序」（例如 T11 的知識 RAG 服務）時才需要修改這支腳本。
@@ -78,9 +77,9 @@ if (-not (Test-Path $LockStamp) -or (Get-Content $LockStamp) -ne $LockHash) {
 }
 
 # ---------- 4. 資料庫 ----------
-$Db = Cfg 'DEV_DB_CONTAINER' 'overcooked-dev-db'
-$DbPort = Cfg 'DEV_DB_PORT' '55432'
-$DbName = Cfg 'DEV_DB_NAME' 'meal_planner_dev'
+$Db = Cfg 'DEV_DB_CONTAINER' 'overcooked-1102-v3-db'
+$DbPort = Cfg 'DEV_DB_PORT' '55435'
+$DbName = Cfg 'DEV_DB_NAME' 'meal_planner_1102_v3'
 $DbPassword = Cfg 'DEV_DB_PASSWORD'
 if (-not $DbPassword) { Fail '.env.dev 缺少 DEV_DB_PASSWORD。' }
 
@@ -90,7 +89,7 @@ if ($LASTEXITCODE -ne 0) { Fail '連不到 Docker，請先開啟 Docker Desktop 
 $exists = docker ps -a --filter "name=^$Db$" --format '{{.Names}}'
 if (-not $exists) {
     docker run -d --name $Db -e "POSTGRES_PASSWORD=$DbPassword" -e "POSTGRES_DB=$DbName" `
-        -p "127.0.0.1:${DbPort}:5432" -v "$(Cfg 'DEV_DB_VOLUME' 'overcooked-dev-pgdata'):/var/lib/postgresql/data" `
+        -p "127.0.0.1:${DbPort}:5432" -v "$(Cfg 'DEV_DB_VOLUME' 'overcooked-1102-v3-pgdata'):/var/lib/postgresql/data" `
         pgvector/pgvector:0.8.6-pg17 | Out-Null
 } else {
     docker start $Db | Out-Null
@@ -147,32 +146,10 @@ if ($UseYolo) {
     $env:RECOGNITION_SERVICE_TOKEN = Cfg 'INFERENCE_TOKEN'
 }
 
-# ---------- 6. 資料表與食譜 ----------
-Step '套用資料庫 migration'
-& $Py -m alembic -c alembic.ini upgrade head
-if ($LASTEXITCODE -ne 0) { Fail 'alembic upgrade 失敗。' }
-
-$count = docker exec $Db psql -U postgres -d $DbName -tAc 'SELECT count(*) FROM recipes'
-$nutritionCount = docker exec $Db psql -U postgres -d $DbName -tAc 'SELECT count(*) FROM food_nutrition'
-$Workbook = Resolve-FromRoot (Cfg 'RECIPE_WORKBOOK' 'data/recipe_dataset_1103_V3.xlsx')
-$NutritionWorkbook = Resolve-FromRoot (Cfg 'NUTRITION_WORKBOOK' 'knowledge_rag/sources/All_Food_ID_1018.xlsx')
-if ("$nutritionCount".Trim() -eq '0' -and (Test-Path $Workbook) -and (Test-Path $NutritionWorkbook)) {
-    # 食譜、食材字典（食譜工作簿內的「標準食材整合」）與營養版本同一個交易匯入，T12 才算得出營養
-    Step '資料庫沒有營養資料，從工作簿匯入食譜與營養（約兩分鐘）'
-    & $Py scripts/import_food_workbooks.py --recipes $Workbook --nutrition $NutritionWorkbook `
-        --reviews config/recipe_reviews.json --sources config/recipe_sources.json `
-        --report (Join-Path $StateDir 'food-workbooks-import.json') | Out-Null
-    if ($LASTEXITCODE -ne 0) { Fail '營養資料匯入失敗，報告見 .dev\food-workbooks-import.json。' }
-} elseif ("$count".Trim() -eq '0') {
-    if (Test-Path $Workbook) {
-        Step '資料庫沒有食譜，從工作簿匯入（約一分鐘）'
-        & $Py scripts/import_recipes.py --excel $Workbook --reviews config/recipe_reviews.json `
-            --sources config/recipe_sources.json --report (Join-Path $StateDir 'import-report.json') | Out-Null
-        if ($LASTEXITCODE -ne 0) { Fail '食譜匯入失敗，報告見 .dev\import-report.json。' }
-    } else {
-        Write-Host "    找不到食譜工作簿 $Workbook，先略過匯入（食材搜尋會是空的）。" -ForegroundColor Yellow
-    }
-}
+# ---------- 6. 僅檢查既有資料表，不遷移、不匯入 ----------
+Step '檢查資料庫 schema（1102_V3 資料整合待確認）'
+& $Py -m app.core.schema_gate
+if ($LASTEXITCODE -ne 0) { Fail '資料庫尚未準備完成。請先查閱 docs/1102_V3/DATABASE.md；此分支不會自動遷移或匯入。' }
 
 # ---------- 7. 啟動各服務 ----------
 $Running = @{}

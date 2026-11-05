@@ -1,186 +1,239 @@
-"""T11 cloud boundary: T10-controlled embeddings, remote retrieval, validated citations."""
+"""T11 NutritionKnowledgeService（雲端端）：依最終食材向團隊電腦知識 RAG 取得審核過的知識。
+
+流程：最終配方 FOOD 編號 →（額度預留）OpenAI 向量化查詢文字 → 團隊電腦先以食材 ID 限定、
+再以 pgvector 排序 → 回傳可保存的知識快照。
+- 某食材沒有知識：by_ingredient 標 not_found，可省略說明，不阻擋採用。
+- 服務未設定、連不上、驗證失敗、索引不可用：status=unavailable（KNOWLEDGE_UNAVAILABLE），
+  保留供重試，絕不偽裝成正常零筆。
+- 額度不足（BudgetExhausted）與可能已計費（UncertainBilling）往上拋，由工作流程依 T10 規則處理。
+知識不修改配方、TFDA 數值或採用資格；配方食材改變後必須重新呼叫。
+"""
 import copy
-import math
-import time
-import uuid
-import re
+import functools
+import json
+import unicodedata
+from collections.abc import Callable
+from datetime import datetime, timedelta, timezone
 
 import httpx
+from sqlalchemy.orm import sessionmaker
 
+from app.core.config import PROJECT_ROOT, settings
 from app.services import spend
-from app.core.logging_config import process_logger
+from app.services.team_link import TeamCredentials, failure_reason, settings_credentials
 
-MODEL='text-embedding-3-small'
-DIMENSIONS=1536
+RECORD_FIELDS = ("knowledge_id", "source_version", "ingredient_id", "excerpt", "source_url", "rights", "conditions")
+# G07 出處欄位（外部來源必帶；合成資料為 None）。顯示時一律保留，不可移除（健康醫療網使用條款第 7 條）
+ATTRIBUTION_FIELDS = ("source_name", "title", "published_at", "content_provider")
+TAIPEI = timezone(timedelta(hours=8))
+# 決策 #29：團隊電腦分類萃取、驗證過的營養知識（一句）與原文支持句；舊資料／未分類為 None，不可用來寫說明
+NUTRITION_FIELDS = ("nutrition_fact", "evidence_quote")
+NUTRITION_KEYWORDS_PATH = PROJECT_ROOT / "config" / "nutrition_keywords.json"
 
-def validate_vectors(value,count):
-    if not isinstance(value,list) or len(value)!=count:
-        raise ValueError('Embedding count mismatch')
-    for v in value:
-        if (not isinstance(v,list) or len(v)!=DIMENSIONS or not any(v)
-                or any(isinstance(x,bool) or not isinstance(x,(int,float)) or not math.isfinite(x) for x in v)):
-            raise ValueError('Invalid embedding')
-    return value
 
-class OpenAIEmbedder:
-    model=MODEL
-    def __init__(self,api_key):
-        self.api_key=api_key
+@functools.lru_cache(maxsize=1)
+def nutrition_keywords() -> tuple[str, ...]:
+    """營養／健康效益關鍵字（config/nutrition_keywords.json，與團隊電腦爬蟲前置過濾共用）。"""
+    data = json.loads(NUTRITION_KEYWORDS_PATH.read_text(encoding="utf-8"))
+    return tuple(k.strip() for k in data["keywords"] if isinstance(k, str) and k.strip())
 
-    def embed(self,texts):
+
+def _keywords_in(text: str) -> set[str]:
+    text = unicodedata.normalize("NFKC", text or "").lower()
+    return {k for k in nutrition_keywords() if unicodedata.normalize("NFKC", k).lower() in text}
+
+
+def grounded_in_nutrition(explanation: str, records: list[dict]) -> bool:
+    """說明必須寫營養素或健康效益（至少一個關鍵字），且每個關鍵字都要出現在引用紀錄的 nutrition_fact／evidence_quote。
+
+    只寫口感、做法或加入原文沒有的功效（例如多寫「降血壓」）都不通過，該食材的說明省略。
+    """
+    used = _keywords_in(explanation)
+    support = set().union(*(_keywords_in(f"{r.get('nutrition_fact') or ''}\n{r.get('evidence_quote') or ''}")
+                            for r in records)) if records else set()
+    return bool(used) and used <= support
+
+
+def _attribution_fields(r: dict) -> dict:
+    out = {}
+    for k in ATTRIBUTION_FIELDS:
+        v = r.get(k)
+        if v is not None and not isinstance(v, str):
+            raise ValueError  # 由 _validated 轉成 INVALID_RESPONSE
+        out[k] = v.strip() if isinstance(v, str) and v.strip() else None
+    if out["source_name"] and not out["title"]:
+        raise ValueError  # 外部來源缺標題不可顯示
+    return out
+
+
+def attribution(record: dict) -> str | None:
+    """顯示用出處文字：來源：<網站>《標題》（發布日，台灣日期）；無來源名稱（合成資料）回傳 None。"""
+    name = (record or {}).get("source_name")
+    if not name:
+        return None
+    text = f"來源：{name}《{record.get('title') or ''}》"
+    published = record.get("published_at")
+    if published:
         try:
-            res=httpx.post('https://api.openai.com/v1/embeddings',
-                           headers={'Authorization':'Bearer '+self.api_key},
-                           json={'model':self.model,'input':texts,'dimensions':DIMENSIONS},timeout=60)
-        except httpx.ConnectError:
-            raise spend.CallNotBilled('Embedding connection failed before request') from None
-        if 400<=res.status_code<500:
-            raise spend.CallNotBilled('Embedding request rejected')
-        res.raise_for_status()
-        body=res.json()
-        items=sorted(body['data'],key=lambda i:i['index'])
-        if body.get('model')!=self.model or [i['index'] for i in items]!=list(range(len(texts))):
-            raise ValueError('Embedding response model/index mismatch')
-        result=validate_vectors([i['embedding'] for i in items],len(texts))
-        tokens=body['usage']['prompt_tokens']
-        if isinstance(tokens,bool) or not isinstance(tokens,int) or tokens<0:
-            raise ValueError('Invalid embedding usage')
-        return result,dict(input_tokens=tokens,output_tokens=0)
+            text += f"（{datetime.fromisoformat(published).astimezone(TAIPEI).date().isoformat()}）"
+        except (TypeError, ValueError):
+            pass
+    return text
+UNAVAILABLE_CODE = "KNOWLEDGE_UNAVAILABLE"
 
-def embed_index_batch(factory,embedder,index_version,batch_no,texts):
-    if not texts or len(texts)>100 or any(not isinstance(t,str) or not t or len(t.encode())>8000 for t in texts):
-        raise ValueError('Index batch must contain 1-100 texts, each at most 8000 UTF-8 bytes')
-    if embedder.model!=MODEL:
-        raise ValueError('Unsupported embedding model')
-    return spend.paid_call(factory,call_key=f'knowledge-index:{index_version}:{batch_no}',
-        purpose='knowledge_index_embedding',provider='openai',model=embedder.model,
-        max_input_tokens=sum(len(t.encode()) for t in texts),max_output_tokens=0,
-        call=lambda: _embed(embedder,texts))
 
-def _embed(embedder,texts):
-    values,usage=embedder.embed(texts)
-    return validate_vectors(values,len(texts)),usage
+class KnowledgeUnavailable(Exception):
+    """知識服務不可用：TIMEOUT／UNREACHABLE／AUTH_FAILED／SERVICE_ERROR／MODEL_MISMATCH／INVALID_RESPONSE。"""
+
+    def __init__(self, reason: str):
+        super().__init__(reason)
+        self.reason = reason
+
 
 class HttpKnowledgeClient:
-    def __init__(self,url,token,*,transport=None):
-        self.url=url.rstrip('/')
-        self.token=token
-        self.transport=transport
+    """團隊電腦知識服務：POST {url}/v1/knowledge/search，Bearer token，經 HTTPS 或加密通道（T17）。"""
 
-    def search(self,food_ids,query_embedding,embedding_model,*,index_version=None):
-        with httpx.Client(transport=self.transport,timeout=15) as client:
-            res=client.post(self.url+'/v1/search',headers={'Authorization':'Bearer '+self.token},
-                json=dict(food_ids=food_ids,query_embedding=query_embedding,
-                          embedding_model=embedding_model,index_version=index_version))
-            res.raise_for_status()
-            return res.json()
+    def __init__(self, url: str, credentials: TeamCredentials, timeout: float):
+        self.url = url.rstrip("/")
+        self.credentials = credentials
+        self.timeout = timeout
 
-    def retrieve(self,food_ids,query_text,*,index_version=None):
-        with httpx.Client(transport=self.transport,timeout=120) as client:
-            res=client.post(self.url+'/v1/retrieve',headers={'Authorization':'Bearer '+self.token},
-                json=dict(food_ids=food_ids,query_text=query_text,index_version=index_version))
-            res.raise_for_status()
-            return res.json()
-
-def unavailable(food_ids,reason):
-    return dict(status='unavailable',reason=reason,records=[],final_food_ids=food_ids,
-                by_ingredient={i:'unavailable' for i in food_ids})
-
-def retrieve_knowledge(*,final_food_ids,query_text,client,embedder,paid_call,index_version=None,call_name='embed_query',
-                       job_id=None,trace_id=None):
-    food_ids=sorted(set(final_food_ids))
-    if not food_ids:
-        return dict(status='not_found',records=[],by_ingredient={},final_food_ids=[])
-    if client is None:
-        return unavailable(food_ids,'NOT_CONFIGURED')
-    if any(not isinstance(i,str) or len(i)!=10 or not i.startswith('FOOD') or not i[4:].isdigit() for i in food_ids):
-        raise ValueError('Final FOOD IDs required')
-    if not isinstance(query_text,str) or not query_text.strip() or len(query_text.encode())>8000:
-        raise ValueError('Query must be 1-8000 UTF-8 bytes')
-    started=time.monotonic()
-    trace_id=trace_id or uuid.uuid4().hex
-    def log_failure(error_code):
-        # Fixed categories only: never write exception text, provider payloads or query data.
-        process_logger.warning('knowledge_retrieval_failed',extra=dict(
-            event='knowledge_retrieval_failed',error_code=error_code,trace_id=trace_id,
-            job_id=str(job_id) if job_id is not None else None,
-            duration_ms=int((time.monotonic()-started)*1000)))
-    if embedder is not None:
+    def _post(self, payload: dict) -> dict:
+        headers = self.credentials.headers()
         try:
-            values=paid_call(name=call_name,purpose='knowledge_query_embedding',provider='openai',model=embedder.model,
-                            max_input_tokens=len(query_text.encode()),max_output_tokens=0,
-                            call=lambda:_embed(embedder,[query_text]))
-        except spend.CallNotBilled:
-            log_failure('EMBEDDING_UNAVAILABLE')
-            return unavailable(food_ids,'EMBEDDING_UNAVAILABLE')
-    # BudgetExhausted/UncertainBilling must propagate to T10; never pretend they are zero results.
+            res = httpx.post(f"{self.url}/v1/knowledge/search", json=payload, headers=headers, timeout=self.timeout)
+        except httpx.TimeoutException:
+            raise KnowledgeUnavailable("TIMEOUT") from None
+        except httpx.HTTPError:
+            raise KnowledgeUnavailable("UNREACHABLE") from None
+        if res.status_code == 409:
+            raise KnowledgeUnavailable("MODEL_MISMATCH")
+        if (reason := failure_reason(res.status_code)) is not None:
+            raise KnowledgeUnavailable(reason)
+        try:
+            return res.json()
+        except ValueError:
+            raise KnowledgeUnavailable("INVALID_RESPONSE") from None
+
+    def search(self, food_ids: list[str], query_embedding: list[float], embedding_model: str, *,
+               limit_per_ingredient: int) -> dict:
+        body = self._post({"food_ids": list(food_ids), "query_embedding": query_embedding,
+                           "embedding_model": embedding_model, "limit_per_ingredient": limit_per_ingredient})
+        return _validated(body, set(food_ids), embedding_model)
+
+
+def _validated(body, wanted: set[str], embedding_model: str) -> dict:
+    """回應不可信任：錯食材、未審核或欄位缺失都視為服務異常，整份不採用。"""
     try:
-        snapshot=(client.search(food_ids,values[0],embedder.model,index_version=index_version)
-                  if embedder is not None else client.retrieve(food_ids,query_text,index_version=index_version))
-        if not isinstance(snapshot,dict):
-            raise ValueError('Invalid response object')
-        records=snapshot['records']
-        model=snapshot.get('embedding_model')
-        model_valid=(model==embedder.model if embedder is not None else
-                     isinstance(model,str) and re.fullmatch(r'embeddinggemma:latest@[0-9a-f]{64}',model)
-                     and snapshot.get('embedding_dimensions')==768
-                     and snapshot.get('template_version')=='t11-embeddinggemma-document-query-v1')
-        if not model_valid or not snapshot.get('index_version'):
-            raise ValueError('Model/index mismatch')
-        if index_version is not None and snapshot['index_version']!=index_version:
-            raise ValueError('Pinned index changed')
-        if not isinstance(records,list) or snapshot.get('status') not in ('available','not_found'):
-            raise ValueError('Invalid response')
-        found=set()
-        seen=set()
+        records = body["records"]
+        index_version = body["index_version"]
+        if not isinstance(records, list) or not isinstance(index_version, str) or not index_version:
+            raise ValueError
+        if body.get("embedding_model") != embedding_model:
+            raise ValueError
+        clean = []
         for r in records:
-            if not isinstance(r,dict):
-                raise ValueError('Invalid record object')
-            if r['ingredient_id'] not in food_ids or r.get('status')!='approved':
-                raise ValueError('Wrong ingredient/unreviewed record')
-            if any(not isinstance(r.get(k),str) or not r[k].strip() for k in
-                   ('knowledge_id','source_version','excerpt','source_url','rights','conditions','reviewer','reviewed_at')):
-                raise ValueError('Incomplete source record')
-            key=(r['knowledge_id'],r['source_version'],r['ingredient_id'])
-            if key in seen:
-                raise ValueError('Duplicate knowledge record')
-            seen.add(key)
-            found.add(r['ingredient_id'])
-        expected={i:'available' if i in found else 'not_found' for i in food_ids}
-        if snapshot.get('by_ingredient')!=expected or snapshot['status']!=('available' if records else 'not_found'):
-            raise ValueError('Inconsistent retrieval state')
-        return dict(copy.deepcopy(snapshot),final_food_ids=food_ids)
-    except (httpx.HTTPError,ValueError,KeyError,TypeError) as exc:
-        if isinstance(exc,httpx.HTTPStatusError):
-            code='KNOWLEDGE_AUTH_FAILED' if exc.response.status_code in (401,403) else 'KNOWLEDGE_HTTP_FAILED'
-        elif isinstance(exc,httpx.RequestError):
-            code='KNOWLEDGE_CONNECTION_FAILED'
-        else:
-            code='KNOWLEDGE_INVALID_RESPONSE'
-        log_failure(code)
-        return unavailable(food_ids,'KNOWLEDGE_UNAVAILABLE')
+            if r.get("status") != "approved" or r.get("ingredient_id") not in wanted:
+                raise ValueError
+            if not all(isinstance(r.get(k), str) and r[k].strip() for k in RECORD_FIELDS):
+                raise ValueError
+            if not (isinstance(r.get("reviewer"), str) and r.get("reviewed_at")):
+                raise ValueError
+            nutrition = {k: r.get(k) for k in NUTRITION_FIELDS}
+            if any(v is not None and not isinstance(v, str) for v in nutrition.values()):
+                raise ValueError
+            clean.append({**{k: r[k] for k in RECORD_FIELDS}, "reviewer": r["reviewer"],
+                          "reviewed_at": r["reviewed_at"], "distance": r.get("distance"),
+                          **_attribution_fields(r), **nutrition})
+    except (KeyError, TypeError, ValueError, AttributeError):
+        raise KnowledgeUnavailable("INVALID_RESPONSE") from None
+    return {"records": clean, "index_version": index_version}
 
-def verify_citations(citations,snapshot):
-    allowed={(r['knowledge_id'],r['source_version'],r['ingredient_id']):r for r in snapshot.get('records',[])
-             if snapshot.get('status')=='available'}
-    valid,invalid=[],[]
-    for c in citations if isinstance(citations,list) else [citations]:
-        key=(c.get('knowledge_id'),c.get('source_version'),c.get('ingredient_id')) if isinstance(c,dict) else None
-        if key is not None and all(isinstance(value,str) for value in key) and key in allowed:
-            # Only the retrieved snapshot is authoritative for citation content.
-            valid.append(copy.deepcopy(allowed[key]))
-        else:
-            invalid.append(copy.deepcopy(c))
-    return dict(valid=not invalid,citations=valid,invalid=invalid)
 
-def retrieve_for_job(ctx,final_food_ids,query_text,*,index_version=None,call_name='embed_query'):
-    """T14 integration seam: explicit final ingredients and the existing JobContext budget."""
-    from app.core.config import settings
-    client=(HttpKnowledgeClient(settings.knowledge_service_url,settings.knowledge_service_token)
-            if settings.knowledge_service_url and settings.knowledge_service_token else None)
-    if settings.knowledge_provider=='openai' and not settings.openai_api_key:
-        return unavailable(sorted(set(final_food_ids)),'NOT_CONFIGURED')
-    embedder=OpenAIEmbedder(settings.openai_api_key) if settings.knowledge_provider=='openai' else None
-    return retrieve_knowledge(final_food_ids=final_food_ids,query_text=query_text,client=client,
-                              embedder=embedder,paid_call=ctx.paid_call,index_version=index_version,call_name=call_name,
-                              job_id=ctx.job.id)
+def default_knowledge_client() -> HttpKnowledgeClient | None:
+    if not settings.knowledge_service_url:
+        return None
+    return HttpKnowledgeClient(settings.knowledge_service_url, settings_credentials(settings.knowledge_service_token),
+                               settings.knowledge_timeout_seconds)
+
+
+def _snapshot(food_ids: list[str], status: str, *, records=(), index_version=None, embedding_model=None,
+              reason=None) -> dict:
+    found = {r["ingredient_id"] for r in records}
+    by_ingredient = ({} if status == "unavailable"
+                     else {i: "available" if i in found else "not_found" for i in food_ids})
+    snap = {"status": status, "final_food_ids": food_ids, "records": list(records), "by_ingredient": by_ingredient,
+            "index_version": index_version, "embedding_model": embedding_model}
+    if status == "unavailable":
+        snap.update(reason=reason, code=UNAVAILABLE_CODE)
+    return snap
+
+
+def unavailable_snapshot(food_ids: list[str], reason: str, *, embedding_model: str | None = None) -> dict:
+    """知識不可用的快照（例如 T10 額度不足）：KNOWLEDGE_UNAVAILABLE，不偽裝成零筆。"""
+    return _snapshot(sorted(set(food_ids)), "unavailable", embedding_model=embedding_model, reason=reason)
+
+
+def retrieve_knowledge(*, final_food_ids: list[str], query_text: str, client, embedder,
+                       paid_call: Callable, limit_per_ingredient: int | None = None,
+                       call_name: str = "embed_query") -> dict:
+    """paid_call 與 JobContext.paid_call 同介面（name=...）；embedder.embed 回傳 (向量, usage)。
+
+    同一次工作嘗試內若配方改變需重新對應，請給不同的 call_name（呼叫鍵不可重複預留）。
+    """
+    food_ids = sorted(set(final_food_ids))
+    if not food_ids:
+        return _snapshot(food_ids, "not_found")
+    if client is None:
+        return _snapshot(food_ids, "unavailable", reason="NOT_CONFIGURED")
+    if embedder is None:
+        return _snapshot(food_ids, "unavailable", reason="EMBEDDING_NOT_CONFIGURED")
+
+    def call():
+        vectors, usage = embedder.embed([query_text])
+        return vectors[0], usage
+
+    max_tokens = max(1, len(query_text.encode("utf-8")))
+    try:
+        vector = paid_call(name=call_name, purpose="knowledge_query_embedding", provider="openai",
+                           model=embedder.model, max_input_tokens=max_tokens, max_output_tokens=0, call=call)
+    except spend.CallNotBilled:
+        return _snapshot(food_ids, "unavailable", embedding_model=embedder.model, reason="EMBEDDING_UNAVAILABLE")
+    try:
+        result = client.search(food_ids, vector, embedder.model,
+                               limit_per_ingredient=limit_per_ingredient or settings.knowledge_limit_per_ingredient)
+    except KnowledgeUnavailable as exc:
+        return _snapshot(food_ids, "unavailable", embedding_model=embedder.model, reason=exc.reason)
+    records = result["records"]
+    return _snapshot(food_ids, "available" if records else "not_found", records=records,
+                     index_version=result["index_version"], embedding_model=embedder.model)
+
+
+def verify_citations(citations, snapshot: dict) -> dict:
+    """說明只能引用本次快照實際取得、與食材相符的審核知識（沿用 T04 契約）。
+
+    每個引用需 (knowledge_id, source_version, ingredient_id) 對上一筆取得的紀錄；
+    虛構 ID、錯食材、未審核、舊版本或不可用快照都列入 invalid，不得顯示。
+    """
+    allowed = {(r["knowledge_id"], r["source_version"], r["ingredient_id"])
+               for r in (snapshot or {}).get("records", [])}
+    valid, invalid = [], []
+    for citation in citations if isinstance(citations, list) else [citations]:
+        key = (tuple(citation.get(k) for k in ("knowledge_id", "source_version", "ingredient_id"))
+               if isinstance(citation, dict) else None)
+        (valid if key in allowed else invalid).append(copy.deepcopy(citation))
+    return {"valid": not invalid, "citations": valid, "invalid": invalid}
+
+
+def embed_index_batch(factory: sessionmaker, embedder, index_version: str, batch_no: int,
+                      texts: list[str]) -> list[list[float]]:
+    """建知識索引的一批向量化（雲端內部 API 代團隊電腦呼叫）：各批各自預留並結算。
+
+    呼叫鍵含索引版本與批次；同一鍵不可重複預留，重建或失敗後重試請用新的索引版本。
+    """
+    key = f"knowledge-index:{index_version}:{batch_no}"
+    return spend.paid_call(factory, call_key=key, purpose="knowledge_index_embedding", provider="openai",
+                           model=embedder.model, max_input_tokens=max(1, sum(len(t.encode("utf-8")) for t in texts)),
+                           max_output_tokens=0, call=lambda: embedder.embed(texts))
+
+from app.services.preview_knowledge import OpenAIEmbedder, validate_vectors, retrieve_for_job, unavailable

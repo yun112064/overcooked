@@ -26,6 +26,12 @@ class Settings(BaseSettings):
     nutrition_rules_path: Path = (
         PROJECT_ROOT / "nutrition_target/rules/hpa-dri8-mvp-0.4.1.json"
     )
+    # Explicit, immutable data versions for formal T12 runtime. No legacy JSON fallback.
+    generation_recipe_release_id: str | None = None
+    generation_nutrition_import_id: str | None = None
+    generation_food_mapping_version: str | None = None
+    # Source versions must be selected after the 1102_V3 source inventory is reviewed.
+    t12_preview_conversion: Literal['t04', 'factor_one'] = 't04'
 
     # T10 外部服務費用：每月總上限包含主機、模型、備份等全部服務
     monthly_budget_twd: Decimal = Decimal("2000")
@@ -37,6 +43,8 @@ class Settings(BaseSettings):
     # 每戶每日最多送出的生成工作數
     generation_daily_limit: int = 20
     job_lease_seconds: int = 300
+    job_attempt_timeout_seconds: int = 300
+    job_queue_timeout_seconds: int = 600
     job_retry_backoff_seconds: int = 30
     worker_poll_seconds: float = 2.0
     # 日誌清理預設由單一排程程序負責；API 程序內清理僅供未啟用排程時使用
@@ -59,8 +67,24 @@ class Settings(BaseSettings):
     knowledge_service_url: str | None = None
     knowledge_service_token: str | None = None
     knowledge_internal_token: str | None = None
-    # 最後的營養小知識文字由雲端生成（資料仍為審核知識）；須在 config/model_pricing.json 有價格
-    knowledge_explain_model: str = 'gpt-5.4-mini-2026-03-17'
+    knowledge_timeout_seconds: float = 10.0
+    knowledge_limit_per_ingredient: int = 3
+    openai_base_url: str = "https://api.openai.com/v1"
+    openai_timeout_seconds: float = 30.0
+    embedding_model: str = "text-embedding-3-small"
+    generation_model: str = "gpt-5.4-mini-2026-03-17"
+    generation_timeout_seconds: float = 90.0
+    generation_max_output_tokens: int = 6000
+    explanation_max_output_tokens: int = 2000
+    knowledge_retry_daily_limit: int = 10
+    price_retry_hourly_limit: int = 3
+    price_retry_max_foods: int = 10
+    price_retry_delay_seconds: float = 2.0
+    internal_api_token: str | None = None
+    team_access_client_id: str | None = None
+    team_access_client_secret: str | None = None
+
+    knowledge_explain_model: str = "gpt-5.4-mini-2026-03-17"
 
     model_config = SettingsConfigDict(
         env_file=".env",

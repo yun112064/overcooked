@@ -1,0 +1,287 @@
+{
+  "note": "完整測試實際失敗紀錄；沒有修改測試成略過，也沒有把這些項目算作通過。",
+  "checks": [
+    {
+      "test": "tests.test_category_zero_fill.CategoryZeroRuleTests::test_meat_seafood_and_egg_fiber_is_zero",
+      "reason": "未引入 V1 營養類別零值規則；未知值維持未知",
+      "result": "FAIL",
+      "failure_message": "AssertionError: unexpectedly None"
+    },
+    {
+      "test": "tests.test_category_zero_fill.CategoryZeroRuleTests::test_refined_oil_has_no_sodium_sugar_fiber_or_carbohydrate",
+      "reason": "未引入 V1 營養類別零值規則；未知值維持未知",
+      "result": "FAIL",
+      "failure_message": "AssertionError: unexpectedly None"
+    },
+    {
+      "test": "tests.test_category_zero_fill.CategoryZeroRuleTests::test_refined_sugar_and_salt",
+      "reason": "未引入 V1 營養類別零值規則；未知值維持未知",
+      "result": "FAIL",
+      "failure_message": "AssertionError: unexpectedly None"
+    },
+    {
+      "test": "tests.test_category_zero_fill.CategoryZeroCalculatorTests::test_fill_for_a_category_zero_nutrient_is_ignored",
+      "reason": "未引入 V1 營養類別零值規則；未知值維持未知",
+      "result": "FAIL",
+      "failure_message": "AssertionError: Decimal('0.5') != Decimal('0')"
+    },
+    {
+      "test": "tests.test_category_zero_fill.CategoryZeroCalculatorTests::test_oil_blank_sodium_is_category_zero_and_traced",
+      "reason": "未引入 V1 營養類別零值規則；未知值維持未知",
+      "result": "FAIL",
+      "failure_message": "AssertionError: None != Decimal('0') : sodium_mg"
+    },
+    {
+      "test": "tests.test_category_zero_fill.CategoryZeroCalculatorTests::test_raw_sample_with_cooking_factor",
+      "reason": "未引入 V1 營養類別零值規則；未知值維持未知",
+      "result": "FAIL",
+      "failure_message": "AssertionError: None != Decimal('0')"
+    },
+    {
+      "test": "tests.test_category_zero_fill.CategoryZeroCalculatorTests::test_tfda_value_wins_over_the_category_rule",
+      "reason": "未引入 V1 營養類別零值規則；未知值維持未知",
+      "result": "FAIL",
+      "failure_message": "AssertionError: Items in the second set but not the first:\n'dietary_fiber_g'"
+    },
+    {
+      "test": "tests.test_category_zero_fill.MenuLikeMealTests::test_whole_meal_has_all_seven_nutrients",
+      "reason": "未引入 V1 營養類別零值規則；未知值維持未知",
+      "result": "FAIL",
+      "failure_message": "AssertionError: unexpectedly None"
+    },
+    {
+      "test": "tests.test_category_zero_fill.CheckFillTests::test_category_zero_and_tfda_values_are_refused",
+      "reason": "未引入 V1 營養類別零值規則；未知值維持未知",
+      "result": "FAIL",
+      "failure_message": "TypeError: argument of type 'NoneType' is not iterable"
+    },
+    {
+      "test": "tests.test_intake_adjustments.AdjustmentFileTests::test_every_adjustment_has_a_reason_and_sane_parts",
+      "reason": "未引入食譜重量／實際攝取修正資料",
+      "result": "FAIL",
+      "failure_message": "FileNotFoundError: [Errno 2] No such file or directory: 'C:\\\\Users\\\\linzi\\\\Desktop\\\\overcooked\\\\config\\\\recipe_intake_adjustments.json'"
+    },
+    {
+      "test": "tests.test_intake_adjustments.AdjustmentFileTests::test_loader_returns_parts_by_recipe_ingredient",
+      "reason": "未引入食譜重量／實際攝取修正資料",
+      "result": "FAIL",
+      "failure_message": "KeyError: 'RI002005'"
+    },
+    {
+      "test": "tests.test_intake_adjustments.AdjustmentFileTests::test_weight_corrections_have_reasons_and_positive_values",
+      "reason": "未引入食譜重量／實際攝取修正資料",
+      "result": "FAIL",
+      "failure_message": "FileNotFoundError: [Errno 2] No such file or directory: 'C:\\\\Users\\\\linzi\\\\Desktop\\\\overcooked\\\\config\\\\recipe_weight_corrections.json'"
+    },
+    {
+      "test": "tests.test_llm_estimation.CachedCookingFactorTests::test_raw_food_with_cached_retention_becomes_complete_and_is_marked_llm_estimated",
+      "reason": "未引入 V1 營養類別零值規則；未知值維持未知",
+      "result": "FAIL",
+      "failure_message": "AssertionError: None != Decimal('0')"
+    },
+    {
+      "test": "tests.test_other_nutrients.YieldOnlyApproximationTests::test_other_nutrients_use_raw_composition_with_retention_one",
+      "reason": "未引入 V1 營養類別零值規則；未知值維持未知",
+      "result": "FAIL",
+      "failure_message": "AssertionError: None != Decimal('0')"
+    },
+    {
+      "test": "tests.test_per_person_nutrition.DailyReferenceTests::test_other_nutrients_follow_daily_energy",
+      "reason": "未選定額外每日營養參考及高鈉門檻",
+      "result": "FAIL",
+      "failure_message": "KeyError: 'carbohydrate_g'"
+    },
+    {
+      "test": "tests.test_per_person_nutrition.HighSodiumDishTests::test_sodium_is_per_serving_and_flags_from_the_threshold",
+      "reason": "未選定額外每日營養參考及高鈉門檻",
+      "result": "FAIL",
+      "failure_message": "AssertionError: Tuples differ: (Decimal('1000'), None) != (Decimal('1000'), True)\n\nFirst differing element 1:\nNone\nTrue\n\n- (Decimal('1000'), None)\n?                   ^^^\n\n+ (Decimal('1000'), True)\n?                   ^^^"
+    },
+    {
+      "test": "tests.test_staple_options.BrownRiceTests::test_brown_rice_is_raw_japonica_brown_rice_eaten_as_is",
+      "reason": "核准主食對照及營養資料尚未引入，現行空契約明確阻擋計算",
+      "result": "FAIL",
+      "failure_message": "AssertionError: Tuples differ: (None, None, None) != (Decimal('75'), Decimal('50'), Decimal('125'))\n\nFirst differing element 0:\nNone\nDecimal('75')\n\n- (None, None, None)\n+ (Decimal('75'), Decimal('50'), Decimal('125'))"
+    },
+    {
+      "test": "tests.test_staple_options.BrownRiceTests::test_snapshot_explains_raw_weight_and_cooked_equivalent",
+      "reason": "核准主食對照及營養資料尚未引入，現行空契約明確阻擋計算",
+      "result": "FAIL",
+      "failure_message": "AssertionError: '糙米' != '糙米（生）'\n- 糙米\n+ 糙米（生）"
+    },
+    {
+      "test": "tests.test_staple_options.AliasAndNoneTests::test_ways_of_saying_no_staple",
+      "reason": "核准主食對照及營養資料尚未引入，現行空契約明確阻擋計算",
+      "result": "FAIL",
+      "failure_message": "AssertionError: Staple(label='不要', line=IngredientLine(food_id='STAPLE:不要', name='不要', grams_per_n=None, recipe_ingredient_id=None, cooking_method=None, weight_basis='raw', consumed_as_is=False, adjustable_min=None, adjustable_max=None, adjustment_approved=False, dish_id='staple', recipe_release_id=None, unresolved_reason='staple_not_supported', we"
+    },
+    {
+      "test": "tests.test_staple_options.AliasAndNoneTests::test_white_rice_raw_word_means_white_rice",
+      "reason": "核准主食對照及營養資料尚未引入，現行空契約明確阻擋計算",
+      "result": "FAIL",
+      "failure_message": "AssertionError: '白米' != '白飯'\n- 白米\n+ 白飯"
+    },
+    {
+      "test": "tests.test_staple_options.NewOptionTests::test_new_options_are_computable_and_close_to_150_g_white_rice",
+      "reason": "核准主食對照及營養資料尚未引入，現行空契約明確阻擋計算",
+      "result": "FAIL",
+      "failure_message": "TypeError: conversion from NoneType to Decimal is not supported"
+    },
+    {
+      "test": "tests.test_staple_options.NewOptionTests::test_options_for_the_api_list_label_aliases_and_display_text",
+      "reason": "核准主食對照及營養資料尚未引入，現行空契約明確阻擋計算",
+      "result": "FAIL",
+      "failure_message": "AssertionError: False is not true"
+    },
+    {
+      "test": "tests.test_t11_allergen_groups.AllergenGroupFileTests::test_only_trigger_foods_open_a_group",
+      "reason": "過敏群組實際名單及來源尚未引入",
+      "result": "FAIL",
+      "failure_message": "app.services.allergen_groups.AllergenGroupsInvalid: missing"
+    },
+    {
+      "test": "tests.test_t11_allergen_groups.AllergenGroupFileTests::test_project_file_is_valid_and_egg_covers_processed_egg_foods",
+      "reason": "過敏群組實際名單及來源尚未引入",
+      "result": "FAIL",
+      "failure_message": "app.services.allergen_groups.AllergenGroupsInvalid: missing"
+    },
+    {
+      "test": "tests.test_t11_allergen_groups.OfficialBasisTests::test_every_group_cites_an_official_source",
+      "reason": "過敏群組實際名單及來源尚未引入",
+      "result": "FAIL",
+      "failure_message": "FileNotFoundError: [Errno 2] No such file or directory: 'C:\\\\Users\\\\linzi\\\\Desktop\\\\overcooked\\\\config\\\\t11_allergen_groups.json'"
+    },
+    {
+      "test": "tests.test_t11_allergen_groups.OfficialBasisTests::test_official_exemptions_are_not_members",
+      "reason": "過敏群組實際名單及來源尚未引入",
+      "result": "FAIL",
+      "failure_message": "FileNotFoundError: [Errno 2] No such file or directory: 'C:\\\\Users\\\\linzi\\\\Desktop\\\\overcooked\\\\config\\\\t11_allergen_groups.json'"
+    },
+    {
+      "test": "tests.test_t11_knowledge_review::test_reviewed_knowledge_matches_all_123_publication_records",
+      "reason": "123 筆知識候選與歷史審核紀錄未引入",
+      "result": "FAIL",
+      "failure_message": "FileNotFoundError: [Errno 2] No such file or directory: 'C:\\\\Users\\\\linzi\\\\Desktop\\\\overcooked\\\\knowledge_rag\\\\candidates\\\\web_paper_2026-10-30.json'"
+    },
+    {
+      "test": "tests.test_t11_knowledge_review::test_changed_excerpt_cannot_reuse_existing_approval",
+      "reason": "123 筆知識候選與歷史審核紀錄未引入",
+      "result": "FAIL",
+      "failure_message": "FileNotFoundError: [Errno 2] No such file or directory: 'C:\\\\Users\\\\linzi\\\\Desktop\\\\overcooked\\\\knowledge_rag\\\\candidates\\\\web_paper_2026-10-30.json'"
+    },
+    {
+      "test": "tests.test_t11_knowledge_review::test_dish_name_normalization_matches_tomato_spellings",
+      "reason": "原匯入器及名稱正規化合約凍結，尚未帶入 V1 的名稱異體對照",
+      "result": "FAIL",
+      "failure_message": "AssertionError: assert '番茄炒蛋' == '蕃茄炒蛋'\n  \n  - 蕃茄炒蛋\n  ? ^\n  + 番茄炒蛋\n  ? ^"
+    },
+    {
+      "test": "tests.test_t11_knowledge_service.OpenAIEmbedderTests::test_embedding_model_is_priced",
+      "reason": "原模型價表沒有新增 embedding 模型單價；付費呼叫保持拒絕",
+      "result": "FAIL",
+      "failure_message": "ValueError: Model 'text-embedding-3-small' has no pricing entry; refusing paid call."
+    },
+    {
+      "test": "tests.test_t11_recipe_retrieval.NameVariantTests::test_previous_day_dedup_treats_variants_as_same_dish",
+      "reason": "原匯入器及名稱正規化合約凍結，尚未帶入 V1 的名稱異體對照",
+      "result": "FAIL",
+      "failure_message": "AssertionError: False is not true"
+    },
+    {
+      "test": "tests.test_t11_recipe_retrieval.NameVariantTests::test_variant_characters_normalize_to_the_same_name",
+      "reason": "原匯入器及名稱正規化合約凍結，尚未帶入 V1 的名稱異體對照",
+      "result": "FAIL",
+      "failure_message": "AssertionError: '番茄炒蛋' != '蕃茄炒蛋'\n- 番茄炒蛋\n? ^\n+ 蕃茄炒蛋\n? ^"
+    },
+    {
+      "test": "tests.test_t12_calc_fallbacks.MarketCookedTests::test_ai_declared_salted_egg_yolk_is_cooked_weight",
+      "reason": "市場熟食實際名單未引入，無法自動判為熟重；未確認的生熟轉換保持不可計算",
+      "result": "FAIL",
+      "failure_message": "AssertionError: None != Decimal('105.6')"
+    },
+    {
+      "test": "tests.test_t12_calc_fallbacks.MarketCookedTests::test_bamboo_shoot_from_workbook_is_cooked_weight",
+      "reason": "市場熟食實際名單未引入，無法自動判為熟重；未確認的生熟轉換保持不可計算",
+      "result": "FAIL",
+      "failure_message": "AssertionError: 'cooked_food_requires_cooked_weight_basis' is not None"
+    },
+    {
+      "test": "tests.test_t12_calc_fallbacks.MarketCookedTests::test_market_cooked_list_is_configured_with_reasons",
+      "reason": "市場熟食實際名單未引入，無法自動判為熟重；未確認的生熟轉換保持不可計算",
+      "result": "FAIL",
+      "failure_message": "AssertionError: False is not true"
+    },
+    {
+      "test": "tests.test_t12_meal_calculation.TargetCompositionTests::test_v2_default_t03_rule_matches_frozen_040_digest",
+      "reason": "保留 T03 0.3.0；未自動採用 V1 0.4.0",
+      "result": "FAIL",
+      "failure_message": "AssertionError: 'hpa-dri8-mvp-0.3.0' != 'hpa-dri8-mvp-0.4.0'\n- hpa-dri8-mvp-0.3.0\n?                ^\n+ hpa-dri8-mvp-0.4.0\n?                ^"
+    },
+    {
+      "test": "tests.test_t13_meal_cost.SeasoningTests::test_compute_uses_config_seasonings_by_default",
+      "reason": "調味料已備妥名單尚未引入",
+      "result": "FAIL",
+      "failure_message": "AssertionError: Lists differ: ['FOOD000691'] != []\n\nFirst list contains 1 additional elements.\nFirst extra element 0:\n'FOOD000691'\n\n- ['FOOD000691']\n+ []"
+    },
+    {
+      "test": "tests.test_t13_meal_cost.SeasoningTests::test_config_list_follows_its_rules_or_states_a_reason",
+      "reason": "調味料已備妥名單尚未引入",
+      "result": "FAIL",
+      "failure_message": "FileNotFoundError: [Errno 2] No such file or directory: 'C:\\\\Users\\\\linzi\\\\Desktop\\\\overcooked\\\\config\\\\seasoning_ingredients.json'"
+    },
+    {
+      "test": "tests.test_t13_meal_cost.SeasoningTests::test_default_seasonings_come_from_the_config_file",
+      "reason": "調味料已備妥名單尚未引入",
+      "result": "FAIL",
+      "failure_message": "AssertionError: 'FOOD000691' not found in set()"
+    },
+    {
+      "test": "tests.test_versioned_sql_nutrition.VersionedSQLNutritionTests::test_configured_cooked_rice_staple_uses_exact_source_method_without_conversion",
+      "reason": "核准主食對照及營養資料尚未引入，現行空契約明確阻擋計算",
+      "result": "FAIL",
+      "failure_message": "AssertionError: 'STAPLE:白飯' != 'FOOD000296'\n- STAPLE:白飯\n+ FOOD000296"
+    },
+    {
+      "test": "nutrition_planning.tests.test_food_id_mapping::test_real_registry_covers_all_recipe_food_ids_and_preserves_discussion_items",
+      "reason": "未引入完整真實 Food_ID 映射資料",
+      "result": "FAIL",
+      "failure_message": "FileNotFoundError: [Errno 2] No such file or directory: 'C:\\\\Users\\\\linzi\\\\Desktop\\\\overcooked\\\\nutrition_model\\\\data\\\\food_id_tfda_mapping.json'"
+    },
+    {
+      "test": "nutrition_planning.tests.test_imported_nutrition::test_white_rice_missing_from_import_is_reported_by_food_id",
+      "reason": "核准主食對照及營養資料尚未引入，現行空契約明確阻擋計算",
+      "result": "FAIL",
+      "failure_message": "assert False\n +  where False = any(<generator object test_white_rice_missing_from_import_is_reported_by_food_id.<locals>.<genexpr> at 0x000001BB701F2400>)"
+    },
+    {
+      "test": "nutrition_planning.tests.test_imported_nutrition::test_t12_backend_payload_exposes_blocking_reason_without_zero_values",
+      "reason": "核准主食對照及營養資料尚未引入，現行空契約明確阻擋計算",
+      "result": "FAIL",
+      "failure_message": "AssertionError: assert '營養或烹調依據缺失，無法採用' == '食材營養資料缺失'\n  \n  - 食材營養資料缺失\n  + 營養或烹調依據缺失，無法採用"
+    },
+    {
+      "test": "nutrition_planning.tests.test_imported_nutrition::test_white_rice_legacy_catalog_never_injects_fixed_tfda_sample",
+      "reason": "核准主食對照及營養資料尚未引入，現行空契約明確阻擋計算",
+      "result": "FAIL",
+      "failure_message": "AssertionError: assert 'staple_polic...ed_or_changed' == 'staple_nutri...ction_missing'\n  \n  - staple_nutrition_selection_missing\n  + staple_policy_unreviewed_or_changed"
+    },
+    {
+      "test": "nutrition_planning.tests.test_imported_nutrition::test_white_rice_food_296_is_aligned_with_dishes_and_counted",
+      "reason": "核准主食對照及營養資料尚未引入，現行空契約明確阻擋計算",
+      "result": "FAIL",
+      "failure_message": "AssertionError: assert (None is not None)\n +  where None = DatabaseMenuResult(targets=MealTargets(total_n=Fraction(13, 10), reference={'energy_kcal': Fraction(19428591, 25000), ...eld='policy', input_digest=None),)), validation=None, staple_snapshot=None, dish_portions=None, unscaled_baseline=None).validation"
+    },
+    {
+      "test": "nutrition_planning.tests.test_real_data_fixes::test_brown_rice_staple_uses_its_reviewed_usda_cooked_value",
+      "reason": "核准主食對照及營養資料尚未引入，現行空契約明確阻擋計算",
+      "result": "FAIL",
+      "failure_message": "AssertionError: assert 'calculation_incomplete' in ('nutrition_passed', 'outside_tolerance')"
+    },
+    {
+      "test": "nutrition_planning.tests.test_real_data_fixes::test_changed_brown_rice_policy_fails_closed",
+      "reason": "核准主食對照及營養資料尚未引入，現行空契約明確阻擋計算",
+      "result": "FAIL",
+      "failure_message": "KeyError: 'brown_rice'"
+    }
+  ]
+}

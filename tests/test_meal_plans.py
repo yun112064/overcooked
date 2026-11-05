@@ -110,3 +110,16 @@ class MealPlanApiTests(unittest.TestCase):
         self.assertEqual(trend['items'][0]['energy_kcal'], 590)
         self.assertEqual(trend['items'][0]['target_energy_kcal'], 600)
         self.assertLessEqual(date.fromisoformat(trend['since']), date.fromisoformat(meal_date))
+
+    def test_preview_cannot_adopt_while_its_policy_or_mapping_is_blocked(self):
+        blocked = {**PASSED, 'adoption_blocked': True}
+        response = self.adopt(['R1', 'R2'], preview=blocked)
+        self.assertEqual(response.status_code, 409)
+        self.assertEqual(response.json()['error']['code'], 'NOT_ADOPTABLE')
+        self.assertEqual(self.client.get('/meal-plans').json()['dates'], [])
+
+    def test_preview_idempotency_key_cannot_be_reused_for_different_recipes(self):
+        self.assertEqual(self.adopt(['R1', 'R2']).status_code, 201)
+        response = self.adopt(['R3', 'R4'])
+        self.assertEqual(response.status_code, 409)
+        self.assertEqual(response.json()['error']['code'], 'IDEMPOTENCY_KEY_REUSED')

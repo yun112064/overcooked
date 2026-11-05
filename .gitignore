@@ -23,6 +23,13 @@ __pycache__/
 # 例外：T01 已審核、取得授權的食譜工作簿放進 Git，讓隊友啟動時自動匯入同一份資料
 data/*
 !data/recipe_dataset_1017.xlsx
+!/data/recipe_pic/
+/data/recipe_pic/*
+!/data/recipe_pic/R0[0-2][0-9][0-9]_pic_01.jpg
+!/data/recipe_pic/R0[0-2][0-9][0-9]_pic_01.png
+!/data/recipe_pic/R0[0-2][0-9][0-9]_pic_01.webp
+!/data/recipe_pic/image_manifest.csv
+config/t02_package_mass_20261104.json
 outputs/
 logs/
 
@@ -40,3 +47,7 @@ nutrition_model/data/raw/
 
 # T11 原文快取：來源未附完整授權，原文不進 Git
 knowledge_rag/.article_cache/
+
+# Local verification dependencies and worktrees
+.test-runtime/
+.worktrees/

@@ -3,18 +3,17 @@
 全聯頁面皆為假 HTTP 客戶端回傳的合成資料，不對外連線。
 """
 import json
-import tempfile
+import os
 import unittest
+from unittest.mock import patch
 from datetime import date, datetime, timedelta
 from decimal import Decimal
-from pathlib import Path
 from zoneinfo import ZoneInfo
 
 import httpx
 from sqlalchemy import create_engine, text
 
 from db_support import TEST_DATABASE_URL, migrate_fresh, requires_db, truncate_all
-from recipe_workbook import build, ingredient, recipe
 
 TZ = ZoneInfo("Asia/Taipei")
 
@@ -99,6 +98,21 @@ class AdapterFixtureTests(unittest.TestCase):
             _, client = self.quote(status, retries=3)
             self.assertEqual(client.calls, 1, status)
 
+    def test_live_adapter_default_retry_delay_is_at_least_two_seconds(self):
+        from app.source_adapters.pxmart import PxMartAdapter
+
+        source = PxMartAdapter(client=FakeClient(page(product("台糖高級太白粉 300g", "22"))), retries=0)
+        self.assertEqual(source.retry_delay, 2.0)
+
+    def test_scheduler_uses_two_second_default_and_rejects_faster_rate(self):
+        from app.pricing_scheduler import SchedulerSettings
+
+        with patch.dict(os.environ, {"PRICE_COLLECTION_DELAY_SECONDS": "2.0"}):
+            self.assertEqual(SchedulerSettings.from_env().delay_seconds, 2.0)
+        with patch.dict(os.environ, {"PRICE_COLLECTION_DELAY_SECONDS": "1.5"}):
+            with self.assertRaisesRegex(ValueError, "at least 2 seconds"):
+                SchedulerSettings.from_env()
+
 
 @requires_db
 class CollectionLockTests(unittest.TestCase):
@@ -110,23 +124,31 @@ class CollectionLockTests(unittest.TestCase):
         truncate_all()
         self.engine = create_engine(TEST_DATABASE_URL, pool_size=1, max_overflow=0)
         self.addCleanup(self.engine.dispose)
-        folder = tempfile.TemporaryDirectory()
-        self.addCleanup(folder.cleanup)
-        self.workbook = build(Path(folder.name) / "book.xlsx", [
-            recipe("R001", "清炒高麗菜", ingredients=[ingredient("FOOD000005", "高麗菜", 300)])])
+        from app.source_adapters.price_models import IngredientQuery
+        self.ingredients = [
+            IngredientQuery(
+                canonical_name="高麗菜",
+                food_ids=["FOOD000005"],
+                aliases=["甘藍"],
+            )
+        ]
 
     def advisory_locks(self):
         probe = create_engine(TEST_DATABASE_URL)
         try:
             with probe.connect() as conn:
-                return conn.execute(text("SELECT count(*) FROM pg_locks WHERE locktype = 'advisory'")).scalar_one()
+                return conn.execute(text(
+                    "SELECT count(*) FROM pg_locks WHERE locktype = 'advisory' "
+                    "AND database = (SELECT oid FROM pg_database WHERE datname = current_database())"
+                )).scalar_one()
         finally:
             probe.dispose()
 
     def service(self, repository):
         from app.source_adapters.price_collection import PriceCollectionService
         return PriceCollectionService(
-            workbook_path=self.workbook, repository=repository,
+            repository=repository,
+            ingredient_loader=lambda: list(self.ingredients),
             adapter_factory=lambda: adapter(page(product("高麗菜 1顆", "45")), retries=0)[0],
             delay_seconds=0, sleep=lambda s: None)
 
@@ -185,12 +207,14 @@ class CollectionLockTests(unittest.TestCase):
     def test_exempt_ingredients_are_not_priced(self):
         from app.source_adapters.price_collection import PriceCollectionService
         from app.source_adapters.pricing_repository import PricingRepository
-        folder = tempfile.TemporaryDirectory()
-        self.addCleanup(folder.cleanup)
-        book = build(Path(folder.name) / "water.xlsx", [recipe("R001", "清炒高麗菜", ingredients=[
-            ingredient("FOOD000005", "高麗菜", 300), ingredient("FOOD000119", "水", 100)])])
+        from app.source_adapters.price_models import IngredientQuery
+        ingredients = [
+            *self.ingredients,
+            IngredientQuery(canonical_name="水", food_ids=["FOOD000119"], aliases=[]),
+        ]
         source, client = adapter(page(product("高麗菜 1顆", "45")), retries=0)
-        service = PriceCollectionService(workbook_path=book, repository=PricingRepository(self.engine),
+        service = PriceCollectionService(repository=PricingRepository(self.engine),
+                                         ingredient_loader=lambda: ingredients,
                                          adapter_factory=lambda: source, delay_seconds=0, sleep=lambda s: None,
                                          exempt_food_ids={"FOOD000119"})
         result = service.run(trigger_type="manual", scheduled_for=datetime(2026, 10, 19, 3, tzinfo=TZ), run_key="w1")
@@ -213,6 +237,30 @@ class CollectionLockTests(unittest.TestCase):
         self.run_once(repository, "pxmart-daily-2026-10-20")
         with self.engine.connect() as conn:
             self.assertEqual(conn.execute(text("SELECT count(*) FROM price_quote_snapshots")).scalar_one(), 2)
+        self.assertEqual(self.advisory_locks(), 0)
+
+    def test_rate_limited_run_pauses_and_same_key_can_resume(self):
+        from app.source_adapters.pricing_repository import PricingRepository
+
+        repository = PricingRepository(self.engine)
+        service = self.service(repository)
+        source, client = adapter(429, retries=0)
+        service.adapter_factory = lambda: source
+        result = service.run(trigger_type="scheduled", scheduled_for=datetime.now(TZ), run_key="blocked")
+        self.assertEqual(result.status, "partial")
+        self.assertIn("HTTP 429", result.paused_reason)
+        self.assertEqual(result.checkpoint_count, 0)
+        self.assertEqual(client.calls, 1)
+        self.assertEqual(self.run_once(repository, "blocked").checkpoint_count, 1)
+
+    def test_expected_release_mismatch_refuses_run_and_unlocks(self):
+        from app.source_adapters.pricing_repository import PricingRepository
+
+        repository = PricingRepository(self.engine, expected_recipe_release_id="wrong-release")
+        with self.assertRaisesRegex(ValueError, "Active recipe release changed"):
+            self.run_once(repository, "wrong-release")
+        with self.engine.connect() as connection:
+            self.assertEqual(connection.scalar(text("SELECT count(*) FROM price_collection_runs")), 0)
         self.assertEqual(self.advisory_locks(), 0)
 
 

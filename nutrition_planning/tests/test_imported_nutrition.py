@@ -27,11 +27,16 @@ def imported_menu(menu, monkeypatch):
     from pathlib import Path
     monkeypatch.syspath_prepend(str(Path(__file__).resolve().parents[2] / 'backend'))
     from app.models.nutrition import FoodNutrition, NutritionImport, NutritionSource, NutritionSourceLink
-    from app.models.recipe import IngredientAlias
+    from app.models.recipe import IngredientAlias, RecipeDataRelease
 
     db, _, _, _, _, _, _, _ = menu
-    for model in (IngredientAlias, NutritionImport, NutritionSource, FoodNutrition, NutritionSourceLink):
+    for model in (RecipeDataRelease, IngredientAlias, NutritionImport, NutritionSource, FoodNutrition, NutritionSourceLink):
         cast(Table, model.__table__).create(db)
+    db.execute(insert(RecipeDataRelease), {
+        'release_id': 'legacy-1017', 'dataset_version': 'synthetic-legacy',
+        'source_sha256': '0' * 64, 'schema_version': 'synthetic-test-only',
+        'source_kind': 'legacy', 'active': False,
+    })
     db.execute(insert(IngredientAlias), [
         dict(food_id=f'FOOD{i:06}', canonical_name=name) for i, name in enumerate(('main', 'oil', 'salt'), 1)])
     db.execute(insert(NutritionImport), dict(import_id=IMPORT_ID, imported_at=datetime.now(timezone.utc),

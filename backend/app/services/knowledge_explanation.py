@@ -127,7 +127,7 @@ def tips_for_menu(factory, *, final_food_ids: list[str], household_id, request_t
                   client=None, embedder=None, explainer=None, names: dict | None = None) -> dict:
     """同步 API 的整段流程：檢索 → 雲端生成。client／embedder／explainer 省略時依設定建立。"""
     from app.core.config import settings
-    from app.services import knowledge
+    from app.services import preview_knowledge as knowledge
     food_ids = sorted(set(final_food_ids))
     if client is None and settings.knowledge_service_url and settings.knowledge_service_token:
         client = knowledge.HttpKnowledgeClient(settings.knowledge_service_url, settings.knowledge_service_token)

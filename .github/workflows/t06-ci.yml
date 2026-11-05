@@ -15,17 +15,18 @@ jobs:
         env:
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: ci_placeholder
-          POSTGRES_DB: meal_planner
+          POSTGRES_DB: meal_planner_1102_v3_ci_test
         ports:
           - 5432:5432
         options: >-
-          --health-cmd "pg_isready -U postgres -d meal_planner"
+          --health-cmd "pg_isready -U postgres -d meal_planner_1102_v3_ci_test"
           --health-interval 5s
           --health-timeout 5s
           --health-retries 10
 
     env:
-      DATABASE_URL: postgresql+psycopg://postgres:ci_placeholder@localhost:5432/meal_planner
+      DATABASE_URL: postgresql+psycopg://postgres:ci_placeholder@localhost:5432/meal_planner_1102_v3_ci_test
+      T02_TEST_DATABASE_URL: postgresql+psycopg://postgres:ci_placeholder@localhost:5432/meal_planner_1102_v3_t02_test
       PROJECT_DATA_ROOT: /tmp/t06-ci-data
 
     steps:
@@ -58,11 +59,16 @@ jobs:
           PYTHONUTF8: "1"
         run: python -m unittest discover -s nutrition_model -p 'test_*.py' -v
 
+      - name: Prepare disposable T02 database
+        run: |
+          docker exec "${{ job.services.db.id }}" createdb -U postgres meal_planner_1102_v3_t02_test
+          DATABASE_URL="$T02_TEST_DATABASE_URL" alembic -c alembic.ini upgrade head
+
       - name: Run backend tests (unittest and pytest)
         env:
           PYTHONPATH: backend:tests
           # T07 API 測試以 Alembic 在此資料庫重建資料表
-          TEST_DATABASE_URL: postgresql+psycopg://postgres:ci_placeholder@localhost:5432/meal_planner
+          TEST_DATABASE_URL: postgresql+psycopg://postgres:ci_placeholder@localhost:5432/meal_planner_1102_v3_ci_test
         run: python -m pytest tests -v
 
       - name: Apply Alembic migrations

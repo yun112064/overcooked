@@ -42,13 +42,13 @@ def truncate_all() -> None:
     with _engine.begin() as conn:
         tables = conn.execute(text(
             "SELECT tablename FROM pg_tables WHERE schemaname = 'public' "
-            "AND tablename <> 'alembic_version'"
+            "AND tablename NOT IN ('alembic_version', 'recipe_data_releases')"
         )).scalars().all()
         if tables:
             conn.execute(text("TRUNCATE " + ", ".join(f'"{t}"' for t in tables) + " CASCADE"))
 
 
-# 測試用的 FOOD 字典子集（編號取自 recipe_dataset_1017.xlsx 的「標準食材整合」）
+# 測試用的 FOOD 字典子集（編號沿用正式食譜 SQL 資料的標準食材 ID）
 FOODS = {
     "FOOD001541": ("醬油", ["豆油"]),
     "FOOD001542": ("醬油膏", []),
@@ -66,6 +66,10 @@ FOODS = {
 def seed_foods() -> None:
     """truncate 之後重新放入 FOOD 字典（T07–T09 以 ingredient_aliases 作為標準食材字典）。"""
     with _engine.begin() as conn:
+        conn.execute(text("UPDATE recipe_data_releases SET active = false WHERE active"))
+        conn.execute(text(
+            "UPDATE recipe_data_releases SET active = true WHERE release_id = 'legacy-1017'"
+        ))
         for food_id, (name, aliases) in FOODS.items():
             conn.execute(text(
                 "INSERT INTO ingredient_aliases (food_id, canonical_name, aliases, ambiguous_aliases, review_status, quality_issues) "
