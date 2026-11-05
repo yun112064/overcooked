@@ -15,21 +15,22 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import datetime, timezone
-from decimal import ROUND_CEILING, Decimal
+from datetime import datetime
+from decimal import Decimal
+from math import ceil
 from fractions import Fraction
 from typing import Callable, Iterable
 
-from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from app.meal_calc.types import IngredientRequirement
 from app.services.seasonings import load_seasonings
 from app.services.synonyms import confirmed_equivalents
 from app.source_adapters.price_collection import load_price_exempt
-from app.source_adapters.price_models import PriceQuote, QuoteStatus
-from app.source_adapters.price_scope import SCOPED_QUOTES_SQL, materialize_quote
-from app.source_adapters.price_scope import quote_unusable_reason as _unusable_reason
+from app.source_adapters.price_models import PriceQuote
+from app.source_adapters.price_scope import latest_quote as latest_quote
+from app.source_adapters.price_scope import latest_success_quotes as latest_success_quotes
+from app.source_adapters.price_scope import latest_quotes, quote_unusable_reason
 
 ZERO = Decimal(0)
 QuoteLookup = Callable[[str], PriceQuote | None]
@@ -98,17 +99,34 @@ def compute_meal_cost(
     調味料（決策 #44，config/seasoning_ingredients.json）比照已有種類：足量、缺量 0、不查價、成本 0，
     狀態標為 seasoning（不列入缺料／價格區）；營養仍由呼叫端按配方需求量計算。
     """
-    owned_ids = confirmed_equivalents(available_food_ids)
-    exempt_ids = load_price_exempt() if exempt_food_ids is None else exempt_food_ids
-    seasoning_ids = load_seasonings() if seasoning_food_ids is None else seasoning_food_ids
+    free = _free_foods(available_food_ids, exempt_food_ids, seasoning_food_ids)
+    return _compute_meal_cost(requirements, free, budget, quote_for, now)
+
+
+def _free_foods(
+    available_food_ids: Iterable[str],
+    exempt_food_ids: set[str] | None,
+    seasoning_food_ids: set[str] | None,
+) -> dict[str, str]:
+    exempt = load_price_exempt() if exempt_food_ids is None else exempt_food_ids
+    seasonings = load_seasonings() if seasoning_food_ids is None else seasoning_food_ids
+    return ({food_id: "exempt" for food_id in exempt}
+            | {food_id: "seasoning" for food_id in seasonings}
+            | {food_id: "owned" for food_id in confirmed_equivalents(available_food_ids)})
+
+
+def _compute_meal_cost(
+    requirements: Iterable[IngredientRequirement],
+    free: dict[str, str],
+    budget: Decimal,
+    quote_for: QuoteLookup,
+    now: datetime,
+) -> MealCost:
     lines = []
     for item in requirements:
-        if item.food_id in owned_ids:
-            lines.append(_zero_line(item, "owned"))
-        elif item.food_id in seasoning_ids:
-            lines.append(_zero_line(item, "seasoning"))
-        elif item.food_id in exempt_ids:
-            lines.append(_zero_line(item, "exempt"))
+        status = free.get(item.food_id)
+        if status is not None:
+            lines.append(_zero_line(item, status))
         else:
             lines.append(_priced_line(item, quote_for(item.food_id), now))
 
@@ -137,93 +155,12 @@ def _zero_line(item: IngredientRequirement, status: str) -> IngredientCost:
 
 
 def _priced_line(item: IngredientRequirement, quote: PriceQuote | None, now: datetime) -> IngredientCost:
-    reason = _unusable_reason(quote, now)
+    reason = quote_unusable_reason(quote, now)
     if reason is not None:
         return IngredientCost(item.food_id, item.grams, item.grams, "unknown", quote=quote, missing_reason=reason)
-    packs = int((item.grams / quote.package_quantity).to_integral_value(ROUND_CEILING))
+    packs = ceil(Fraction(item.grams) / Fraction(quote.package_quantity))
     return IngredientCost(item.food_id, item.grams, item.grams, "known", quote=quote, packs=packs,
                           purchase_price=packs * quote.price, cost=item.grams * quote.price / quote.package_quantity)
-
-
-# 每個來源（全聯、萬家福）各取最新一筆成功快照
-LATEST_SUCCESS_PER_PROVIDER_SQL = SCOPED_QUOTES_SQL + """
-    SELECT DISTINCT ON (provider) * FROM scoped_quotes
-    WHERE status = 'success' AND food_id = :food_id
-    ORDER BY provider, queried_at DESC, id DESC
-"""
-LATEST_ANY_SQL = SCOPED_QUOTES_SQL + """
-    SELECT * FROM scoped_quotes
-    WHERE food_id = :food_id
-    ORDER BY queried_at DESC, id DESC
-    LIMIT 1
-"""
-PRIMARY_RETAILER = "PX Mart"
-
-
-def _unit_price(quote: PriceQuote) -> Decimal:
-    return quote.price / quote.package_quantity if quote.package_quantity else Decimal("Infinity")
-
-
-def latest_quote(db: Session, food_id: str, *, now: datetime | None = None) -> PriceQuote | None:
-    """某 FOOD 編號最新的可用報價（唯讀查 T02 快照，含第二來源萬家福）。
-
-    每個來源取最新一筆成功快照（保留原查詢時間，不冒充新取得）。兩個來源都有可用價時，
-    T02 沒有跨來源規則，因此取「完整包裝（克）且單位價最低」者，同價優先全聯，理由寫入
-    selection_reasons。已過期（valid_until < now）的報價不參與比價，避免過期低價遮蔽另一來源
-    仍有效的報價；全部過期時回最新一筆過期報價，讓成本計算標示 PRICE_EXPIRED。
-    從未成功則回最新一筆失敗快照，保留來源的缺值原因（估價不算已知價格）。完全沒查過回 None。
-    """
-    params = {"food_id": food_id}
-    now = now or datetime.now(timezone.utc)
-    successes = [materialize_quote(p) for p in
-                 db.execute(text(LATEST_SUCCESS_PER_PROVIDER_SQL), params).mappings().all()]
-    if successes:
-        usable = [q for q in successes if q.status is QuoteStatus.SUCCESS]
-        return _choose(usable, now) if usable else max(successes, key=lambda q: q.queried_at)
-    payload = db.execute(text(LATEST_ANY_SQL), params).mappings().first()
-    return materialize_quote(payload) if payload is not None else None
-
-
-def _choose(successes: list[PriceQuote], now: datetime) -> PriceQuote:
-    """各來源最新成功報價中選一筆（規則見 latest_quote）。"""
-    usable = [q for q in successes if _unusable_reason(q, now) is None]
-    current = usable or [q for q in successes if q.valid_until is None or q.valid_until >= now]
-    if not current:
-        return max(successes, key=lambda q: q.queried_at)
-    # 不比較不同幣別的數值大小。T13 以 TWD 做預算；有效 TWD 報價優先，
-    # 只有外幣時保留最新原始報價，後續由成本驗證明確回報 CURRENCY_MISMATCH。
-    local_currency = [q for q in current if q.currency == "TWD"]
-    if local_currency:
-        current = local_currency
-    elif len({q.currency for q in current}) > 1:
-        return max(current, key=lambda q: q.queried_at)
-    ranked = sorted(current, key=lambda q: (q.package_unit != "g", _unit_price(q), q.retailer != PRIMARY_RETAILER))
-    chosen = ranked[0]
-    if len(ranked) == 1:
-        return chosen
-    others = ", ".join(f"{q.retailer} {q.price}/{q.package_quantity}{q.package_unit}" for q in ranked[1:])
-    reason = (f"cross-source: {chosen.retailer} {chosen.price}/{chosen.package_quantity}"
-              f"{chosen.package_unit} has the lowest unit price for a complete package (vs {others})")
-    return chosen.model_copy(update={"selection_reasons": [*chosen.selection_reasons, reason]})
-
-
-# 批次版：所有 FOOD 編號各來源最新一筆成功快照（一次查詢）
-LATEST_SUCCESS_ALL_SQL = SCOPED_QUOTES_SQL + """
-    SELECT DISTINCT ON (food_id, provider) * FROM scoped_quotes
-    WHERE status = 'success'
-    ORDER BY food_id, provider, queried_at DESC, id DESC
-"""
-
-
-def latest_success_quotes(db: Session, *, now: datetime) -> dict[str, PriceQuote]:
-    """每個 FOOD 編號依 latest_quote 規則選出的成功報價（一次查詢）；從未成功的食材不列。
-    給需要大量查價的估算用（預算下限）；成本計算仍逐項用 latest_quote（保留失敗原因）。"""
-    grouped: dict[str, list[PriceQuote]] = {}
-    for row in db.execute(text(LATEST_SUCCESS_ALL_SQL)).mappings().all():
-        quote = materialize_quote(row)
-        if quote.status is QuoteStatus.SUCCESS:
-            grouped.setdefault(row['food_id'], []).append(quote)
-    return {food_id: _choose(quotes, now) for food_id, quotes in grouped.items()}
 
 
 def meal_cost_from_db(
@@ -234,5 +171,7 @@ def meal_cost_from_db(
     *,
     now: datetime,
 ) -> MealCost:
-    return compute_meal_cost(requirements, available_food_ids, budget,
-                             lambda food_id: latest_quote(db, food_id, now=now), now=now)
+    items = list(requirements)
+    free = _free_foods(available_food_ids, None, None)
+    quotes = latest_quotes(db, (item.food_id for item in items if item.food_id not in free), now=now)
+    return _compute_meal_cost(items, free, budget, quotes.get, now)

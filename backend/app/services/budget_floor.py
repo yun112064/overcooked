@@ -76,11 +76,11 @@ def _recipe_floors(db: Session) -> list[RecipeFloor]:
 
 def _unit_prices(db: Session, now: datetime) -> dict[str, Decimal]:
     """每克價格；沒有可用報價的食材不列（用到它的食譜不估價）。"""
-    from app.services.meal_cost import _unusable_reason, latest_success_quotes
+    from app.source_adapters.price_scope import latest_success_quotes, quote_unusable_reason
 
     return {food_id: quote.price / quote.package_quantity
             for food_id, quote in latest_success_quotes(db, now=now).items()
-            if _unusable_reason(quote, now) is None}
+            if quote_unusable_reason(quote, now) is None}
 
 
 def reference_dish_cost(floors: list[RecipeFloor], unit_prices: dict[str, Decimal], free_food_ids: set[str],

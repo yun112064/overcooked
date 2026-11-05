@@ -4,9 +4,9 @@
 """
 import unittest
 from datetime import datetime, timedelta, timezone
-from decimal import Decimal
+from decimal import Decimal, localcontext
 
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, event
 from sqlalchemy.orm import sessionmaker
 
 from app.meal_calc.types import IngredientRequirement
@@ -73,6 +73,15 @@ class ProportionalCostTests(unittest.TestCase):
 
 
 class BudgetTests(unittest.TestCase):
+    def test_package_ceiling_uses_exact_ratio_before_rounding(self):
+        quote_for, _ = lookup({CABBAGE: quote(CABBAGE, "60", "300")})
+        with localcontext() as context:
+            context.prec = 10
+            result = compute_meal_cost([req(CABBAGE, "300.0000001")], set(), Decimal("100"),
+                                       quote_for, now=NOW)
+        self.assertEqual(result.lines[0].packs, 2)
+        self.assertEqual(result.purchase_total, Decimal("120"))
+
     def test_packs_round_up_but_cost_stays_proportional(self):
         quote_for, _ = lookup({CABBAGE: quote(CABBAGE, "60", "300")})
         result = compute_meal_cost([req(CABBAGE, "450")], set(), Decimal("90"), quote_for, now=NOW)
@@ -321,6 +330,22 @@ class LatestQuoteTests(unittest.TestCase):
         self.assertEqual((line.purchase_price, line.cost), (Decimal("60"), Decimal("20")))
         self.assertEqual(line.quote.product_url, "https://shop.pxgo.com.tw/product/P1")
         self.assertEqual(line.quote.queried_at, NOW - timedelta(hours=3))
+
+    def test_batch_keeps_failure_reason_and_skips_owned_food(self):
+        self.save_run("r1", quote(CABBAGE, "60"), missing_quote(CARROT, "not_found"))
+        queries = []
+        with self.Session() as db:
+            @event.listens_for(db.connection(), "before_cursor_execute")
+            def count_query(_connection, _cursor, statement, params, _context, _many):
+                queries.append((statement, params))
+
+            result = meal_cost_from_db(db, [req(CABBAGE, "100"), req(CARROT, "100"), req(EGG, "100")],
+                                       {EGG}, Decimal("100"), now=NOW)
+        self.assertEqual(len(queries), 1)
+        self.assertNotIn(EGG, queries[0][1].values())
+        self.assertEqual(result.known_cost_total, Decimal("20"))
+        self.assertEqual(result.lines[1].missing_reason, "not_found 說明")
+        self.assertTrue(result.lines[2].owned)
 
     def test_newer_success_wins(self):
         self.save_run("r1", quote(CABBAGE, "60", "300", queried_at=NOW - timedelta(days=2)))

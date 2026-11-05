@@ -1,5 +1,10 @@
 """Version-aware T02 reads. Import time never makes a historical quote current."""
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
+from decimal import Decimal
+from typing import Iterable
+
+from sqlalchemy import bindparam, text
+from sqlalchemy.orm import Session
 
 from .price_models import PriceQuote, QuoteStatus, SelectionTier, WeightReliability
 
@@ -92,3 +97,93 @@ def materialize_quote(row) -> PriceQuote:
             'valid_until': quote.queried_at + LIVE_QUOTE_MAX_AGE_WITHOUT_SOURCE_EXPIRY,
         })
     return quote
+
+
+# Select the latest raw success per provider, or the latest snapshot when
+# a food has never had a success. Historical materialization happens afterwards.
+LATEST_QUOTES_SQL = text(SCOPED_QUOTES_SQL + """
+    , requested AS (
+        SELECT * FROM scoped_quotes WHERE food_id IN :food_ids
+    ), successes AS (
+        SELECT DISTINCT ON (food_id, provider) * FROM requested
+        WHERE status = 'success'
+        ORDER BY food_id, provider, queried_at DESC, id DESC
+    ), fallback AS (
+        SELECT DISTINCT ON (food_id) * FROM requested q
+        WHERE NOT EXISTS (SELECT 1 FROM successes s WHERE s.food_id = q.food_id)
+        ORDER BY food_id, queried_at DESC, id DESC
+    )
+    SELECT * FROM successes UNION ALL SELECT * FROM fallback
+    ORDER BY food_id, provider
+""").bindparams(bindparam("food_ids", expanding=True))
+
+
+def latest_quotes(db: Session, food_ids: Iterable[str], *, now: datetime) -> dict[str, PriceQuote]:
+    """Read requested T02 quotes together, retaining unusable quotes for diagnostics."""
+    ids = sorted(set(food_ids))
+    if not ids:
+        return {}
+    grouped: dict[str, list[PriceQuote]] = {}
+    for row in db.execute(LATEST_QUOTES_SQL, {"food_ids": ids}).mappings():
+        grouped.setdefault(row["food_id"], []).append(materialize_quote(row))
+
+    selected = {}
+    for food_id, quotes in grouped.items():
+        successes = [quote for quote in quotes if quote.status is QuoteStatus.SUCCESS]
+        selected[food_id] = _choose(successes, now) if successes else max(quotes, key=lambda q: q.queried_at)
+    return selected
+
+
+def latest_quote(db: Session, food_id: str, *, now: datetime | None = None) -> PriceQuote | None:
+    """Read the selected quote for one food, including its unusable status if any."""
+    now = now or datetime.now(timezone.utc)
+    return latest_quotes(db, [food_id], now=now).get(food_id)
+
+
+PRIMARY_RETAILER = "PX Mart"
+
+
+def _unit_price(quote: PriceQuote) -> Decimal:
+    return quote.price / quote.package_quantity if quote.package_quantity else Decimal("Infinity")
+
+
+def _choose(successes: list[PriceQuote], now: datetime) -> PriceQuote:
+    """各來源最新成功報價中選一筆（規則見 latest_quote）。"""
+    usable = [q for q in successes if quote_unusable_reason(q, now) is None]
+    current = usable or [q for q in successes if q.valid_until is None or q.valid_until >= now]
+    if not current:
+        return max(successes, key=lambda q: q.queried_at)
+    # 不比較不同幣別的數值大小。T13 以 TWD 做預算；有效 TWD 報價優先，
+    # 只有外幣時保留最新原始報價，後續由成本驗證明確回報 CURRENCY_MISMATCH。
+    local_currency = [q for q in current if q.currency == "TWD"]
+    if local_currency:
+        current = local_currency
+    elif len({q.currency for q in current}) > 1:
+        return max(current, key=lambda q: q.queried_at)
+    ranked = sorted(current, key=lambda q: (q.package_unit != "g", _unit_price(q), q.retailer != PRIMARY_RETAILER))
+    chosen = ranked[0]
+    if len(ranked) == 1:
+        return chosen
+    others = ", ".join(f"{q.retailer} {q.price}/{q.package_quantity}{q.package_unit}" for q in ranked[1:])
+    reason = (f"cross-source: {chosen.retailer} {chosen.price}/{chosen.package_quantity}"
+              f"{chosen.package_unit} has the lowest unit price for a complete package (vs {others})")
+    return chosen.model_copy(update={"selection_reasons": [*chosen.selection_reasons, reason]})
+
+
+# 批次版：所有 FOOD 編號各來源最新一筆成功快照（一次查詢）
+LATEST_SUCCESS_ALL_SQL = SCOPED_QUOTES_SQL + """
+    SELECT DISTINCT ON (food_id, provider) * FROM scoped_quotes
+    WHERE status = 'success'
+    ORDER BY food_id, provider, queried_at DESC, id DESC
+"""
+
+
+def latest_success_quotes(db: Session, *, now: datetime) -> dict[str, PriceQuote]:
+    """每個 FOOD 編號依 latest_quote 規則選出的成功報價（一次查詢）；從未成功的食材不列。
+    供問卷預算下限估算使用。"""
+    grouped: dict[str, list[PriceQuote]] = {}
+    for row in db.execute(text(LATEST_SUCCESS_ALL_SQL)).mappings().all():
+        quote = materialize_quote(row)
+        if quote.status is QuoteStatus.SUCCESS:
+            grouped.setdefault(row['food_id'], []).append(quote)
+    return {food_id: _choose(quotes, now) for food_id, quotes in grouped.items()}
