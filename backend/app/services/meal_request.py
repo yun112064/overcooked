@@ -19,6 +19,8 @@ from app.services import allergen_groups, ingredients, synonyms
 from nutrition_target import TargetInputError
 
 MealType = Literal["breakfast", "lunch", "dinner"]
+# questionnaire：完整問卷；picker：食譜庫選菜（2026-11-04），只選成員與便當、從食譜庫挑菜，不問預算、口味與已有食材
+RequestMode = Literal["questionnaire", "picker"]
 MAX_DISHES = 10
 
 
@@ -57,6 +59,7 @@ class Participant(BaseModel):
 
 
 class MealRequestDraft(BaseModel):
+    mode: RequestMode = "questionnaire"
     meal_date: date | None = None
     meal_type: MealType | None = None
     budget: Decimal | None = Field(default=None, gt=0, le=100000, max_digits=8, decimal_places=2)
@@ -157,6 +160,10 @@ def completeness(draft: MealRequestDraft, members: dict) -> list[dict]:
         ("staple", "請輸入主食（不需要主食也請註明）。"),
         ("dish_count", "請選擇菜數。"),
     )
+    if draft.mode == "picker":
+        required = tuple(r for r in required if r[0] != "budget")
+        if not draft.specified_dishes:
+            issues.append(_issue("specified_dishes", "REQUIRED", "請從食譜庫至少挑一道菜。"))
     for field, message in required:
         if getattr(draft, field) is None:
             issues.append(_issue(field, "REQUIRED", message))

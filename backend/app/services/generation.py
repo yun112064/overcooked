@@ -650,13 +650,16 @@ def _cost_view(ctx, draft, calc, staple_lines, now) -> dict:
 
 
 def _choose_database_menu(candidates, *, draft, excluded, context, targets, extra_lines, calculator,
-                          cost_of=None, sodium_budget=None):
+                          cost_of=None, sodium_budget=None, keep_first=False):
     """依排名逐組驗證：營養可採用、沒有超出預算（成本控制，2026-10-28）且減鹹後鈉在這一餐額度內
     （2026-10-29）的第一組勝出；鈉都降不到額度內時，採用營養與預算可行者中減鹹後鈉最低的組合（不為鈉轉 AI）。
     營養或預算都不可行時回傳 None（一律轉 AI，決策 #47；只因超出預算時 AI 會帶著預算重新配菜）。
 
+    keep_first（食譜庫選菜，菜全是使用者從食譜庫挑的，2026-11-04）：都不可行時不轉 AI，改用第一組照食譜做，
+    營養或預算不達標由結果頁標示（AI 只會重做同樣的菜，反而丟掉食譜庫的做法）。
+
     回傳 (選中的 (dishes, lines, calc, 成本, 減鹹紀錄) 或 None, 每組的評估紀錄)。cost_of(calc) 回傳成本快照。"""
-    tried, fallback = [], None
+    tried, fallback, first = [], None, None
     for dishes, lines in candidates:
         record = {"recipe_ids": [d["recipe_id"] for d in dishes]}
         problems = check_menu(dishes, dish_count=draft.dish_count, specified=draft.specified_dishes,
@@ -672,6 +675,8 @@ def _choose_database_menu(candidates, *, draft, excluded, context, targets, extr
         if sodium is not None:
             record["sodium_per_n"] = sodium["sodium_per_n_after"]
         tried.append(record)
+        if keep_first and first is None:
+            first = (dishes, lines, calc, sodium)
         if calc["adoptable"]:
             cost = cost_of(calc) if cost_of else {"budget_status": None}
             if cost.get("budget_status") == "BUDGET_EXCEEDED":
@@ -683,6 +688,10 @@ def _choose_database_menu(candidates, *, draft, excluded, context, targets, extr
             record["block_codes"] = [*record["block_codes"], "SODIUM_OVER_MEAL_SHARE"]
             if fallback is None or sodium["sodium_per_n_after"] < fallback[4]["sodium_per_n_after"]:
                 fallback = (dishes, lines, calc, cost, sodium)
+    if fallback is None and first is not None:
+        dishes, lines, calc, sodium = first
+        sync_dish_grams(dishes, lines)
+        fallback = (dishes, lines, calc, cost_of(calc) if cost_of else {"budget_status": None}, sodium)
     return fallback, tried
 
 
@@ -974,7 +983,8 @@ def _generate(ctx, *, responder, knowledge_client, embedder, calculator, now) ->
         chosen, tried = _choose_database_menu(candidates, draft=draft, excluded=excluded,
                                               context=retrieval.previous_day, targets=targets,
                                               extra_lines=staple_lines, calculator=calculator, cost_of=cost_of,
-                                              sodium_budget=sodium_budget)
+                                              sodium_budget=sodium_budget,
+                                              keep_first=draft.mode == "picker")
         if chosen is not None:
             mode, context = DATABASE_MENU, retrieval.previous_day
             dishes, lines, calc, cost_view, sodium_adjustment = chosen

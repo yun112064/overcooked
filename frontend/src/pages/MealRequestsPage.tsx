@@ -1,4 +1,5 @@
 import AddOutlined from '@mui/icons-material/AddOutlined'
+import MenuBookOutlined from '@mui/icons-material/MenuBookOutlined'
 import ChevronRightOutlined from '@mui/icons-material/ChevronRightOutlined'
 import RestaurantMenuOutlined from '@mui/icons-material/RestaurantMenuOutlined'
 import {
@@ -6,7 +7,7 @@ import {
 } from '@mui/material'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import type { ReactNode } from 'react'
-import { useNavigate } from 'react-router'
+import { Link, useNavigate } from 'react-router'
 import { api, errorMessage } from '../api/client'
 import { MEAL_LABELS, type MealRequest, type MealRequestSummary, type Me, type Member } from '../api/types'
 import { AvatarStack, EmptyState, IconTile, PageHeader } from '../components/ui'
@@ -121,9 +122,12 @@ export default function MealRequestsPage() {
   })
 
   const newButton = (
-    <Button variant="contained" startIcon={<AddOutlined />} onClick={() => create.mutate()} disabled={create.isPending}>
-      新增問卷
-    </Button>
+    <>
+      <Button variant="contained" startIcon={<AddOutlined />} onClick={() => create.mutate()} disabled={create.isPending}>
+        新增問卷
+      </Button>
+      <Button variant="outlined" startIcon={<MenuBookOutlined />} component={Link} to="/pick">從食譜庫選菜</Button>
+    </>
   )
 
   return (
@@ -145,7 +149,7 @@ export default function MealRequestsPage() {
           const date = dateParts(r.meal_date)
           return (
             <Card key={r.id}>
-              <CardActionArea onClick={() => navigate(`/plan/${r.id}`)}>
+              <CardActionArea onClick={() => navigate(r.mode === 'picker' ? `/pick/${r.id}` : `/plan/${r.id}`)}>
                 <CardContent sx={{ display: 'flex', alignItems: 'center', gap: { xs: 2, sm: 3 } }}>
                   <Box sx={{ width: 64, flexShrink: 0, textAlign: 'center', borderRight: `1px solid ${tokens.line}`, pr: { xs: 2, sm: 3 } }}>
                     <Typography sx={{ fontFamily: tokens.serif, fontSize: '1.35rem', lineHeight: 1.2 }}>{date?.md ?? '—'}</Typography>
@@ -156,7 +160,7 @@ export default function MealRequestsPage() {
                     <Typography sx={{ fontWeight: 500, letterSpacing: '0.08em' }}>
                       {r.meal_type ? MEAL_LABELS[r.meal_type] : '未選餐別'}
                     </Typography>
-                    <Typography variant="caption">草稿第 {r.version} 版</Typography>
+                    <Typography variant="caption">{r.mode === 'picker' ? '食譜庫選菜' : `草稿第 ${r.version} 版`}</Typography>
                   </Box>
                   <Chip size="small" variant={r.status === 'draft' ? 'filled' : 'outlined'}
                     color={STATUS_COLORS[r.status] ?? 'default'} label={STATUS_LABELS[r.status] ?? r.status} />

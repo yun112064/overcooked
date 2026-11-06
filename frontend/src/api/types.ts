@@ -76,7 +76,11 @@ export type Participant = {
   bento_meal: MealType
 }
 
+/** questionnaire：完整問卷；picker：食譜庫選菜（只選成員與便當、從食譜庫挑菜，不問預算、口味與已有食材） */
+export type RequestMode = 'questionnaire' | 'picker'
+
 export type MealRequestDraft = {
+  mode: RequestMode
   meal_date: string | null
   meal_type: MealType | null
   budget: string | null
@@ -95,6 +99,25 @@ export type StapleOptions = {
   none_value: string
   none_values: string[]
   config_version: string | null
+}
+
+export type CatalogDish = {
+  dish_name: string
+  standard_dish_id: string
+  cuisine: string
+  category: string
+  staple_kind: string | null
+  meal_type: string
+  main_ingredients: string[]
+  ingredients: string[]
+  conflicts: string[]
+}
+
+export type CatalogFacet = { value: string; count: number }
+
+export type RecipeCatalog = {
+  dishes: CatalogDish[]
+  facets: { main_ingredient: CatalogFacet[]; cuisine: CatalogFacet[]; category: CatalogFacet[]; staple_kind: CatalogFacet[] }
 }
 
 export type MealRequest = {
@@ -136,6 +159,7 @@ export type MealRequestSummary = {
   version: number
   meal_date: string | null
   meal_type: MealType | null
+  mode: RequestMode
   updated_at: string
 }
 
