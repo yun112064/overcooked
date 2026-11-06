@@ -111,6 +111,17 @@ class EstimatedAmountDisplayTests(unittest.TestCase):
         exact = IngredientLine(food_id="F2", name="雞蛋", grams_per_n=Decimal("50"), unit="顆", amount_per_n=Decimal("1"))
         self.assertEqual(_display(exact, Decimal("157.5"), Decimal("3.15"))["display_unit"], "顆")
 
+    def test_too_many_pieces_show_grams(self):
+        # V3「袖珍菇 50條（約45g）」乘 3.3 份約 83 條：數不完，改顯示克數；20 個以內照原單位
+        from decimal import Decimal
+
+        from app.services.meal_calculation import IngredientLine, _display
+        line = IngredientLine(food_id="F1", name="袖珍菇", grams_per_n=Decimal("22.5"), unit="條", amount_per_n=Decimal("25"))
+        self.assertEqual(_display(line, Decimal("74.25"), Decimal("3.3")),
+                         {"display_amount": Decimal("74"), "display_unit": "g", "display_text": None})
+        garlic = IngredientLine(food_id="F2", name="大蒜", grams_per_n=Decimal("4.5"), unit="瓣", amount_per_n=Decimal("1.5"))
+        self.assertEqual(_display(garlic, Decimal("14.85"), Decimal("3.3"))["display_unit"], "瓣")
+
 
 if __name__ == "__main__":
     unittest.main()

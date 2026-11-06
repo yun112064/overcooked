@@ -674,9 +674,14 @@ def display_count(value: Decimal) -> Decimal:
     return Decimal(1) if value > 0 and shown < 1 else shown
 
 
+# 原單位數量超過這個數（如「袖珍菇 83 條」）時改顯示克數，數不完的小東西用克數比較好備料（2026-11-06）
+MAX_DISPLAY_COUNT = 20
+
+
 def _display(ln: IngredientLine, whole: Decimal | None, n: Decimal) -> dict:
     """畫面用量（decisions #21／#43）：有原數量＋原單位（非 g）→ 一律顯示原單位、數量取整數（最少 1），
-    克數只留在追溯欄位（原文沒有明確數量的參考值例外，有克數時顯示克數）；原單位是 g 或沒有原單位但有克數 → 克到 1 g；都沒有 → 原文。
+    克數只留在追溯欄位（例外：原文沒有明確數量的參考值、或數量超過 MAX_DISPLAY_COUNT，有克數時顯示克數）；
+    原單位是 g 或沒有原單位但有克數 → 克到 1 g；都沒有 → 原文。
     縮放倍率：有克數時用整餐克數 ÷ 每 1n 克數（含熱量對齊調整），否則用 n。"""
     factor = whole / ln.grams_per_n if whole is not None and ln.grams_per_n else n
     if ln.volume_ml_per_n is not None:
@@ -685,9 +690,10 @@ def _display(ln: IngredientLine, whole: Decimal | None, n: Decimal) -> dict:
             return {"display_amount": None, "display_unit": "L",
                     "display_text": f"約 {format(liters.normalize(), 'f')} L"}
         return {"display_amount": liters, "display_unit": "L", "display_text": None}
-    if ln.amount_per_n is not None and ln.unit and ln.unit != "g" and not (ln.amount_estimated and whole is not None):
-        return {"display_amount": display_count(ln.amount_per_n * factor), "display_unit": ln.unit,
-                "display_text": None}
+    if ln.amount_per_n is not None and ln.unit and ln.unit != "g":
+        count = display_count(ln.amount_per_n * factor)
+        if whole is None or not (ln.amount_estimated or count > MAX_DISPLAY_COUNT):
+            return {"display_amount": count, "display_unit": ln.unit, "display_text": None}
     if whole is not None:
         return {"display_amount": _display_grams(whole), "display_unit": "g", "display_text": None}
     return {"display_amount": None, "display_unit": None, "display_text": ln.raw_text or ln.name}
