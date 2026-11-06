@@ -7,6 +7,7 @@ import PersonNutrition, { MacroBar } from './ResultPersonNutrition'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useEffect, useRef } from 'react'
 import { Link as RouterLink } from 'react-router'
+import { withinTarget } from '../api/nutrition'
 import { api, errorMessage } from '../api/client'
 import type {
   DecisionKind, MealPlanSummary, MealResult, MealResultSummary, NutritionSuggestion,
@@ -153,14 +154,14 @@ export default function MealResultView({ requestId, mealDate, onChanged }: Props
   const energyTarget = num(r.nutrition.target?.energy_kcal)
   const protein = num(r.nutrition.protein_g)
   const proteinTarget = num(r.nutrition.target?.protein_g)
-  const ratioNote = (v: number | null, target: number | null, unit: string) => {
+  const ratioNote = (key: 'energy_kcal' | 'protein_g', v: number | null, target: number | null, unit: string) => {
     if (v === null || !target) return { note: target ? `目標 ${Math.round(target)} ${unit}` : undefined, tone: 'default' as const }
     const diff = v / target - 1
     return { note: `目標 ${Math.round(target)} ${unit}・${diff >= 0 ? '+' : ''}${Math.round(diff * 100)}%`,
-      tone: Math.abs(diff) <= 0.1 ? 'good' as const : 'warn' as const }
+      tone: withinTarget(key, v / target) ? 'good' as const : 'warn' as const }
   }
-  const energyInfo = ratioNote(energy, energyTarget, 'kcal')
-  const proteinInfo = ratioNote(protein, proteinTarget, 'g')
+  const energyInfo = ratioNote('energy_kcal', energy, energyTarget, 'kcal')
+  const proteinInfo = ratioNote('protein_g', protein, proteinTarget, 'g')
   const computed = r.prices.status === 'computed'
   const cost = computed ? num(r.prices.cost_total) : null
   const budget = num(r.prices.budget)
@@ -424,7 +425,9 @@ export default function MealResultView({ requestId, mealDate, onChanged }: Props
             <Typography variant="body2">
               成本價 <b>{r.prices.cost_total !== null ? money(r.prices.cost_total) : `未知（已知 ${money(r.prices.known_cost_total)}）`}</b>
             </Typography>
-            <Typography variant="body2" color="text.secondary">預算 {money(r.prices.budget)}</Typography>
+            {r.prices.budget !== null && (
+              <Typography variant="body2" color="text.secondary">預算 {money(r.prices.budget)}</Typography>
+            )}
           </Box>
         )}
         {computed && pricePending && (

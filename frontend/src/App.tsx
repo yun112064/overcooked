@@ -3,6 +3,7 @@ import GroupOutlined from '@mui/icons-material/GroupOutlined'
 import HistoryEduOutlined from '@mui/icons-material/HistoryEduOutlined'
 import HomeOutlined from '@mui/icons-material/HomeOutlined'
 import LogoutOutlined from '@mui/icons-material/LogoutOutlined'
+import MenuBookOutlined from '@mui/icons-material/MenuBookOutlined'
 import {
   BottomNavigation, BottomNavigationAction, Box, Button, CircularProgress, Container, CssBaseline, IconButton,
   Paper, ThemeProvider, Tooltip, Typography, alpha,
@@ -23,6 +24,7 @@ import { Suspense, lazy } from 'react'
 const MealHistoryPage = lazy(() => import('./pages/MealHistoryPage'))
 const GenerationHistoryPage = lazy(() => import('./pages/GenerationHistoryPage'))
 const MealRequestEditor = lazy(() => import('./pages/MealRequestEditor'))
+const RecipePickerPage = lazy(() => import('./pages/RecipePickerPage'))
 import { BrandMark } from './components/ui'
 import { theme, tokens } from './theme'
 
@@ -66,6 +68,7 @@ function Protected({ requireHousehold = false }: { requireHousehold?: boolean })
 
 const NAV = [
   { to: '/plan', label: '規劃餐食', short: '規劃', icon: <EventNoteOutlined /> },
+  { to: '/pick', label: '食譜庫選菜', short: '選菜', icon: <MenuBookOutlined /> },
   { to: '/history', label: '已採用紀錄', short: '紀錄', icon: <HistoryEduOutlined /> },
   { to: '/generation-history', label: '營養與採購紀錄', short: '採購紀錄', icon: <HistoryEduOutlined /> },
   { to: '/members', label: '家庭成員', short: '成員', icon: <GroupOutlined /> },
@@ -177,6 +180,8 @@ const router = createBrowserRouter([
             { path: '/members', element: <MembersPage /> },
             { path: '/plan', element: <MealRequestsPage /> },
             { path: '/plan/:id', element: <MealRequestEditor /> },
+            { path: '/pick', element: <RecipePickerPage /> },
+            { path: '/pick/:id', element: <RecipePickerPage /> },
             { path: '/history', element: <MealHistoryPage /> },
             { path: '/generation-history', element: <GenerationHistoryPage /> },
           ],

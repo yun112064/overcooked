@@ -62,7 +62,7 @@ class IngredientCost:
 @dataclass(frozen=True)
 class MealCost:
     lines: list[IngredientCost]
-    budget: Decimal
+    budget: Decimal | None
     known_purchase_total: Decimal
     known_cost_total: Decimal
     price_complete: bool
@@ -87,7 +87,7 @@ class MealCost:
 def compute_meal_cost(
     requirements: Iterable[IngredientRequirement],
     available_food_ids: Iterable[str],
-    budget: Decimal,
+    budget: Decimal | None,
     quote_for: QuoteLookup,
     *,
     now: datetime,
@@ -133,7 +133,7 @@ def _compute_meal_cost(
     complete = all(line.cost is not None for line in lines)
     known_purchase = sum((line.purchase_price for line in lines if line.purchase_price is not None), ZERO)
     known_cost = sum((line.cost for line in lines if line.cost is not None), ZERO)
-    if sum(map(_exact_cost, lines), Fraction()) > Fraction(budget):
+    if budget is not None and sum(map(_exact_cost, lines), Fraction()) > Fraction(budget):
         status = BUDGET_EXCEEDED  # 即使還有未知價格，已知成本已超預算就不能採用
     elif not complete:
         status = PRICE_INCOMPLETE
@@ -167,7 +167,7 @@ def meal_cost_from_db(
     db: Session,
     requirements: Iterable[IngredientRequirement],
     available_food_ids: Iterable[str],
-    budget: Decimal,
+    budget: Decimal | None,
     *,
     now: datetime,
 ) -> MealCost:

@@ -229,8 +229,17 @@ def test_pg_live_quote_binding_preserves_two_costs_and_filters_history(pg_connec
         repository.save_quote(lease, live)
 
 
-def test_pg_verified_net_mass_applies_to_the_exact_live_package_only(pg_connection):
+def test_pg_verified_net_mass_applies_to_the_exact_live_package_only(pg_connection, monkeypatch):
     from scripts.install_t02_package_mass import install as install_mass
+    from app.source_adapters import pricing_repository
+
+    class FrozenDatetime(datetime):
+        """fallback_targets 以現在時間判斷報價效期；固定在 NOW，報價才不會隨執行日期過期。"""
+        @classmethod
+        def now(cls, tz=None):
+            return NOW.astimezone(tz) if tz else NOW
+
+    monkeypatch.setattr(pricing_repository, 'datetime', FrozenDatetime)
 
     conn = pg_connection
     local = SimpleNamespace(execute=conn.execute, commit=lambda: None)

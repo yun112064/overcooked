@@ -17,6 +17,7 @@ from app.services import meal_request as service
 from app.services import t12_planning
 from app.services import knowledge_explanation
 from app.services import database_menu_plans as meal_plans
+from app.services import recipe_catalog as catalog_service
 from app.db.session import SessionLocal
 
 router = APIRouter(prefix="/meal-requests", tags=["meal-requests"], dependencies=[Depends(verify_origin)])
@@ -95,7 +96,8 @@ def list_requests(household_id=Depends(current_household_id), db: Session = Depe
     return {"meal_requests": [
         {"id": str(r.id), "status": r.status, "version": r.version,
          "meal_date": r.meal_date.isoformat() if r.meal_date else None,
-         "meal_type": r.payload.get("meal_type"), "updated_at": r.updated_at.isoformat()}
+         "meal_type": r.payload.get("meal_type"), "mode": r.payload.get("mode", "questionnaire"),
+         "updated_at": r.updated_at.isoformat()}
         for r in rows
     ]}
 
@@ -204,6 +206,15 @@ def knowledge_tips(request_id: uuid.UUID, body: NutritionPreviewBody,
         request_tag=f'tips:{request_id}:{row.version}', names=ingredients.names(db, food_ids) if food_ids else {})
     return {**result, 'input_version': row.version, 'recipe_ids': body.recipe_ids,
             'nutrition_status': menu.get('status')}
+
+
+@router.get("/{request_id}/recipe-catalog")
+def recipe_catalog(request_id: uuid.UUID, household_id=Depends(current_household_id),
+                   db: Session = Depends(get_db)):
+    """食譜庫選菜：合格食譜依主要食材／菜系／類型／主食種類分類，並標出與本問卷成員禁忌衝突的菜。"""
+    draft = service.load(_get_owned(db, household_id, request_id).payload)
+    excluded = service.restrictions(db, draft, _members(db, household_id))["excluded_food_ids"]
+    return catalog_service.catalog(db, set(excluded))
 
 
 @router.put("/{request_id}")

@@ -3,7 +3,8 @@
 計算順序（Spec R06）：
 1. 以每 1n 的基準用量計算熱量／蛋白質，與 E_reference、P_reference 的 90%–110%（含邊界）比較；
    資料庫模式可在已審核（approved）的可調範圍內調整，AI 模式只驗證候選用量。
-2. 基準通過後用量乘總 N，整餐用量重新計算營養，再以 E_target、P_target 的 ±10% 判定。
+2. 基準通過後用量乘總 N，整餐用量重新計算營養，再以 E_target、P_target 判定：熱量高於目標 10%、
+   蛋白質低於目標 10% 不可採用，另一方向不擋（2026-11-04 使用者決定）；份量對齊仍以 ±10% 為目標。
 3. 全程以 Decimal／Fraction 精確值計算與比較；取整只出現在 display_grams（克到 1 g）。
 
 必要營養只有熱量與蛋白質（decisions #4）；其他營養僅顯示，缺值為 None 並列出，不擋採用。
@@ -131,6 +132,9 @@ class IngredientLine:
     intake_parts: tuple | None = None
     volume_ml_per_n: Decimal | None = None
     volume_is_estimated: bool = False
+    # 原文沒有明確數量（如「數條」「適量」，quantity_status=reference_amount）：數量是匯入時的參考值，
+    # 畫面不顯示原單位數量（避免「袖珍菇 35 條」），有克數時改顯示克數（2026-11-04 使用者要求）
+    amount_estimated: bool = False
 
 
 @dataclass
@@ -148,8 +152,16 @@ MAX_GRID_POINTS = 200_000
 
 
 def _within(value: Fraction, key: str, references: dict) -> bool:
+    """份量對齊的目標：熱量落在 ±10% 內；蛋白質不低於 90%（超過可採用，不必為它縮份量）。"""
     lower, upper = nutrient_bounds(references)[key]
-    return lower <= value <= upper
+    return lower <= value <= upper if key == "energy_kcal" else lower <= value
+
+
+def _enough(value: Fraction, key: str, references: dict) -> bool:
+    """可採用的營養判定（2026-11-04 使用者決定）：熱量只擋高於目標 10%（吃少一點可以），
+    蛋白質只擋低於目標 10%（多吃一點可以）。"""
+    lower, upper = nutrient_bounds(references)[key]
+    return value <= upper if key == "energy_kcal" else lower <= value
 
 
 def _dec(value: Fraction) -> Decimal:
@@ -273,7 +285,7 @@ def _partial_view(target: dict, partial: dict, missing: dict) -> None:
 def _range_reasons(stage, totals, references):
     reasons = []
     for key in REQUIRED_NUTRIENTS:
-        if not _within(totals[key], key, references):
+        if not _enough(totals[key], key, references):
             lower, upper = nutrient_bounds(references)[key]
             reasons.append({"code": "NUTRITION_OUT_OF_RANGE", "stage": stage, "nutrient": key,
                             "value": _dec(totals[key]), "lower": _dec(lower), "upper": _dec(upper)})
@@ -396,10 +408,10 @@ def _align(lines, grams, rows, references, mode):
         for combo in itertools.product(*axes):
             e = fixed[0] + sum(o[2] for o in combo)
             pr = fixed[1] + sum(o[3] for o in combo)
-            # 浮點只作篩選（含極小容差），最後一律以 calculator 精確複核
-            if not (lower[0] - 1e-9 <= e <= upper[0] + 1e-9 and lower[1] - 1e-9 <= pr <= upper[1] + 1e-9):
+            # 浮點只作篩選（含極小容差），最後一律以 calculator 精確複核；與 _within 相同，蛋白質不設上限
+            if not (lower[0] - 1e-9 <= e <= upper[0] + 1e-9 and lower[1] - 1e-9 <= pr):
                 continue
-            deviation = max(abs(e / ref[0] - 1), abs(pr / ref[1] - 1))
+            deviation = max(abs(e / ref[0] - 1), max(0.0, 1 - pr / ref[1]))
             key = (round(deviation, 9), round(sum(o[4] for o in combo), 6), round(sum(o[5] for o in combo), 6))
             yield key, combo
 
@@ -467,7 +479,7 @@ def _llm_summary(rows: list[dict]) -> dict:
 
 def _calculate_meal(lines: list[IngredientLine], targets: MealTargets, *, mode: str,
                     calculator: Calculator) -> dict:
-    """驗證整餐：基準對齊 → 乘 N → 重新計算 → ±10% 判定。mode 為 "database" 或 "ai"。
+    """驗證整餐：基準對齊（目標 ±10%）→ 乘 N → 重新計算 → 判定（熱量不高於、蛋白質不低於目標 10%）。mode 為 "database" 或 "ai"。
 
     不可採用時仍盡量可查看（P2）：克數已知的食材一律列出整餐用量與成本需求量（quantities_verified=False），
     並在 suggestions 說明哪個食材往哪個方向調、已審核範圍內是否補得足。
@@ -543,7 +555,7 @@ def _calculate_meal(lines: list[IngredientLine], targets: MealTargets, *, mode: 
     result["baseline"].update(energy_kcal=_dec(totals["energy_kcal"]), protein_g=_dec(totals["protein_g"]))
     baseline_reasons = _range_reasons("baseline", totals, references)
     if baseline_reasons:
-        # 無可行方案：不移動目標或容差，只回報差距、可調食材與調整建議
+        # 被 _enough 擋下且無可行方案：不移動目標或容差，只回報差距、可調食材與調整建議
         result["block_reasons"] += baseline_reasons
         result["block_reasons"].append({
             "code": "NO_FEASIBLE_BASELINE", "mode": mode,
@@ -607,7 +619,7 @@ def _range_suggestions(lines, grams, rows, totals, references, mode) -> list[dic
     for key in REQUIRED_NUTRIENTS:
         lower, upper = nutrient_bounds(references)[key]
         total = totals[key]
-        if lower <= total <= upper:
+        if _enough(total, key, references):  # 只有 _enough 擋下的方向才需要建議
             continue
         increase = total < lower
         needed = (lower - total) if increase else (total - upper)
@@ -662,9 +674,14 @@ def display_count(value: Decimal) -> Decimal:
     return Decimal(1) if value > 0 and shown < 1 else shown
 
 
+# 原單位數量超過這個數（如「袖珍菇 83 條」）時改顯示克數，數不完的小東西用克數比較好備料（2026-11-06）
+MAX_DISPLAY_COUNT = 20
+
+
 def _display(ln: IngredientLine, whole: Decimal | None, n: Decimal) -> dict:
     """畫面用量（decisions #21／#43）：有原數量＋原單位（非 g）→ 一律顯示原單位、數量取整數（最少 1），
-    克數只留在追溯欄位；原單位是 g 或沒有原單位但有克數 → 克到 1 g；都沒有 → 原文。
+    克數只留在追溯欄位（例外：原文沒有明確數量的參考值、或數量超過 MAX_DISPLAY_COUNT，有克數時顯示克數）；
+    原單位是 g 或沒有原單位但有克數 → 克到 1 g；都沒有 → 原文。
     縮放倍率：有克數時用整餐克數 ÷ 每 1n 克數（含熱量對齊調整），否則用 n。"""
     factor = whole / ln.grams_per_n if whole is not None and ln.grams_per_n else n
     if ln.volume_ml_per_n is not None:
@@ -674,8 +691,9 @@ def _display(ln: IngredientLine, whole: Decimal | None, n: Decimal) -> dict:
                     "display_text": f"約 {format(liters.normalize(), 'f')} L"}
         return {"display_amount": liters, "display_unit": "L", "display_text": None}
     if ln.amount_per_n is not None and ln.unit and ln.unit != "g":
-        return {"display_amount": display_count(ln.amount_per_n * factor), "display_unit": ln.unit,
-                "display_text": None}
+        count = display_count(ln.amount_per_n * factor)
+        if whole is None or not (ln.amount_estimated or count > MAX_DISPLAY_COUNT):
+            return {"display_amount": count, "display_unit": ln.unit, "display_text": None}
     if whole is not None:
         return {"display_amount": _display_grams(whole), "display_unit": "g", "display_text": None}
     return {"display_amount": None, "display_unit": None, "display_text": ln.raw_text or ln.name}
@@ -1189,6 +1207,7 @@ def load_recipe_lines(db, recipe_id: str, factors=None) -> list[IngredientLine]:
             volume_is_estimated=bool(row.volume_evidence and row.volume_evidence.startswith("estimate:")),
             weight_source=None if reason else source, group=ingredient_group(row.raw_text)[0],
             intake_parts=intake_adjustments().get(row.recipe_ingredient_id),
+            amount_estimated=row.quantity_status == "reference_amount",
         ))
     return lines
 

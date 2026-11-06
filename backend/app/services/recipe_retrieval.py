@@ -92,13 +92,18 @@ class _Dish:
         return {"standard_dish_id": self.standard_dish_id, "dish_name": first["recipe_name"], "aliases": aliases}
 
 
-def _load_recipes(db: Session) -> list[dict]:
+def active_release_filter(db: Session):
+    """只取啟用中發布的食譜（食譜庫選菜也共用，兩邊看到的菜一致）。"""
     active_release_ids = db.scalars(
         select(RecipeDataRelease.release_id).where(RecipeDataRelease.active.is_(True))
     ).all()
     # Legacy/unit fixtures may not create release records. Once SQL releases exist,
     # T11 must only search recipes from the one active release.
-    active_filter = (Recipe.recipe_release_id.in_(active_release_ids) if active_release_ids else True)
+    return Recipe.recipe_release_id.in_(active_release_ids) if active_release_ids else True
+
+
+def _load_recipes(db: Session) -> list[dict]:
+    active_filter = active_release_filter(db)
     rows = db.execute(
         select(Recipe.recipe_id, Recipe.standard_dish_id, Recipe.recipe_name, Recipe.name_aliases,
                Recipe.category, Recipe.cuisine, Recipe.cooking_methods)

@@ -222,19 +222,25 @@ class BoundaryTests(unittest.TestCase):
             with self.subTest(sugar=sugar, protein=protein):
                 self.assertTrue(self.check(sugar, protein)["adoptable"])
 
-    def test_just_outside_either_bound_is_not_adoptable_even_if_display_rounds_inside(self):
-        # 134.99 g 糖 = 539.96 kcal，畫面取整為 540 仍不可通過
-        for sugar, protein, nutrient in (("134.99", "30", "energy_kcal"), ("165.01", "30", "energy_kcal"),
-                                         ("150", "26.99", "protein_g"), ("150", "33.01", "protein_g")):
+    def test_energy_above_or_protein_below_is_not_adoptable_even_if_display_rounds_inside(self):
+        # 165.01 g 糖 = 660.04 kcal，畫面取整為 660 仍不可通過
+        for sugar, protein, nutrient in (("165.01", "30", "energy_kcal"), ("150", "26.99", "protein_g")):
             with self.subTest(sugar=sugar, protein=protein):
                 result = self.check(sugar, protein)
                 self.assertFalse(result["adoptable"])
                 codes = [(r["code"], r.get("nutrient")) for r in result["block_reasons"]]
                 self.assertIn(("NUTRITION_OUT_OF_RANGE", nutrient), codes)
 
+    def test_less_energy_or_more_protein_is_still_adoptable(self):
+        # 2026-11-04 使用者決定：熱量只擋高於 10%、蛋白質只擋低於 10%，另一方向可採用
+        for sugar, protein in (("134.99", "30"), ("150", "33.01"), ("100", "60")):
+            with self.subTest(sugar=sugar, protein=protein):
+                self.assertTrue(self.check(sugar, protein)["adoptable"])
+
     def test_600_kcal_20g_protein_uses_specified_plus_minus_10_percent(self):
+        # 蛋白質超過 +10% 仍可採用（2026-11-04），低於 -10% 不可
         targets = mc.compose_targets([mc.ParticipationBaseline("a", D("600"), D("20"), D("1"))])
-        for protein, ok in (("22", True), ("22.01", False), ("18", True), ("17.99", False)):
+        for protein, ok in (("22", True), ("22.01", True), ("18", True), ("17.99", False)):
             with self.subTest(protein=protein):
                 result = mc.calculate_meal(sugar_protein("150", protein), targets, mode="ai",
                                            calculator=FakeCalculator())
@@ -250,21 +256,24 @@ class BoundaryTests(unittest.TestCase):
         result = mc.calculate_meal(sugar_protein("150", "20"), targets, mode="ai",
                                    calculator=FakeCalculator())
         self.assertTrue(result["adoptable"])
-        rejected = mc.calculate_meal(sugar_protein("150", "22.01"), targets, mode="ai",
+        # 蛋白質低於 90%（每 1n 18 g）不可採用；超過 110% 可採用（2026-11-04）
+        rejected = mc.calculate_meal(sugar_protein("150", "17.99"), targets, mode="ai",
                                      calculator=FakeCalculator())
         self.assertFalse(rejected["adoptable"])
+        more = mc.calculate_meal(sugar_protein("150", "22.01"), targets, mode="ai", calculator=FakeCalculator())
+        self.assertTrue(more["adoptable"])
 
     def test_non_terminating_reference_is_compared_exactly(self):
-        # 三人各 1n、基準合計 1000 kcal → 參考值 333.33…；0.9 倍 = 300 整
+        # 三人各 1n、基準合計 1000 kcal → 參考值 333.33…；1.1 倍 = 366.66…（熱量上限）
         targets = mc.compose_targets([
             mc.ParticipationBaseline("a", D("400"), D("10"), D("1")),
             mc.ParticipationBaseline("b", D("300"), D("10"), D("1")),
             mc.ParticipationBaseline("c", D("300"), D("10"), D("1")),
         ])
-        ok = mc.calculate_meal(sugar_protein("75", "10"), targets, mode="ai", calculator=FakeCalculator())
+        ok = mc.calculate_meal(sugar_protein("91.666", "10"), targets, mode="ai", calculator=FakeCalculator())
         self.assertTrue(ok["adoptable"])
-        low = mc.calculate_meal(sugar_protein("74.999", "10"), targets, mode="ai", calculator=FakeCalculator())
-        self.assertFalse(low["adoptable"])
+        high = mc.calculate_meal(sugar_protein("91.667", "10"), targets, mode="ai", calculator=FakeCalculator())
+        self.assertFalse(high["adoptable"])
 
     def test_final_is_recalculated_and_checked_against_scaled_target(self):
         class NonLinear(FakeCalculator):
@@ -299,7 +308,7 @@ class DatabaseModeAlignmentTests(unittest.TestCase):
         self.assertEqual(result["final"]["target"], {"energy_kcal": D("780"), "protein_g": D("39")})
 
     def test_unapproved_range_is_not_used(self):
-        lines = sugar_protein("120", "30", adjustable_min=D("100"), adjustable_max=D("200"),
+        lines = sugar_protein("180", "30", adjustable_min=D("100"), adjustable_max=D("200"),
                               adjustment_approved=False)
         result = mc.calculate_meal(lines, single("1"), mode="database", calculator=FakeCalculator())
         self.assertFalse(result["adoptable"])
@@ -307,15 +316,15 @@ class DatabaseModeAlignmentTests(unittest.TestCase):
         self.assertIn("NO_FEASIBLE_BASELINE", [r["code"] for r in result["block_reasons"]])
 
     def test_ai_mode_never_adjusts_candidate_quantities(self):
-        lines = sugar_protein("120", "30", adjustable_min=D("100"), adjustable_max=D("200"),
+        lines = sugar_protein("180", "30", adjustable_min=D("100"), adjustable_max=D("200"),
                               adjustment_approved=True)
         result = mc.calculate_meal(lines, single("1"), mode="ai", calculator=FakeCalculator())
         self.assertFalse(result["adoptable"])
-        self.assertEqual(result["ingredients"][0]["baseline_grams"], D("120"))
+        self.assertEqual(result["ingredients"][0]["baseline_grams"], D("180"))
 
     def test_no_feasible_solution_is_reported_without_moving_target_or_tolerance(self):
-        # 可調上限 130 g = 520 kcal，仍低於 540：無解
-        lines = sugar_protein("120", "30", adjustable_min=D("100"), adjustable_max=D("130"),
+        # 糖 180 g = 720 kcal；可調下限 170 g = 680 kcal，仍高於上限 660：無解
+        lines = sugar_protein("180", "30", adjustable_min=D("170"), adjustable_max=D("200"),
                               adjustment_approved=True)
         result = mc.calculate_meal(lines, single("1.3"), mode="database", calculator=FakeCalculator())
         self.assertFalse(result["adoptable"])
@@ -327,22 +336,22 @@ class DatabaseModeAlignmentTests(unittest.TestCase):
         self.assertEqual((out["lower"], out["upper"]), (D("540"), D("660")))
         # P2：仍可查看——每項整餐用量（標示未驗證）、可計算的成本需求量與具體調整建議
         self.assertFalse(result["quantities_verified"])
-        self.assertEqual(result["requirements"], [IngredientRequirement("F-糖", D("156")),
+        self.assertEqual(result["requirements"], [IngredientRequirement("F-糖", D("234")),
                                                   IngredientRequirement("F-蛋白", D("39"))])
-        self.assertEqual(result["ingredients"][0]["whole_meal_grams"], D("156"))
-        self.assertEqual(result["final"]["energy_kcal"], D("624"))
+        self.assertEqual(result["ingredients"][0]["whole_meal_grams"], D("234"))
+        self.assertEqual(result["final"]["energy_kcal"], D("936"))
         [hint] = result["suggestions"]
         self.assertEqual((hint["code"], hint["nutrient"], hint["direction"], hint["needed_change"]),
-                         ("NUTRITION_OUT_OF_RANGE", "energy_kcal", "increase", D("60")))
+                         ("NUTRITION_OUT_OF_RANGE", "energy_kcal", "decrease", D("60")))
         self.assertFalse(hint["within_adjustable_ranges"])
         [sugar] = hint["ingredients"]
         self.assertEqual((sugar["name"], sugar["direction"], sugar["adjustable_min"], sugar["adjustable_max"],
                           sugar["max_change"], sugar["adjustment_approved"]),
-                         ("糖", "increase", D("100"), D("130"), D("40"), True))
+                         ("糖", "decrease", D("170"), D("200"), D("40"), True))
 
     def test_suggestion_says_when_the_approved_range_would_be_enough_for_one_nutrient(self):
-        # 糖可調 100–200 g，但蛋白質 20 g 不足且蛋白不可調：熱量可補、蛋白質無法在範圍內補足
-        lines = sugar_protein("120", "20", adjustable_min=D("100"), adjustable_max=D("200"),
+        # 糖 180 g = 720 kcal 超過上限；糖可調 100–200 g，但蛋白質 20 g 不足且蛋白不可調：熱量可減、蛋白質無法在範圍內補足
+        lines = sugar_protein("180", "20", adjustable_min=D("100"), adjustable_max=D("200"),
                               adjustment_approved=True)
         result = mc.calculate_meal(lines, single("1"), mode="database", calculator=FakeCalculator())
         hints = {h["nutrient"]: h for h in result["suggestions"]}
@@ -427,14 +436,28 @@ class WholeDishScalingTests(unittest.TestCase):
         self.assertTrue(result["adoptable"], result["block_reasons"])
         self.assertTrue(result["baseline"]["adjusted"])
 
-    def test_even_the_smallest_scale_can_be_infeasible(self):
-        # 單道 1500 kcal：0.4 倍仍 600 kcal 但蛋白質 120 g 遠超 33 → 不可行，不移動目標
+    def test_high_protein_dish_is_scaled_down_by_energy_only(self):
+        # 單道 1500 kcal／蛋白質 120 g：縮到 0.4 倍 600 kcal、蛋白質 48 g 仍超過目標也可採用（2026-11-04）
         lines = dish("R1", "600", "225")
+        result = mc.calculate_meal(lines, single("1"), mode="database", calculator=FakeCalculator())
+        self.assertTrue(result["adoptable"], result["block_reasons"])
+        self.assertEqual(result["dish_scales"], {"R1": D("0.4")})
+
+    def test_even_the_smallest_scale_can_be_infeasible(self):
+        # 單道 2200 kcal：最小 0.4 倍仍 880 kcal，熱量超過 10% → 不可行，不移動目標
+        lines = dish("R1", "600", "400")
+        result = mc.calculate_meal(lines, single("1"), mode="database", calculator=FakeCalculator())
+        self.assertFalse(result["adoptable"])
+        self.assertIn("NO_FEASIBLE_BASELINE", [r["code"] for r in result["block_reasons"]])
+        self.assertEqual(result["dish_scales"], {"R1": D("1")})
+
+    def test_even_the_largest_scale_can_be_infeasible(self):
+        # 單道 135 kcal／15 g：最多 1 倍，低於目標 600／30 的 90% → 不可行，不移動目標
+        lines = dish("R1", "75", "15")
         result = mc.calculate_meal(lines, single("1"), mode="database", calculator=FakeCalculator())
         self.assertFalse(result["adoptable"])
         codes = [r["code"] for r in result["block_reasons"]]
         self.assertIn("NO_FEASIBLE_BASELINE", codes)
-        self.assertEqual(result["dish_scales"], {"R1": D("1")})
         block = next(r for r in result["block_reasons"] if r["code"] == "NO_FEASIBLE_BASELINE")
         self.assertEqual(block["adjustable_dish_ids"], ["R1"])
 
