@@ -1,22 +1,26 @@
 import { useState } from 'react'
 import { Alert, Button, Chip, MenuItem, Paper, Stack, TextField, Typography } from '@mui/material'
-import { channels, contentName, time } from '../../api/management'
-import type { Binding, Collection, EditableDomain, Entity, LegacyDetail, LegacyRelease, LegacyRow, Measurement, Price, Publication, Recipe } from '../../api/management'
+import { channels, contentName, managementError, time } from '../../api/management'
+import type { ActivationPlan, Binding, Collection, EditableDomain, Entity, LegacyDetail, LegacyRelease, LegacyRow, Measurement, Price, Publication, Recipe } from '../../api/management'
 import { blankContent, unknownMeasurement } from './content'
 import { ContentPreview } from './Proposal'
 import type { ContextSelection } from './Proposal'
 import { ReadState, ResultPage } from './shared'
-import { useManagementRead } from './hooks'
+import { useManagementCommand, useManagementRead } from './hooks'
 
 export type EditSelection = { initial: Entity['content']; context: ContextSelection }
 
-export function Publications({ domain, canEdit, select }: { domain: EditableDomain; canEdit: boolean; select: (input: EditSelection) => void }) {
+export function Publications({ domain, canEdit, canActivate, select }: {
+  domain: EditableDomain; canEdit: boolean; canActivate: boolean; select: (input: EditSelection) => void
+}) {
   const [cursor, setCursor] = useState<string>()
   const [publication, setPublication] = useState<string>()
   const list = useManagementRead<Collection<Publication>>('/publications', { domain, cursor })
   const binding = useManagementRead<Binding>('/bindings/' + channels[domain])
   return <Stack spacing={2}>
-    <Alert severity="info">發布版本可供管理檢視。正式餐單生成尚未就緒。</Alert>
+    <Alert severity="info">{domain === 'price'
+      ? '啟用價格版本會影響新的成本計算。既有採用餐單保留當時的快照。'
+      : '發布版本可供管理檢視。正式餐單生成尚未就緒。'}</Alert>
     <ReadState query={binding}>{(data) => <Typography color="text.secondary">
       目前啟用版本 {data.publication_id ?? '尚未啟用'} · 更新於 {time(data.updated_at)}
     </Typography>}</ReadState>
@@ -34,8 +38,47 @@ export function Publications({ domain, canEdit, select }: { domain: EditableDoma
         </Stack>
       </Paper>)}
     </ResultPage>}</ReadState>
-    {publication && <PublicationContents key={publication} id={publication} domain={domain} canEdit={canEdit} select={select} />}
+    {publication && <>
+      {domain === 'price' && canActivate && binding.data && binding.data.publication_id !== publication &&
+        <PriceActivation key={publication + ':' + binding.data.revision} publication={publication} binding={binding.data} />}
+      <PublicationContents key={publication} id={publication} domain={domain} canEdit={canEdit} select={select} />
+    </>}
   </Stack>
+}
+
+function PriceActivation({ publication, binding }: { publication: string; binding: Binding }) {
+  const [reason, setReason] = useState('')
+  const [mode, setMode] = useState<'activate' | 'rollback'>('activate')
+  const base = '/bindings/price_policy/'
+  const plan = useManagementCommand<ActivationPlan>(base + 'plans')
+  const activate = useManagementCommand<Binding>(base + 'activate')
+  const rollback = useManagementCommand<Binding>(base + 'rollback')
+  const command = mode === 'activate' ? activate : rollback
+  const expected = { expected_binding_revision: binding.revision, reason: reason.trim() }
+  const busy = plan.isPending || command.isPending
+  return <Paper variant="outlined" sx={{ p: 2 }}><Stack spacing={1}>
+    <Typography sx={{ overflowWrap: 'anywhere' }}>核對價格版本 {publication}</Typography>
+    <TextField select size="small" label="價格版本操作" value={mode} disabled={busy} onChange={(event) => {
+      setMode(event.target.value as typeof mode)
+      plan.reset()
+    }}>
+      <MenuItem value="activate">啟用後續版本</MenuItem>
+      <MenuItem value="rollback">回復先前啟用版本</MenuItem>
+    </TextField>
+    <TextField size="small" label="啟用或回復原因" value={reason} disabled={busy}
+      onChange={(event) => { setReason(event.target.value); plan.reset() }} />
+    <Button disabled={busy || !reason.trim()} onClick={() => plan.mutate({ ...expected, publication_id: publication })}>核對價格版本啟用計畫</Button>
+    {plan.data && <Alert severity={plan.data.can_activate ? 'info' : 'warning'}>
+      {plan.data.can_activate ? '版本核對完成，有效至 ' + time(plan.data.expires_at) : '版本尚未就緒'}
+      {plan.data.issues.map((issue, index) => <Typography variant="body2" key={issue.code + index}>{issue.message}</Typography>)}
+    </Alert>}
+    {plan.data?.can_activate && <Button variant="contained" disabled={busy} onClick={() => {
+      if (!plan.data) return
+      command.mutate({ ...expected, plan_id: plan.data.plan_id, plan_hash: plan.data.plan_hash,
+        ...(mode === 'activate' ? { publication_id: publication } : { target_publication_id: publication }) })
+    }}>{mode === 'activate' ? '確認啟用價格版本' : '確認回復價格版本'}</Button>}
+    {(plan.isError || command.isError) && <Alert severity="error">{managementError(plan.error ?? command.error)}</Alert>}
+  </Stack></Paper>
 }
 
 function PublicationContents({ id, domain, canEdit, select }: {
@@ -47,11 +90,17 @@ function PublicationContents({ id, domain, canEdit, select }: {
   return <Stack spacing={2}>
     <Typography sx={{ fontWeight: 'bold', overflowWrap: 'anywhere' }}>發布版本 {id}</Typography>
     <Typography color="text.secondary">這裡列出經新版審核的項目。歷史項目可從舊版目錄查閱。</Typography>
-    <ReadState query={query}>{(data) => <ResultPage empty={!data.items.length} next={data.next_cursor} advance={setCursor}
+    <ReadState query={query}>{(data) => <>
+      {domain === 'price' && canEdit && data.items.length > 0 && <Button onClick={() => {
+        const price = data.items[0].content as Price
+        select({ initial: blankContent('price'), context: { base_publication_id: id,
+          legacy_recipe_release_id: price.legacy_recipe_release_id, ingredient_publication_id: price.ingredient_publication_id } })
+      }}>新增至此價格版本</Button>}
+      <ResultPage empty={!data.items.length} next={data.next_cursor} advance={setCursor}
       reset={cursor ? () => setCursor(undefined) : undefined}>
       {data.items.map((item) => <Button key={item.logical_id} variant="outlined" sx={{ justifyContent: 'start' }}
         onClick={() => setEntity(item)}>{contentName(item.content)} · {item.logical_id}</Button>)}
-    </ResultPage>}</ReadState>
+    </ResultPage></>}</ReadState>
     {entity && <Paper variant="outlined" sx={{ p: 2 }}>
       <Stack spacing={1}>
         <ContentPreview content={entity.content} />
@@ -60,10 +109,11 @@ function PublicationContents({ id, domain, canEdit, select }: {
         </Button>}
         {canEdit && domain === 'price' && <Button onClick={() => {
           const price = entity.content as Price
-          select({ initial: { ...price, snapshot_id: null, price_twd: null, package_mass_g: null, observed_at: null,
+          select({ initial: { ...price, replaces_version_id: entity.ref.version_id, snapshot_id: null,
+            price_twd: null, package_mass_g: null, observed_at: null,
             valid_from: null, valid_until: null, sources: [] }, context: { base_publication_id: id,
             legacy_recipe_release_id: price.legacy_recipe_release_id, ingredient_publication_id: price.ingredient_publication_id } })
-        }}>新增後續人工修訂</Button>}
+        }}>建立明確替換草稿</Button>}
       </Stack>
     </Paper>}
   </Stack>

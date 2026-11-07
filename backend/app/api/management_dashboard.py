@@ -66,8 +66,9 @@ def proposal_workflow(proposal_id: ID, s=Depends(service)):
 
 
 @router.get('/publications')
-def publications(domain: Domain, limit: Limit = 50, cursor: Cursor = None, s=Depends(service)):
-    return view.publications(s, domain, limit, cursor)
+def publications(domain: Domain, limit: Limit = 50, cursor: Cursor = None,
+                 legacy_recipe_release_id: QueryID = None, ingredient_publication_id: QueryID = None, s=Depends(service)):
+    return view.publications(s, domain, limit, cursor, legacy_recipe_release_id, ingredient_publication_id)
 
 
 @router.get('/publications/{publication_id}')
@@ -113,6 +114,11 @@ def entity(domain: Domain, logical_id: ID, view_kind: Literal['publication', 'le
 @router.get('/legacy-catalog/{domain}/releases')
 def legacy_releases(domain: LegacyDomain, limit: Limit = 50, cursor: Cursor = None, s=Depends(service)):
     return view.legacy_releases(s, domain, limit, cursor)
+
+
+@router.get('/price-releases')
+def price_releases(limit: Limit = 50, cursor: Cursor = None, s=Depends(service)):
+    return view.legacy_releases(s, 'price', limit, cursor)
 
 
 @router.get('/legacy-catalog/{domain}/{release_id}')

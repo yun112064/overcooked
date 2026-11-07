@@ -49,6 +49,7 @@ export type Ingredient = {
   declared_allergen_ids: string[] | null; sources: Source[]
 }
 export type Price = {
+  replaces_version_id?: string
   correction_kind: 'product_binding' | 'quote_correction'
   food_id: string
   ingredient_version_id: string
@@ -95,6 +96,9 @@ export type Verdict = 'approve' | 'request_changes' | 'reject'
 export type Diff = { changes: { json_pointer: string; op: string; before: unknown; after: unknown }[]; next_cursor: string | null }
 export type Publication = { publication_id: string; created_at: string; member_count: number; manifest_hash: string }
 export type Binding = { publication_id: string | null; revision: number; updated_at: string }
+export type ActivationPlan = {
+  plan_id: string; plan_hash: string; can_activate: boolean; expires_at: string; issues: Issue[]
+}
 export type Entity = {
   logical_id: string; content: Content; approval_state: 'managed_approved'
   ref: { kind: 'managed'; version_id: string; content_hash: string }
@@ -108,6 +112,7 @@ export type LegacyDetail = LegacyRow & { aliases: string[] } & Partial<{
   steps: Recipe['steps']
 }>
 export type Observation = {
+  product_name?: string | null
   snapshot_id: number; provider: string; product_id: string | null; raw_price_twd: string | null
   queried_at: string; effective_valid_until: string | null; calculation_usable: boolean; missing_reason: string | null
   usage_status: 'historical_requires_refresh' | 'live_observation' | 'unusable'
@@ -174,6 +179,12 @@ const errors: Record<string, string> = {
   CONSUMER_ADAPTER_NOT_READY: '資料使用端尚未就緒，這個發布版本目前不能啟用。',
   TASK_NOT_READY: '驗證任務尚未完成。',
   LEGACY_VIEW_NOT_AVAILABLE: '舊版目錄僅提供來源參考。',
+  PRICE_REPLACEMENT_TARGET_INVALID: '替換目標已變更或與價格適用範圍不同。請從指定發布版本重新選取。',
+  PRICE_REPLACEMENT_TARGET_IMMUTABLE: '此草稿已綁定替換目標。',
+  PRICE_POLICY_BASE_MISMATCH: '這個版本的基礎發布與目前啟用版本不同，或此版本未曾啟用。',
+  PRICE_POLICY_RELEASE_MISMATCH: '價格版本與目前使用的食譜版本不同。',
+  BINDING_CHANGED: '目前啟用版本已更新。請重新核對並建立計畫。',
+  ACTIVATION_PLAN_INVALID: '啟用計畫已失效，請重新核對。',
 }
 
 export function managementError(err: unknown, fallback = '目前無法取得管理資料，請重新整理。') {

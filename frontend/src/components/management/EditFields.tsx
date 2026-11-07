@@ -24,10 +24,10 @@ function Field({ label, value, update, required = false, type, hint, multiline =
     }} />
 }
 
-function Select<T extends string>({ label, value, choices, update }: {
-  label: string; value: T; choices: Record<T, string>; update: Update<T>
+function Select<T extends string>({ label, value, choices, update, disabled = false }: {
+  label: string; value: T; choices: Record<T, string>; update: Update<T>; disabled?: boolean
 }) {
-  return <TextField select fullWidth size="small" label={label} value={value} onChange={(event) => update(event.target.value as T)}>
+  return <TextField select fullWidth size="small" label={label} value={value} disabled={disabled} onChange={(event) => update(event.target.value as T)}>
     {Object.entries<string>(choices).map(([id, name]) => <MenuItem key={id} value={id}>{name}</MenuItem>)}
   </TextField>
 }
@@ -181,16 +181,18 @@ function utcFromTaipei(value: string) {
 
 function PriceFields({ price, update }: { price: Price; update: Update<Price> }) {
   const correction = price.correction_kind === 'quote_correction'
+  const replacing = Boolean(price.replaces_version_id)
   const updateCondition = (key: 'region_condition' | 'store_condition' | 'promotion_condition') =>
     (value: string) => update({ ...price, [key]: nullable(value) })
   return <Stack spacing={1.5}>
-    <Select label="修訂類別" value={price.correction_kind} choices={{ product_binding: '商品對應', quote_correction: '人工價格修訂' }}
+    {replacing && <Alert severity="info">此草稿會替換指定發布成員，原發布與審核紀錄保留。</Alert>}
+    <Select label="修訂類別" value={price.correction_kind} disabled={replacing} choices={{ product_binding: '商品對應', quote_correction: '人工價格修訂' }}
       update={(correction_kind) => update(correction_kind === 'product_binding' ? { ...price, correction_kind, price_twd: null, package_mass_g: null,
         observed_at: null, availability: 'unknown' } : { ...price, correction_kind, availability: 'in_stock' })} />
     <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 1.5 }}>
-      <Field label="Food ID" value={price.food_id} required update={(food_id) => update({ ...price, food_id })} />
-      <Field label="食材版本識別碼" value={price.ingredient_version_id} required update={(ingredient_version_id) => update({ ...price, ingredient_version_id })} />
-      <Select label="價格來源" value={price.provider} choices={{ pxmart: '全聯', uniprosperity: '萬家福', manual_evidence: '人工證據' }}
+      <Field label="Food ID" value={price.food_id} readOnly={replacing} required update={(food_id) => update({ ...price, food_id })} />
+      <Field label="食材版本識別碼" value={price.ingredient_version_id} readOnly={replacing} required update={(ingredient_version_id) => update({ ...price, ingredient_version_id })} />
+      <Select label="價格來源" value={price.provider} disabled={replacing} choices={{ pxmart: '全聯', uniprosperity: '萬家福', manual_evidence: '人工證據' }}
         update={(provider) => update({ ...price, provider })} />
       <Field label="商品識別碼" value={price.product_id} required update={(product_id) => update({ ...price, product_id })} />
       <Field label="商品名稱" value={price.product_name} required update={(product_name) => update({ ...price, product_name })} />
@@ -209,9 +211,9 @@ function PriceFields({ price, update }: { price: Price; update: Update<Price> })
         update={(value) => update({ ...price, valid_from: utcFromTaipei(value) })} />
       <Field label="有效迄日（台北）" type="datetime-local" value={taipeiInput(price.valid_until)} required={correction}
         update={(value) => update({ ...price, valid_until: utcFromTaipei(value) })} />
-      <Field label="適用地區" value={price.region_condition} update={updateCondition('region_condition')} />
-      <Field label="適用店別" value={price.store_condition} update={updateCondition('store_condition')} />
-      <Field label="促銷條件" value={price.promotion_condition} update={updateCondition('promotion_condition')} />
+      <Field label="適用地區" value={price.region_condition} readOnly={replacing} update={updateCondition('region_condition')} />
+      <Field label="適用店別" value={price.store_condition} readOnly={replacing} update={updateCondition('store_condition')} />
+      <Field label="促銷條件" value={price.promotion_condition} readOnly={replacing} update={updateCondition('promotion_condition')} />
     </Box>
     {correction && <Alert severity="info">價格修訂代表有證據支持的有貨觀察。請先核對售價、單包公克數與效期。</Alert>}
   </Stack>

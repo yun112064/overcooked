@@ -177,10 +177,18 @@ def visible_publication(s, publication_id, domain):
     return row
 
 
-def publications(s, domain, limit, cursor):
+def publications(s, domain, limit, cursor, legacy_recipe_release_id=None, ingredient_publication_id=None):
     s.require(domain + '.read', domain)
     t = T['publications']
-    return dated_page(s, sa.select(t).where(t.c.domain == domain), t, limit, cursor, ['publications', domain], publication_view)
+    query = sa.select(t).where(t.c.domain == domain)
+    scope = ['publications', domain]
+    if legacy_recipe_release_id:
+        query = query.where(t.c.manifest['dependency_pins']['legacy_recipe_release_id'].as_string() == legacy_recipe_release_id)
+        scope.append(legacy_recipe_release_id)
+    if ingredient_publication_id:
+        query = query.where(t.c.manifest['dependency_pins']['ingredient_publication_id'].as_string() == ingredient_publication_id)
+        scope.extend(['ingredient', ingredient_publication_id])
+    return dated_page(s, query, t, limit, cursor, scope, publication_view)
 
 
 def binding(s, channel):
@@ -209,6 +217,11 @@ def draft_context(s, domain, base_publication_id, ingredient_publication_id, leg
         publication = visible_publication(s, base_publication_id, domain)
         pins.update(publication['manifest']['dependency_pins'])
         pins.update(base_publication_id=publication['id'], base_publication_manifest_sha256=publication['manifest_hash'])
+        if domain == 'price' and (
+            ingredient_publication_id not in (None, pins['ingredient_publication_id'])
+            or legacy_recipe_release_id not in (None, pins['legacy_recipe_release_id'])
+        ):
+            fail('DEPENDENCY_CHANGED')
     if ingredient_publication_id:
         s.require('ingredient.read', 'ingredient')
         ingredient = visible_publication(s, ingredient_publication_id, 'ingredient')

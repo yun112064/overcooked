@@ -4,6 +4,7 @@ import { connectionStates, taskStates, time } from '../../api/management'
 import type { Collection, Connection, Metrics, Observation, Task, DataType } from '../../api/management'
 import { ReadState, ResultPage } from './shared'
 import { useManagementRead } from './hooks'
+import { PriceReleaseSelect } from './PriceVersions'
 
 const statuses = {
   historical_requires_refresh: '歷史觀察，需重新取得',
@@ -21,7 +22,8 @@ export function PriceObservations({ seed, draft }: {
   const [food, setFood] = useState(seed?.food_id ?? '')
   const [filters, setFilters] = useState<PriceLookup | undefined>(seed)
   const [cursor, setCursor] = useState<string>()
-  const records = useManagementRead<Collection<Observation>>('/price-observations', filters ? { ...filters, cursor } : undefined, Boolean(filters))
+  const records = useManagementRead<Collection<Observation>>('/price-observations',
+    filters ? { ...filters, cursor, include_product_name: 'true' } : undefined, Boolean(filters))
   return <Stack spacing={2}>
     <Alert severity="info">原始觀察保留來源查詢時間。人工價格另走修訂與審核，已發布與已啟用分開顯示。</Alert>
     <Stack component="form" spacing={1} onSubmit={(event) => {
@@ -30,9 +32,9 @@ export function PriceObservations({ seed, draft }: {
       setCursor(undefined)
       setFilters({ recipe_release_id: release.trim(), food_id: food.trim(), as_of: new Date().toISOString() })
     }}>
-      <TextField label="食譜資料版本識別碼" value={release} required size="small" onChange={(event) => setRelease(event.target.value)} />
+      <PriceReleaseSelect value={release} change={setRelease} />
       <TextField label="Food ID" value={food} required size="small" onChange={(event) => setFood(event.target.value)} />
-      <Button variant="outlined" type="submit" sx={{ alignSelf: 'start' }}>查詢原始價格觀察</Button>
+      <Button variant="outlined" type="submit" disabled={!release || !food.trim()} sx={{ alignSelf: 'start' }}>查詢原始價格觀察</Button>
     </Stack>
     {filters && <>
       <Typography color="text.secondary">查詢基準時間 {time(filters.as_of)}（台北）</Typography>
@@ -41,7 +43,8 @@ export function PriceObservations({ seed, draft }: {
           {data.items.map((item) => <Paper key={item.snapshot_id} variant="outlined" sx={{ p: 1.5 }}>
             <Stack spacing={1}>
               <Typography>原始價格 {item.raw_price_twd === null ? '未知' : 'NT$ ' + item.raw_price_twd}</Typography>
-              <Typography variant="body2">{item.provider} · 商品 {item.product_id ?? '未知'} · 觀察編號 {item.snapshot_id}</Typography>
+              <Typography variant="body2">{item.product_name ?? '商品名稱未知'}</Typography>
+              <Typography variant="body2">{item.provider} · SKU {item.product_id ?? '未知'} · 觀察編號 {item.snapshot_id}</Typography>
               <Typography variant="body2">查詢時間 {time(item.queried_at)} · 有效迄日 {time(item.effective_valid_until)}</Typography>
               <Typography variant="body2">{statuses[item.usage_status]} · {item.calculation_usable ? '符合來源觀察品質檢查' : '未達計算資料要求'}
                 {item.missing_reason && ' · ' + item.missing_reason}</Typography>

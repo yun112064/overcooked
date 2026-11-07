@@ -67,7 +67,8 @@ function DomainWorkspace({ domain, caps }: { domain: EditableDomain; caps: Capab
     const draft = blankContent('price') as Price
     const provider = record.provider
     if (provider !== 'pxmart' && provider !== 'uniprosperity' && provider !== 'manual_evidence') return
-    open({ initial: { ...draft, food_id: filters.food_id, snapshot_id: record.snapshot_id, provider, product_id: record.product_id ?? '' },
+    open({ initial: { ...draft, food_id: filters.food_id, snapshot_id: record.snapshot_id, provider,
+      product_id: record.product_id ?? '', product_name: record.product_name ?? '' },
       context: { legacy_recipe_release_id: filters.recipe_release_id } })
   }
   if (editor && canEdit) return <DraftEditor domain={domain} {...editor} close={() => setEditor(undefined)} saved={showProposal} />
@@ -77,7 +78,7 @@ function DomainWorkspace({ domain, caps }: { domain: EditableDomain; caps: Capab
         aria-pressed={mode === item}>{modes[item]}</Button>)}
     </Stack>
     {mode === 'legacy' && domain !== 'price' && <LegacyCatalog domain={domain} canEdit={canEdit} select={open} />}
-    {mode === 'publications' && <Publications domain={domain} canEdit={canEdit} select={open} />}
+    {mode === 'publications' && <Publications domain={domain} canEdit={canEdit} canActivate={permissions.includes('price.activate')} select={open} />}
     {mode === 'observations' && <PriceObservations draft={canEdit ? fromObservation : undefined} />}
     {mode === 'proposals' && <>
       {canEdit && <Stack direction="row" spacing={1}>

@@ -1,10 +1,11 @@
 import { useState } from 'react'
 import { Alert, Box, Button, Chip, Divider, MenuItem, Paper, Stack, TextField, Typography } from '@mui/material'
 import { contentName, expectRevision, managementError, originNames, proposalStates, taskStates, time } from '../../api/management'
-import type { Collection, Content, EditableDomain, Entity, Pins, Price, Proposal, Diff, ReviewScope, Verdict, Workflow } from '../../api/management'
+import type { Binding, Collection, Content, EditableDomain, Entity, Pins, Price, Proposal, Diff, ReviewScope, Verdict, Workflow } from '../../api/management'
 import { EditFields } from './EditFields'
 import { cleanLists } from './content'
 import { PriceObservations } from './Monitoring'
+import { PriceBaseVersionSelect, PriceIngredientVersionSelect, PriceReleaseSelect } from './PriceVersions'
 import { ReadState } from './shared'
 import { useManagementCommand, useManagementRead } from './hooks'
 
@@ -35,6 +36,7 @@ export function ContentPreview({ content }: { content: Content }) {
     {'price_twd' in content && <>
       <Typography>{content.correction_kind === 'quote_correction' ? '人工價格修訂' : '人工商品對應'} · {content.provider}</Typography>
       <Typography>Food ID {content.food_id} · 商品 {content.product_id} · 原始觀察編號 {content.snapshot_id ?? '未知'}</Typography>
+      {content.replaces_version_id && <Typography sx={{ overflowWrap: 'anywhere' }}>替換的發布成員 {content.replaces_version_id}</Typography>}
       <Typography>人工價 {content.price_twd === null ? '未知' : `NT$ ${content.price_twd}`} · 單包重量 {content.package_mass_g === null ? '未知' : `${content.package_mass_g} g`}</Typography>
       <Typography>觀察時間 {time(content.observed_at)} · 有效起迄 {time(content.valid_from)} 至 {time(content.valid_until)}</Typography>
       <Typography>地區 {content.region_condition ?? '未知'} · 店別 {content.store_condition ?? '未知'} · 促銷 {content.promotion_condition ?? '未知'}</Typography>
@@ -56,18 +58,24 @@ export function DraftEditor({ domain, initial, proposal, context, close, saved }
   const [reason, setReason] = useState('')
   const [ingredientPublication, setIngredientPublication] = useState(context?.ingredient_publication_id ?? proposal?.dependency_pins.ingredient_publication_id ?? '')
   const [legacyRelease, setLegacyRelease] = useState(context?.legacy_recipe_release_id ?? proposal?.dependency_pins.legacy_recipe_release_id ?? '')
+  const [basePublication, setBasePublication] = useState(context?.base_publication_id ?? '')
+  const binding = useManagementRead<Binding>('/bindings/price_policy', undefined, domain === 'price' && !proposal)
   const [checked, setChecked] = useState<ContextSelection>(context ?? {})
   const [repin, setRepin] = useState(false)
+  const replacing = 'price_twd' in content && Boolean(content.replaces_version_id)
   const needsContext = !proposal || repin
   const contextMatches = (checked.ingredient_publication_id ?? '') === ingredientPublication.trim() &&
-    (checked.legacy_recipe_release_id ?? '') === legacyRelease.trim()
+    (checked.legacy_recipe_release_id ?? '') === legacyRelease.trim() &&
+    (checked.base_publication_id ?? '') === basePublication
+  const missingPriceBase = domain === 'price' && !proposal && Boolean(
+    binding.isPending || binding.isError || binding.data?.publication_id && !basePublication)
   const contextQuery = useManagementRead<Pins>('/draft-context', { domain, ...checked, proposal_id: proposal?.proposal_id },
     needsContext && contextMatches && (domain !== 'price' || Boolean(checked.ingredient_publication_id && checked.legacy_recipe_release_id)))
   const save = useManagementCommand<Proposal>(proposal ? `/proposals/${proposal.proposal_id}/revisions` : '/proposals', (next) => saved(next.proposal_id))
   const pins = needsContext ? (contextMatches ? contextQuery.data : undefined) : proposal?.dependency_pins
   function checkContext() {
     setRepin(Boolean(proposal))
-    setChecked({ ...context, ingredient_publication_id: ingredientPublication.trim() || undefined,
+    setChecked({ ...context, base_publication_id: basePublication || undefined, ingredient_publication_id: ingredientPublication.trim() || undefined,
       legacy_recipe_release_id: legacyRelease.trim() || undefined })
   }
   function submit(event: React.FormEvent) {
@@ -87,14 +95,13 @@ export function DraftEditor({ domain, initial, proposal, context, close, saved }
         <Typography variant="h5">{proposal ? `新增修訂（目前第 ${proposal.revision} 版）` : '建立管理草稿'}</Typography>
         <Alert severity="info">儲存後可進行驗證與送審。每次修訂都會保留版本。</Alert>
         {context?.base_publication_id && <Typography variant="body2" sx={{ overflowWrap: 'anywhere' }}>基礎發布版本 {context.base_publication_id}</Typography>}
-        {(domain === 'recipe' || (!proposal && domain === 'price')) && <>
-          <TextField size="small" label="食材發布版本識別碼" required={domain === 'price' || Boolean(proposal?.dependency_pins.ingredient_publication_id)} value={ingredientPublication}
+        {domain === 'recipe' && <>
+          <TextField size="small" label="食材發布版本識別碼" required={Boolean(proposal?.dependency_pins.ingredient_publication_id)} value={ingredientPublication}
             onChange={(event) => {
               setIngredientPublication(event.target.value)
               if (proposal) setRepin(true)
-              if (domain === 'price') setContent((current) => 'price_twd' in current ? { ...current, ingredient_version_id: '' } : current)
             }} />
-          <TextField size="small" label="舊版食譜資料版本識別碼" required={domain === 'price' || Boolean(proposal?.dependency_pins.legacy_recipe_release_id)} value={legacyRelease}
+          <TextField size="small" label="舊版食譜資料版本識別碼" required={Boolean(proposal?.dependency_pins.legacy_recipe_release_id)} value={legacyRelease}
             slotProps={{ input: { readOnly: Boolean(context?.legacy_recipe_release_id) } }}
             onChange={(event) => {
               setLegacyRelease(event.target.value)
@@ -102,16 +109,39 @@ export function DraftEditor({ domain, initial, proposal, context, close, saved }
             }} />
           <Button size="small" onClick={checkContext} sx={{ alignSelf: 'start' }}>核對選定的資料版本</Button>
         </>}
+        {!proposal && domain === 'price' && <>
+          <PriceReleaseSelect value={legacyRelease} locked={Boolean(context?.legacy_recipe_release_id)} change={(id) => {
+            setLegacyRelease(id)
+            setIngredientPublication('')
+            setBasePublication('')
+            setContent((current) => 'price_twd' in current ? { ...current, ingredient_version_id: '', food_id: '' } : current)
+          }} />
+          <PriceIngredientVersionSelect key={legacyRelease} release={legacyRelease} value={ingredientPublication} locked={replacing}
+            change={(id) => {
+              setIngredientPublication(id)
+              setBasePublication('')
+              setContent((current) => 'price_twd' in current ? { ...current, ingredient_version_id: '' } : current)
+            }} />
+          <PriceBaseVersionSelect key={legacyRelease + ingredientPublication} release={legacyRelease} ingredient={ingredientPublication}
+            value={basePublication} change={setBasePublication} locked={replacing} />
+          {binding.data?.publication_id && <Typography variant="body2" sx={{ overflowWrap: 'anywhere' }}>
+            目前啟用價格版 {binding.data.publication_id}
+          </Typography>}
+          {missingPriceBase && <Alert severity="info">請選擇要新增內容的價格基礎版本。已啟用政策的後續版本須以目前價格版為基礎。</Alert>}
+          {binding.isError && <Alert severity="error">{managementError(binding.error, '無法核對目前啟用的價格版本。')}</Alert>}
+          <Button size="small" onClick={checkContext} disabled={!legacyRelease || !ingredientPublication}
+            sx={{ alignSelf: 'start' }}>核對選定的資料版本</Button>
+        </>}
         {needsContext && !contextMatches && <Alert severity="info">請先核對選定的資料版本，再儲存草稿。</Alert>}
         {needsContext && contextQuery.isError && <Alert severity="warning">{managementError(contextQuery.error, '無法核對依賴版本。')}</Alert>}
-        {!proposal && 'price_twd' in content && pins?.ingredient_publication_id &&
+        {!proposal && !replacing && 'price_twd' in content && pins?.ingredient_publication_id &&
           <IngredientPicker key={pins.ingredient_publication_id} publication={pins.ingredient_publication_id} selected={content}
             apply={(entity) => setContent({ ...content, food_id: entity.logical_id, ingredient_version_id: entity.ref.version_id })} />}
         <EditFields domain={domain} content={content} update={setContent} />
         <TextField size="small" label="修改原因" value={reason} multiline required onChange={(event) => setReason(event.target.value)} />
         {save.isError && <Alert severity="error">{managementError(save.error)}</Alert>}
         <Stack direction="row" spacing={1}>
-          <Button type="submit" variant="contained" disabled={!pins || !content.sources.length || !reason.trim() || save.isPending}>儲存草稿</Button>
+          <Button type="submit" variant="contained" disabled={!pins || missingPriceBase || !content.sources.length || !reason.trim() || save.isPending}>儲存草稿</Button>
           <Button onClick={close} disabled={save.isPending}>取消</Button>
         </Stack>
       </Stack>
