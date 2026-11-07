@@ -190,7 +190,7 @@ function PriceFields({ price, update }: { price: Price; update: Update<Price> })
     <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 1.5 }}>
       <Field label="Food ID" value={price.food_id} required update={(food_id) => update({ ...price, food_id })} />
       <Field label="食材版本識別碼" value={price.ingredient_version_id} required update={(ingredient_version_id) => update({ ...price, ingredient_version_id })} />
-      <Select label="價格來源" value={price.provider} choices={{ pxmart: '全聯', uniprosperity: '統一生機', manual_evidence: '人工證據' }}
+      <Select label="價格來源" value={price.provider} choices={{ pxmart: '全聯', uniprosperity: '萬家福', manual_evidence: '人工證據' }}
         update={(provider) => update({ ...price, provider })} />
       <Field label="商品識別碼" value={price.product_id} required update={(product_id) => update({ ...price, product_id })} />
       <Field label="商品名稱" value={price.product_name} required update={(product_name) => update({ ...price, product_name })} />
