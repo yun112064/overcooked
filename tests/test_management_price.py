@@ -164,7 +164,8 @@ def save_fixture_observation(env, run_key, observation):
 
 
 @pytest.fixture
-def price_env():
+def price_env(monkeypatch):
+    monkeypatch.setattr(settings, "generation_recipe_release_id", None)
     url = os.getenv("T02_TEST_DATABASE_URL")
     if not url:
         pytest.skip("Dedicated T02 disposable database not configured")
@@ -310,6 +311,7 @@ def test_pg_t13_activation_replacement_and_rollback_keep_adopted_history(price_e
     env, pins, identity = price_env
     conn = env.engine
     publisher = ACTORS[2]
+    monkeypatch.setattr(settings, "generation_recipe_release_id", "")
     household, plan_id = uuid.uuid4(), uuid.uuid4()
     conn.execute(Household.__table__.insert().values(id=household, name="Synthetic household"))
     conn.execute(AdoptedMealPlan.__table__.insert().values(
@@ -371,6 +373,8 @@ def test_pg_t13_activation_replacement_and_rollback_keep_adopted_history(price_e
     priced = meal()
     assert (priced.purchase_price, priced.cost) == (Decimal("73.25"), Decimal("36.625"))
     assert priced.quote.price_policy_publication_id == first_id
+    assert meal(None).purchase_price == Decimal("73.25")
+    assert meal("").missing_reason == "PRICE_POLICY_RELEASE_MISMATCH"
     assert priced.quote.review_decision_id == first_request["proposal_refs"][0]["content_approval_id"]
     from app.services.budget_floor import _unit_prices
     with Session(conn) as db:

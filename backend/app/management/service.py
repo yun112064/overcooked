@@ -536,8 +536,9 @@ class Management:
             if rollback is False or not previous:return 'PRICE_POLICY_BASE_MISMATCH',[]
         pins=publication['manifest']['dependency_pins']
         release=active_recipe_release(self.db)
+        configured_release=settings.generation_recipe_release_id or None
         if (not release or pins['legacy_recipe_release_id']!=release
-            or settings.generation_recipe_release_id not in (None,release)):
+            or configured_release not in (None,release)):
             return 'PRICE_POLICY_RELEASE_MISMATCH',[]
         if (digest('manifest',publication['manifest'])!=publication['manifest_hash']
             or self.dependency_issues(pins,'price')):

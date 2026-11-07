@@ -83,7 +83,7 @@ def _unit_prices(db: Session, now: datetime, food_ids=None) -> dict[str, Decimal
     if settings.management_price_policy_enabled:
         from app.management.active_price_policy import active_overrides
         for food_id, decision in active_overrides(db, food_ids or set(quotes), quotes, as_of=now,
-                                                  recipe_release_id=settings.generation_recipe_release_id).items():
+                                                  recipe_release_id=settings.generation_recipe_release_id or None).items():
             if decision.quote is not None:
                 quotes[food_id] = decision.quote
             else:

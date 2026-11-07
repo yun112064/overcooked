@@ -184,7 +184,7 @@ def meal_cost_from_db(
     reasons = {}
     if settings.management_price_policy_enabled:
         if recipe_release_id is None:
-            recipe_release_id = settings.generation_recipe_release_id
+            recipe_release_id = settings.generation_recipe_release_id or None
         decisions = active_overrides(db, food_ids, quotes, as_of=now,
                                      recipe_release_id=recipe_release_id)
         for food_id, decision in decisions.items():
