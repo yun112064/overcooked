@@ -18,6 +18,7 @@ from app.api.errors import ApiError
 from app.db.models import User
 from .contracts import POLICY, VERSION, canonical, digest, rules_pin, validate
 from .models import tables as T
+from .price_policy import price_issues, publication_price_issue
 
 def now(): return datetime.now(timezone.utc)
 def ident(): return uuid.uuid4().hex
@@ -273,7 +274,8 @@ class Management:
             for line in lines:
                 if not self.food_matches(line,r['dependency_pins']):codes.append('FOOD_IDENTITY_UNVERIFIED')
         if p['domain']=='ingredient' and content['food_id'].startswith('MF4_'):codes.append('NEW_FOOD_ID_NOT_ENABLED')
-        if p['domain']=='price':codes.append('PRICE_DOMAIN_RULES_REQUIRED')
+        if p['domain']=='price':
+            codes.extend(price_issues(self.db,content,r['dependency_pins'],now()))
         targets={'pxmart':'pxmart-fixture','uniprosperity':'uniprosperity-fixture','supplied_document':'manual-fixture','ai_fixture':'ai-fixture'}
         if p['domain']=='source_policy' and content['registered_endpoint_key']!=targets.get(content['provider']):codes.append('TARGET_NOT_REGISTERED')
         return [dict(code=c,severity='blocking',json_pointer='',message=c) for c in sorted(set(codes))]
@@ -429,6 +431,9 @@ class Management:
                     logical=entity.recipe_id if domain=='recipe' else entity.food_id
                     members.setdefault(logical,{'logical_id':logical,'ref':{'kind':'legacy','legacy_recipe_release_id':pins['legacy_recipe_release_id'],
                         'logical_id':logical,'captured_content_hash':pins['legacy_db_capture_sha256']}})
+            if domain=='price':
+                issue=publication_price_issue(self.db,members.values(),pins)
+                if issue:fail(issue)
             manifest=dict(contract_version=VERSION,domain=domain,dependency_pins=pins,members=[members[k] for k in sorted(members)],
                 review_decision_ids=sorted(decisions),nutrition_readiness='not_inherited',formal_generation_ready=False)
             validate('PublicationManifest',manifest)
