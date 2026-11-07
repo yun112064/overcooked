@@ -230,7 +230,7 @@ def test_independent_review_publication_and_raw_evidence_survive_revision(env, r
 def test_postgres_fixture_import_rolls_back_in_verified_t01_database():
     raw_url = os.getenv('TEST_DATABASE_URL')
     if not raw_url:
-        pytest.skip('Dedicated T01 stage-0 runner was not selected')
+        pytest.skip('Dedicated disposable T01 database was not selected')
     url = sa.engine.make_url(raw_url)
     if (url.get_backend_name(), url.host, url.port, url.database) != (
         'postgresql', '127.0.0.1', 55541, 'meal_planner_1102_v3_t01_v4_test',

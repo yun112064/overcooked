@@ -1,4 +1,4 @@
-"""Only the stage-2 coordinator's marker-verified disposable PG databases."""
+"""Management workflows in marker-verified disposable PostgreSQL databases."""
 import os
 import uuid
 from concurrent.futures import ThreadPoolExecutor
@@ -20,7 +20,7 @@ from test_management_foundation import Environment,ACTORS
 
 ROOT=Path(__file__).resolve().parents[1]
 URL=os.getenv('MANAGEMENT_TEST_DATABASE_URL')
-pytestmark=pytest.mark.skipif(not URL,reason='Dedicated stage-2 database URL not set')
+pytestmark=pytest.mark.skipif(not URL,reason='Dedicated management test database URL not set')
 
 def engine_for(name):
     url=sa.engine.make_url(URL).set(database=name)
