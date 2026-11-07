@@ -126,6 +126,25 @@ def price_issues(db, content, pins, now):
     return issues
 
 
+def replacement_logical_id(db, content, pins):
+    """Resolve the exact version in the pinned base, within its existing price scope."""
+    member, entity, publication = T["publication_members"], T["entity_versions"], T["publications"]
+    target = db.execute(sa.select(member.c.logical_id, entity.c.content)
+        .join(entity, member.c.version_id == entity.c.id)
+        .join(publication, member.c.publication_id == publication.c.id)
+        .where(
+            publication.c.id == pins["base_publication_id"],
+            publication.c.manifest_hash == pins["base_publication_manifest_sha256"],
+            publication.c.domain == "price", entity.c.domain == "price",
+            member.c.version_id == content["replaces_version_id"],
+        )).one_or_none()
+    if target is not None and all(
+        target.content[key] == content[key] for key in (*SCOPE, "correction_kind")
+    ):
+        return target.logical_id
+    return None
+
+
 def publication_price_issue(db, members, pins):
     """Check the complete policy, including unchanged base members, under the publish lock."""
     ids = [member["ref"]["version_id"] for member in members]
@@ -155,7 +174,7 @@ def publication_price_issue(db, members, pins):
     return None
 
 
-def observation_reason(quote, as_of):
+def observation_reason(quote, as_of, freshness=MAX_AGE):
     if quote.usage_status == "historical_requires_refresh":
         return "PRICE_REVALIDATION_REQUIRED"
     if (quote.region_condition not in (None, "Taiwan; no precise delivery region selected")
@@ -164,7 +183,7 @@ def observation_reason(quote, as_of):
         return "PRICE_CONTEXT_REQUIRED"
     if quote.queried_at > as_of or quote.valid_from and quote.valid_from > as_of:
         return "PRICE_NOT_YET_VALID"
-    if quote.status is QuoteStatus.SUCCESS and as_of >= cutoff(quote.queried_at, quote.valid_until):
+    if quote.status is QuoteStatus.SUCCESS and as_of >= cutoff(quote.queried_at, quote.valid_until, freshness=freshness):
         return "PRICE_EXPIRED"
     return quote_unusable_reason(quote, as_of)
 
@@ -182,7 +201,7 @@ class PricePreview(NamedTuple):
 
 
 def preview_price(entries, observations, fallback, *, food_id, release_id, dictionary_id, ingredient_version_id, as_of):
-    """Resolve one explicitly scoped publication for preview, without changing T13."""
+    """Resolve one explicitly scoped price policy at the requested time."""
     active = []
     expired = []
     for entry in entries:
@@ -231,7 +250,8 @@ def preview_price(entries, observations, fallback, *, food_id, release_id, dicti
         if not candidates:
             return PricePreview(None, "PRICE_LOCKED_SKU_UNAVAILABLE")
         quote = candidates[0]
-        reason = observation_reason(quote, as_of)
+        freshness = bindings[0].freshness
+        reason = observation_reason(quote, as_of, freshness)
         return PricePreview(quote if reason is None else None, reason)
 
     if expired:
@@ -253,7 +273,7 @@ PAGE_SIZE = 100
 IDENTIFIER = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_.:-]{0,99}$")
 
 
-def list_observations(db, release_id, food_id, as_of, before=None):
+def list_observations(db, release_id, food_id, as_of, before=None, include_product_name=False):
     """Read immutable, release-bound rows with a deterministic time/ID cursor."""
     query = OBSERVATIONS
     args = dict(release_id=release_id, food_id=food_id, as_of=as_of, page_size=PAGE_SIZE + 1)
@@ -262,7 +282,7 @@ def list_observations(db, release_id, food_id, as_of, before=None):
         args.update(before_at=before[0], before_id=before[1])
     query += " ORDER BY s.queried_at DESC, s.id DESC LIMIT :page_size"
     rows = db.execute(sa.text(query), args).mappings().all()
-    items = [observation_view(row, as_of) for row in rows[:PAGE_SIZE]]
+    items = [observation_view(row, as_of, include_product_name) for row in rows[:PAGE_SIZE]]
     cursor = None
     if len(rows) > PAGE_SIZE:
         last = items[-1]
@@ -270,7 +290,7 @@ def list_observations(db, release_id, food_id, as_of, before=None):
     return {"items": items, "next_cursor": cursor}
 
 
-def observation_view(row, as_of):
+def observation_view(row, as_of, include_product_name=False):
     historical = row["usage_status"] == "historical_requires_refresh"
     end = None
     if historical:
@@ -289,7 +309,7 @@ def observation_view(row, as_of):
     if row["currency"] != "TWD" or raw is None or not raw.is_finite() or raw < 0:
         raw = None
     sku = row["product_id"]
-    return {
+    result = {
         "snapshot_id": row["id"],
         "recipe_release_id": row["recipe_release_id"],
         "food_ids": row["bound_food_ids"],
@@ -303,3 +323,6 @@ def observation_view(row, as_of):
         "usage_status": ("historical_requires_refresh" if historical else
                          "unusable" if reason else "live_observation"),
     }
+    if include_product_name:
+        result["product_name"] = row["product_name"]
+    return result

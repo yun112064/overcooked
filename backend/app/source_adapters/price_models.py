@@ -176,6 +176,7 @@ class PriceQuote(BaseModel):
     usage_status: str | None = None
     manual_revision_id: str | None = Field(default=None, exclude_if=lambda value: value is None)
     review_decision_id: str | None = Field(default=None, exclude_if=lambda value: value is None)
+    price_policy_publication_id: str | None = Field(default=None, exclude_if=lambda value: value is None)
 
     @model_validator(mode="after")
     def missing_values_must_be_explicit(self) -> "PriceQuote":

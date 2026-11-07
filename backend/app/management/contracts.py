@@ -9,6 +9,9 @@ from app.api.errors import ApiError
 
 ROOT = Path(__file__).with_name('contracts')
 SCHEMAS = json.loads((ROOT/'schemas.json').read_text(encoding='utf-8'))
+PRICE_EXTENSION = json.loads((ROOT/'price-extension-v1.json').read_text(encoding='utf-8'))
+for name, properties in PRICE_EXTENSION['schema_properties'].items():
+    SCHEMAS['$defs'][name]['properties'].update(properties)
 POLICY = json.loads((ROOT/'permissions.json').read_text(encoding='utf-8'))
 VERSION = POLICY['contract_version']
 RULES = {'version':'management-core-v1','contract':VERSION,'external_execution':False,'formal_generation':False,'source_review_required':True}
