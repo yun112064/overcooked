@@ -1,0 +1,20 @@
+{
+  "extension_version": "management-price-v1",
+  "base_contract_version": "management-v1.0.0-rc1",
+  "observation_query": {
+    "include_product_name": true
+  },
+  "schema_properties": {
+    "PriceContent": {
+      "replaces_version_id": {
+        "type": "string",
+        "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,99}$"
+      }
+    },
+    "PriceObservation": {
+      "product_name": {
+        "type": ["string", "null"]
+      }
+    }
+  }
+}

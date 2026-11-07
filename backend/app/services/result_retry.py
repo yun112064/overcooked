@@ -126,10 +126,19 @@ def make_price_retry_handler(*, price_lookup=None, now=None):
         draft = meal_request_service.load(ctx.input_payload())
         requirements = [IngredientRequirement(food_id=r["food_id"], grams=Decimal(r["grams"]))
                         for r in payload["calculation"]["requirements"]]
+        releases = {dish["recipe_release_id"] for dish in payload.get("dishes", []) if dish.get("recipe_release_id")}
+        cost_release = payload.get("cost", {}).get("price_recipe_release_id")
+        if cost_release:
+            releases.add(cost_release)
+        releases.update(line["quote"]["recipe_release_id"] for line in payload.get("cost", {}).get("lines", [])
+                        if line.get("quote") and line["quote"].get("recipe_release_id"))
+        # An older result can only use the current managed policy if its known
+        # recipe release agrees. Mixed releases fail closed in the policy reader.
+        recipe_release = next(iter(releases)) if len(releases) == 1 else ""
         moment = now or datetime.now(timezone.utc)
         with ctx.factory() as db:
             fresh = cost_snapshot(meal_cost_from_db(db, requirements, draft.available_ingredient_ids, draft.budget,
-                                                    now=moment))
+                                                    now=moment, recipe_release_id=recipe_release))
         fresh["unquantified_food_ids"] = payload.get("cost", {}).get("unquantified_food_ids", [])
         payload["cost"] = fresh
         payload["validation"] = {**payload.get("validation", {}), "budget_status": fresh["budget_status"]}

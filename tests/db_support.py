@@ -46,6 +46,15 @@ def truncate_all() -> None:
         )).scalars().all()
         if tables:
             conn.execute(text("TRUNCATE " + ", ".join(f'"{t}"' for t in tables) + " CASCADE"))
+        # These are migration-owned seed rows. A clean test starts with the same
+        # empty access and binding state as a newly migrated database.
+        if "management_access_state" in tables:
+            conn.execute(text("INSERT INTO management_access_state (id, revision) VALUES ('global', 1)"))
+            conn.execute(text("""
+                INSERT INTO management_active_bindings (channel, revision, updated_at)
+                VALUES ('recipe_catalog', 1, now()), ('ingredient_catalog', 1, now()),
+                       ('price_policy', 1, now()), ('source_policy', 1, now())
+            """))
 
 
 # 測試用的 FOOD 字典子集（編號沿用正式食譜 SQL 資料的標準食材 ID）

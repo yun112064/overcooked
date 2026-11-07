@@ -42,6 +42,7 @@ class MatchDecision(StrEnum):
 
 class SelectionTier(StrEnum):
     AUTO_ADOPTED = "auto_adopted"
+    MANUAL_APPROVED = "manual_approved"
     ESTIMATE = "estimate"
     MISSING = "missing"
 
@@ -173,6 +174,9 @@ class PriceQuote(BaseModel):
     price_data_release_id: str | None = None
     snapshot_id: int | None = None
     usage_status: str | None = None
+    manual_revision_id: str | None = Field(default=None, exclude_if=lambda value: value is None)
+    review_decision_id: str | None = Field(default=None, exclude_if=lambda value: value is None)
+    price_policy_publication_id: str | None = Field(default=None, exclude_if=lambda value: value is None)
 
     @model_validator(mode="after")
     def missing_values_must_be_explicit(self) -> "PriceQuote":
@@ -180,10 +184,21 @@ class PriceQuote(BaseModel):
             raise ValueError("non-success quote requires missing_reason")
         if self.status is not QuoteStatus.SUCCESS and self.price is not None:
             raise ValueError("non-success quote cannot expose a selected price")
+        if self.selection_tier is SelectionTier.MANUAL_APPROVED:
+            if (self.status is not QuoteStatus.SUCCESS or not self.manual_revision_id or not self.review_decision_id
+                    or not self.product_id or not self.recipe_release_id or len(self.food_ids) != 1
+                    or self.package_unit != "g" or self.package_quantity is None or self.package_quantity <= 0
+                    or self.currency != "TWD" or self.valid_from is None or self.valid_until is None
+                    or not self.queried_at <= self.valid_from < self.valid_until
+                    or self.usage_status == "historical_requires_refresh"
+                    or self.region_condition or self.store_condition or self.promotion_description):
+                raise ValueError("manual approval requires a scoped, valid TWD observation with reviewed mass and provenance")
+        elif self.manual_revision_id is not None or self.review_decision_id is not None:
+            raise ValueError("manual provenance is reserved for manual approvals")
         if self.status is QuoteStatus.SUCCESS:
-            if self.selection_tier is not SelectionTier.AUTO_ADOPTED:
-                raise ValueError("success quote must be auto adopted")
-            if self.confidence is not ConfidenceLevel.HIGH:
+            if self.selection_tier not in (SelectionTier.AUTO_ADOPTED, SelectionTier.MANUAL_APPROVED):
+                raise ValueError("success quote requires an adoption decision")
+            if self.selection_tier is SelectionTier.AUTO_ADOPTED and self.confidence is not ConfidenceLevel.HIGH:
                 raise ValueError("auto-adopted quote must have high confidence")
             if self.price is None or self.package_quantity is None or not self.package_unit:
                 raise ValueError("success quote requires price and package quantity/unit")

@@ -23,6 +23,7 @@ from typing import Iterable
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.core.config import settings
 CACHE_SECONDS = 300
 REFERENCE_PERCENTILE = 5
 MIN_PRICED_DISHES = 20
@@ -74,12 +75,21 @@ def _recipe_floors(db: Session) -> list[RecipeFloor]:
     return floors
 
 
-def _unit_prices(db: Session, now: datetime) -> dict[str, Decimal]:
+def _unit_prices(db: Session, now: datetime, food_ids=None) -> dict[str, Decimal]:
     """每克價格；沒有可用報價的食材不列（用到它的食譜不估價）。"""
     from app.source_adapters.price_scope import latest_success_quotes, quote_unusable_reason
 
+    quotes = latest_success_quotes(db, now=now)
+    if settings.management_price_policy_enabled:
+        from app.management.active_price_policy import active_overrides
+        for food_id, decision in active_overrides(db, food_ids or set(quotes), quotes, as_of=now,
+                                                  recipe_release_id=settings.generation_recipe_release_id).items():
+            if decision.quote is not None:
+                quotes[food_id] = decision.quote
+            else:
+                quotes.pop(food_id, None)
     return {food_id: quote.price / quote.package_quantity
-            for food_id, quote in latest_success_quotes(db, now=now).items()
+            for food_id, quote in quotes.items()
             if quote_unusable_reason(quote, now) is None}
 
 
@@ -114,7 +124,10 @@ def minimum_budget(db: Session, *, dish_count: int, total_n: Decimal, available_
 
     now = now or datetime.now(timezone.utc)
     floors = _cached("floors", lambda: _recipe_floors(db))
-    prices = _cached("prices", lambda: _unit_prices(db, now))
+    if settings.management_price_policy_enabled:
+        prices = _unit_prices(db, now, {food for floor in floors for food, _ in floor.grams})
+    else:
+        prices = _cached("prices", lambda: _unit_prices(db, now))
     free = set(confirmed_equivalents(list(available_food_ids))) | load_seasonings() | load_price_exempt()
     per_dish = reference_dish_cost(floors, prices, free, has_staple=has_staple)
     if per_dish is None or per_dish <= 0:

@@ -23,6 +23,8 @@ from typing import Callable, Iterable
 
 from sqlalchemy.orm import Session
 
+from app.core.config import settings
+from app.management.active_price_policy import active_overrides
 from app.meal_calc.types import IngredientRequirement
 from app.services.seasonings import load_seasonings
 from app.services.synonyms import confirmed_equivalents
@@ -121,6 +123,7 @@ def _compute_meal_cost(
     budget: Decimal,
     quote_for: QuoteLookup,
     now: datetime,
+    missing_reasons: dict[str, str] | None = None,
 ) -> MealCost:
     lines = []
     for item in requirements:
@@ -128,7 +131,8 @@ def _compute_meal_cost(
         if status is not None:
             lines.append(_zero_line(item, status))
         else:
-            lines.append(_priced_line(item, quote_for(item.food_id), now))
+            reason = (missing_reasons or {}).get(item.food_id)
+            lines.append(_priced_line(item, quote_for(item.food_id), now, reason))
 
     complete = all(line.cost is not None for line in lines)
     known_purchase = sum((line.purchase_price for line in lines if line.purchase_price is not None), ZERO)
@@ -154,8 +158,9 @@ def _zero_line(item: IngredientRequirement, status: str) -> IngredientCost:
     return IngredientCost(item.food_id, item.grams, shortage, status, packs=0, purchase_price=ZERO, cost=ZERO)
 
 
-def _priced_line(item: IngredientRequirement, quote: PriceQuote | None, now: datetime) -> IngredientCost:
-    reason = quote_unusable_reason(quote, now)
+def _priced_line(item: IngredientRequirement, quote: PriceQuote | None, now: datetime,
+                 reason: str | None = None) -> IngredientCost:
+    reason = reason or quote_unusable_reason(quote, now)
     if reason is not None:
         return IngredientCost(item.food_id, item.grams, item.grams, "unknown", quote=quote, missing_reason=reason)
     packs = ceil(Fraction(item.grams) / Fraction(quote.package_quantity))
@@ -170,8 +175,22 @@ def meal_cost_from_db(
     budget: Decimal | None,
     *,
     now: datetime,
+    recipe_release_id: str | None = None,
 ) -> MealCost:
     items = list(requirements)
     free = _free_foods(available_food_ids, None, None)
-    quotes = latest_quotes(db, (item.food_id for item in items if item.food_id not in free), now=now)
-    return _compute_meal_cost(items, free, budget, quotes.get, now)
+    food_ids = {item.food_id for item in items if item.food_id not in free}
+    quotes = latest_quotes(db, food_ids, now=now)
+    reasons = {}
+    if settings.management_price_policy_enabled:
+        if recipe_release_id is None:
+            recipe_release_id = settings.generation_recipe_release_id
+        decisions = active_overrides(db, food_ids, quotes, as_of=now,
+                                     recipe_release_id=recipe_release_id)
+        for food_id, decision in decisions.items():
+            if decision.quote is not None:
+                quotes[food_id] = decision.quote
+            else:
+                quotes.pop(food_id, None)
+                reasons[food_id] = decision.reason
+    return _compute_meal_cost(items, free, budget, quotes.get, now, reasons)
