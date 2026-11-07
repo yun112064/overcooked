@@ -1,4 +1,4 @@
-"""Bounded reconciliation rehearsal for stage-2 DISPOSABLE databases only.
+"""Bounded reconciliation rehearsal for disposable management test databases.
 
 This is not a production adoption CLI. Unknown schemas fail before any DDL.
 The expected fingerprints must come from an independent reference fixture.
@@ -20,7 +20,7 @@ LEGACY_DB='meal_planner_1102_v3_management_legacy_test'
 def assert_disposable(connection):
     url=connection.engine.url
     if url.database!=LEGACY_DB:
-        raise ValueError('Reconciliation is restricted to the dedicated stage-2 legacy test database')
+        raise ValueError('Reconciliation is restricted to the dedicated legacy test database')
     if connection.scalar(sa.text('SELECT current_database()'))!=LEGACY_DB:
         raise ValueError('Unexpected database')
     marker=connection.scalar(sa.text("SELECT shobj_description(oid,'pg_database') FROM pg_database WHERE datname=current_database()"))
