@@ -119,7 +119,7 @@ foreach ($k in $Cfg.Keys) {
     if ($k -like 'DEV_*' -or $k -in @('PROJECT_DATA_ROOT', 'YOLO_PYTHON', 'RECIPE_WORKBOOK', 'NUTRITION_WORKBOOK', 'INFERENCE_WEIGHTS')) { continue }
     Set-Item "env:$k" $Cfg[$k]
 }
-$Weights = Resolve-FromRoot (Cfg 'INFERENCE_WEIGHTS' 'inference/models/yolo26s-food41-denoise-seed45-50e.pt')
+$Weights = Resolve-FromRoot (Cfg 'INFERENCE_WEIGHTS' 'inference/models/yolo26s-food41-denoise-veg3-ft-20261108.pt')
 $env:INFERENCE_WEIGHTS = $Weights
 $YoloPort = Cfg 'INFERENCE_PORT' '8765'
 $YoloPy = Cfg 'YOLO_PYTHON'
