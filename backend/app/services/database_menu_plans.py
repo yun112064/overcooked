@@ -1,7 +1,8 @@
 """採用／不採用資料庫菜單與已採用紀錄（2026-11-03，參考 t11-t20-demo 的 T16 meal_plans）。
 
-此流程依同一版問卷重新查菜單（T11）並重算營養（T12），只有與畫面上的菜單相同、
-營養通過且沒有政策／資料阻擋時才保存。T14 生成結果的採用另外由 meal_plans 處理。
+此流程依同一版問卷重新查菜單（T11）並重算營養（T12）與成本（T13），只有與畫面上的菜單相同、
+營養通過、沒有政策／資料阻擋、已知成本未超預算且未撞昨日菜時才保存。T14 生成結果的採用另外由 meal_plans
+處理；預算／缺價判定（meal_validation.evaluate）、昨日重驗與快照的昨日比對與它共用同一份程式。
 
 - 不採用：記錄這組食譜，同一版問卷下次查詢改給下一組合格組合（指定菜照樣保留），直到使用者採用。
 - 採用：單一交易寫入 adopted_meal_plans（含完整快照），問卷改為 confirmed；同一問卷只採用一次，
@@ -9,20 +10,29 @@
 """
 from __future__ import annotations
 
+import copy
 import json
 import uuid
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta, timezone
+from decimal import Decimal
 from fractions import Fraction
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.api.errors import ApiError, version_conflict
+from app.core.config import settings
 from app.db.models import AdoptedMealPlan, MealMenuRejection, MealRequest
-from app.services import meal_history, recipe_retrieval, t12_planning, idempotency
+from app.meal_calc.types import IngredientRequirement
+from app.services import household, meal_history, meal_plans, meal_validation, recipe_retrieval, t12_planning
+from app.services import idempotency
 from app.services import meal_request as request_service
+from app.services.generation import _jsonable, cost_snapshot
+from app.services.meal_cost import meal_cost_from_db
+from app.services.recipe_import import standard_dish_id
 
 ALL_REJECTED = "all_menus_rejected"
+SNAPSHOT_VERSION = "database_menu_snapshot/v2"  # v2（2026-11-08）：補 T13 成本、昨日比對、來源與規則版本
 
 
 def _rejected(db: Session, row: MealRequest) -> list[set[str]]:
@@ -61,9 +71,8 @@ def reject(db: Session, row: MealRequest, *, version: int, recipe_ids: list[str]
 
 def adopt(db: Session, *, household_id, user_id, row: MealRequest, draft, members, version: int,
           recipe_ids: list[str], idempotency_key: str) -> tuple[AdoptedMealPlan, bool]:
-    """重驗版本與菜單、重算營養後保存；回傳 (紀錄, 是否新建)。"""
-    from app.services.meal_plans import _lock_household
-    _lock_household(db, household_id)
+    """重驗版本與菜單、重算營養與成本、重讀昨日紀錄後保存；回傳 (紀錄, 是否新建)。"""
+    meal_plans._lock_household(db, household_id)
     digest = idempotency.request_hash('adopt-preview', row.id, version, sorted(set(recipe_ids)))
     existing = db.scalar(select(AdoptedMealPlan).where(AdoptedMealPlan.household_id == household_id,
                                                        AdoptedMealPlan.idempotency_key == idempotency_key))
@@ -86,26 +95,87 @@ def adopt(db: Session, *, household_id, user_id, row: MealRequest, draft, member
     preview = t12_planning.preview(db, draft=draft, members=members, recipe_ids=[d['recipe_id'] for d in selected])
     if preview.get('status') != 'nutrition_passed' or preview.get('adoption_blocked', False):
         raise ApiError(409, 'NOT_ADOPTABLE', '這份菜單的營養沒有通過，不能採用。')
+    # T13 成本與預算：與生成結果採用用同一張決策表（meal_validation.evaluate），已知成本超預算一律拒絕
+    cost = _cost(db, preview, draft)
+    evaluation = meal_validation.evaluate(
+        {'request': {'request_version': version}, 'validation': {'hard_constraints_passed': True},
+         'calculation': {'block_reasons': []}, 'cost': cost}, decisions=[], current_request_version=row.version)
+    meal_plans.require_adoptable(evaluation)
     dishes = [{'standard_dish_id': d['standard_dish_id'], 'dish_name': d['recipe_name'],
                'aliases': d.get('aliases') or [], 'source': 'database', 'recipe_id': d['recipe_id']}
               for d in selected]
+    context = menu.get('previous_day') or meal_history.previous_day_context(
+        db, household_id, draft.meal_date, meal_type=draft.meal_type,
+        specified_dish_ids=[standard_dish_id(n) for n in draft.specified_dishes])
+    recheck = meal_plans.require_previous_day(db, context, dishes)
     plan = meal_history.record_adopted(db, household_id, draft.meal_date, draft.meal_type,
                                        mode='database_menu', dishes=dishes)
     plan.meal_request_id, plan.request_version = row.id, row.version
     plan.idempotency_key, plan.request_hash, plan.adopted_by = idempotency_key, digest, user_id
-    plan.snapshot = _snapshot(selected, preview, draft)
-    row.status = 'confirmed'
+    plan.price_exception_accepted = evaluation['price_exception_accepted']
+    plan.snapshot = _snapshot(db, row, selected, preview, draft, cost=cost, evaluation=evaluation,
+                              context=context, recheck=recheck)
+    meal_plans.confirm_request(row)
     db.flush()
     return plan, True
 
 
-def _snapshot(selected: list[dict], preview: dict, draft) -> dict:
-    """畫面需要的完整快照：菜（含用量與步驟）、主食、七種營養素、每人份量與每日建議、目標。"""
+def _cost(db: Session, preview: dict, draft) -> dict:
+    """依 T12 驗證後的整餐用量（不含主食，決策 #16）計算 T13 成本；與生成結果的 cost 區同一格式。"""
+    grams: dict[str, Decimal] = {}
+    unquantified: set[str] = set()
+    for dish in preview.get('dishes') or []:
+        for item in dish.get('ingredients') or []:
+            if not item.get('food_id'):
+                continue
+            if item.get('grams') is None:
+                unquantified.add(item['food_id'])
+                continue
+            amount = Fraction(str(item['grams']))
+            grams[item['food_id']] = grams.get(item['food_id'], Decimal(0)) + (
+                Decimal(amount.numerator) / Decimal(amount.denominator))
+    if not grams:
+        return {'status': 'not_computed', 'reason': 'NO_FINAL_REQUIREMENTS', 'budget_status': None,
+                'unquantified_food_ids': sorted(unquantified)}
+    requirements = [IngredientRequirement(food_id, g) for food_id, g in grams.items()]
+    cost = cost_snapshot(meal_cost_from_db(db, requirements, draft.available_ingredient_ids, draft.budget,
+                                           now=datetime.now(timezone.utc)))
+    cost['unquantified_food_ids'] = sorted(unquantified)
+    return _jsonable(cost)
+
+
+def _snapshot(db: Session, row: MealRequest, selected: list[dict], preview: dict, draft, *, cost: dict,
+              evaluation: dict, context: dict, recheck: dict) -> dict:
+    """畫面需要的完整快照：菜（含用量與步驟）、主食、七種營養素、每人份量與每日建議、目標；
+    另存與生成結果採用相同的成本、昨日比對、來源與規則版本，來源之後更新不改歷史。"""
     keep = ('status', 'status_message', 'targets', 'nutrition_all', 'dishes', 'staple', 'people',
             'daily_reference_meta', 'dish_portions')
     nutrition = preview.get('nutrition') or {}
-    snapshot = {'selected': selected, 'staple_choice': draft.staple,
-                'nutrition': {'totals': nutrition.get('totals')}, **{k: preview.get(k) for k in keep}}
+    snapshot = {
+        'schema_version': SNAPSHOT_VERSION,
+        'record_label': meal_plans.RECORD_LABEL,
+        'adopted_versions': {'meal_request_id': str(row.id), 'request_version': row.version,
+                             'recipe_ids': sorted(d['recipe_id'] for d in selected)},
+        'request': copy.deepcopy(row.payload),
+        'selected': selected, 'staple_choice': draft.staple,
+        'nutrition': {'totals': nutrition.get('totals')}, **{k: preview.get(k) for k in keep},
+        'cost': cost,
+        'recipe_sources': meal_plans._recipe_sources(db, selected),
+        'eligibility': {k: evaluation[k] for k in ('adoptable', 'blocks', 'price_exception_accepted')},
+        'missing': {'price_food_ids': meal_validation.missing_price_food_ids({'cost': cost}),
+                    'price_exception_accepted': evaluation['price_exception_accepted'],
+                    'nutrients': list(nutrition.get('missing') or [])},
+        'previous_day': meal_plans.previous_day_snapshot(context, recheck),
+        'versions': {'snapshot_schema_version': SNAPSHOT_VERSION,
+                     'adoption_rule_version': meal_plans.ADOPTION_RULE_VERSION,
+                     'nutrition_rule_version': household.target_service().rule_version,
+                     'recipe_release_id': settings.generation_recipe_release_id,
+                     'nutrition_import_id': settings.generation_nutrition_import_id,
+                     'food_mapping_version': settings.generation_food_mapping_version,
+                     'nutrition_mappings': nutrition.get('nutrition_mappings'),
+                     'conversion_assumptions': nutrition.get('conversion_assumptions'),
+                     'nutrition_supplements': nutrition.get('supplements')},
+    }
     # JSONB 欄位：Decimal／Fraction 以字串保存（精確值，不轉成 float）
     return json.loads(json.dumps(snapshot, ensure_ascii=False, default=str))
 
