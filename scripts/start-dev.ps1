@@ -114,7 +114,7 @@ if ("$hasDb".Trim() -ne '1') {
 # ---------- 5. 傳給各服務的環境變數 ----------
 # DATABASE_URL、PYTHONPATH、其餘設定原樣傳下去，以及知識 RAG／內部 API 的連線（見 scripts/dev-env.ps1）
 $DevEnv = Set-DevEnvironment $Cfg $Root
-$Weights = Resolve-FromRoot (Cfg 'INFERENCE_WEIGHTS' 'inference/models/yolo26s-food41-denoise-seed45-50e.pt')
+$Weights = Resolve-FromRoot (Cfg 'INFERENCE_WEIGHTS' 'inference/models/yolo26s-food41-denoise-veg3-ft-20261108.pt')
 $env:INFERENCE_WEIGHTS = $Weights
 $YoloPort = Cfg 'INFERENCE_PORT' '8765'
 $YoloPy = Cfg 'YOLO_PYTHON'

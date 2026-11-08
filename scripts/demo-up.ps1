@@ -89,7 +89,7 @@ if ($SkipYolo) {
     Info 'YOLO 已在執行，略過'
 } else {
     $YoloPy = Get-DevValue $Dev 'YOLO_PYTHON' (Join-Path $Root '.venv-yolo\Scripts\python.exe')
-    $Weights = Get-DevValue $Dev 'INFERENCE_WEIGHTS' 'inference/models/yolo26s-food41-denoise-seed45-50e.pt'
+    $Weights = Get-DevValue $Dev 'INFERENCE_WEIGHTS' 'inference/models/yolo26s-food41-denoise-veg3-ft-20261108.pt'
     if (-not [IO.Path]::IsPathRooted($Weights)) { $Weights = [IO.Path]::GetFullPath((Join-Path $Root $Weights)) }
     if (-not (Test-Path $YoloPy) -or -not (Test-Path $Weights)) {
         Warn 'YOLO 環境不存在（.venv-yolo 或權重檔；先執行一次 start-dev.ps1 建立）；辨識會顯示不可用，仍可手動輸入食材。'
