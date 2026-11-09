@@ -16,6 +16,7 @@ import sqlalchemy as sa
 from sqlalchemy.exc import IntegrityError
 from app.api.errors import ApiError
 from app.db.models import User
+from app.services.recipe_step_style import check_recipe_steps
 from .contracts import POLICY, VERSION, canonical, digest, rules_pin, validate
 from .models import tables as T
 
@@ -24,6 +25,22 @@ def ident(): return uuid.uuid4().hex
 def utc(value): return value.replace(tzinfo=timezone.utc) if value.tzinfo is None else value.astimezone(timezone.utc)
 def stamp(value): return utc(value).isoformat().replace('+00:00','Z')
 def fail(code, message='管理操作無法完成。', status=409): raise ApiError(status,code,message)
+
+
+def recipe_step_review_issues(steps):
+    issues = []
+    for index, step in enumerate(steps):
+        number = step['step_no']
+        checks = check_recipe_steps([(number, step['instruction'])])
+        for finding in checks['findings']:
+            if finding['status'] == 'needs_review':
+                issues.append(dict(
+                    code='RECIPE_STEP_STYLE_REVIEW_REQUIRED', severity='blocking',
+                    json_pointer=f'/steps/{index}/instruction',
+                    message=f"第 {number} 步需確認。{''.join(finding['reasons'])}",
+                ))
+    return issues
+
 
 class Management:
     def __init__(self, session, actor_id):
@@ -276,7 +293,10 @@ class Management:
         if p['domain']=='price':codes.append('PRICE_DOMAIN_RULES_REQUIRED')
         targets={'pxmart':'pxmart-fixture','uniprosperity':'uniprosperity-fixture','supplied_document':'manual-fixture','ai_fixture':'ai-fixture'}
         if p['domain']=='source_policy' and content['registered_endpoint_key']!=targets.get(content['provider']):codes.append('TARGET_NOT_REGISTERED')
-        return [dict(code=c,severity='blocking',json_pointer='',message=c) for c in sorted(set(codes))]
+        issues = [dict(code=c,severity='blocking',json_pointer='',message=c) for c in sorted(set(codes))]
+        if p['domain'] == 'recipe':
+            issues.extend(recipe_step_review_issues(content['steps']))
+        return issues
 
     def food_matches(self,line,pins):
         if not line['food_id']:return False
@@ -337,6 +357,10 @@ class Management:
         def action(cid):
             p=self.proposal(pid,True);r=self.expected(p,body)
             if p['state'] not in ('draft','changes_requested'):fail('INVALID_STATE')
+            if domain == 'recipe':
+                issues = recipe_step_review_issues(r['content']['steps'])
+                if issues:
+                    raise ApiError(409, 'VALIDATION_REQUIRED', '請先處理需要人工確認的食譜步驟。', {'issues': issues})
             self.validation(p,r)
             self.db.execute(T['proposals'].update().where(T['proposals'].c.id==pid).values(state='submitted',updated_at=now()))
             return dict(command_id=cid,status='completed',resource_id=pid,task_id=None),pid,r['content_hash'],r['content_hash']

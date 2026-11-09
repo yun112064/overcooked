@@ -141,3 +141,8 @@ Python 3.12；Node 24.21.0／npm 11.19.0。專案 `.venv` 使用既有 Python �
 - Windows／Python 3.12.10、全新 pgvector 0.8.6／PostgreSQL 17.11 容器，建立兩個經核對的 V3 拋棄式測試庫。原 5 項失敗案例各執行 10 輪，**50/50 通過**，使用原測試命令且未載入診斷外掛。
 - 完整後端（archive 中排除 2 項需 Git 的測試）**701 passed、1 skipped、153 subtests passed**；兩項 Git 機密／忽略規則測試另以獨立 index 執行，**2 passed**。唯一後端略過原因為未隨程式散布的本機歷史價格來源包。
 - T12 **174 passed**、T03 **33 項通過**；Alembic upgrade／current／check、schema gate、database／pgvector health 均通過，head 為 `d1105merge1`。拋棄式容器已清理，未連接既有 V1／V3／Admin 資料庫，也未啟動爬蟲、付費模型或真實 YOLO。
+
+## 2026-11-09 T01_V4 食譜預覽、步驟審核與管理接續
+
+- 交付 iCook 單頁及 JSON 候選預覽、步驟用詞檢查與待人工確認時的送審阻擋，以及獨立目標庫的 V3 管理接續工具。預覽保留未知用量及來源證據。
+- 使用隔離 SQLite、合成資料與模擬 HTTP 驗證，72 項通過，11 項需要專用 PostgreSQL 而略過。本輪未執行 V3 遷移或實際來源擷取。
