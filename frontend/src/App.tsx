@@ -4,6 +4,7 @@ import HistoryEduOutlined from '@mui/icons-material/HistoryEduOutlined'
 import HomeOutlined from '@mui/icons-material/HomeOutlined'
 import LogoutOutlined from '@mui/icons-material/LogoutOutlined'
 import MenuBookOutlined from '@mui/icons-material/MenuBookOutlined'
+import ShoppingBasketOutlined from '@mui/icons-material/ShoppingBasketOutlined'
 import {
   BottomNavigation, BottomNavigationAction, Box, Button, CircularProgress, Container, CssBaseline, IconButton,
   Paper, ThemeProvider, Tooltip, Typography, alpha,
@@ -25,6 +26,7 @@ const MealHistoryPage = lazy(() => import('./pages/MealHistoryPage'))
 const GenerationHistoryPage = lazy(() => import('./pages/GenerationHistoryPage'))
 const MealRequestEditor = lazy(() => import('./pages/MealRequestEditor'))
 const RecipePickerPage = lazy(() => import('./pages/RecipePickerPage'))
+const SimMarketPage = lazy(() => import('./pages/SimMarketPage'))
 import { BrandMark } from './components/ui'
 import { theme, tokens } from './theme'
 
@@ -63,14 +65,15 @@ function Protected({ requireHousehold = false }: { requireHousehold?: boolean })
   if (me.isError) return <Typography sx={{ p: 3 }} color="text.secondary">無法連線到伺服器，請稍後再試。</Typography>
   if (!me.data) return <Navigate to="/login" replace />
   if (requireHousehold && !me.data.current_household) return <Navigate to="/households" replace />
-  return <Outlet />
+  return <Outlet context={me.data} />
 }
 
 const NAV = [
   { to: '/plan', label: '規劃餐食', short: '規劃', icon: <EventNoteOutlined /> },
   { to: '/pick', label: '食譜庫選菜', short: '選菜', icon: <MenuBookOutlined /> },
   { to: '/history', label: '已採用紀錄', short: '紀錄', icon: <HistoryEduOutlined /> },
-  { to: '/generation-history', label: '營養與採購紀錄', short: '採購紀錄', icon: <HistoryEduOutlined /> },
+  { to: '/generation-history', label: '營養與採購紀錄', short: '採購', icon: <HistoryEduOutlined /> },
+  { to: '/sim-market', label: '模擬超市', short: '超市', icon: <ShoppingBasketOutlined /> },
   { to: '/members', label: '家庭成員', short: '成員', icon: <GroupOutlined /> },
 ]
 
@@ -184,6 +187,8 @@ const router = createBrowserRouter([
             { path: '/pick/:id', element: <RecipePickerPage /> },
             { path: '/history', element: <MealHistoryPage /> },
             { path: '/generation-history', element: <GenerationHistoryPage /> },
+            { path: '/sim-market', element: <SimMarketPage page="catalog" /> },
+            { path: '/sim-market/checkout', element: <SimMarketPage page="checkout" /> },
           ],
         },
       ],

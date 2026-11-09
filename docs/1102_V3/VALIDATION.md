@@ -141,3 +141,12 @@ Python 3.12；Node 24.21.0／npm 11.19.0。專案 `.venv` 使用既有 Python �
 - Windows／Python 3.12.10、全新 pgvector 0.8.6／PostgreSQL 17.11 容器，建立兩個經核對的 V3 拋棄式測試庫。原 5 項失敗案例各執行 10 輪，**50/50 通過**，使用原測試命令且未載入診斷外掛。
 - 完整後端（archive 中排除 2 項需 Git 的測試）**701 passed、1 skipped、153 subtests passed**；兩項 Git 機密／忽略規則測試另以獨立 index 執行，**2 passed**。唯一後端略過原因為未隨程式散布的本機歷史價格來源包。
 - T12 **174 passed**、T03 **33 項通過**；Alembic upgrade／current／check、schema gate、database／pgvector health 均通過，head 為 `d1105merge1`。拋棄式容器已清理，未連接既有 V1／V3／Admin 資料庫，也未啟動爬蟲、付費模型或真實 YOLO。
+
+## 2026-11-09 Sim’s Supermarket V1
+
+- `Sim_Supermarket_V1` 以 `main@a5ad10d` 為基底。超市只讀取指定或單一啟用的 T01 發布，目錄依食譜實際使用的 Food ID 去重。包裝及售價採用模擬商品規則。購物車依使用者、家庭、商品發布與餐單分隔，模擬訂單只存在瀏覽器分頁。
+- `pytest tests/test_sim_market.py` 使用合成 SQLite，**3 項通過**。涵蓋登入要求、已用食材去重、發布選擇和指定發布缺失時的空目錄。前端的包數、未知版本、配對及購物車隔離邏輯也以合成輸入驗證。
+- 前端 `npm run lint` 與 `npm run build` 通過。
+- T01 發布、T13 缺料成本、V3 契約與採用餐單回歸共 **33 項通過、13 項略過**。略過項目依賴 PostgreSQL。另用合成 SQLite 與實際餐單 API 確認同家庭可讀精確缺量、未知用量及 T01 版本，其他家庭收到 404，採用資料列雜湊在兩次請求前後相同。
+- 本機 Chromium 以正式前端建置和合成 API 驗證 **8 條流程**，涵蓋採用後直達結帳、精確包數、調整後重開與刷新、模擬訂單、家庭隔離、版本不符、版本未知、無缺料及手機端選購。結帳無額外 API 寫入。
+- 驗收使用合成資料與本機服務。正式 V3、真實零售查詢、爬蟲與付費模型未參與；手動挑菜的預覽採用流程未接入購物車。
