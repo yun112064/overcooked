@@ -262,11 +262,14 @@ def _prices(payload: dict) -> dict:
         if ln["price_status"] not in ("known", "unknown"):
             continue  # 已有種類與免計價（水）不列入價格區
         quote = ln.get("quote") or {}
-        items.append({"food_id": ln["food_id"], "name": names.get(ln["food_id"], ln["food_id"]),
-                      "shortage_grams": ln["shortage_grams"], "price_status": ln["price_status"],
-                      "packs": ln.get("packs"), "purchase_price": ln.get("purchase_price"), "cost": ln.get("cost"),
-                      "missing_reason": ln.get("missing_reason"), "source_name": _source_name(quote),
-                      **{k: quote.get(k) for k in QUOTE_FIELDS}})
+        item = {"food_id": ln["food_id"], "name": names.get(ln["food_id"], ln["food_id"]),
+                "shortage_grams": ln["shortage_grams"], "price_status": ln["price_status"],
+                "packs": ln.get("packs"), "purchase_price": ln.get("purchase_price"), "cost": ln.get("cost"),
+                "missing_reason": ln.get("missing_reason"), "source_name": _source_name(quote),
+                **{k: quote.get(k) for k in QUOTE_FIELDS}}
+        if ln.get("shortage_ml") is not None:
+            item["shortage_ml"] = ln["shortage_ml"]
+        items.append(item)
     result = {"status": "computed", **{k: cost.get(k) for k in (
         "budget", "budget_status", "price_complete", "purchase_total", "cost_total", "known_purchase_total",
         "known_cost_total")}, "items": items, "unquantified_items": unquantified}

@@ -2,20 +2,26 @@
 import pytest
 import unittest
 import uuid
+from datetime import timedelta
 from decimal import Decimal
+from fractions import Fraction
 from unittest.mock import patch
 
-from app.services.budget_floor import MIN_PRICED_DISHES, RecipeFloor, reference_dish_cost
+from app.meal_calc.types import IngredientRequirement
+from app.services.budget_floor import MIN_PRICED_DISHES, RecipeFloor, minimum_budget, reference_dish_cost
 from db_support import requires_db
+from test_t13_meal_cost import NOW, quote
 
 pytestmark = pytest.mark.usefixtures("staple_policy")
 
 D = Decimal
 
 
-def dish(i, cost, category="主菜", food=None, known=True):
-    """每 1n 用 100 克、單位價 cost/100 的一道菜。"""
-    return RecipeFloor(f"R{i}", f"DISH{i}", category, ((food or f"F{i}", D(100)),), known), (food or f"F{i}", D(cost) / 100)
+def dish(i, cost, category="主菜", food=None):
+    """每 1n 用 100 克、100 克包裝價格為 cost 的一道菜。"""
+    food = food or f"F{i}"
+    return RecipeFloor(f"R{i}", f"DISH{i}", category, [IngredientRequirement(food, D(100))]), (
+        food, [quote(food, cost, "100")])
 
 
 def build(entries):
@@ -30,35 +36,49 @@ class ReferenceDishCostTests(unittest.TestCase):
     def test_uses_a_low_percentile_not_the_minimum(self):
         # 一道資料錯誤的 0.1 元菜不會把下限拉到幾毛錢
         floors, prices = build([dish(0, "0.1")] + [dish(i, 10 + i) for i in range(1, 40)])
-        self.assertEqual(reference_dish_cost(floors, prices, set(), has_staple=True), D(11))
+        self.assertEqual(reference_dish_cost(floors, prices, set(), has_staple=True, now=NOW), D(11))
 
     def test_unpriced_desserts_and_staples_are_not_counted(self):
         entries = [dish(i, 20 + i) for i in range(MIN_PRICED_DISHES)]
         entries += [dish(100 + i, 1, category="點心") for i in range(30)]
         entries += [dish(200 + i, 2, category="主食") for i in range(30)]
         floors, prices = build(entries)
-        floors += [RecipeFloor(f"X{i}", f"DISHX{i}", "主菜", ((f"NOPRICE{i}", D(100)),)) for i in range(30)]
-        floors += [RecipeFloor(f"U{i}", f"DISHU{i}", "主菜", (), known_grams=False) for i in range(30)]
-        self.assertEqual(reference_dish_cost(floors, prices, set(), has_staple=True), D(20))
+        floors += [RecipeFloor(f"X{i}", f"DISHX{i}", "主菜", [IngredientRequirement(f"NOPRICE{i}", D(100))])
+                   for i in range(30)]
+        floors += [RecipeFloor(f"U{i}", f"DISHU{i}", "主菜", [], frozenset({f"UNKNOWN{i}"})) for i in range(30)]
+        self.assertEqual(reference_dish_cost(floors, prices, set(), has_staple=True, now=NOW), D(20))
         # 沒選主食時主食類菜色可入菜單，會一起估
-        self.assertEqual(reference_dish_cost(floors, prices, set(), has_staple=False), D(2))
+        self.assertEqual(reference_dish_cost(floors, prices, set(), has_staple=False, now=NOW), D(2))
 
     def test_owned_ingredients_cost_nothing(self):
         floors, prices = build([dish(i, 30, food="PORK") for i in range(MIN_PRICED_DISHES)])
-        floors = [RecipeFloor(f.recipe_id, f"DISH{i}", f.category, f.grams) for i, f in enumerate(floors)]
-        self.assertEqual(reference_dish_cost(floors, prices, set(), has_staple=True), D(30))
-        self.assertEqual(reference_dish_cost(floors, prices, {"PORK"}, has_staple=True), D(0))
+        self.assertEqual(reference_dish_cost(floors, prices, set(), has_staple=True, now=NOW), D(30))
+        self.assertEqual(reference_dish_cost(floors, prices, {"PORK"}, has_staple=True, now=NOW), D(0))
 
     def test_too_few_priced_dishes_means_no_floor(self):
         floors, prices = build([dish(i, 50) for i in range(MIN_PRICED_DISHES - 1)])
-        self.assertIsNone(reference_dish_cost(floors, prices, set(), has_staple=True))
+        self.assertIsNone(reference_dish_cost(floors, prices, set(), has_staple=True, now=NOW))
 
     def test_same_dish_counts_once_at_its_cheapest_recipe(self):
         entries = [dish(i, 40) for i in range(MIN_PRICED_DISHES)]
         floors, prices = build(entries)
-        floors += [RecipeFloor(f"Y{i}", "DISH0", "主菜", (("CHEAP", D(100)),)) for i in range(30)]
-        prices["CHEAP"] = D("0.01")
-        self.assertEqual(reference_dish_cost(floors, prices, set(), has_staple=True), D(1))
+        floors += [RecipeFloor(f"Y{i}", "DISH0", "主菜", [IngredientRequirement("CHEAP", D(100))]) for i in range(30)]
+        prices["CHEAP"] = [quote("CHEAP", "1", "100")]
+        self.assertEqual(reference_dish_cost(floors, prices, set(), has_staple=True, now=NOW), D(1))
+
+    def test_volume_floor_uses_proportional_cost_and_skips_incompatible_quotes(self):
+        item = IngredientRequirement("LIQUID", volume_ml=Fraction(100))
+        floors = [RecipeFloor(f"R{i}", f"DISH{i}", "主菜", [item]) for i in range(MIN_PRICED_DISHES)]
+        prices = {"LIQUID": [quote("LIQUID", "150", "0.5", "L"), quote("LIQUID", "5", "500")]}
+        with patch("app.services.budget_floor._recipe_floors", return_value=floors), \
+             patch("app.services.budget_floor.cost_quote_candidates", return_value=prices), \
+             patch("app.services.budget_floor._cached", side_effect=lambda key, load: load()):
+            self.assertEqual(minimum_budget(None, dish_count=2, total_n=D("1.5"), available_food_ids=[],
+                                            has_staple=True, now=NOW), D(90))
+        prices["LIQUID"].pop(0)
+        self.assertIsNone(reference_dish_cost(floors, prices, set(), has_staple=True, now=NOW))
+        prices["LIQUID"] = [quote("LIQUID", "150", "500", "ml", valid_until=NOW - timedelta(seconds=1))]
+        self.assertIsNone(reference_dish_cost(floors, prices, set(), has_staple=True, now=NOW))
 
 
 @requires_db

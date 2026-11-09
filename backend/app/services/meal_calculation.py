@@ -18,7 +18,7 @@ from decimal import InvalidOperation, ROUND_HALF_UP, Decimal
 from fractions import Fraction
 from functools import lru_cache
 from pathlib import Path
-from typing import Callable
+from typing import Callable, Iterable
 
 from app.core.config import PROJECT_ROOT
 from app.meal_calc.types import EstimatedFactor, IngredientRequirement
@@ -135,6 +135,7 @@ class IngredientLine:
     # 原文沒有明確數量（如「數條」「適量」，quantity_status=reference_amount）：數量是匯入時的參考值，
     # 畫面不顯示原單位數量（避免「袖珍菇 35 條」），有克數時改顯示克數（2026-11-04 使用者要求）
     amount_estimated: bool = False
+    pricing_volume_ml_per_n: Fraction | None = None
 
 
 @dataclass
@@ -570,7 +571,7 @@ def _calculate_meal(lines: list[IngredientLine], targets: MealTargets, *, mode: 
     whole = [g * n for g in grams]
     final_rows, final_totals, final_missing, final_partial = _evaluate(lines, whole, calculator)
     result["ingredients"] = [_row(ln, grams[i], whole[i], final_rows[i], n) for i, ln in enumerate(lines)]
-    result["requirements"] = _requirements(lines, whole)
+    result["requirements"] = pricing_requirements(lines, grams, n)
     final = result["final"]
     final["missing_nutrients"] = final_missing
     _partial_view(final, final_partial, final_missing)
@@ -597,7 +598,7 @@ def _unverified_final(result, lines, grams, n, calculator, final_targets) -> Non
     whole = [g * n if g is not None else None for g in grams]
     rows, totals, missing, partial = _evaluate(lines, whole, calculator)
     result["ingredients"] = [_row(ln, grams[i], whole[i], rows[i], n) for i, ln in enumerate(lines)]
-    result["requirements"] = _requirements(lines, whole)
+    result["requirements"] = pricing_requirements(lines, grams, n)
     final = result["final"]
     final["missing_nutrients"] = missing
     _partial_view(final, partial, missing)
@@ -1205,6 +1206,9 @@ def load_recipe_lines(db, recipe_id: str, factors=None) -> list[IngredientLine]:
             unit=row.unit, amount_per_n=per_n(row.amount), raw_text=row.raw_text,
             volume_ml_per_n=per_n(row.volume_ml),
             volume_is_estimated=bool(row.volume_evidence and row.volume_evidence.startswith("estimate:")),
+            pricing_volume_ml_per_n=(Fraction(row.volume_ml) / Fraction(servings)
+                                     if row.volume_ml is not None and row.volume_evidence == "workbook_volume"
+                                     and servings else None),
             weight_source=None if reason else source, group=ingredient_group(row.raw_text)[0],
             intake_parts=intake_adjustments().get(row.recipe_ingredient_id),
             amount_estimated=row.quantity_status == "reference_amount",
@@ -1590,14 +1594,25 @@ def _fill_blanks(lookup: NutrientFillLookup | None, grams: Decimal, nutrients: d
 tfda_calculator = make_tfda_calculator()
 
 
-def _requirements(lines, whole) -> list[IngredientRequirement]:
-    """依 food_id 合併整餐需求量（保持首次出現順序），供 T13 成本計算。
-
-    主食不計價格／缺料（decisions #16），克數未知的食材無法計算成本，兩者都不列入。
-    """
-    merged: dict[str, Decimal] = {}
-    for ln, g in zip(lines, whole):
-        if ln.role == "staple" or g is None:
+def pricing_requirements(lines: Iterable[IngredientLine], grams_per_n: Iterable[Decimal | None],
+                         n: Decimal) -> list[IngredientRequirement]:
+    """只加總同單位的完整 Food_ID 需求；主食與無法量化的食材另由呼叫端處理。"""
+    merged: dict[str, IngredientRequirement] = {}
+    meal_scale = Fraction(n)
+    for ln, aligned in zip(lines, grams_per_n):
+        if ln.role == "staple":
             continue
-        merged[ln.food_id] = merged.get(ln.food_id, Decimal(0)) + g
-    return [IngredientRequirement(food_id, g) for food_id, g in merged.items()]
+        g = aligned * n if aligned is not None else None
+        ml = None
+        per_n = ln.pricing_volume_ml_per_n
+        if per_n is not None and per_n > 0 and not ln.amount_estimated:
+            scale = Fraction(aligned) / Fraction(ln.grams_per_n) if aligned is not None and ln.grams_per_n else 1
+            ml = per_n * scale * meal_scale
+            if ln.weight_source == "unit_estimate":
+                g = None
+        prior = merged.get(ln.food_id)
+        if prior is not None:
+            g = prior.grams + g if prior.grams is not None and g is not None else None
+            ml = prior.volume_ml + ml if prior.volume_ml is not None and ml is not None else None
+        merged[ln.food_id] = IngredientRequirement(ln.food_id, g, ml)
+    return [item for item in merged.values() if item.grams is not None or item.volume_ml is not None]

@@ -141,3 +141,10 @@ Python 3.12；Node 24.21.0／npm 11.19.0。專案 `.venv` 使用既有 Python �
 - Windows／Python 3.12.10、全新 pgvector 0.8.6／PostgreSQL 17.11 容器，建立兩個經核對的 V3 拋棄式測試庫。原 5 項失敗案例各執行 10 輪，**50/50 通過**，使用原測試命令且未載入診斷外掛。
 - 完整後端（archive 中排除 2 項需 Git 的測試）**701 passed、1 skipped、153 subtests passed**；兩項 Git 機密／忽略規則測試另以獨立 index 執行，**2 passed**。唯一後端略過原因為未隨程式散布的本機歷史價格來源包。
 - T12 **174 passed**、T03 **33 項通過**；Alembic upgrade／current／check、schema gate、database／pgvector health 均通過，head 為 `d1105merge1`。拋棄式容器已清理，未連接既有 V1／V3／Admin 資料庫，也未啟動爬蟲、付費模型或真實 YOLO。
+
+## 2026-11-09 T13_V3 容量估價
+
+- 基底 `a5ad10d`。以記憶體 SQLite、合成工作簿和假報價執行 `tests/test_t13_volume.py`、`tests/test_t13_meal_cost.py`、`tests/test_budget_floor.py`、`tests/test_t02_{pricing,release,uni_prosperity}.py`、`tests/test_t12_meal_calculation.py`、`tests/test_meal_plans.py`、`tests/test_recipe_catalog.py`。選集合計 **123 passed、48 skipped**。PostgreSQL 測試未設定 `TEST_DATABASE_URL`，報價讀取以合成查詢結果驗證。
+- 驗證 100 mL 用量對 0.5 L、NT$150 報價得到用量成本 NT$30、整包採購價 NT$150，預算按用量成本判定。另驗證包數邊界、L 的原始食譜用量與份數縮放、同單位合併、報價效期、問卷預算下限、補價重試及缺克重時的未知營養。
+- `npm --prefix frontend run lint`、`npm --prefix frontend run build` 和 `git diff --check` 通過。Build 有大於 500 kB 的 bundle 提醒。未啟動應用服務、查價或模型，未連線正式 V3、執行遷移或回寫歷史採用快照。
+- 本機提交前自審後重跑同一選集，**127 passed、48 skipped**。跳過 47 項需 PostgreSQL 的測試及 1 項未隨程式散布的歷史價格來源包檢查。新增合成案例驗證尚未生效的容量報價及其淨重投影、已知用量成本超預算的優先判定，以及舊克數結果補價和已採用快照的原值讀取。前端 lint 與 build 重新通過。未在瀏覽器或 PostgreSQL 執行端到端驗證。

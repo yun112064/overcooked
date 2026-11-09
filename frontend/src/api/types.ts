@@ -252,7 +252,8 @@ export type ResultDecision = {
 export type PriceItem = {
   food_id: string
   name: string
-  shortage_grams: string
+  shortage_grams: string | null
+  shortage_ml?: string | null
   price_status: 'known' | 'unknown'
   packs: number | null
   purchase_price: string | null
