@@ -13,8 +13,17 @@ export type MarketCatalog = {
   products: MarketProduct[]
 }
 
-export type MarketPlan = GenerationPlanDetail & Pick<MealPlanSummary, 'status'> & {
-  snapshot?: { result?: { dishes?: { recipe_release_id?: string | null }[] } }
+type MarketShortages = {
+  items: { food_id: string; name: string; shortage_grams: string; recipe_release_id?: string | null }[]
+  unquantified_items?: { food_id: string; name: string }[]
+}
+
+export type MarketPlan = Pick<MealPlanSummary, 'id' | 'status' | 'meal_date' | 'meal_request_id' | 'dishes' | 'result_version'>
+  & Pick<GenerationPlanDetail, 'snapshot_available' | 'prices'> & {
+  snapshot?: {
+    result?: { dishes?: { recipe_release_id?: string | null }[] }
+    market_shortages?: MarketShortages & { recipe_release_id: string | null }
+  }
 }
 
 export type MarketCart = { quantities: Record<string, number>; orderId: string | null }
@@ -27,35 +36,45 @@ export function marketPath(page: 'catalog' | 'checkout', planId: string | null =
   return planId ? `${path}?plan=${encodeURIComponent(planId)}` : path
 }
 
-/** Calculate ceil(grams / pack size) exactly, including decimal and exponent strings from Python Decimal. */
+/** Calculate ceil(grams / pack size) exactly for both Decimal and Fraction strings. */
 export function packCount(grams: string, packageGrams: number): number | null {
-  const match = /^(\d{1,16})(?:\.(\d{1,16}))?(?:[eE]([+-]?\d{1,2}))?$/.exec(grams)
-  if (!match || !Number.isSafeInteger(packageGrams) || packageGrams <= 0) return null
-  const fraction = match[2] ?? ''
-  const scale = fraction.length - Number(match[3] ?? 0)
-  const quantity = BigInt(match[1] + fraction) * 10n ** BigInt(Math.max(0, -scale))
-  const size = BigInt(packageGrams) * 10n ** BigInt(Math.max(0, scale))
+  if (!Number.isSafeInteger(packageGrams) || packageGrams <= 0) return null
+  const ratio = /^(\d{1,128})\/([1-9]\d{0,127})$/.exec(grams)
+  let quantity: bigint
+  let size = BigInt(packageGrams)
+  if (ratio) {
+    quantity = BigInt(ratio[1])
+    size *= BigInt(ratio[2])
+  } else {
+    const match = /^(\d{1,16})(?:\.(\d{1,16}))?(?:[eE]([+-]?\d{1,2}))?$/.exec(grams)
+    if (!match) return null
+    const fraction = match[2] ?? ''
+    const scale = fraction.length - Number(match[3] ?? 0)
+    quantity = BigInt(match[1] + fraction) * 10n ** BigInt(Math.max(0, -scale))
+    size *= 10n ** BigInt(Math.max(0, scale))
+  }
   const packs = (quantity + size - 1n) / size
   return packs <= MAX_PACKS ? Number(packs) : null
 }
 
 export function prepareCart(plan: MarketPlan | undefined, catalog: MarketCatalog) {
   const products = new Map(catalog.products.map((product) => [product.food_id, product]))
-  const prices = plan?.prices
-  const releases = [
+  const preview = plan?.snapshot?.market_shortages
+  const shortagesSource: MarketShortages | undefined = preview ?? plan?.prices
+  const releases = (preview ? [preview.recipe_release_id] : [
     ...(plan?.snapshot?.result?.dishes ?? []).map((dish) => dish.recipe_release_id),
-    ...(prices?.items ?? []).map((item) => item.recipe_release_id),
-  ].filter(Boolean)
+    ...(plan?.prices?.items ?? []).map((item) => item.recipe_release_id),
+  ]).filter(Boolean)
   const releaseIssue = plan && releases.length === 0 ? '採用餐單未記錄可核對的 T01 版本'
     : plan && catalog.recipe_release_id === null ? '目前沒有可用的 T01 商品目錄'
       : releases.some((release) => release !== catalog.recipe_release_id) ? '餐單與商品目錄的 T01 版本不同' : null
-  const unavailable: UnavailableIngredient[] = (prices?.unquantified_items ?? []).map((item) => ({
+  const unavailable: UnavailableIngredient[] = (shortagesSource?.unquantified_items ?? []).map((item) => ({
     foodId: item.food_id, name: item.name, reason: '採用餐單未記錄可換算的用量',
   }))
   const unknownQuantities = new Set(unavailable.map((item) => item.foodId))
   const shortages = new Map<string, string>()
   const quantities: Record<string, number> = {}
-  for (const item of prices?.items ?? []) {
+  for (const item of shortagesSource?.items ?? []) {
     if (unknownQuantities.has(item.food_id)) continue
     const product = products.get(item.food_id)
     const packs = packCount(item.shortage_grams, product?.package_grams ?? 1)

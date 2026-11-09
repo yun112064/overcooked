@@ -1,17 +1,27 @@
+from contextlib import contextmanager
+from datetime import date
+from types import SimpleNamespace
+from uuid import uuid4
+
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 import pytest
 from sqlalchemy import create_engine
+from sqlalchemy.dialects.sqlite.base import SQLiteTypeCompiler
 from sqlalchemy.orm import Session
 from sqlalchemy.pool import StaticPool
+from sqlalchemy.schema import CreateTable
 
-from app.api.deps import current_household_id
+from app.api import meal_plans, meal_requests
+from app.api.deps import current_auth, current_household_id
 from app.api.errors import register_error_handlers
 from app.api.sim_market import router
 from app.core.config import settings
 from app.db.base import Base
+from app.db.models import AdoptedMealPlan, Household, MealRequest, Member
 from app.db.session import get_db
 from app.models.recipe import IngredientAlias, Recipe, RecipeDataRelease, RecipeIngredient, SourceArchive
+from app.services import database_menu_plans
 
 
 @pytest.fixture
@@ -87,3 +97,72 @@ def test_explicit_release_is_not_replaced_by_the_active_release(market_client, m
 
     monkeypatch.setattr(settings, "generation_recipe_release_id", "test-unavailable")
     assert client.get("/sim-market/catalog").json() == {"recipe_release_id": None, "products": []}
+
+
+def test_picker_adoption_freezes_exact_market_shortages(market_client, monkeypatch):
+    app, client = market_client
+    app.include_router(meal_plans.router)
+    app.include_router(meal_requests.router)
+    household_id, member_id, request_id = uuid4(), uuid4(), uuid4()
+    user_id = uuid4()
+    app.dependency_overrides[current_household_id] = lambda: household_id
+    app.dependency_overrides[current_auth] = lambda: SimpleNamespace(user_id=user_id)
+    monkeypatch.setattr(meal_plans.service, '_lock_household', lambda *_: None)
+
+    # Only the tables exercised by these endpoints, using SQLite JSON in place of JSONB.
+    monkeypatch.setattr(SQLiteTypeCompiler, 'visit_JSONB', SQLiteTypeCompiler.visit_JSON, raising=False)
+    db_session = contextmanager(app.dependency_overrides[get_db])
+    with db_session() as db, db.begin():
+        for model in (Household, Member, MealRequest, AdoptedMealPlan):
+            ddl = CreateTable(model.__table__).compile(dialect=db.bind.dialect)
+            db.connection().exec_driver_sql(str(ddl).replace('::jsonb', ''))
+        db.add(Household(id=household_id, name='Synthetic household'))
+        db.add(Member(id=member_id, household_id=household_id, display_name='Test member',
+                      birth_date=date(1990, 1, 1), equation_sex='F', weight_kg=60,
+                      activity_category='active', goal='general', portion=1))
+        db.add(MealRequest(id=request_id, household_id=household_id, payload={
+            'mode': 'picker', 'meal_date': '2026-11-09', 'meal_type': 'dinner', 'dish_count': 2,
+            'staple': '不需要主食', 'specified_dishes': ['A', 'B'],
+            'participants': [{'member_id': str(member_id), 'dining': True}],
+            'available_ingredient_ids': ['TEST-OWNED'],
+        }))
+
+    recipe_ids = ['test-current-0', 'test-current-1']
+    selected = [{'recipe_id': rid, 'recipe_name': rid, 'standard_dish_id': rid} for rid in recipe_ids]
+    monkeypatch.setattr(database_menu_plans, 'current_menu', lambda *_: {'selected': selected})
+    preview = {'status': 'nutrition_passed', 'dishes': [
+        {'ingredients': [{'food_id': 'TEST-CABBAGE', 'name': '高麗菜', 'grams': '500'},
+                         {'food_id': 'TEST-OWNED', 'name': '已有食材', 'grams': '100'},
+                         {'food_id': 'TEST-UNKNOWN', 'name': '用量未知', 'grams': '20'}]},
+        {'ingredients': [{'food_id': 'TEST-CABBAGE', 'name': '高麗菜', 'grams': '1/3'},
+                         {'food_id': 'TEST-UNKNOWN', 'name': '用量未知', 'grams': None}]},
+    ], 'staple': {'food_id': 'TEST-RICE', 'name': '白飯', 'final_grams': '160'}}
+    monkeypatch.setattr(database_menu_plans.t12_planning, 'preview', lambda *_, **__: preview)
+    body = {'meal_request_id': str(request_id), 'request_version': 1, 'recipe_ids': recipe_ids}
+    headers = {'Origin': 'http://localhost:8080', 'Idempotency-Key': 'test-picker-adopt'}
+    response = client.post('/meal-plans', json=body, headers=headers)
+    assert response.status_code == 201, response.text
+    summary = response.json()['meal_plan']
+    assert summary['market_shortages_available']
+    path = f"/meal-plans/{summary['id']}"
+    detail = client.get(path).json()
+    assert detail['result_version'] is None
+    assert detail['snapshot']['market_shortages'] == {
+        'recipe_release_id': 'test-current',
+        'items': [{'food_id': 'TEST-CABBAGE', 'name': '高麗菜', 'shortage_grams': '1501/3'},
+                  {'food_id': 'TEST-RICE', 'name': '白飯', 'shortage_grams': '160'}],
+        'unquantified_items': [{'food_id': 'TEST-UNKNOWN', 'name': '用量未知'}],
+    }
+
+    # A later selection or catalogue change cannot rewrite a saved plan or its cart inputs.
+    monkeypatch.setattr(database_menu_plans, 'current_menu', lambda *_: pytest.fail('adopted menu was recomputed'))
+    monkeypatch.setattr(settings, 'generation_recipe_release_id', 'test-older')
+    reopened = client.get(f'/meal-requests/{request_id}/recipes').json()
+    assert reopened['selected'] == selected
+    assert reopened['adopted_plan'] == summary
+    retry = client.post('/meal-plans', json=body, headers=headers)
+    assert retry.status_code == 200
+    assert retry.json()['meal_plan'] == summary
+    assert client.get(path).json() == detail
+    app.dependency_overrides[current_household_id] = uuid4
+    assert client.get(path).status_code == 404

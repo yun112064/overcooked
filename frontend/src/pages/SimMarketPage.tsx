@@ -56,10 +56,11 @@ export default function SimMarketPage({ page }: { page: Page }) {
   if (!catalog.data || (planId && !plan.data)) {
     return <CircularProgress size={28} aria-label="載入模擬超市" />
   }
-  if (planId && (plan.data?.status !== 'adopted' || !plan.data.result_version || !plan.data.snapshot_available || !plan.data.prices)) {
+  if (planId && (plan.data?.status !== 'adopted' || !plan.data.snapshot_available
+    || !(plan.data.snapshot?.market_shortages || (plan.data.result_version && plan.data.prices)))) {
     return (
       <Stack spacing={2}>
-        <Alert severity="info">這份餐單沒有可用的正式採用缺料快照。</Alert>
+        <Alert severity="info">這份餐單沒有可用的採用缺料快照。</Alert>
         <Button component={Link} to="/sim-market" sx={{ alignSelf: 'start' }}>瀏覽模擬超市</Button>
       </Stack>
     )
@@ -79,7 +80,8 @@ function MarketStore({ storageKey, page, catalog, plan }: {
   const planId = plan?.id ?? null
   const checkoutPath = marketPath('checkout', planId)
   const catalogPath = marketPath('catalog', planId)
-  const returnPath = plan?.meal_request_id ? `/plan/${encodeURIComponent(plan.meal_request_id)}` : '/plan'
+  const mealPath = plan?.snapshot?.market_shortages ? '/pick' : '/plan'
+  const returnPath = plan?.meal_request_id ? `${mealPath}/${encodeURIComponent(plan.meal_request_id)}` : mealPath
 
   useEffect(() => { saveCart(storageKey, cart) }, [storageKey, cart])
 

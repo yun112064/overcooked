@@ -552,6 +552,7 @@ export type RecipeRetrieval = {
 /** 已採用餐食紀錄 */
 export type MealPlanSummary = {
   result_version?: number | null
+  market_shortages_available?: boolean
   id: string
   meal_date: string
   meal_type: MealType

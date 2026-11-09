@@ -1,10 +1,12 @@
 import CheckCircleOutlineOutlined from '@mui/icons-material/CheckCircleOutlineOutlined'
+import ShoppingBasketOutlined from '@mui/icons-material/ShoppingBasketOutlined'
 import { Alert, Box, Button, Chip, CircularProgress, Link, Stack, Typography } from '@mui/material'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useRef } from 'react'
 import { Link as RouterLink } from 'react-router'
 import { api, errorMessage } from '../api/client'
-import type { KnowledgeTips, MealRequest, Member, NutritionPreview, RecipeRetrieval } from '../api/types'
+import { marketPath } from '../api/simMarket'
+import type { KnowledgeTips, MealPlanSummary, MealRequest, Member, NutritionPreview, RecipeRetrieval } from '../api/types'
 import { tokens } from '../theme'
 import { NUTRIENTS, toNumber, withinTarget } from '../api/nutrition'
 import DishList from './DishList'
@@ -85,15 +87,15 @@ function targetNote(key: 'energy_kcal' | 'protein_g', value: number | null, targ
     tone: withinTarget(key, value / target) ? 'good' as const : 'warn' as const }
 }
 
-type Props = { row: MealRequest; members: Member[] }
+type Props = { row: MealRequest; members: Member[]; onAdopted?: () => void }
 
 /** 問卷完成後自動顯示（版面取自 t11-t20-demo）：T11 資料庫菜單 → T12 營養計算（都在本機）；
  *  營養通過後自動產生營養小知識（雲端付費呼叫；同一頁面內同一版只產生一次）。 */
-export default function MenuPreviewPanel({ row, members }: Props) {
+export default function MenuPreviewPanel({ row, members, onAdopted }: Props) {
   const menu = useQuery({
     queryKey: ['meal-request-menu', row.id, row.version],
     queryFn: async () => (await api.get<RecipeRetrieval>(`/meal-requests/${row.id}/recipes`)).data,
-    enabled: row.complete,
+    enabled: row.complete || (row.draft.mode === 'picker' && row.status === 'confirmed'),
     retry: false,
   })
   const recipeIds = (menu.data?.selected ?? []).map((r) => r.recipe_id)
@@ -123,12 +125,15 @@ export default function MenuPreviewPanel({ row, members }: Props) {
     return adoptKeys.current.get(k)!
   }
   const adopt = useMutation({
-    mutationFn: async () => (await api.post('/meal-plans',
+    mutationFn: async () => (await api.post<{ meal_plan: MealPlanSummary }>('/meal-plans',
       { meal_request_id: row.id, request_version: row.version, recipe_ids: recipeIds },
-      { headers: { 'Idempotency-Key': keyFor(`${row.version}:${recipeIds.join(',')}`) } })).data,
+      { headers: { 'Idempotency-Key': keyFor(`${row.version}:${recipeIds.join(',')}`) } })).data.meal_plan,
     onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ['meal-request-menu', row.id] })
-      await queryClient.invalidateQueries({ queryKey: ['meal-plan-dates'] })
+      onAdopted?.()
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['meal-request-menu', row.id] }),
+        queryClient.invalidateQueries({ queryKey: ['meal-plan-dates'] }),
+      ])
     },
   })
   const reject = useMutation({
@@ -136,7 +141,8 @@ export default function MenuPreviewPanel({ row, members }: Props) {
     onSuccess: () => menu.refetch(),
   })
 
-  if (!row.complete) {
+  const adopted = adopt.data ?? menu.data?.adopted_plan ?? null
+  if (!row.complete && row.status !== 'confirmed') {
     return <Typography color="text.secondary">問卷填寫完整後會自動顯示資料庫菜單。</Typography>
   }
   const selected = menu.data?.selected ?? []
@@ -148,7 +154,6 @@ export default function MenuPreviewPanel({ row, members }: Props) {
   const energyInfo = targetNote('energy_kcal', energy, toNumber(n?.targets.energy_kcal), 'kcal')
   const proteinInfo = targetNote('protein_g', protein, toNumber(n?.targets.protein_g), 'g')
   const passed = n?.status === 'nutrition_passed'
-  const adopted = menu.data?.adopted_plan ?? null
 
   return (
     <Stack spacing={3}>
@@ -164,9 +169,22 @@ export default function MenuPreviewPanel({ row, members }: Props) {
 
       {menu.isFetching && <CircularProgress size={24} />}
       {menu.isError && <Alert severity="error">{errorMessage(menu.error)}</Alert>}
-      {menu.data && selected.length === 0 && <Alert severity="info">{retrievalMessage(menu.data, row.draft.staple)}</Alert>}
+      {menu.data && !adopted && selected.length === 0 && <Alert severity="info">{retrievalMessage(menu.data, row.draft.staple)}</Alert>}
       {nutrition.isFetching && <Typography color="text.secondary">計算營養中…</Typography>}
       {nutrition.isError && <Alert severity="error">{errorMessage(nutrition.error)}</Alert>}
+
+      {adopted && (
+        <Alert icon={<CheckCircleOutlineOutlined />} severity="success">
+          <Stack direction="row" sx={{ gap: 1, alignItems: 'center', flexWrap: 'wrap' }}>
+            <Typography variant="body2">已採用並保存為已採用餐食紀錄（不代表實際已食用）。</Typography>
+            <Button variant="outlined" component={RouterLink} to={`/history?date=${adopted.meal_date}`}>查看已採用紀錄</Button>
+            {adopted.status === 'adopted' && adopted.market_shortages_available && (
+              <Button variant="contained" component={RouterLink} to={marketPath('checkout', adopted.id)}
+                startIcon={<ShoppingBasketOutlined />}>一鍵加入購物車</Button>
+            )}
+          </Stack>
+        </Alert>
+      )}
 
       {n && (
         <Box sx={{ border: `1px solid ${tokens.line}`, borderRadius: 1, bgcolor: '#FFFDF9', p: { xs: 2, sm: 3 } }}>
@@ -180,36 +198,29 @@ export default function MenuPreviewPanel({ row, members }: Props) {
               note="含便當；份量依各人營養目標分配" />
           </StatRow>
           {n.nutrition_all && <NutrientTable all={n.nutrition_all} />}
-          <Box sx={{ mt: 3, pt: 2.5, borderTop: `1px solid ${tokens.line}`, display: 'flex', gap: 2, alignItems: 'center', flexWrap: 'wrap' }}>
-            {adopted ? (
-              <>
-                <CheckCircleOutlineOutlined sx={{ color: '#5E7B5A' }} />
-                <Typography variant="body2" sx={{ flexGrow: 1 }}>已採用並保存為已採用餐食紀錄（不代表實際已食用）。</Typography>
-                <Button variant="outlined" component={RouterLink} to={`/history?date=${adopted.meal_date}`}>查看已採用紀錄</Button>
-              </>
-            ) : (
-              <>
-                <Box sx={{ flexGrow: 1, minWidth: 220 }}>
-                  <Typography variant="body2" sx={{ color: passed ? '#3E5539' : n.status === 'outside_tolerance' ? tokens.ochre : tokens.brick }}>
-                    {passed ? '符合採用條件。' : n.status_message}
-                  </Typography>
-                  {n.input_issues.length > 0 && (
-                    <Box component="ul" sx={{ m: 0, mt: 1, pl: 3 }}>
-                      {n.input_issues.map((i, k) => <li key={`${i.code}-${i.recipe_id}-${k}`}><Typography variant="body2">{i.message}</Typography></li>)}
-                    </Box>
-                  )}
-                </Box>
-                <Button variant="outlined" size="large" disabled={reject.isPending || adopt.isPending || selected.length === 0}
-                  onClick={() => reject.mutate()}>
-                  不採用，換一份
-                </Button>
-                <Button variant="contained" size="large" disabled={!passed || adopt.isPending || reject.isPending}
-                  onClick={() => adopt.mutate()}>
-                  採用這份菜單
-                </Button>
-              </>
-            )}
-          </Box>
+          {!adopted && (
+            <Box sx={{ mt: 3, pt: 2.5, borderTop: `1px solid ${tokens.line}`, display: 'flex', gap: 2, alignItems: 'center', flexWrap: 'wrap' }}>
+              <Box sx={{ flexGrow: 1, minWidth: 220 }}>
+                <Typography variant="body2" sx={{ color: passed ? '#3E5539' : n.status === 'outside_tolerance' ? tokens.ochre : tokens.brick }}>
+                  {passed && !n.adoption_blocked ? '符合採用條件。' : n.status_message}
+                </Typography>
+                {n.input_issues.length > 0 && (
+                  <Box component="ul" sx={{ m: 0, mt: 1, pl: 3 }}>
+                    {n.input_issues.map((i, k) => <li key={`${i.code}-${i.recipe_id}-${k}`}><Typography variant="body2">{i.message}</Typography></li>)}
+                  </Box>
+                )}
+              </Box>
+              <Button variant="outlined" size="large" disabled={reject.isPending || adopt.isPending || selected.length === 0}
+                onClick={() => reject.mutate()}>
+                不採用，換一份
+              </Button>
+              <Button variant="contained" size="large" disabled={!passed || n.adoption_blocked || adopt.isPending || reject.isPending
+                || row.status === 'queued' || row.status === 'running' || row.status === 'confirmed'}
+                onClick={() => adopt.mutate()}>
+                採用這份菜單
+              </Button>
+            </Box>
+          )}
           {adopt.isError && <Alert severity="error" sx={{ mt: 2 }}>{errorMessage(adopt.error)}</Alert>}
           {reject.isError && <Alert severity="error" sx={{ mt: 2 }}>{errorMessage(reject.error)}</Alert>}
         </Box>

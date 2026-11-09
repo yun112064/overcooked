@@ -19,7 +19,9 @@ from sqlalchemy.orm import Session
 
 from app.api.errors import ApiError, version_conflict
 from app.db.models import AdoptedMealPlan, MealMenuRejection, MealRequest
+from app.models.recipe import Recipe
 from app.services import meal_history, recipe_retrieval, t12_planning, idempotency
+from app.services.meal_cost import free_foods
 from app.services import meal_request as request_service
 
 ALL_REJECTED = "all_menus_rejected"
@@ -93,7 +95,10 @@ def adopt(db: Session, *, household_id, user_id, row: MealRequest, draft, member
                                        mode='database_menu', dishes=dishes)
     plan.meal_request_id, plan.request_version = row.id, row.version
     plan.idempotency_key, plan.request_hash, plan.adopted_by = idempotency_key, digest, user_id
-    plan.snapshot = _snapshot(selected, preview, draft)
+    snapshot = _snapshot(selected, preview, draft)
+    if draft.mode == 'picker':
+        snapshot['market_shortages'] = _market_shortages(db, recipe_ids, preview, draft.available_ingredient_ids)
+    plan.snapshot = snapshot
     row.status = 'confirmed'
     db.flush()
     return plan, True
@@ -110,17 +115,50 @@ def _snapshot(selected: list[dict], preview: dict, draft) -> dict:
     return json.loads(json.dumps(snapshot, ensure_ascii=False, default=str))
 
 
+def _market_shortages(db: Session, recipe_ids: list[str], preview: dict, available_food_ids: list[str]) -> dict:
+    """Freeze the picker’s scaled amounts and T01 identity for simulated shopping."""
+    ids = set(recipe_ids)
+    releases = db.scalars(select(Recipe.recipe_release_id).where(Recipe.recipe_id.in_(ids))).all()
+    release_id = releases[0] if releases and len(releases) == len(ids) and len(set(releases)) == 1 else None
+    free = free_foods(available_food_ids)
+    ingredients = [line for dish in preview.get('dishes') or [] for line in dish['ingredients']]
+    if staple := preview.get('staple'):
+        ingredients.append({'food_id': staple['food_id'], 'name': staple['name'], 'grams': staple.get('final_grams')})
+
+    amounts: dict[str, Fraction] = {}
+    unknown: set[str] = set()
+    names: dict[str, str] = {}
+    for line in ingredients:
+        food_id = line['food_id']
+        if food_id in free:
+            continue
+        names.setdefault(food_id, line['name'])
+        grams = line.get('grams')
+        if grams is None:
+            unknown.add(food_id)
+        else:
+            amounts[food_id] = amounts.get(food_id, Fraction()) + Fraction(grams)
+
+    return {'recipe_release_id': release_id,
+            'items': [{'food_id': food_id, 'name': names[food_id], 'shortage_grams': str(grams)}
+                      for food_id, grams in amounts.items() if food_id not in unknown and grams > 0],
+            'unquantified_items': [{'food_id': food_id, 'name': name}
+                                   for food_id, name in names.items() if food_id in unknown]}
+
+
 def _number(value) -> float | None:
     return None if value is None else float(Fraction(str(value)))
 
 
 def summary(plan: AdoptedMealPlan) -> dict:
-    totals = ((plan.snapshot or {}).get('nutrition') or {}).get('totals') or {}
+    snapshot = plan.snapshot or {}
+    totals = (snapshot.get('nutrition') or {}).get('totals') or {}
     return {'id': str(plan.id), 'meal_date': plan.meal_date.isoformat(), 'meal_type': plan.meal_type,
             'mode': plan.mode, 'status': plan.status, 'adopted_at': plan.adopted_at.isoformat(),
             'meal_request_id': str(plan.meal_request_id) if plan.meal_request_id else None,
             'dishes': [{'dish_name': d['dish_name'], 'recipe_id': d.get('recipe_id')} for d in plan.dishes],
-            'energy_kcal': totals.get('energy_kcal'), 'protein_g': totals.get('protein_g')}
+            'energy_kcal': totals.get('energy_kcal'), 'protein_g': totals.get('protein_g'),
+            'market_shortages_available': 'market_shortages' in snapshot}
 
 
 def detail(plan: AdoptedMealPlan) -> dict:

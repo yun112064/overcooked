@@ -99,14 +99,14 @@ def compute_meal_cost(
     調味料（決策 #44，config/seasoning_ingredients.json）比照已有種類：足量、缺量 0、不查價、成本 0，
     狀態標為 seasoning（不列入缺料／價格區）；營養仍由呼叫端按配方需求量計算。
     """
-    free = _free_foods(available_food_ids, exempt_food_ids, seasoning_food_ids)
+    free = free_foods(available_food_ids, exempt_food_ids, seasoning_food_ids)
     return _compute_meal_cost(requirements, free, budget, quote_for, now)
 
 
-def _free_foods(
+def free_foods(
     available_food_ids: Iterable[str],
-    exempt_food_ids: set[str] | None,
-    seasoning_food_ids: set[str] | None,
+    exempt_food_ids: set[str] | None = None,
+    seasoning_food_ids: set[str] | None = None,
 ) -> dict[str, str]:
     exempt = load_price_exempt() if exempt_food_ids is None else exempt_food_ids
     seasonings = load_seasonings() if seasoning_food_ids is None else seasoning_food_ids
@@ -172,6 +172,6 @@ def meal_cost_from_db(
     now: datetime,
 ) -> MealCost:
     items = list(requirements)
-    free = _free_foods(available_food_ids, None, None)
+    free = free_foods(available_food_ids)
     quotes = latest_quotes(db, (item.food_id for item in items if item.food_id not in free), now=now)
     return _compute_meal_cost(items, free, budget, quotes.get, now)
