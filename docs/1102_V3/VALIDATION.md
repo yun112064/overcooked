@@ -141,3 +141,8 @@ Python 3.12；Node 24.21.0／npm 11.19.0。專案 `.venv` 使用既有 Python �
 - Windows／Python 3.12.10、全新 pgvector 0.8.6／PostgreSQL 17.11 容器，建立兩個經核對的 V3 拋棄式測試庫。原 5 項失敗案例各執行 10 輪，**50/50 通過**，使用原測試命令且未載入診斷外掛。
 - 完整後端（archive 中排除 2 項需 Git 的測試）**701 passed、1 skipped、153 subtests passed**；兩項 Git 機密／忽略規則測試另以獨立 index 執行，**2 passed**。唯一後端略過原因為未隨程式散布的本機歷史價格來源包。
 - T12 **174 passed**、T03 **33 項通過**；Alembic upgrade／current／check、schema gate、database／pgvector health 均通過，head 為 `d1105merge1`。拋棄式容器已清理，未連接既有 V1／V3／Admin 資料庫，也未啟動爬蟲、付費模型或真實 YOLO。
+
+## 2026-11-09 T02_V4 審閱補查與商品配對
+
+- 交付審閱補查工具及 79 項版本化規則。搜尋可優先使用審閱詞，配對仍檢查商品內容。新增多包裝解析與非食用品排除，保留克數、容量、固形量和估價的區別。
+- 使用隔離 SQLite、合成資料與模擬 HTTP 驗證，65 項及 25 個子測試通過。39 項需要專用 PostgreSQL，另 1 項需要歷史價格包，本輪略過。未執行真實補查、匯入或排程。
