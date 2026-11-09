@@ -156,3 +156,27 @@ Python 3.12；Node 24.21.0／npm 11.19.0。專案 `.venv` 使用既有 Python �
 - 食譜庫挑菜完成後先顯示預覽，正式生成可手動送出。預覽採用時以同一筆快照保存整餐缺料與 T01 發布 ID；同一 Food ID 的精確克數先合併，再換算成模擬商品包數。用量未知或目錄無對應商品時，結帳頁另列未加入原因。既有預覽採用紀錄若沒有這份缺料快照，仍可查看歷史。
 - 執行 `tests/test_sim_market.py`、`tests/test_meal_plans.py`、`tests/test_t13_meal_cost.py`、`tests/test_v3_contracts.py`，**33 項通過、13 項略過**。新案例以記憶體 SQLite 和 T11／T12 替身檢查採用、精確缺量、同鍵重送、重新開啟、快照固定與跨家庭拒絕。SQLite 以替身略過 PostgreSQL advisory lock，依賴 PostgreSQL 的案例未執行。
 - `npm run lint`、`npm run build` 通過。以無頭 Chrome、前端建置與本機合成 API 實測從勾選成員與菜色到預覽、採用、一鍵加入、調整包數、重新整理與模擬訂單。另驗證正式餐單結帳入口資料格式相容、使用者／家庭／餐單隔離與發布不符時封鎖結帳。模擬結帳無額外 API 寫入。測試未連正式資料庫、零售服務或外部模型。
+
+### 同日超市頁面設計第一版
+
+- `npm run lint`、`npm run build` 通過。使用本機合成 API 及無頭 Chrome，在 1440、390 與 320 px 寬度檢查目錄和購物車摘要。桌面摘要跟隨捲動，手機摘要固定在底部導覽上方，所測畫面無水平溢出。
+- 用六項合成商品驗證分類、搜尋、清除篩選和新增商品，並重跑手動挑菜至模擬結帳、正式餐單購物車、重新整理、使用者／家庭／餐單隔離及發布不符時封鎖結帳。正式資料庫及外部服務未參與。
+
+### 同日參考 10/10 調整超市版型
+
+- 參考黑白頁首、主題橫幅、桌面左側分類欄與手機展開式分類。素材以內建 imagegen 生成並轉為 WebP，商品照統一標示為類別示意。 [10/10 首頁](https://1010online.com.tw/) · [10/10 分類頁](https://1010online.com.tw/face)
+- `npm run lint` 與 `npm run build` 通過。Vite 提醒入口 chunk 約 508 kB，超過預設 500 kB 提示值。
+- 無頭 Chrome 搭配本機合成 API 驗證 1440、390、320 px 寬度、瀏覽食材跳點、桌面與手機分類、搜尋、清除篩選、加購和單品結帳按鈕的位置。另通過手動挑菜採用、正式餐單購物車、模擬訂單、重新整理及使用者、家庭、餐單與發布隔離的回歸。測試使用六項合成商品，未連接正式資料庫。
+
+<details>
+<summary>圖像素材與生成提示</summary>
+
+- 主題照片 [`sim-market-hero.webp`](../../frontend/src/assets/sim-market-hero.webp)
+
+  > Use case: photorealistic-natural. Create a single original 3:2 landscape photograph for a premium Taiwanese recipe grocery storefront homepage. Editorial food still life, overhead with a slight perspective, artfully spaced napa cabbage, bok choy, earthy shiitake mushrooms, a cluster of small tomatoes and two eggs, with a warm natural off-white linen cloth, on pale warm grey limestone. Fill the frame naturally, with a strong centered grouping and gently visible texture around the edges, cropped produce at a couple edges. Quiet, beautifully tactile, soft sunlight from top left and believable shadows, subtle moss green and muted terracotta accents. High-end magazine photography. No people, no packaging, no words, no brand, no logo, no watermark, no border, no layout or UI elements. The photo will be displayed beside real HTML text.
+
+- 商品類別示意 [`sim-market-categories.webp`](../../frontend/src/assets/sim-market-categories.webp)
+
+  > Use case: product-mockup. One original 1:1 photo contact sheet asset for a Taiwanese grocery website, four exactly equal quadrants in a 2-by-2 grid with no visible borders. A perfectly clean pure white studio seamless background in all four quadrants. Each quadrant is independent and its subject occupies only the central 55 percent of width and height within that quadrant with ample clear white margin, so the four subjects never touch or cross. Top left: two bok choy and a couple of shiitake mushrooms to represent vegetables. Top right: one salmon fillet and two raw prawns on a small white ceramic plate to represent meat and seafood. Bottom left: three brown eggs next to a neatly cut block of firm tofu to represent eggs and soy. Bottom right: a low white ceramic scoop of short-grain brown rice and a tidy small bundle of dry noodles to represent grains. Refined photo-real grocery catalogue images with restrained soft natural shadows, straight clean backgrounds, no hands, no packaging, no cut-off subjects, no text, no labels, no frame, no watermark. The four quadrants must share precisely the same overall dimensions and balanced margins.
+
+</details>

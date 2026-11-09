@@ -91,11 +91,12 @@ function Layout() {
   })
   const household = me.data?.current_household
   const current = [...NAV, { to: '/households' }].find((n) => pathname.startsWith(n.to))?.to ?? false
+  const isMarket = current === '/sim-market'
   return (
-    <Box sx={{ minHeight: '100vh', pb: { xs: household ? 9 : 0, md: 0 } }}>
+    <Box sx={{ minHeight: '100vh', pb: { xs: household ? 9 : 0, md: 0 }, bgcolor: isMarket ? '#fff' : undefined }}>
       <Box component="header" sx={{
-        position: 'sticky', top: 0, zIndex: 10, bgcolor: alpha(tokens.washi, 0.92), backdropFilter: 'blur(8px)',
-        borderBottom: `1px solid ${tokens.line}`,
+        position: 'sticky', top: 0, zIndex: 10, bgcolor: isMarket ? '#fff' : alpha(tokens.washi, 0.92), backdropFilter: 'blur(8px)',
+        borderBottom: `1px solid ${isMarket ? '#E6E3DF' : tokens.line}`,
       }}>
         <Container maxWidth="lg" sx={{ display: 'flex', alignItems: 'center', gap: 3, height: 64 }}>
           <Box component={Link} to={household ? '/plan' : '/households'}
@@ -137,7 +138,8 @@ function Layout() {
           )}
         </Container>
       </Box>
-      <Container maxWidth="md" component="main" sx={{ py: { xs: 3, sm: 5 } }}>
+      <Container maxWidth={isMarket ? 'xl' : 'md'} component="main" disableGutters={isMarket}
+        sx={{ py: isMarket ? 0 : { xs: 3, sm: 5 } }}>
         <Suspense fallback={<FullPageSpinner />}>
           <Outlet />
         </Suspense>
@@ -145,9 +147,9 @@ function Layout() {
       {household && (
         <Paper square sx={{
           display: { md: 'none' }, position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 10,
-          borderTop: `1px solid ${tokens.line}`, pb: 'env(safe-area-inset-bottom)',
+          borderTop: `1px solid ${isMarket ? '#E6E3DF' : tokens.line}`, pb: 'env(safe-area-inset-bottom)',
         }}>
-          <BottomNavigation showLabels value={current} sx={{ bgcolor: tokens.paper,
+          <BottomNavigation showLabels value={current} sx={{ bgcolor: isMarket ? '#fff' : tokens.paper,
             '& .MuiBottomNavigationAction-root': { color: tokens.inkMuted, minWidth: 0 },
             '& .Mui-selected': { color: tokens.ink },
             '& .MuiBottomNavigationAction-label': { letterSpacing: '0.1em', fontSize: '0.72rem !important', mt: 0.25 } }}>
