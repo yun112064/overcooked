@@ -1,4 +1,4 @@
-"""團隊電腦服務狀態（pre-review #5）：YOLO 辨識與知識 RAG 是否在線，供畫面提示與 QA。
+"""團隊電腦服務狀態（pre-review #5）：YOLO 辨識、知識 RAG 與飲食小幫手（R14）是否在線，供畫面提示與 QA。
 
 以 GET {url}/v1/health（Access 服務權杖＋Bearer）探測，逾時 3 秒；結果在程序內快取 30 秒，
 避免每次開頁都打到團隊電腦。只回傳 online／offline／not_configured 與原因代碼，不回傳網址或憑證。
@@ -37,6 +37,9 @@ def team_status(*, now: Callable[[], float] = time.monotonic, get: Callable = ht
     services = {
         "recognition": (settings.recognition_service_url, settings.recognition_service_token),
         "knowledge": (settings.knowledge_service_url, settings.knowledge_service_token),
+        "assistant": (settings.assistant_service_url, settings.assistant_service_token),
+        # OpenAI 版小幫手（未設定時為 not_configured，前端不顯示模型切換）
+        "assistant_openai": (settings.assistant_openai_service_url, settings.assistant_service_token),
     }
     out = {}
     for name, (url, token) in services.items():
