@@ -23,11 +23,11 @@ import MembersPage from './pages/MembersPage'
 import { Suspense, lazy } from 'react'
 
 // 圖表（Recharts）與問卷編輯較大，用到才載入，首頁更快
+const ManagementPage = lazy(() => import('./pages/ManagementPage'))
 const MealHistoryPage = lazy(() => import('./pages/MealHistoryPage'))
 const GenerationHistoryPage = lazy(() => import('./pages/GenerationHistoryPage'))
 const MealRequestEditor = lazy(() => import('./pages/MealRequestEditor'))
 const RecipePickerPage = lazy(() => import('./pages/RecipePickerPage'))
-const ManagementPage = lazy(() => import('./pages/ManagementPage'))
 import { BrandMark } from './components/ui'
 import { theme, tokens } from './theme'
 
