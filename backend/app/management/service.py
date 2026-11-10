@@ -17,6 +17,8 @@ from sqlalchemy.exc import IntegrityError
 from app.api.errors import ApiError
 from app.core.config import settings
 from app.db.models import User
+from app.services.recipe_step_style import check_recipe_steps
+from app.services.recipe_volume import VOLUME_UNITS, volume_in_ml
 from .active_price_policy import PRICE_CHANNEL, active_recipe_release, price_readiness, published_entries
 from .contracts import POLICY, VERSION, canonical, digest, rules_pin, validate
 from .models import tables as T
@@ -29,6 +31,22 @@ def ident(): return uuid.uuid4().hex
 def utc(value): return value.replace(tzinfo=timezone.utc) if value.tzinfo is None else value.astimezone(timezone.utc)
 def stamp(value): return utc(value).isoformat().replace('+00:00','Z')
 def fail(code, message='管理操作無法完成。', status=409): raise ApiError(status,code,message)
+
+
+def recipe_step_review_issues(steps):
+    issues = []
+    for index, step in enumerate(steps):
+        number = step['step_no']
+        checks = check_recipe_steps([(number, step['instruction'])])
+        for finding in checks['findings']:
+            if finding['status'] == 'needs_review':
+                issues.append(dict(
+                    code='RECIPE_STEP_STYLE_REVIEW_REQUIRED', severity='blocking',
+                    json_pointer=f'/steps/{index}/instruction',
+                    message=f"第 {number} 步需確認。{''.join(finding['reasons'])}",
+                ))
+    return issues
+
 
 class Management:
     def __init__(self, session, actor_id):
@@ -285,6 +303,12 @@ class Management:
             if any(not x['weight_g']['evidence_ids'] or not set(x['weight_g']['evidence_ids'])<=source_ids for x in lines):codes.append('SOURCE_WEIGHT_EVIDENCE_REQUIRED')
             for line in lines:
                 if not self.food_matches(line,r['dependency_pins']):codes.append('FOOD_IDENTITY_UNVERIFIED')
+                if str(line['unit']).strip().casefold() in VOLUME_UNITS:
+                    amount = line['amount']
+                    if amount['status'] != 'declared' or volume_in_ml(amount['value'], line['unit']) is None:
+                        codes.append('SOURCE_VOLUME_REQUIRED')
+                    if not amount['evidence_ids'] or not set(amount['evidence_ids']) <= source_ids:
+                        codes.append('SOURCE_VOLUME_EVIDENCE_REQUIRED')
         if p['domain']=='ingredient' and content['food_id'].startswith('MF4_'):codes.append('NEW_FOOD_ID_NOT_ENABLED')
         if p['domain']=='price':
             codes.extend(price_issues(self.db,content,r['dependency_pins'],now()))
@@ -292,7 +316,10 @@ class Management:
                 codes.append('PRICE_REPLACEMENT_TARGET_INVALID')
         targets={'pxmart':'pxmart-fixture','uniprosperity':'uniprosperity-fixture','supplied_document':'manual-fixture','ai_fixture':'ai-fixture'}
         if p['domain']=='source_policy' and content['registered_endpoint_key']!=targets.get(content['provider']):codes.append('TARGET_NOT_REGISTERED')
-        return [dict(code=c,severity='blocking',json_pointer='',message=c) for c in sorted(set(codes))]
+        issues = [dict(code=c,severity='blocking',json_pointer='',message=c) for c in sorted(set(codes))]
+        if p['domain'] == 'recipe':
+            issues.extend(recipe_step_review_issues(content['steps']))
+        return issues
 
     def food_matches(self,line,pins):
         if not line['food_id']:return False
@@ -353,6 +380,10 @@ class Management:
         def action(cid):
             p=self.proposal(pid,True);r=self.expected(p,body)
             if p['state'] not in ('draft','changes_requested'):fail('INVALID_STATE')
+            if domain == 'recipe':
+                issues = recipe_step_review_issues(r['content']['steps'])
+                if issues:
+                    raise ApiError(409, 'VALIDATION_REQUIRED', '請先處理需要人工確認的食譜步驟。', {'issues': issues})
             self.validation(p,r)
             self.db.execute(T['proposals'].update().where(T['proposals'].c.id==pid).values(state='submitted',updated_at=now()))
             return dict(command_id=cid,status='completed',resource_id=pid,task_id=None),pid,r['content_hash'],r['content_hash']

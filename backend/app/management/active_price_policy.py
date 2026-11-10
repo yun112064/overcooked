@@ -104,7 +104,7 @@ def published_entries(db, publication, food_ids=None):
     return entries
 
 
-def active_overrides(db, food_ids, fallback, *, as_of, recipe_release_id=None):
+def active_overrides(db, food_ids, fallback, *, as_of, recipe_release_id=None, allow_volume=False):
     """Return decisions only for managed foods, unless the active scope is invalid."""
     if not food_ids:
         return {}
@@ -129,13 +129,15 @@ def active_overrides(db, food_ids, fallback, *, as_of, recipe_release_id=None):
     observations = defaultdict(list)
     if keys:
         for row in db.execute(LOCKED_QUOTES, {'keys': keys, 'as_of': as_of}).mappings():
-            observations[row['food_id']].append((row['provider'], materialize_quote(row)))
+            scoped_row = {**row, 'net_mass_g': None} if allow_volume else row
+            observations[row['food_id']].append((row['provider'], materialize_quote(scoped_row)))
     selected = {}
     for food, versions in entries.items():
         decision = preview_price(
             versions, observations[food], fallback.get(food), food_id=food, release_id=release_id,
             dictionary_id=pins['ingredient_publication_id'],
             ingredient_version_id=versions[0].content['ingredient_version_id'], as_of=as_of,
+            allow_volume=allow_volume,
         )
         if decision.quote is not None:
             decision = PricePreview(decision.quote.model_copy(update={'price_policy_publication_id': publication['id']}), None)

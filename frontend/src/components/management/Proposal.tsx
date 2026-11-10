@@ -37,7 +37,9 @@ export function ContentPreview({ content }: { content: Content }) {
       <Typography>{content.correction_kind === 'quote_correction' ? '人工價格修訂' : '人工商品對應'} · {content.provider}</Typography>
       <Typography>Food ID {content.food_id} · 商品 {content.product_id} · 原始觀察編號 {content.snapshot_id ?? '未知'}</Typography>
       {content.replaces_version_id && <Typography sx={{ overflowWrap: 'anywhere' }}>替換的發布成員 {content.replaces_version_id}</Typography>}
-      <Typography>人工價 {content.price_twd === null ? '未知' : `NT$ ${content.price_twd}`} · 單包重量 {content.package_mass_g === null ? '未知' : `${content.package_mass_g} g`}</Typography>
+      <Typography>人工價 {content.price_twd === null ? '未知' : `NT$ ${content.price_twd}`} · 單包規格 {
+        content.package_volume_ml != null ? `${content.package_volume_ml} mL` :
+          content.package_mass_g === null ? '未知' : `${content.package_mass_g} g`}</Typography>
       <Typography>觀察時間 {time(content.observed_at)} · 有效起迄 {time(content.valid_from)} 至 {time(content.valid_until)}</Typography>
       <Typography>地區 {content.region_condition ?? '未知'} · 店別 {content.store_condition ?? '未知'} · 促銷 {content.promotion_condition ?? '未知'}</Typography>
     </>}

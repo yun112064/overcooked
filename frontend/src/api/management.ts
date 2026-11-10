@@ -61,6 +61,7 @@ export type Price = {
   snapshot_id: number | null
   price_twd: string | null
   package_mass_g: string | null
+  package_volume_ml?: string | null
   observed_at: string | null
   valid_from: string | null
   valid_until: string | null

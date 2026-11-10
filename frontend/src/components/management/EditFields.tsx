@@ -4,6 +4,8 @@ import { managementError, originNames } from '../../api/management'
 import type { Content, EditableDomain, Ingredient, Line, Measurement, Price, Recipe, Source } from '../../api/management'
 import { useManagementCommand } from './hooks'
 import { newLine, unknownMeasurement } from './content'
+import { canonicalPackageSize, displayPackageSize, packageDimension } from './packageSize'
+import type { PackageUnit } from './packageSize'
 
 type Update<T> = (value: T) => void
 const nullable = (value: string) => value.trim() || null
@@ -146,12 +148,16 @@ function RecipeFields({ recipe, update }: { recipe: Recipe; update: Update<Recip
         <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1}>
           <Field label="Food ID" value={line.food_id} update={(value) => editLine(index, { food_id: nullable(value), ingredient_version_id: null })} />
           <Field label="食材版本識別碼" value={line.ingredient_version_id} update={(value) => editLine(index, { ingredient_version_id: nullable(value) })} />
-          <Field label="來源單位" value={line.unit} update={(value) => editLine(index, { unit: nullable(value) })} />
+          <Field label="來源單位" value={line.unit} hint="依來源填寫，例如 g、kg、mL 或 L。"
+            update={(value) => editLine(index, { unit: nullable(value), amount: { ...line.amount, evidence_ids: [] } })} />
         </Stack>
         <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 1.5 }}>
           <MeasurementInput label="來源用量" data={line.amount} sources={recipe.sources} update={(amount) => editLine(index, { amount })} />
           <MeasurementInput label="整份食譜烹調前重量（g）" data={line.weight_g} sources={recipe.sources} update={(weight_g) => editLine(index, { weight_g })} />
         </Box>
+        {/^(ml|l|毫升|公升)$/i.test(line.unit ?? '') && <Alert severity="info">
+          請核對容量的來源用量與證據。容量可供價格計算，營養計算仍需有依據的克重，缺少時請保留重量未知。
+        </Alert>}
         <Button onClick={() => update({ ...recipe, ingredients: recipe.ingredients.filter((_, item) => index !== item) })}>移除此食材</Button>
       </Stack>
     </Paper>)}
@@ -179,6 +185,33 @@ function utcFromTaipei(value: string) {
   return Number.isNaN(epoch) ? null : new Date(epoch).toISOString().replace('.000Z', 'Z')
 }
 
+function PackageSizeFields({ price, update }: { price: Price; update: Update<Price> }) {
+  const [unit, setUnit] = useState<PackageUnit>(price.package_volume_ml != null ? 'mL' : 'g')
+  const [input, setInput] = useState(price.package_volume_ml ?? price.package_mass_g ?? '')
+  const size = canonicalPackageSize(input, unit)
+  function change(value: string, nextUnit: PackageUnit) {
+    setInput(value)
+    setUnit(nextUnit)
+    const quantity = canonicalPackageSize(value, nextUnit)
+    update({ ...price,
+      package_mass_g: packageDimension(nextUnit) === 'mass' ? quantity : null,
+      package_volume_ml: packageDimension(nextUnit) === 'volume' ? quantity : null,
+    })
+  }
+  return <>
+    <Select label="包裝規格單位" value={unit} choices={{ g: 'g（公克）', kg: 'kg（公斤）', mL: 'mL（毫升）', L: 'L（公升）' }}
+      update={(nextUnit) => change(packageDimension(unit) === packageDimension(nextUnit)
+        ? displayPackageSize(size, nextUnit) : '', nextUnit)} />
+    <TextField fullWidth size="small" label={`單包${packageDimension(unit) === 'volume' ? '容量' : '重量'}（${unit}）`}
+      required value={input} error={input !== '' && size === null} onChange={(event) => change(event.target.value, unit)}
+      inputRef={(element: HTMLInputElement | null) => element?.setCustomValidity(
+        input !== '' && size === null ? '請填寫可精確換算的正數包裝規格。' : '')}
+      helperText={input && !size ? '請填正數，換算後最多 16 位整數與 6 位小數。' :
+        size ? `核對規格 ${size} ${packageDimension(unit) === 'volume' ? 'mL' : 'g'}／包` : '依商品標示填寫單包規格。'}
+      slotProps={{ htmlInput: { inputMode: 'decimal', pattern: '[0-9]{1,19}(\\.[0-9]{0,9})?' } }} />
+  </>
+}
+
 function PriceFields({ price, update }: { price: Price; update: Update<Price> }) {
   const correction = price.correction_kind === 'quote_correction'
   const replacing = Boolean(price.replaces_version_id)
@@ -188,7 +221,7 @@ function PriceFields({ price, update }: { price: Price; update: Update<Price> })
     {replacing && <Alert severity="info">此草稿會替換指定發布成員，原發布與審核紀錄保留。</Alert>}
     <Select label="修訂類別" value={price.correction_kind} disabled={replacing} choices={{ product_binding: '商品對應', quote_correction: '人工價格修訂' }}
       update={(correction_kind) => update(correction_kind === 'product_binding' ? { ...price, correction_kind, price_twd: null, package_mass_g: null,
-        observed_at: null, availability: 'unknown' } : { ...price, correction_kind, availability: 'in_stock' })} />
+        package_volume_ml: null, observed_at: null, availability: 'unknown' } : { ...price, correction_kind, availability: 'in_stock' })} />
     <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 1.5 }}>
       <Field label="Food ID" value={price.food_id} readOnly={replacing} required update={(food_id) => update({ ...price, food_id })} />
       <Field label="食材版本識別碼" value={price.ingredient_version_id} readOnly={replacing} required update={(ingredient_version_id) => update({ ...price, ingredient_version_id })} />
@@ -202,8 +235,7 @@ function PriceFields({ price, update }: { price: Price; update: Update<Price> })
       {correction && <>
         <Field label="人工核對的價格（NT$）" type="decimal" value={price.price_twd} required
           update={(value) => update({ ...price, price_twd: nullable(value) })} />
-        <Field label="單包重量（g）" type="decimal" value={price.package_mass_g} required
-          update={(value) => update({ ...price, package_mass_g: nullable(value) })} />
+        <PackageSizeFields price={price} update={update} />
         <Field label="實際觀察時間（台北）" type="datetime-local" value={taipeiInput(price.observed_at)} required
           update={(value) => update({ ...price, observed_at: utcFromTaipei(value) })} />
       </>}
@@ -215,7 +247,7 @@ function PriceFields({ price, update }: { price: Price; update: Update<Price> })
       <Field label="適用店別" value={price.store_condition} readOnly={replacing} update={updateCondition('store_condition')} />
       <Field label="促銷條件" value={price.promotion_condition} readOnly={replacing} update={updateCondition('promotion_condition')} />
     </Box>
-    {correction && <Alert severity="info">價格修訂代表有證據支持的有貨觀察。請先核對售價、單包公克數與效期。</Alert>}
+    {correction && <Alert severity="info">價格修訂代表有證據支持的有貨觀察。請先核對售價、單包重量或容量與效期。重量與容量之間的換算須另有證據。</Alert>}
   </Stack>
 }
 

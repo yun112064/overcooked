@@ -66,6 +66,7 @@ class IngredientQuery(BaseModel):
     canonical_name: str
     food_ids: list[str] = Field(default_factory=list)
     aliases: list[str] = Field(default_factory=list)
+    preferred_search_terms: list[str] = Field(default_factory=list)
     mapping_missing_reason: str | None = None
 
     @field_validator("canonical_name")
@@ -187,12 +188,13 @@ class PriceQuote(BaseModel):
         if self.selection_tier is SelectionTier.MANUAL_APPROVED:
             if (self.status is not QuoteStatus.SUCCESS or not self.manual_revision_id or not self.review_decision_id
                     or not self.product_id or not self.recipe_release_id or len(self.food_ids) != 1
-                    or self.package_unit != "g" or self.package_quantity is None or self.package_quantity <= 0
+                    or self.package_unit not in {"g", "ml"} or self.package_quantity is None
+                    or not self.package_quantity.is_finite() or self.package_quantity <= 0
                     or self.currency != "TWD" or self.valid_from is None or self.valid_until is None
                     or not self.queried_at <= self.valid_from < self.valid_until
                     or self.usage_status == "historical_requires_refresh"
                     or self.region_condition or self.store_condition or self.promotion_description):
-                raise ValueError("manual approval requires a scoped, valid TWD observation with reviewed mass and provenance")
+                raise ValueError("manual approval requires a scoped, valid TWD observation with reviewed quantity and provenance")
         elif self.manual_revision_id is not None or self.review_decision_id is not None:
             raise ValueError("manual provenance is reserved for manual approvals")
         if self.status is QuoteStatus.SUCCESS:
