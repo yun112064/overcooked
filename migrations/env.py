@@ -20,12 +20,14 @@ import app.models  # noqa: F401,E402  T01
 # T02 以 SQL 直接存取、沒有 ORM 模型；這些表只由遷移管理，比對模型時略過
 MIGRATION_ONLY_TABLES = {"price_collection_runs", "price_quote_snapshots", "retailer_product_mappings",
                          "price_data_releases", "price_snapshot_foods", "price_package_mass_evidence"}
+# An older Admin deployment may own these. Autogenerate must not propose dropping its history.
+LEGACY_ADMIN_TABLES = {"admin_recipe_proposals", "admin_review_events", "admin_schedule_runs", "admin_scheduler_heartbeat"}
 
 
 def include_object(obj, name, type_, reflected, compare_to):
     table = obj if type_ == "table" else getattr(obj, "table", None)
     table_name = name if type_ == "table" else getattr(table, "name", None)
-    return table_name not in MIGRATION_ONLY_TABLES
+    return table_name not in MIGRATION_ONLY_TABLES | LEGACY_ADMIN_TABLES
 
 
 
@@ -91,6 +93,12 @@ def run_migrations_online() -> None:
     and associate a connection with the context.
 
     """
+    supplied = config.attributes.get('connection')
+    if supplied is not None:
+        context.configure(connection=supplied, target_metadata=target_metadata, include_object=include_object)
+        with context.begin_transaction():
+            context.run_migrations()
+        return
     connectable = engine_from_config(
         config.get_section(config.config_ini_section, {}),
         prefix="sqlalchemy.",
