@@ -229,6 +229,23 @@ def staple_issue(text: str | None) -> dict | None:
     return _issue("staple", "STAPLE_NOT_SUPPORTED", message)
 
 
+def household_excluded_food_ids(members) -> set[str]:
+    """不分本餐：全家所有成員過敏與禁吃的食材，含同義食材與過敏原群組（與 restrictions 相同的展開）。
+
+    飲食小幫手推薦食譜用；過敏原群組設定讀不到時丟出 AllergenGroupsInvalid，呼叫端應不推薦。
+    """
+    excluded = {i for m in members for i in (*m.allergen_ingredient_ids, *m.avoided_ingredient_ids)}
+    allergy_ids = [i for m in members for i in m.allergen_ingredient_ids]
+    expansions = synonyms.restriction_expansion(list(excluded))
+    group_path = allergen_groups.default_path()
+    if allergy_ids and group_path.is_file():
+        for base_id, extras in allergen_groups.expansion(allergy_ids, group_path).items():
+            expansions.setdefault(base_id, []).extend(extras)
+    for extras in expansions.values():
+        excluded.update(extra["food_id"] for extra in extras)
+    return excluded
+
+
 def restrictions(db: Session, draft: MealRequestDraft, members: dict) -> dict:
     """必要限制取本次用餐與便當成員的聯集，並標出來自哪些成員。"""
     involved = [i for m in members.values() for i in (*m.allergen_ingredient_ids, *m.avoided_ingredient_ids)]

@@ -55,6 +55,6 @@ def database_health_check():
 
 @router.get("/health/team")
 def team_health(_auth=Depends(current_auth)):
-    """團隊電腦服務（YOLO 辨識、知識 RAG）是否在線；需登入，結果快取 30 秒（pre-review #5）。"""
+    """團隊電腦服務（YOLO 辨識、知識 RAG、飲食小幫手）是否在線；需登入，結果快取 30 秒（pre-review #5）。"""
     from app.services.team_status import team_status
     return team_status()

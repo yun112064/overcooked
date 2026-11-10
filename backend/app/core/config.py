@@ -68,6 +68,13 @@ class Settings(BaseSettings):
     knowledge_service_token: str | None = None
     knowledge_internal_token: str | None = None
     knowledge_timeout_seconds: float = 10.0
+    # R14 飲食小幫手（團隊電腦 assistant_rag 服務）；未設定代表小幫手不可用
+    assistant_service_url: str | None = None
+    assistant_service_token: str | None = None
+    # OpenAI 版小幫手（同一台團隊電腦的第二個服務，RAG_LLM_PROVIDER=openai）；未設定時前端不顯示切換
+    assistant_openai_service_url: str | None = None
+    assistant_timeout_seconds: float = 120.0
+    assistant_rate_per_minute: int = 10
     knowledge_limit_per_ingredient: int = 3
     openai_base_url: str = "https://api.openai.com/v1"
     openai_timeout_seconds: float = 30.0
@@ -85,6 +92,9 @@ class Settings(BaseSettings):
     team_access_client_secret: str | None = None
 
     knowledge_explain_model: str = "gpt-5.4-mini-2026-03-17"
+    # R14 飲食小幫手 OpenAI 版：團隊電腦經內部 API 請雲端代為生成（T10 額度）；模型須列在 model_pricing.json
+    assistant_openai_model: str = "gpt-5.4-mini-2026-03-17"
+    assistant_openai_max_output_tokens: int = 2000
 
     model_config = SettingsConfigDict(
         env_file=".env",

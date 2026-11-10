@@ -6,6 +6,7 @@ from contextlib import asynccontextmanager, suppress
 
 from fastapi import FastAPI
 
+from app.api.assistant import router as assistant_router
 from app.api.auth import router as auth_router
 from app.api.errors import register_error_handlers
 from app.api.health import router as health_router
@@ -16,6 +17,7 @@ from app.api.meal_requests import router as meal_request_router
 from app.api.t04_data import router as t04_data_router
 from app.api.meal_results import router as meal_result_router
 from app.api.meal_plans import router as meal_plan_router
+from app.api.internal_assistant import router as internal_assistant_router
 from app.api.internal_knowledge import router as internal_knowledge_router
 from app.api.members import router as member_router
 from app.api.recognitions import router as recognition_router
@@ -89,3 +91,5 @@ app.include_router(recipe_cover_router)
 app.include_router(meal_result_router)
 app.include_router(meal_plan_router)
 app.include_router(internal_knowledge_router)
+app.include_router(internal_assistant_router)
+app.include_router(assistant_router)
