@@ -8,7 +8,7 @@ from app.api.deps import verify_origin
 from app.api.management import service
 from app.management.price_policy import list_observations
 from app.management.service import fail
-from app.management.contracts import PRICE_EXTENSION, SCHEMAS, VERSION
+from app.management.contracts import PRICE_EXTENSION, VOLUME_EXTENSION, SCHEMAS, VERSION
 
 router = APIRouter(prefix="/admin/v1", tags=["management"], dependencies=[Depends(verify_origin)])
 ScopeID = Annotated[str, Query(pattern=r"^[A-Za-z0-9][A-Za-z0-9_.:-]{0,99}$")]
@@ -18,7 +18,8 @@ UTCInstant = Annotated[str, Query(pattern=r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}
 @router.get("/contracts/price-v1")
 def price_contract(s=Depends(service)):
     s.require("registry.read")
-    return {"contract_version": VERSION, "extension": PRICE_EXTENSION, "schemas": SCHEMAS}
+    return {"contract_version": VERSION, "extension": PRICE_EXTENSION,
+            "volume_extension": VOLUME_EXTENSION, "schemas": SCHEMAS}
 
 
 @router.get("/price-observations", operation_id="listPriceObservations")

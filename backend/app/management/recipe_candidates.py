@@ -12,6 +12,7 @@ import sqlalchemy as sa
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from app.models.recipe import Recipe
+from app.services.recipe_step_style import check_recipe_steps
 
 from .contracts import validate
 from .models import tables as T
@@ -110,6 +111,13 @@ def _parse_fixture(text):
     except (ValueError, RecursionError):
         fail('INVALID_INPUT', '食譜測試來源不符合 recipe-fixture-v1。', 422)
     return payload, fixture
+
+
+def preview_fixture_steps(body):
+    if set(body) != {"fixture_json"} or not isinstance(body["fixture_json"], str):
+        fail("INVALID_INPUT", "請提供食譜候選 JSON。", 422)
+    _, fixture = _parse_fixture(body["fixture_json"])
+    return {"step_checks": check_recipe_steps(enumerate(fixture.recipe.steps, 1))}
 
 
 def _text(value):

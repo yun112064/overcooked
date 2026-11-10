@@ -98,7 +98,7 @@ def price_issues(db, content, pins, now):
     binding = content["correction_kind"] == "product_binding"
     observed_at = instant(content["observed_at"])
     if binding:
-        if any(content[key] is not None for key in ("price_twd", "package_mass_g", "observed_at")) or content["availability"] != "unknown":
+        if any(content.get(key) is not None for key in ("price_twd", "package_mass_g", "package_volume_ml", "observed_at")) or content["availability"] != "unknown":
             issues.append("PRICE_BINDING_HAS_QUOTE")
     elif not any(source["origin_kind"] in {"supplied_document", "workbook", "manual_entry"}
                  for source in content["sources"]):
@@ -174,7 +174,7 @@ def publication_price_issue(db, members, pins):
     return None
 
 
-def observation_reason(quote, as_of, freshness=MAX_AGE):
+def observation_reason(quote, as_of, freshness=MAX_AGE, *, allow_volume=False):
     if quote.usage_status == "historical_requires_refresh":
         return "PRICE_REVALIDATION_REQUIRED"
     if (quote.region_condition not in (None, "Taiwan; no precise delivery region selected")
@@ -185,7 +185,7 @@ def observation_reason(quote, as_of, freshness=MAX_AGE):
         return "PRICE_NOT_YET_VALID"
     if quote.status is QuoteStatus.SUCCESS and as_of >= cutoff(quote.queried_at, quote.valid_until, freshness=freshness):
         return "PRICE_EXPIRED"
-    return quote_unusable_reason(quote, as_of)
+    return quote_unusable_reason(quote, as_of, allow_volume=allow_volume)
 
 
 class ManagedPrice(NamedTuple):
@@ -200,7 +200,8 @@ class PricePreview(NamedTuple):
     reason: str | None
 
 
-def preview_price(entries, observations, fallback, *, food_id, release_id, dictionary_id, ingredient_version_id, as_of):
+def preview_price(entries, observations, fallback, *, food_id, release_id, dictionary_id, ingredient_version_id, as_of,
+                  allow_volume=False):
     """Resolve one explicitly scoped price policy at the requested time."""
     active = []
     expired = []
@@ -224,12 +225,16 @@ def preview_price(entries, observations, fallback, *, food_id, release_id, dicti
     if corrections:
         entry, end = corrections[0]
         content = entry.content
+        volume = content.get("package_volume_ml")
+        if volume is not None and not allow_volume:
+            return PricePreview(None, "UNIT_MISMATCH")
         return PricePreview(PriceQuote(
             canonical_name=food_id, food_ids=[food_id], retailer=content["provider"], source="Reviewed manual evidence",
             source_url="", queried_at=instant(content["observed_at"]), valid_from=instant(content["valid_from"]),
             valid_until=end, status="success", selection_tier="manual_approved",
             product_id=content["product_id"], product_name=content["product_name"], price=Decimal(content["price_twd"]),
-            currency="TWD", package_quantity=Decimal(content["package_mass_g"]), package_unit="g",
+            currency="TWD", package_quantity=Decimal(volume if volume is not None else content["package_mass_g"]),
+            package_unit="ml" if volume is not None else "g",
             weight_basis="reviewed_manual_evidence", weight_reliability=WeightReliability.EXACT,
             availability="in_stock", recipe_release_id=release_id, snapshot_id=content["snapshot_id"],
             manual_revision_id=entry.version_id, review_decision_id=entry.review_decision_id,
@@ -251,14 +256,14 @@ def preview_price(entries, observations, fallback, *, food_id, release_id, dicti
             return PricePreview(None, "PRICE_LOCKED_SKU_UNAVAILABLE")
         quote = candidates[0]
         freshness = bindings[0].freshness
-        reason = observation_reason(quote, as_of, freshness)
+        reason = observation_reason(quote, as_of, freshness, allow_volume=allow_volume)
         return PricePreview(quote if reason is None else None, reason)
 
     if expired:
         return PricePreview(None, "PRICE_EXPIRED")
     if fallback and (fallback.recipe_release_id != release_id or food_id not in fallback.food_ids):
         return PricePreview(None, "PRICE_SNAPSHOT_SCOPE_MISMATCH")
-    reason = observation_reason(fallback, as_of) if fallback else "NO_PRICE_DATA"
+    reason = observation_reason(fallback, as_of, allow_volume=allow_volume) if fallback else "NO_PRICE_DATA"
     return PricePreview(fallback if reason is None else None, reason)
 
 OBSERVATIONS = f"""

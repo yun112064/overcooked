@@ -17,6 +17,7 @@ from app.api.management_price import router, service
 from app.core.config import settings
 from app.db.models import AdoptedMealPlan, Household, User
 from app.meal_calc.types import IngredientRequirement
+from app.management import service as management_service
 from app.management.contracts import rules_pin, validate
 from app.management.active_price_policy import price_readiness
 from app.management.models import tables as T
@@ -32,7 +33,7 @@ from test_management_foundation import ACTORS, Environment
 from test_t02_release import FOOD, NAME, OLD, synthetic_bundle
 
 RELEASE = "legacy-1017"
-AT = datetime.now(timezone.utc)
+AT = datetime(2026, 11, 9, 12, tzinfo=timezone.utc)
 OBSERVED = AT - timedelta(hours=1)
 SKU = "SYNTHETIC"
 SKU_NAME = NAME + " 300g"
@@ -165,6 +166,8 @@ def save_fixture_observation(env, run_key, observation):
 
 @pytest.fixture
 def price_env(monkeypatch):
+    # The expiry cases advance this clock explicitly after publication.
+    monkeypatch.setattr(management_service, "now", lambda: AT)
     monkeypatch.setattr(settings, "generation_recipe_release_id", None)
     url = os.getenv("T02_TEST_DATABASE_URL")
     if not url:
@@ -431,8 +434,6 @@ def test_pg_t13_locked_binding_reads_exact_sku_instead_of_latest_other_sku(price
 
 
 def test_pg_activation_rechecks_price_expiry_after_plan(price_env, monkeypatch):
-    from app.management import service as management_service
-
     env, pins, identity = price_env
     monkeypatch.setattr(settings, "management_price_policy_enabled", True)
     proposal = env.content("price", correction(**identity, valid_until=utc_stamp(AT + timedelta(minutes=1))), pins)
@@ -485,8 +486,6 @@ def test_pg_successor_adds_new_food_and_keeps_inherited_review_receipts(price_en
 
 
 def test_pg_current_future_windows_and_unrelated_expired_food_are_explicit(price_env, monkeypatch):
-    from app.management import service as management_service
-
     env, pins, identity = price_env
     monkeypatch.setattr(settings, "management_price_policy_enabled", True)
     other_version = env.engine.scalar(sa.select(T["publication_members"].c.version_id).where(

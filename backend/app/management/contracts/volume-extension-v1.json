@@ -1,0 +1,68 @@
+{
+  "extension_version": "management-volume-v1",
+  "base_contract_version": "management-v1.0.0-rc1",
+  "schema_properties": {
+    "PriceContent": {
+      "package_volume_ml": {
+        "anyOf": [
+          {
+            "type": "string",
+            "pattern": "^(0|[1-9][0-9]{0,15})(\\.[0-9]{0,5}[1-9])?$",
+            "not": {
+              "const": "0"
+            }
+          },
+          {
+            "type": "null"
+          }
+        ]
+      }
+    }
+  },
+  "price_package_rule": {
+    "if": {
+      "properties": {
+        "correction_kind": {
+          "const": "quote_correction"
+        }
+      }
+    },
+    "then": {
+      "oneOf": [
+        {
+          "properties": {
+            "package_mass_g": {
+              "type": "string"
+            },
+            "package_volume_ml": {
+              "type": "null"
+            }
+          }
+        },
+        {
+          "required": [
+            "package_volume_ml"
+          ],
+          "properties": {
+            "package_mass_g": {
+              "type": "null"
+            },
+            "package_volume_ml": {
+              "type": "string"
+            }
+          }
+        }
+      ]
+    },
+    "else": {
+      "properties": {
+        "package_mass_g": {
+          "type": "null"
+        },
+        "package_volume_ml": {
+          "type": "null"
+        }
+      }
+    }
+  }
+}
