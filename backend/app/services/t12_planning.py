@@ -8,6 +8,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from app.core.config import settings
 from app.services import household, meal_request, per_person_nutrition
 from app.services.legacy_t12_preview import _with_spoons
+from app.services.recipe_volume import attach_preview_volumes
 from app.models import RecipeDataRelease, Recipe, RecipeIngredient, NutritionImport
 from app.models.nutrition import NutritionFoodMapping
 from app.services.nutrition_release import recipe_import_matches
@@ -60,6 +61,7 @@ def preview(db: Session, *, draft: meal_request.MealRequestDraft, members: dict,
     except SQLAlchemyError:
         raise T12PlanningUnavailable('NUTRITION_DATA_UNAVAILABLE', '營養或食譜資料暫時無法讀取，請稍後重試。') from None
     payload = dict(result.to_dict())
+    attach_preview_volumes(db, result, payload)
     if recipe_release_id:
         # Main's unversioned preview policies never approve a V3 mapping.
         approved = set(db.scalars(select(NutritionFoodMapping.food_id).where(

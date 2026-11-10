@@ -13,6 +13,7 @@ import copy
 import uuid
 from datetime import datetime, timezone
 from decimal import Decimal
+from fractions import Fraction
 
 from sqlalchemy import select
 
@@ -124,22 +125,26 @@ def make_price_retry_handler(*, price_lookup=None, now=None):
             raise jobs.JobFailure("PRICE_LOOKUP_FAILED", "缺價食材的定向查價失敗；原結果不變，可稍後再試或接受缺價例外。")
         ctx.stage("calculating")
         draft = meal_request_service.load(ctx.input_payload())
-        requirements = [IngredientRequirement(food_id=r["food_id"], grams=Decimal(r["grams"]))
-                        for r in payload["calculation"]["requirements"]]
+        requirements = [IngredientRequirement(
+            food_id=r["food_id"],
+            grams=Decimal(r["grams"]) if r.get("grams") is not None else None,
+            volume_ml=Fraction(r["volume_ml"]) if r.get("volume_ml") is not None else None,
+        ) for r in payload["calculation"]["requirements"]]
         releases = {dish["recipe_release_id"] for dish in payload.get("dishes", []) if dish.get("recipe_release_id")}
         cost_release = payload.get("cost", {}).get("price_recipe_release_id")
         if cost_release:
             releases.add(cost_release)
         releases.update(line["quote"]["recipe_release_id"] for line in payload.get("cost", {}).get("lines", [])
                         if line.get("quote") and line["quote"].get("recipe_release_id"))
-        # An older result can only use the current managed policy if its known
-        # recipe release agrees. Mixed releases fail closed in the policy reader.
+        # An old result may use the active manual policy only with a confirmed release.
         recipe_release = next(iter(releases)) if len(releases) == 1 else ""
         moment = now or datetime.now(timezone.utc)
         with ctx.factory() as db:
-            fresh = cost_snapshot(meal_cost_from_db(db, requirements, draft.available_ingredient_ids, draft.budget,
-                                                    now=moment, recipe_release_id=recipe_release))
-        fresh["unquantified_food_ids"] = payload.get("cost", {}).get("unquantified_food_ids", [])
+            fresh = cost_snapshot(meal_cost_from_db(
+                db, requirements, draft.available_ingredient_ids, draft.budget, now=moment,
+                unquantified_food_ids=(payload.get("cost") or {}).get("unquantified_food_ids") or [],
+                recipe_release_id=recipe_release,
+            ))
         payload["cost"] = fresh
         payload["validation"] = {**payload.get("validation", {}), "budget_status": fresh["budget_status"]}
         payload["price_retry"] = {"from_result_version": ctx.job.params["source_result_version"],

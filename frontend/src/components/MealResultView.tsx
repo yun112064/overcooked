@@ -7,7 +7,7 @@ import PersonNutrition, { MacroBar } from './ResultPersonNutrition'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useEffect, useRef } from 'react'
 import { Link as RouterLink } from 'react-router'
-import { withinTarget } from '../api/nutrition'
+import { toNumber, withinTarget } from '../api/nutrition'
 import { api, errorMessage } from '../api/client'
 import type {
   DecisionKind, MealPlanSummary, MealResult, MealResultSummary, NutritionSuggestion,
@@ -20,7 +20,15 @@ type Props = { requestId: string; mealDate?: string | null; onChanged: () => voi
 
 /** 顯示用取整：金額到 1 元、克到 1 g、營養到 0.1；計算與判定一律由後端以精確值完成。 */
 const money = (v: string | null) => (v === null ? '未知' : `${Math.round(Number(v))} 元`)
-const grams = (v: string | null) => (v === null ? '無法換算' : `${Math.round(Number(v))} g`)
+const grams = (v: string | null) => {
+  const value = toNumber(v)
+  return value === null ? '無法換算' : `${Math.round(value)} g`
+}
+const milliliters = new Intl.NumberFormat('zh-TW', { maximumSignificantDigits: 6 })
+const volume = (value: string) => {
+  const ml = toNumber(value)
+  return ml === null ? '無法換算' : `${milliliters.format(ml)} mL`
+}
 const NUTRIENT_LABELS: Record<string, string> = { energy_kcal: '熱量', protein_g: '蛋白質' }
 const NUTRIENT_UNITS: Record<string, string> = { energy_kcal: 'kcal', protein_g: 'g' }
 /** 調整建議的差額與可調範圍由後端以每 1 份（1n）基準計算；乘上份數 N 換成整餐值，與整餐營養表一致（決策 #53）。 */
@@ -36,7 +44,10 @@ function stapleProblem(label: string, reason: string | null | undefined): string
 }
 /** 查價失敗原因 → 使用者看得懂的說明；原始原因放在滑鼠提示，方便追查。 */
 const MISSING_PRICE_REASONS: Record<string, string> = {
-  NO_PRICE_DATA: '尚無價格資料', UNIT_MISMATCH: '包裝單位無法換算成克', PRICE_EXPIRED: '價格已過期',
+  NO_PRICE_DATA: '尚無價格資料', UNIT_MISMATCH: '用量與包裝單位不相符', PRICE_EXPIRED: '價格已過期',
+  PACKAGE_DEMAND_UNITS_REQUIRE_RECONCILIATION: '同商品含重量與容量需求，整包採購量待確認',
+  CURRENCY_MISMATCH: '報價幣別不適用',
+  PRICE_NOT_YET_VALID: '報價尚未生效',
   PRICE_REVALIDATION_REQUIRED: '僅有歷史價格，需重新查價',
   INVALID_PACKAGE: '包裝資訊不完整',
 }
@@ -272,7 +283,7 @@ export default function MealResultView({ requestId, mealDate, onChanged }: Props
           </Stack>
         </Alert>
       )}
-      {pricePending && !confirmed && !priceRetrying && (
+      {pricePending && missingPriceNames.length > 0 && !confirmed && !priceRetrying && (
         <Alert severity="info" action={
           <Button size="small" color="inherit" disabled={retry.isPending} onClick={() => retry.mutate(r)}>重新查價</Button>
         }>
@@ -381,7 +392,7 @@ export default function MealResultView({ requestId, mealDate, onChanged }: Props
           </Alert>
         )}
         {!computed ? (
-          <Typography variant="body2" color="text.secondary">營養計算未完成，無法計算缺料價格。</Typography>
+          <Typography variant="body2" color="text.secondary">目前缺少可用的食材用量，無法計算缺料價格。</Typography>
         ) : r.prices.items.length === 0 ? (
           missingQuantityNames.length === 0 && (
             <Typography variant="body2" color="text.secondary">已知用量的食材無需補買（成本 0 元）。</Typography>
@@ -392,15 +403,17 @@ export default function MealResultView({ requestId, mealDate, onChanged }: Props
               <TableHead>
                 <TableRow>
                   <TableCell>食材</TableCell><TableCell align="right">缺量</TableCell><TableCell>包裝</TableCell>
-                  <TableCell align="right">採購價</TableCell><TableCell align="right">成本價</TableCell><TableCell>來源</TableCell>
+                  <TableCell align="right">整包採購價</TableCell><TableCell align="right">用量成本</TableCell><TableCell>來源</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
-                {r.prices.items.map((i) => (
-                  <TableRow key={i.food_id}>
+                {r.prices.items.map((i, index) => (
+                  <TableRow key={`${i.food_id}-${index}`}>
                     <TableCell sx={{ fontWeight: 500, whiteSpace: 'nowrap' }}>{i.name}</TableCell>
-                    <TableCell align="right" sx={{ whiteSpace: 'nowrap' }}>{grams(i.shortage_grams)}</TableCell>
-                    <TableCell sx={{ whiteSpace: 'nowrap' }}>{i.price_status === 'known' ? `${i.package_description ?? ''} × ${i.packs}` : '—'}</TableCell>
+                    <TableCell align="right" sx={{ whiteSpace: 'nowrap' }}>
+                      {i.shortage_ml != null ? volume(i.shortage_ml) : grams(i.shortage_grams)}
+                    </TableCell>
+                    <TableCell sx={{ whiteSpace: 'nowrap' }}>{i.price_status === 'known' && i.packs !== null ? `${i.package_description ?? ''} × ${i.packs}` : '待確認'}</TableCell>
                     <TableCell align="right" sx={{ whiteSpace: 'nowrap' }}>{money(i.purchase_price)}</TableCell>
                     <TableCell align="right" sx={{ whiteSpace: 'nowrap' }}>{money(i.cost)}</TableCell>
                     <TableCell sx={{ minWidth: 140 }}>
@@ -409,6 +422,7 @@ export default function MealResultView({ requestId, mealDate, onChanged }: Props
                         : <>
                             {i.product_url ? <Link href={i.product_url} target="_blank" rel="noreferrer">{i.source_name ?? i.retailer ?? i.source}</Link> : (i.source_name ?? i.retailer ?? i.source)}
                             {i.queried_at && <Typography variant="caption" component="p">{shortTime(i.queried_at)} 查詢</Typography>}
+                            {i.missing_reason && <Typography variant="caption" component="p" color="warning.main">{missingReason(i.missing_reason)}</Typography>}
                           </>}
                     </TableCell>
                   </TableRow>
@@ -420,17 +434,17 @@ export default function MealResultView({ requestId, mealDate, onChanged }: Props
         {computed && (
           <Box sx={{ display: 'flex', gap: 3, flexWrap: 'wrap', justifyContent: 'flex-end', mt: 2 }}>
             <Typography variant="body2">
-              採購價 <b>{r.prices.purchase_total !== null ? money(r.prices.purchase_total) : `未知（已知 ${money(r.prices.known_purchase_total)}）`}</b>
+              整包採購價 <b>{r.prices.purchase_total !== null ? money(r.prices.purchase_total) : `未知（已知 ${money(r.prices.known_purchase_total)}）`}</b>
             </Typography>
             <Typography variant="body2">
-              成本價 <b>{r.prices.cost_total !== null ? money(r.prices.cost_total) : `未知（已知 ${money(r.prices.known_cost_total)}）`}</b>
+              用量成本 <b>{r.prices.cost_total !== null ? money(r.prices.cost_total) : `未知（已知 ${money(r.prices.known_cost_total)}）`}</b>
             </Typography>
             {r.prices.budget !== null && (
               <Typography variant="body2" color="text.secondary">預算 {money(r.prices.budget)}</Typography>
             )}
           </Box>
         )}
-        {computed && pricePending && (
+        {computed && pricePending && missingPriceNames.length > 0 && (
           <Typography variant="caption" component="p" sx={{ textAlign: 'right', mt: 0.5 }}>部分價格未知，成本只計已知部分</Typography>
         )}
       </Section>

@@ -252,7 +252,8 @@ export type ResultDecision = {
 export type PriceItem = {
   food_id: string
   name: string
-  shortage_grams: string
+  shortage_grams: string | null
+  shortage_ml?: string | null
   price_status: 'known' | 'unknown'
   packs: number | null
   purchase_price: string | null
@@ -294,6 +295,7 @@ export type ResultIngredient = {
   name: string
   weight_basis: string | null
   whole_meal_grams: string | null
+  volume_ml?: string | null
   display_grams: string | null
   /** decisions #41：食譜原文的食材分組（如「調味」「醃料」）；沒有分組為 null */
   group?: string | null
@@ -552,6 +554,7 @@ export type RecipeRetrieval = {
 /** 已採用餐食紀錄 */
 export type MealPlanSummary = {
   result_version?: number | null
+  market_shortages_available?: boolean
   id: string
   meal_date: string
   meal_type: MealType
@@ -591,6 +594,7 @@ export type NutritionPreview = {
     /** grams 為整餐克數（精確字串）；調味料另附 display_*（小匙／大匙或「少許」） */
     ingredients: {
       name: string; food_id: string; unit: string | null; grams: string | null
+      line_id?: string; volume_ml?: string | null
       /** 畫面分組：主食材／佐料／調味 */
       group?: '主食材' | '佐料' | '調味'
       display_amount: string | null; display_unit: string | null; display_text: string | null

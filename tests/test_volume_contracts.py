@@ -10,6 +10,7 @@ import pytest
 from app.api.errors import ApiError
 from app.management.contracts import validate
 from app.services.recipe_volume import attach_preview_volumes, source_volume_ml, volume_in_ml
+from app.services.meal_calculation import IngredientLine, _row, pricing_requirements
 from recipe_workbook import build, ingredient, recipe
 from app.services.recipe_import import parse_recipe_workbook
 from test_management_price import correction
@@ -64,6 +65,16 @@ def test_volume_contract_accepts_old_mass_and_new_volume_without_rewriting():
             validate('PriceContent', invalid)
 
 
+def test_partial_unknown_demand_cannot_disappear_behind_known_food():
+    known = IngredientLine('FOOD', '合成液體', None, pricing_volume_ml_per_n=Fraction(100, 3))
+    unknown = IngredientLine('FOOD', '合成液體', None)
+    rows = pricing_requirements([known, unknown], [None, None], Decimal(1))
+    assert len(rows) == 2
+    assert rows[0].volume_ml == Fraction(100, 3)
+    assert rows[1].grams is None and rows[1].volume_ml is None
+    displayed = _row(known, None, None, None, Decimal(1))
+    assert displayed['volume_ml'] == '100/3'
+    assert displayed['whole_meal_grams'] is None and displayed['nutrients'] is None
 
 
 def test_picker_capacity_uses_exact_line_identity_and_actual_scaled_mass():
