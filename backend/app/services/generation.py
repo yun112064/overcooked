@@ -1108,15 +1108,21 @@ def _generate(ctx, *, responder, knowledge_client, embedder, calculator, now) ->
 
 def cost_snapshot(cost) -> dict:
     """T13 MealCost → 結果快照的 cost 區（T14 生成與 T15 缺價重試共用）。"""
-    return {"status": "computed", "budget": cost.budget, "budget_status": cost.budget_status,
+    snapshot = {"status": "computed", "budget": cost.budget, "budget_status": cost.budget_status,
             "price_complete": cost.price_complete, "purchase_total": cost.purchase_total,
             "cost_total": cost.cost_total, "known_purchase_total": cost.known_purchase_total,
             "known_cost_total": cost.known_cost_total, "unquantified_food_ids": cost.unquantified_food_ids,
             "lines": [{"food_id": c.food_id, "required_grams": c.required_grams,
-                       "required_ml": _jsonable(c.required_ml), "shortage_ml": _jsonable(c.shortage_ml),
+                       "required_ml": str(c.required_ml) if c.required_ml is not None else None,
+                       "shortage_ml": str(c.shortage_ml) if c.shortage_ml is not None else None,
                        "shortage_grams": c.shortage_grams, "price_status": c.price_status,
                        "packs": c.packs, "purchase_price": c.purchase_price, "cost": c.cost,
                        "missing_reason": c.missing_reason, "quote": c.quote} for c in cost.lines]}
+    managed_releases = {line.quote.recipe_release_id for line in cost.lines
+                        if line.quote is not None and line.quote.price_policy_publication_id}
+    if len(managed_releases) == 1:
+        snapshot["price_recipe_release_id"] = next(iter(managed_releases))
+    return snapshot
 
 
 def next_result_version(db, meal_request_id) -> int:

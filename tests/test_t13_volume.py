@@ -114,10 +114,14 @@ def test_requirements_merge_same_unit_without_treating_grams_as_volume():
 
     grams_only = meal_calculation.IngredientLine(FOOD, "液體", D(10))
     volume_only = meal_calculation.IngredientLine(FOOD, "液體", None, pricing_volume_ml_per_n=Fraction(100))
-    assert meal_calculation.pricing_requirements([grams_only, volume_only], [D(10), None], D(1)) == []
+    assert meal_calculation.pricing_requirements([grams_only, volume_only], [D(10), None], D(1)) == [
+        IngredientRequirement(FOOD, D(10)), capacity(100),
+    ]
     estimated_volume = meal_calculation.IngredientLine(FOOD, "液體", None, volume_ml_per_n=D(100),
                                                       volume_is_estimated=True)
-    assert meal_calculation.pricing_requirements([estimated_volume], [None], D(1)) == []
+    assert meal_calculation.pricing_requirements([estimated_volume], [None], D(1)) == [
+        IngredientRequirement(FOOD, None),
+    ]
     estimated_weight = meal_calculation.IngredientLine(FOOD, "液體", D(100), pricing_volume_ml_per_n=Fraction(100),
                                                       weight_source="unit_estimate")
     assert meal_calculation.pricing_requirements([estimated_weight], [D(100)], D(1)) == [capacity(100)]
@@ -176,7 +180,7 @@ def test_capacity_only_keeps_nutrition_unknown_and_price_retry_keeps_exact_quant
     assert (projected["budget_status"], projected["cost_total"], projected["purchase_total"]) == ("OK", "10", "150")
     [item] = projected["items"]
     assert item["shortage_grams"] is None
-    assert item["shortage_ml"].startswith("33.333")
+    assert item["shortage_ml"] == "100/3"
     assert fresh["calculation"] == payload["calculation"]
     assert payload["cost"]["budget_status"] == "PRICE_INCOMPLETE"
 

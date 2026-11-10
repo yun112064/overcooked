@@ -75,7 +75,7 @@ def _decimal(value: object) -> Decimal | None:
         parsed = Decimal(text)
     except (InvalidOperation, ValueError):
         return None
-    return parsed if parsed >= 0 else None
+    return parsed if parsed.is_finite() and parsed >= 0 else None
 
 
 def parse_package(text: str) -> tuple[Decimal | None, str | None, str | None]:

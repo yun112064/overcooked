@@ -23,6 +23,7 @@ from typing import Callable, Iterable
 from app.core.config import PROJECT_ROOT
 from app.meal_calc.types import EstimatedFactor, IngredientRequirement
 from app.services.recipe_steps import ingredient_group
+from app.services.recipe_volume import source_volume_ml
 
 REQUIRED_NUTRIENTS = ("energy_kcal", "protein_g")
 LOWER, UPPER = Fraction(9, 10), Fraction(11, 10)
@@ -731,6 +732,8 @@ def _row(ln: IngredientLine, grams, whole, nutrition: IngredientNutrition | None
         "weight_source": ln.weight_source,
         "cooking_method": ln.cooking_method,
         "baseline_grams": grams, "whole_meal_grams": whole,
+        "volume_ml": (str(_pricing_volume(ln, grams, n))
+                      if _pricing_volume(ln, grams, n) is not None else None),
         "display_grams": _display_grams(whole) if whole is not None else None,
         **_display(ln, whole, n),
         "nutrients": nutrition.nutrients if nutrition else None,
@@ -1206,8 +1209,8 @@ def load_recipe_lines(db, recipe_id: str, factors=None) -> list[IngredientLine]:
             unit=row.unit, amount_per_n=per_n(row.amount), raw_text=row.raw_text,
             volume_ml_per_n=per_n(row.volume_ml),
             volume_is_estimated=bool(row.volume_evidence and row.volume_evidence.startswith("estimate:")),
-            pricing_volume_ml_per_n=(Fraction(row.volume_ml) / Fraction(servings)
-                                     if row.volume_ml is not None and row.volume_evidence == "workbook_volume"
+            pricing_volume_ml_per_n=(Fraction(source_volume_ml(row)) / Fraction(servings)
+                                     if source_volume_ml(row) is not None
                                      and servings else None),
             weight_source=None if reason else source, group=ingredient_group(row.raw_text)[0],
             intake_parts=intake_adjustments().get(row.recipe_ingredient_id),
@@ -1594,25 +1597,29 @@ def _fill_blanks(lookup: NutrientFillLookup | None, grams: Decimal, nutrients: d
 tfda_calculator = make_tfda_calculator()
 
 
+def _pricing_volume(line: IngredientLine, aligned: Decimal | None, n: Decimal) -> Fraction | None:
+    amount = line.pricing_volume_ml_per_n
+    if amount is None or amount <= 0 or line.amount_estimated:
+        return None
+    scale = Fraction(aligned) / Fraction(line.grams_per_n) if aligned is not None and line.grams_per_n else 1
+    return amount * scale * Fraction(n)
+
+
 def pricing_requirements(lines: Iterable[IngredientLine], grams_per_n: Iterable[Decimal | None],
                          n: Decimal) -> list[IngredientRequirement]:
-    """只加總同單位的完整 Food_ID 需求；主食與無法量化的食材另由呼叫端處理。"""
-    merged: dict[str, IngredientRequirement] = {}
-    meal_scale = Fraction(n)
+    """Keep each food's compatible dimensions and unknown portions separately."""
+    merged: dict[tuple[str, bool, bool], IngredientRequirement] = {}
     for ln, aligned in zip(lines, grams_per_n):
         if ln.role == "staple":
             continue
         g = aligned * n if aligned is not None else None
-        ml = None
-        per_n = ln.pricing_volume_ml_per_n
-        if per_n is not None and per_n > 0 and not ln.amount_estimated:
-            scale = Fraction(aligned) / Fraction(ln.grams_per_n) if aligned is not None and ln.grams_per_n else 1
-            ml = per_n * scale * meal_scale
-            if ln.weight_source == "unit_estimate":
-                g = None
-        prior = merged.get(ln.food_id)
+        ml = _pricing_volume(ln, aligned, n)
+        if ml is not None and ln.weight_source == "unit_estimate":
+            g = None
+        key = (ln.food_id, g is not None, ml is not None)
+        prior = merged.get(key)
         if prior is not None:
             g = prior.grams + g if prior.grams is not None and g is not None else None
             ml = prior.volume_ml + ml if prior.volume_ml is not None and ml is not None else None
-        merged[ln.food_id] = IngredientRequirement(ln.food_id, g, ml)
-    return [item for item in merged.values() if item.grams is not None or item.volume_ml is not None]
+        merged[key] = IngredientRequirement(ln.food_id, g, ml)
+    return list(merged.values())

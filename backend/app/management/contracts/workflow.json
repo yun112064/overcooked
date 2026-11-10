@@ -1,0 +1,54 @@
+{
+  "contract_version": "management-v1.0.0-rc1",
+  "transitions": {
+    "draft": {
+      "revise": "draft",
+      "validate": "draft",
+      "submit": "submitted",
+      "withdraw": "withdrawn"
+    },
+    "changes_requested": {
+      "revise": "draft",
+      "validate": "changes_requested",
+      "submit": "submitted",
+      "withdraw": "withdrawn"
+    },
+    "submitted": {
+      "review_approve": "submitted",
+      "approvals_complete": "approved",
+      "review_request_changes": "changes_requested",
+      "review_reject": "rejected",
+      "withdraw": "withdrawn"
+    },
+    "approved": {
+      "revise": "draft",
+      "publish": "published",
+      "withdraw": "withdrawn"
+    },
+    "rejected": {
+      "revise": "draft"
+    },
+    "published": {},
+    "withdrawn": {}
+  },
+  "approval_rule": "approved only when both required review scopes have current independent approvals",
+  "internal_events": {
+    "approvals_complete": "requires both scopes; cannot be invoked by a client"
+  },
+  "submitted_is_frozen": true,
+  "published_is_immutable": true,
+  "revision_invalidates": [
+    "validation",
+    "content_approval",
+    "source_rights_approval",
+    "activation_plan"
+  ],
+  "dependency_drift_blocks": [
+    "review",
+    "publish",
+    "activate"
+  ],
+  "revision_change_increments": "proposal optimistic concurrency revision",
+  "no_automatic_reapproval": true,
+  "nutrition_approval_inheritance": false
+}

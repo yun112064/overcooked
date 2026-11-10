@@ -14,7 +14,7 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import datetime
 from decimal import Decimal
 from math import ceil
@@ -24,6 +24,8 @@ from typing import Callable, Iterable
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
+from app.core.config import settings
+from app.management.active_price_policy import active_overrides
 from app.meal_calc.types import IngredientRequirement
 from app.services.seasonings import load_seasonings
 from app.services.synonyms import confirmed_equivalents
@@ -77,7 +79,9 @@ class MealCost:
     @property
     def purchase_total(self) -> Decimal | None:
         """完整採購價總和；有未知價格時為 None（不是 0）。"""
-        return self.known_purchase_total if self.price_complete else None
+        if not self.price_complete or any(line.purchase_price is None for line in self.lines):
+            return None
+        return self.known_purchase_total
 
     @property
     def cost_total(self) -> Decimal | None:
@@ -105,14 +109,14 @@ def compute_meal_cost(
     調味料（決策 #44，config/seasoning_ingredients.json）比照已有種類：足量、缺量 0、不查價、成本 0，
     狀態標為 seasoning（不列入缺料／價格區）；營養仍由呼叫端按配方需求量計算。
     """
-    free = _free_foods(available_food_ids, exempt_food_ids, seasoning_food_ids)
+    free = free_foods(available_food_ids, exempt_food_ids, seasoning_food_ids)
     return _compute_meal_cost(requirements, free, budget, lambda item: quote_for(item.food_id), now)
 
 
-def _free_foods(
+def free_foods(
     available_food_ids: Iterable[str],
-    exempt_food_ids: set[str] | None,
-    seasoning_food_ids: set[str] | None,
+    exempt_food_ids: set[str] | None = None,
+    seasoning_food_ids: set[str] | None = None,
 ) -> dict[str, str]:
     exempt = load_price_exempt() if exempt_food_ids is None else exempt_food_ids
     seasonings = load_seasonings() if seasoning_food_ids is None else seasoning_food_ids
@@ -128,6 +132,7 @@ def _compute_meal_cost(
     quote_for: Callable[[IngredientRequirement], PriceQuote | None],
     now: datetime,
     unquantified_food_ids: Iterable[str] = (),
+    missing_reasons: dict[IngredientRequirement, str] | None = None,
 ) -> MealCost:
     lines = []
     for item in requirements:
@@ -135,7 +140,9 @@ def _compute_meal_cost(
         if status is not None:
             lines.append(_zero_line(item, status))
         else:
-            lines.append(price_requirement(item, quote_for(item), now))
+            lines.append(price_requirement(item, quote_for(item), now, (missing_reasons or {}).get(item)))
+
+    lines = _combine_packages(lines)
 
     unquantified = tuple(sorted(set(unquantified_food_ids) - free.keys()))
     complete = not unquantified and all(line.cost is not None for line in lines)
@@ -148,6 +155,49 @@ def _compute_meal_cost(
     else:
         status = BUDGET_OK
     return MealCost(lines, budget, known_purchase, known_cost, complete, status, unquantified)
+
+
+def _combine_packages(lines: list[IngredientCost]) -> list[IngredientCost]:
+    """Round once for compatible demands using the exact same scoped product."""
+    result: list[IngredientCost] = []
+    groups: dict[tuple, int] = {}
+    for line in lines:
+        if line.price_status != "known":
+            result.append(line)
+            continue
+        key = (line.food_id, line.quote.model_dump_json())
+        if key not in groups:
+            groups[key] = len(result)
+            result.append(line)
+            continue
+        index = groups[key]
+        prior = result[index]
+        amounts = {}
+        for field in ("required_grams", "shortage_grams", "required_ml", "shortage_ml"):
+            left, right = getattr(prior, field), getattr(line, field)
+            amounts[field] = left + right if left is not None and right is not None else None
+        exact_cost = prior.exact_cost + line.exact_cost
+        packs = ceil(exact_cost / Fraction(line.quote.price))
+        result[index] = replace(prior, **amounts, exact_cost=exact_cost, packs=packs,
+                                purchase_price=packs * line.quote.price,
+                                cost=Decimal(exact_cost.numerator) / Decimal(exact_cost.denominator))
+    # A mass projection and its source volume identify the same physical package,
+    # but the source shortages must retain their different units. Until the result
+    # contract supports shared purchase groups, do not charge two rounded packs.
+    package_units: dict[tuple, set[str]] = {}
+    package_keys = []
+    for line in result:
+        quote = line.quote
+        key = None
+        if line.price_status == "known" and quote.snapshot_id is not None:
+            key = (line.food_id, quote.retailer, quote.snapshot_id, quote.product_id,
+                   quote.product_name, quote.price, quote.recipe_release_id, quote.price_data_release_id)
+            package_units.setdefault(key, set()).add(quote.package_unit)
+        package_keys.append(key)
+    return [replace(line, packs=None, purchase_price=None,
+                    missing_reason="PACKAGE_DEMAND_UNITS_REQUIRE_RECONCILIATION")
+            if key is not None and len(package_units[key]) > 1 else line
+            for line, key in zip(result, package_keys)]
 
 
 def _zero_line(item: IngredientRequirement, status: str) -> IngredientCost:
@@ -164,29 +214,20 @@ def _volume_multiplier(quote: PriceQuote | None) -> int | None:
 
 
 def _volume_quote_reason(quote: PriceQuote, now: datetime) -> str | None:
-    if quote.status is not QuoteStatus.SUCCESS or quote.price is None:
-        return quote.missing_reason or "NO_PRICE_DATA"
-    if quote.package_quantity is None or quote.package_quantity <= 0:
-        return "INVALID_PACKAGE"
-    if quote.valid_from is not None and quote.valid_from > now:
-        return "PRICE_NOT_YET_VALID"
-    if quote.valid_until is not None and quote.valid_until < now:
-        return "PRICE_EXPIRED"
-    if quote.currency != "TWD":
-        return "CURRENCY_MISMATCH"
-    return None
+    return quote_unusable_reason(quote, now, allow_volume=True)
 
 
-def price_requirement(item: IngredientRequirement, quote: PriceQuote | None, now: datetime) -> IngredientCost:
+def price_requirement(item: IngredientRequirement, quote: PriceQuote | None, now: datetime,
+                      missing_reason: str | None = None) -> IngredientCost:
     multiplier = _volume_multiplier(quote)
     by_volume = item.volume_ml is not None and multiplier is not None
-    reason = _volume_quote_reason(quote, now) if by_volume else quote_unusable_reason(quote, now)
+    reason = missing_reason or (_volume_quote_reason(quote, now) if by_volume else quote_unusable_reason(quote, now))
     if reason is None and item.volume_ml is not None and quote.valid_from is not None and quote.valid_from > now:
         reason = "PRICE_NOT_YET_VALID"
     if reason is None and not by_volume and item.grams is None:
         reason = "UNIT_MISMATCH"
     if reason is not None:
-        return IngredientCost(item.food_id, item.grams, item.grams if item.volume_ml is None else None,
+        return IngredientCost(item.food_id, item.grams, item.grams,
                               "unknown", quote=quote, missing_reason=reason,
                               required_ml=item.volume_ml, shortage_ml=item.volume_ml)
     quantity = Fraction(item.volume_ml if by_volume else item.grams)
@@ -194,10 +235,10 @@ def price_requirement(item: IngredientRequirement, quote: PriceQuote | None, now
     ratio = quantity / package_quantity
     packs = ceil(ratio)
     exact_cost = ratio * Fraction(quote.price)
-    return IngredientCost(item.food_id, item.grams, None if by_volume else item.grams, "known", quote=quote,
+    return IngredientCost(item.food_id, item.grams, item.grams, "known", quote=quote,
                           packs=packs, purchase_price=packs * quote.price,
                           cost=Decimal(exact_cost.numerator) / Decimal(exact_cost.denominator),
-                          required_ml=item.volume_ml, shortage_ml=item.volume_ml if by_volume else None,
+                          required_ml=item.volume_ml, shortage_ml=item.volume_ml,
                           exact_cost=exact_cost)
 
 
@@ -245,15 +286,31 @@ def meal_cost_from_db(
     *,
     now: datetime,
     unquantified_food_ids: Iterable[str] = (),
+    recipe_release_id: str | None = None,
 ) -> MealCost:
     items = list(requirements)
-    free = _free_foods(available_food_ids, None, None)
+    free = free_foods(available_food_ids)
     paid = [item for item in items if item.food_id not in free]
     ids = [item.food_id for item in paid]
-    if any(item.volume_ml is not None for item in paid):
+    allow_volume = any(item.volume_ml is not None for item in paid)
+    if allow_volume:
         candidates = cost_quote_candidates(db, ids)
-        return _compute_meal_cost(items, free, budget,
-                                  lambda item: select_cost_quote(item, candidates.get(item.food_id, []), now),
-                                  now, unquantified_food_ids)
-    quotes = latest_quotes(db, ids, now=now)
-    return _compute_meal_cost(items, free, budget, lambda item: quotes.get(item.food_id), now, unquantified_food_ids)
+        selected = {item: select_cost_quote(item, candidates.get(item.food_id, []), now) for item in paid}
+    else:
+        quotes = latest_quotes(db, ids, now=now)
+        selected = {item: quotes.get(item.food_id) for item in paid}
+    reasons = {}
+    if settings.management_price_policy_enabled:
+        release = settings.generation_recipe_release_id or None if recipe_release_id is None else recipe_release_id
+        for volume in {item.volume_ml is not None for item in paid}:
+            dimension_items = [item for item in paid if (item.volume_ml is not None) == volume]
+            fallback = {item.food_id: selected[item] for item in dimension_items}
+            overrides = active_overrides(db, set(fallback), fallback, as_of=now,
+                                         recipe_release_id=release, allow_volume=volume)
+            for item in dimension_items:
+                if item.food_id in overrides:
+                    decision = overrides[item.food_id]
+                    selected[item] = decision.quote
+                    if decision.reason:
+                        reasons[item] = decision.reason
+    return _compute_meal_cost(items, free, budget, selected.get, now, unquantified_food_ids, reasons)

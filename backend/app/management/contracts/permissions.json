@@ -1,0 +1,191 @@
+{
+  "contract_version": "management-v1.0.0-rc1",
+  "default": "deny",
+  "role_presets": {
+    "catalog_viewer": [
+      "management.enter",
+      "registry.read",
+      "artifact.read",
+      "recipe.read",
+      "ingredient.read",
+      "price.read",
+      "source_policy.read",
+      "operations.read"
+    ],
+    "recipe_editor": [
+      "management.enter",
+      "registry.read",
+      "artifact.read",
+      "recipe.read",
+      "ingredient.read",
+      "price.read",
+      "source_policy.read",
+      "operations.read",
+      "recipe.edit",
+      "recipe.submit",
+      "artifact.upload"
+    ],
+    "ingredient_editor": [
+      "management.enter",
+      "registry.read",
+      "artifact.read",
+      "recipe.read",
+      "ingredient.read",
+      "price.read",
+      "source_policy.read",
+      "operations.read",
+      "ingredient.edit",
+      "ingredient.submit",
+      "artifact.upload"
+    ],
+    "price_editor": [
+      "management.enter",
+      "registry.read",
+      "artifact.read",
+      "recipe.read",
+      "ingredient.read",
+      "price.read",
+      "source_policy.read",
+      "operations.read",
+      "price.edit",
+      "price.submit",
+      "artifact.upload"
+    ],
+    "recipe_reviewer": [
+      "management.enter",
+      "registry.read",
+      "artifact.read",
+      "recipe.read",
+      "ingredient.read",
+      "price.read",
+      "source_policy.read",
+      "operations.read",
+      "recipe.review"
+    ],
+    "ingredient_reviewer": [
+      "management.enter",
+      "registry.read",
+      "artifact.read",
+      "recipe.read",
+      "ingredient.read",
+      "price.read",
+      "source_policy.read",
+      "operations.read",
+      "ingredient.review"
+    ],
+    "price_reviewer": [
+      "management.enter",
+      "registry.read",
+      "artifact.read",
+      "recipe.read",
+      "ingredient.read",
+      "price.read",
+      "source_policy.read",
+      "operations.read",
+      "price.review"
+    ],
+    "source_reviewer": [
+      "management.enter",
+      "registry.read",
+      "artifact.read",
+      "recipe.read",
+      "ingredient.read",
+      "price.read",
+      "source_policy.read",
+      "operations.read",
+      "source_policy.edit",
+      "source_policy.submit",
+      "source_policy.review",
+      "source.rights_review",
+      "artifact.upload"
+    ],
+    "publisher": [
+      "management.enter",
+      "registry.read",
+      "artifact.read",
+      "recipe.read",
+      "ingredient.read",
+      "price.read",
+      "source_policy.read",
+      "operations.read",
+      "recipe.publish",
+      "ingredient.publish",
+      "price.publish",
+      "source_policy.publish",
+      "recipe.activate",
+      "ingredient.activate",
+      "price.activate",
+      "source_policy.activate"
+    ],
+    "operator": [
+      "management.enter",
+      "registry.read",
+      "artifact.read",
+      "recipe.read",
+      "ingredient.read",
+      "price.read",
+      "source_policy.read",
+      "operations.read",
+      "operations.execute"
+    ],
+    "access_admin": [
+      "management.enter",
+      "access.read",
+      "access.manage"
+    ],
+    "auditor": [
+      "management.enter",
+      "registry.read",
+      "artifact.read",
+      "recipe.read",
+      "ingredient.read",
+      "price.read",
+      "source_policy.read",
+      "operations.read",
+      "audit.read"
+    ]
+  },
+  "domains": [
+    "recipe",
+    "ingredient",
+    "price",
+    "source_policy"
+  ],
+  "permission_check": "server-side on every request and command commit",
+  "no_implicit_capabilities": [
+    "household_rows.read",
+    "t04.approve",
+    "t04.write",
+    "knowledge.publish",
+    "sql.execute",
+    "external.execute"
+  ],
+  "review_guards": [
+    "active_grant",
+    "domain_scope",
+    "not_revision_contributor",
+    "exact_revision_hash",
+    "exact_dependency_hash",
+    "validation_fresh"
+  ],
+  "publish_guards": [
+    "active_grant",
+    "domain_scope",
+    "not_any_revision_contributor",
+    "independent_content_approval",
+    "independent_source_rights_approval",
+    "all_pins_match",
+    "no_blocking_issues"
+  ],
+  "grant_guards": [
+    "no_self_grant_or_revoke",
+    "no_self_role_elevation",
+    "target_existing_user",
+    "role_allowlist",
+    "target_scope_subset_of_actor_scope",
+    "preserve_last_access_admin",
+    "access_revision",
+    "audit_atomic"
+  ],
+  "external_execution_enabled": false
+}
