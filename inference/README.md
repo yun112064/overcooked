@@ -6,12 +6,13 @@
 
 | 項目 | 內容 |
 |---|---|
-| 模型 | YOLO26s，Food41 39 類，權重 `inference/models/yolo26s-food41-denoise-seed45-50e.pt`（20 MB，已放在 Git；來源 `yolo_training/runs/yolo26s_opencv_full_20261017/denoise_seed45_50e/weights/best.pt`） |
-| SHA-256 | `6f72205222e3b20ba0edd477f8f6ad44b1ca0082d5309383e2759cde0cad205f`（啟動時核對，不符就拒絕啟動） |
+| 模型 | YOLO26s，Food41 39 類，權重 `inference/models/yolo26s-food41-denoise-veg3-ft-20261108.pt`（20 MB，已放在 Git；來源 `yolo_training/runs/yolo26s_denoise_veg3_finetune_20261108/v2_oi_cabbage_from_denoise_seed45_30e/weights/last.pt`） |
+| SHA-256 | `d04d4b5015e2f43b0f30824c23ec2c3acb10c6b1c76e9246271af281f71405ca`（啟動時核對，不符就拒絕啟動） |
 | 前處理 | `denoise`：`cv2.medianBlur(image, 3)` 中值濾波降噪，與訓練資料相同 |
-| 選擇依據 | YOLO26s 各次訓練中，同一份 591 張獨立 test 集 mAP50–95 最高（63.39%；mAP50 82.98%、P 77.79%、R 76.99%） |
+| 來歷 | 由前一版 `yolo26s-food41-denoise-seed45-50e` 微調 30 epochs：保留完整 Food41 訓練集，加入 LVIS 番茄／胡蘿蔔與人工挑選的 Open Images 結球高麗菜 |
+| 選擇依據 | 前一版在家中實拍照片認不出番茄、把胡蘿蔔判成辣椒、高麗菜判成福山萵苣；本版三張實拍照片三種蔬菜都正確（高麗菜遠拍僅 0.28）。代價是 591 張 test 集 mAP50–95 由 63.39% 降為 63.11%（mAP50 82.05%、P 80.57%、R 76.39%） |
 
-完整比較與尚未納入的組合前處理實驗見 [model_manifest.json](model_manifest.json)。**AC22 尚未通過**：整體 precision／recall 仍未達 80%，且需另外報告主要類別 macro 指標。
+微調資料、實拍檢查與各類別變化見 [model_manifest.json](model_manifest.json)。**AC22 尚未通過**：precision 已達 80%，recall 仍未達，且需另外報告主要類別 macro 指標。高麗菜實拍辨識仍不穩，需要更多實拍照片補強。
 
 權重檔放在 `inference/models/`，隊友下載分支即可使用；其他訓練產生的 `*.pt` 仍不進 Git。換模型時把新權重放進 `inference/models/`，並同時更新 `model_manifest.json`（`weights_path`、雜湊、類別、前處理、指標）與雲端的 `config/recognition_labels.json`，再發行新版本。
 

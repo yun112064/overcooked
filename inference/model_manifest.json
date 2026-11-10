@@ -1,13 +1,13 @@
 {
-  "model_id": "yolo26s-food41-denoise-seed45-50e",
+  "model_id": "yolo26s-food41-denoise-veg3-ft-20261108",
   "architecture": "YOLO26s",
-  "weights_path": "inference/models/yolo26s-food41-denoise-seed45-50e.pt",
-  "weights_source": "yolo_training/runs/yolo26s_opencv_full_20261017/denoise_seed45_50e/weights/best.pt",
-  "weights_sha256": "6f72205222e3b20ba0edd477f8f6ad44b1ca0082d5309383e2759cde0cad205f",
-  "initial_weights_sha256": "646f8bc3fe0a656803d95c294f7852321748cb29d13466a1af8862e2db384a1b",
+  "weights_path": "inference/models/yolo26s-food41-denoise-veg3-ft-20261108.pt",
+  "weights_source": "yolo_training/runs/yolo26s_denoise_veg3_finetune_20261108/v2_oi_cabbage_from_denoise_seed45_30e/weights/last.pt",
+  "weights_sha256": "d04d4b5015e2f43b0f30824c23ec2c3acb10c6b1c76e9246271af281f71405ca",
+  "initial_weights_sha256": "6f72205222e3b20ba0edd477f8f6ad44b1ca0082d5309383e2759cde0cad205f",
   "imgsz": 640,
   "preprocess": "denoise",
-  "preprocess_detail": "cv2.medianBlur(image, 3)，與訓練資料 food41_opencv_yolo11s_full_20261016/denoise 相同",
+  "preprocess_detail": "cv2.medianBlur(image, 3)，與訓練資料 food41_opencv_yolo11s_full_20261016/denoise 及微調加入的資料相同",
   "classes": [
     "Beef-tomato", "Bell-peppers", "Broccoli", "Cabbage", "Celery", "Chili-pepper", "Chinese-kale",
     "Cucumber", "Fushan-lettuce", "Loofah-strips", "Napa-cabbage", "Onion", "Pumpkin", "Soybean-sprouts",
@@ -16,24 +16,49 @@
     "potato", "rape", "spinach", "sweet-potato-leaves", "water-spinach", "white-radish",
     "white-water-snowflake", "winter-melon"
   ],
+  "fine_tune": {
+    "base_model": "yolo26s-food41-denoise-seed45-50e（sha256 6f72205222e3…）",
+    "epochs": 30,
+    "optimizer": "SGD lr0=0.002 lrf=0.1 batch=16 imgsz=640 seed=45",
+    "checkpoint": "last.pt（第 30 epoch）；best.pt（第 21 epoch，依 Food41 valid 挑選）在遠拍照片的高麗菜只有 0.16，低於 0.25 門檻，因此不採用",
+    "train_data": [
+      "Food41 denoise train 全部 5,939 張（避免其他類別遺忘）",
+      "Food41 Cabbage 訓練圖重複 3 次（+364）",
+      "LVIS train 含番茄／胡蘿蔔的圖片 medianBlur 後對應到 Food41 類別（與 Food41 重疊的類別一併對應；含萵苣、蘿蔔、葫蘆、辣椒粉、蕪菁、南瓜的圖片略過）",
+      "Open Images V6 Cabbage 348 張中人工挑出 20 張完整綠色結球高麗菜，各重複 5 次"
+    ],
+    "valid_and_test": "與基礎模型相同的 Food41 denoise valid 623 張、test 591 張"
+  },
   "test_metrics": {
-    "source": "yolo_training/runs/yolo26s_opencv_full_20261017/comparison/scores.json",
+    "source": "yolo_training/runs/yolo26s_denoise_veg3_finetune_20261108/v2_last_test_eval（2026-11-08 以本權重重新評估）",
     "test_images": 591,
     "test_instances": 1353,
-    "precision": 0.7779,
-    "recall": 0.7699,
-    "map50": 0.8298,
-    "map50_95": 0.6339,
-    "inference_ms_per_image_rtx4060": 5.45
+    "precision": 0.8057,
+    "recall": 0.7639,
+    "map50": 0.8205,
+    "map50_95": 0.6311,
+    "inference_ms_per_image_rtx4060": 6.63,
+    "per_class_map50_vs_base": {
+      "Beef-tomato": [0.984, 0.995],
+      "Cabbage": [0.892, 0.858],
+      "carrot": [0.983, 0.930],
+      "Napa-cabbage": [0.769, 0.768],
+      "Pumpkin": [0.806, 0.745],
+      "white-water-snowflake": [0.844, 0.752]
+    },
+    "note": "單一 seed；white-water-snowflake 的 test 只有 5 張圖、7 個框，單類變化含隨機波動"
+  },
+  "real_photo_check": {
+    "source": "yolo_training/runs/veg3_photo_test（3 張家中實拍：1 顆高麗菜、4 顆番茄、1 根胡蘿蔔；未用於訓練）",
+    "base_model": "番茄 0/12、胡蘿蔔誤判為 Chili-pepper、高麗菜誤判為 Fushan-lettuce",
+    "this_model_conf_0_25": "番茄 12/12（0.77–0.93）、胡蘿蔔 3/3（0.71–0.90）、高麗菜 3/3（0.28、0.57、0.96）",
+    "caveat": "只有同一組蔬菜的 3 張照片；遠拍高麗菜僅 0.28，且在不同 epoch 間波動大，尚不能視為實拍準確率"
   },
   "selection": {
-    "decided_on": "2026-10-18",
-    "rule": "YOLO26s 各次訓練中，以同一份 591 張獨立 test 集的 mAP50–95 最高者為準",
-    "compared": {
-      "denoise": 0.6339, "white_balance": 0.6287, "brightness_contrast": 0.6229, "raw": 0.6212,
-      "sharpen": 0.6196, "saturation": 0.6080, "clahe": 0.6067, "gamma": 0.6043
-    },
-    "not_yet_comparable": "yolo26s_combinations_20261018（brightness_denoise 等組合）選定時仍在訓練、尚無 test 評估；完成評估後若較高應發行新版本"
+    "decided_on": "2026-11-08",
+    "rule": "改以實拍照片能辨識番茄、高麗菜、胡蘿蔔為優先；不再以 test mAP50–95 最高為唯一準則",
+    "tradeoff": "test mAP50–95 由 0.6339 降為 0.6311、mAP50 由 0.8298 降為 0.8205；precision 由 0.7779 升為 0.8057、recall 由 0.7699 降為 0.7639",
+    "previous": "yolo26s-food41-denoise-seed45-50e（2026-10-18 選定；test mAP50–95 0.6339 為當時 YOLO26s 最高）"
   },
-  "acceptance": "AC22 尚未通過：test precision 77.79%、recall 76.99%，未達各 80% 門檻；此數字是整體值，AC22 另需主要類別 macro 指標與 IoU≥0.5 一對一配對報告"
+  "acceptance": "AC22 尚未通過：test precision 80.57% 已達門檻，但 recall 76.39% 未達 80%；此數字是整體值，AC22 另需主要類別 macro 指標與 IoU≥0.5 一對一配對報告"
 }

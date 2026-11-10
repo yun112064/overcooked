@@ -108,6 +108,9 @@ def test_picker_adoption_freezes_exact_market_shortages(market_client, monkeypat
     app.dependency_overrides[current_household_id] = lambda: household_id
     app.dependency_overrides[current_auth] = lambda: SimpleNamespace(user_id=user_id)
     monkeypatch.setattr(meal_plans.service, '_lock_household', lambda *_: None)
+    # The preview adoption now evaluates T13 before saving. This SQLite fixture
+    # has no retail snapshots; keep external price lookup synthetic as well.
+    monkeypatch.setattr('app.services.meal_cost.cost_quote_candidates', lambda *_: {})
 
     # Only the tables exercised by these endpoints, using SQLite JSON in place of JSONB.
     monkeypatch.setattr(SQLiteTypeCompiler, 'visit_JSONB', SQLiteTypeCompiler.visit_JSON, raising=False)
@@ -149,6 +152,12 @@ def test_picker_adoption_freezes_exact_market_shortages(market_client, monkeypat
     path = f"/meal-plans/{summary['id']}"
     detail = client.get(path).json()
     assert detail['result_version'] is None
+    assert detail['snapshot']['schema_version'] == 'database_menu_snapshot/v2'
+    assert detail['snapshot']['versions']['recipe_release_id'] == 'test-current'
+    assert detail['snapshot']['eligibility']['adoptable']
+    assert detail['snapshot']['cost']['budget_status'] == 'PRICE_INCOMPLETE'
+    assert detail['snapshot']['previous_day']['at_adoption']
+    assert set(detail['snapshot']['recipe_sources']) == set(recipe_ids)
     assert detail['snapshot']['market_shortages'] == {
         'recipe_release_id': 'test-current',
         'items': [{'food_id': 'TEST-CABBAGE', 'name': '高麗菜', 'shortage_grams': '1501/3'},
