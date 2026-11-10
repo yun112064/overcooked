@@ -29,7 +29,7 @@ python -m pytest tests nutrition_planning/tests -q -ra
 
 未設定隔離 PostgreSQL 時，資料庫專用案例會略過；缺少歷史資料包的案例也可能略過。這些結果必須列明，不可當作通過。上述命令不會提供 PostgreSQL 遷移驗證。
 
-前端改動應執行 `npm --prefix frontend run lint` 與 `npm --prefix frontend run build`。獨立超市另執行 `npm --prefix sim-supermarket run lint`、`npm --prefix sim-supermarket run build` 與 `npm --prefix sim-supermarket test`。依各分支實際存在的測試檔案選擇驗證項目。
+前端改動應執行 `npm --prefix frontend run lint` 與 `npm --prefix frontend run build`。超市分支另在 `frontend` 目錄執行 `node --test tests/simMarket.test.mjs`。依各分支實際存在的測試檔案選擇驗證項目。
 
 ## 功能驗收範圍
 
