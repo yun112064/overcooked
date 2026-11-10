@@ -17,6 +17,7 @@ from sqlalchemy.exc import IntegrityError
 from app.api.errors import ApiError
 from app.db.models import User
 from app.services.recipe_step_style import check_recipe_steps
+from app.services.recipe_volume import VOLUME_UNITS, volume_in_ml
 from .contracts import POLICY, VERSION, canonical, digest, rules_pin, validate
 from .models import tables as T
 
@@ -289,6 +290,12 @@ class Management:
             if any(not x['weight_g']['evidence_ids'] or not set(x['weight_g']['evidence_ids'])<=source_ids for x in lines):codes.append('SOURCE_WEIGHT_EVIDENCE_REQUIRED')
             for line in lines:
                 if not self.food_matches(line,r['dependency_pins']):codes.append('FOOD_IDENTITY_UNVERIFIED')
+                if str(line['unit']).strip().casefold() in VOLUME_UNITS:
+                    amount = line['amount']
+                    if amount['status'] != 'declared' or volume_in_ml(amount['value'], line['unit']) is None:
+                        codes.append('SOURCE_VOLUME_REQUIRED')
+                    if not amount['evidence_ids'] or not set(amount['evidence_ids']) <= source_ids:
+                        codes.append('SOURCE_VOLUME_EVIDENCE_REQUIRED')
         if p['domain']=='ingredient' and content['food_id'].startswith('MF4_'):codes.append('NEW_FOOD_ID_NOT_ENABLED')
         if p['domain']=='price':codes.append('PRICE_DOMAIN_RULES_REQUIRED')
         targets={'pxmart':'pxmart-fixture','uniprosperity':'uniprosperity-fixture','supplied_document':'manual-fixture','ai_fixture':'ai-fixture'}
