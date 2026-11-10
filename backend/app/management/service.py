@@ -19,8 +19,12 @@ from app.core.config import settings
 from app.db.models import User
 from app.services.recipe_step_style import check_recipe_steps
 from app.services.recipe_volume import VOLUME_UNITS, volume_in_ml
+from . import active_recipe_catalog as recipe_catalog
 from .active_price_policy import PRICE_CHANNEL, active_recipe_release, price_readiness, published_entries
-from .contracts import POLICY, VERSION, canonical, digest, rules_pin, validate
+from .contracts import (
+    CAPTURE_DRAFT_DEFS, POLICY, RECIPE_CAPTURE_KINDS, VERSION,
+    canonical, digest, icook_sources, recipe_capture_sources, rules_pin, validate,
+)
 from .models import tables as T
 from .price_policy import price_issues, publication_price_issue, replacement_logical_id
 
@@ -31,6 +35,10 @@ def ident(): return uuid.uuid4().hex
 def utc(value): return value.replace(tzinfo=timezone.utc) if value.tzinfo is None else value.astimezone(timezone.utc)
 def stamp(value): return utc(value).isoformat().replace('+00:00','Z')
 def fail(code, message='管理操作無法完成。', status=409): raise ApiError(status,code,message)
+
+def readable_domains(grants):
+    return sorted({domain for grant in grants for domain in grant['domain_scope']
+                   if domain + '.read' in POLICY['role_presets'][grant['role']]})
 
 
 def recipe_step_review_issues(steps):
@@ -77,11 +85,14 @@ class Management:
         if result is None:fail('MANAGEMENT_SCHEMA_REQUIRED',status=503)
         return result['revision']
 
-    def capabilities(self,domain=None):
+    def capabilities(self,domain=None,include_scopes=False):
         self.require('management.enter')
         grants=[g for g in self.grants() if domain is None or domain in g['domain_scope']]
-        return dict(contract_version=VERSION,user_id=self.actor,access_revision=self.db.scalar(sa.select(T['access_state'].c.revision)),
+        result = dict(contract_version=VERSION,user_id=self.actor,access_revision=self.db.scalar(sa.select(T['access_state'].c.revision)),
                     roles=sorted({g['role'] for g in grants}),permissions=sorted({p for g in grants for p in POLICY['role_presets'][g['role']]}),external_execution_enabled=False)
+        if include_scopes:
+            result['readable_domains'] = readable_domains(grants)
+        return result
 
     def command(self,operation,scope,key,body,permission,domain,action,exclusive=False,bootstrap=False):
         if not isinstance(key,str) or not re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9_.:-]{0,99}',key):fail('INVALID_INPUT','需要有效的 Idempotency-Key。',422)
@@ -168,8 +179,11 @@ class Management:
             return {'command_id':cid,'status':'completed','resource_id':gid,'task_id':None},gid,None,None
         return self.command('role_grant.revoke',gid,key,body,'access.manage',None,action,exclusive=True)
 
-    def upload(self,key,domain,kind,media_type,payload,reason):
-        if domain not in POLICY['domains'] or kind not in ('supplied_document','workbook','manual_entry'):fail('INVALID_INPUT',status=422)
+    def upload(self,key,domain,kind,media_type,payload,reason,*,recipe_capture=False):
+        allowed = kind in ('supplied_document','workbook','manual_entry')
+        if recipe_capture:
+            allowed = domain == 'recipe' and kind in RECIPE_CAPTURE_KINDS and media_type == 'application/json'
+        if domain not in POLICY['domains'] or not allowed:fail('INVALID_INPUT',status=422)
         if not 0<len(payload)<=16777216:fail('INVALID_INPUT',status=413)
         if media_type not in ('text/plain','application/json','application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'):fail('INVALID_INPUT',status=422)
         try:
@@ -215,8 +229,11 @@ class Management:
         self.db.execute(T['proposal_revisions'].insert().values(proposal_id=pid,revision=number,content=content,dependency_pins=pins,
             content_hash=digest('content',{'domain':domain,'content':content}),dependency_hash=digest('dependencies',pins),created_by=self.actor,created_at=now()))
 
-    def create(self,key,body):
-        body=validate('ProposalCreate',body);domain=body['domain']
+    def create(self,key,body,*,recipe_capture=False):
+        captures = recipe_capture_sources(body.get('content'))
+        if bool(captures) != recipe_capture or (recipe_capture and (len(captures) != 1 or body.get('domain') != 'recipe')):
+            fail('INVALID_INPUT', '請從對應的食譜匯入入口建立草稿。', 422)
+        body=validate('ProposalCreate',body,definitions=CAPTURE_DRAFT_DEFS if recipe_capture else None);domain=body['domain']
         def action(cid):
             content=copy.deepcopy(body['content']);logical=content.get('logical_recipe_id') if domain=='recipe' else content.get('food_id') if domain=='ingredient' else None
             if domain=='price' and content.get('replaces_version_id'):
@@ -251,11 +268,16 @@ class Management:
         return r
 
     def revise(self,key,pid,body):
-        body=validate('ProposalRevisionCreate',body);domain=self.proposal(pid)['domain']
+        incoming = recipe_capture_sources(body.get('content'))
+        body=validate('ProposalRevisionCreate',body,definitions=CAPTURE_DRAFT_DEFS if incoming else None);domain=self.proposal(pid)['domain']
         def action(cid):
             p=self.proposal(pid,True);r=self.expected(p,body)
             if p['state'] not in ('draft','changes_requested','approved','rejected'):fail('INVALID_STATE')
             if body['domain']!=domain:fail('INVALID_INPUT',status=422)
+            if incoming != recipe_capture_sources(r['content']):
+                fail('RECIPE_CAPTURE_IMMUTABLE', '匯入的原始證據必須保留。', 422)
+            if incoming and body['content']['servings']['raw_text'] != r['content']['servings']['raw_text']:
+                fail('RECIPE_CAPTURE_IMMUTABLE', '原始份量文字必須保留。', 422)
             field='logical_recipe_id' if domain=='recipe' else 'food_id' if domain=='ingredient' else None
             if field and body['content'][field]!=p['logical_id']:fail('ENTITY_ID_IMMUTABLE')
             if domain=='price':
@@ -285,6 +307,55 @@ class Management:
             if not row or row.source_sha256!=pins['legacy_recipe_source_sha256'] or legacy_capture(self.db)!=pins['legacy_db_capture_sha256']:issues.append('LEGACY_CAPTURE_CHANGED')
         return issues
 
+    def icook_quantities(self,p,r):
+        content = r['content']
+        original = self.row('proposal_revisions', sa.and_(T['proposal_revisions'].c.proposal_id == p['id'],
+                            T['proposal_revisions'].c.revision == 1))['content']
+        servings = content['servings']
+        count = servings['count']
+        codes = []
+        if count is None or not re.fullmatch(r'[1-9][0-9]{0,15}', count):
+            codes.append('ICOOK_PORTIONS_REQUIRED')
+        changed = count != original['servings']['count']
+        original_lines = {line['line_id']: line for line in original['ingredients']}
+        changed |= set(original_lines) != {line['line_id'] for line in content['ingredients']}
+        for line in content['ingredients']:
+            amount, unit, grams = line['amount']['value'], line['unit'], line['weight_g']['value']
+            if amount is None or Decimal(amount) <= 0 or unit not in ('g','ml'):
+                codes.append('ICOOK_QUANTITY_REQUIRED')
+            if unit == 'g' and amount != grams:
+                codes.append('ICOOK_GRAMS_MISMATCH')
+            initial = original_lines.get(line['line_id'])
+            if initial is None or (amount, unit, grams) != (initial['amount']['value'], initial['unit'], initial['weight_g']['value']):
+                changed = True
+        return sorted(set(codes)), changed
+
+    def icook_confirmed(self,p,r):
+        audit = T['audit_events']
+        scope = f"{p['id']}:{r['revision']}"
+        command = T['commands']
+        confirmations = self.db.scalars(sa.select(audit.c.actor_id).join(command, command.c.id == audit.c.command_id).where(
+            audit.c.resource_id == p['id'], audit.c.action == 'recipe.icook.confirm_quantities',
+            audit.c.after_hash == r['content_hash'], command.c.resource_scope == scope,
+        ))
+        return any('recipe' in grant['domain_scope'] and 'recipe.review' in POLICY['role_presets'][grant['role']]
+                   for actor in confirmations for grant in self.grants(actor))
+
+    def confirm_icook_quantities(self,key,pid,body):
+        body = validate('RevisionCommand',body)
+        def action(cid):
+            p = self.proposal(pid, True)
+            r = self.expected(p,body)
+            if p['state'] not in ('draft','changes_requested') or not icook_sources(r['content']):
+                fail('INVALID_STATE')
+            codes, changed = self.icook_quantities(p,r)
+            if codes:
+                fail(codes[0], '請先填妥人份及每項食材的 g 或 ml 用量。')
+            if not changed:
+                fail('INVALID_STATE', '目前數值已由來源提供。')
+            return {'status':'completed','proposal_id':pid,'revision':r['revision']},pid,None,r['content_hash']
+        return self.command('recipe.icook.confirm_quantities',f"{pid}:{body['expected_revision']}",key,body,'recipe.review','recipe',action)
+
     def issues(self,p,r):
         codes=self.dependency_issues(r['dependency_pins'],p['domain']);content=r['content']
         for source in content['sources']:
@@ -298,9 +369,40 @@ class Management:
             if len({x['line_id'] for x in lines})!=len(lines):codes.append('DUPLICATE_LINE_ID')
             if [x['step_no'] for x in content['steps']]!=list(range(1,len(content['steps'])+1)):codes.append('STEP_ORDER_INVALID')
             if content['servings']['count'] is None:codes.append('SERVINGS_REQUIRED')
-            if any(x['weight_g']['value'] is None or Decimal(x['weight_g']['value'])<=0 for x in lines):codes.append('SOURCE_WEIGHT_REQUIRED')
             source_ids={x['artifact_id'] for x in content['sources']}
-            if any(not x['weight_g']['evidence_ids'] or not set(x['weight_g']['evidence_ids'])<=source_ids for x in lines):codes.append('SOURCE_WEIGHT_EVIDENCE_REQUIRED')
+            icook = bool(icook_sources(content))
+            ai_capture = bool(recipe_capture_sources(content, ('ai_output',)))
+            if ai_capture:
+                if not all((content[field] or '').strip() for field in ('category','cuisine','meal_type')):
+                    codes.append('AI_RECIPE_CLASSIFICATION_REQUIRED')
+                count = content['servings']['count']
+                if count is not None and not re.fullmatch(r'[1-9][0-9]{0,15}', count):
+                    codes.append('AI_RECIPE_PORTIONS_REQUIRED')
+                if any(x['amount']['value'] is None or Decimal(x['amount']['value']) <= 0 or x['unit'] not in ('g','ml') for x in lines):
+                    codes.append('AI_RECIPE_QUANTITY_REQUIRED')
+                if any(x['unit'] == 'g' and x['amount']['value'] != x['weight_g']['value'] for x in lines):
+                    codes.append('AI_RECIPE_GRAMS_MISMATCH')
+                ai_source_ids = {source['artifact_id'] for source in recipe_capture_sources(content, ('ai_output',))}
+                if any(x['weight_g']['value'] is not None and not set(x['weight_g']['evidence_ids']) - ai_source_ids for x in lines):
+                    codes.append('AI_RECIPE_WEIGHT_EVIDENCE_REQUIRED')
+            if icook:
+                quantity_codes, changed = self.icook_quantities(p,r)
+                codes.extend(quantity_codes)
+                if not quantity_codes and changed and not self.icook_confirmed(p,r):
+                    codes.append('ICOOK_REVIEWER_CONFIRMATION_REQUIRED')
+                if not all(content[field] for field in ('category','cuisine','meal_type')):
+                    codes.append('ICOOK_CLASSIFICATION_REQUIRED')
+                original = self.row('proposal_revisions', sa.and_(T['proposal_revisions'].c.proposal_id == p['id'],
+                                    T['proposal_revisions'].c.revision == 1))['content']
+                original_weights = {line['line_id']: line['weight_g']['value'] for line in original['ingredients']}
+                capture_ids = {source['artifact_id'] for source in icook_sources(content)}
+                if any(line['weight_g']['value'] is not None
+                       and line['weight_g']['value'] != original_weights.get(line['line_id'])
+                       and not set(line['weight_g']['evidence_ids']) - capture_ids for line in lines):
+                    codes.append('ICOOK_WEIGHT_EVIDENCE_REQUIRED')
+            weights = [x['weight_g'] for x in lines if not icook or x['weight_g']['value'] is not None]
+            if any(w['value'] is None or Decimal(w['value'])<=0 for w in weights):codes.append('SOURCE_WEIGHT_REQUIRED')
+            if any(not w['evidence_ids'] or not set(w['evidence_ids'])<=source_ids for w in weights):codes.append('SOURCE_WEIGHT_EVIDENCE_REQUIRED')
             for line in lines:
                 if not self.food_matches(line,r['dependency_pins']):codes.append('FOOD_IDENTITY_UNVERIFIED')
                 if str(line['unit']).strip().casefold() in VOLUME_UNITS:
@@ -347,16 +449,16 @@ class Management:
         return self.command('proposal.validate',pid,key,body,domain+'.submit',domain,action)
 
     def run_validation(self,tid):
-        """Explicit local executor for pure validations; no daemon is started."""
+        """Run a pure validation once, as the original requester."""
         with self.db.begin_nested():
             self.access_lock()
             task=self.row('tasks',T['tasks'].c.id==tid,True)
-            if not task:fail('NOT_FOUND',status=404)
+            if not task or task['kind']!='proposal_validation':fail('NOT_FOUND',status=404)
             p=self.proposal(task['params']['proposal_id'],True)
             self.require(p['domain']+'.submit',p['domain'],actor=task['created_by'])
             if task['created_by']!=self.actor:fail('FORBIDDEN',status=403)
             if task['state']=='succeeded':return task['result']
-            if task['state']!='queued':fail('INVALID_STATE')
+            if task['state']!='queued' or p['state'] not in ('draft','changes_requested'):fail('INVALID_STATE')
             if p['current_revision']!=task['params']['revision']:fail('VERSION_CONFLICT')
             r=self.revision(p);issues=self.issues(p,r);vid=ident();created=now()
             self.db.execute(T['validation_runs'].insert().values(id=vid,proposal_id=p['id'],revision=p['current_revision'],content_hash=r['content_hash'],
@@ -452,6 +554,8 @@ class Management:
                 if r['dependency_pins']['base_publication_id']!=body['base_publication_id']:fail('DEPENDENCY_CHANGED')
                 if pins is not None and pins!=r['dependency_pins']:fail('DEPENDENCY_CHANGED')
                 pins=r['dependency_pins'];self.validation(p,r,reference['validation_id'])
+                if icook_sources(r['content']) and any(line['weight_g']['value'] is None for line in r['content']['ingredients']):
+                    fail('SOURCE_WEIGHT_REQUIRED', '食譜發布前須補齊有依據的整份烹調前克重。')
                 approvals=self.latest_approvals(p,r)
                 for scope,field in [('content','content_approval_id'),('source_rights','source_rights_approval_id')]:
                     if scope not in approvals or approvals[scope]['id']!=reference[field] or approvals[scope]['validation_id']!=reference['validation_id']:fail('APPROVAL_STALE')
@@ -497,8 +601,8 @@ class Management:
         if not domain:fail('NOT_FOUND',status=404)
         def action(cid):
             binding=self.row('active_bindings',T['active_bindings'].c.channel==channel,True)
-            publication=self.row('publications',T['publications'].c.id==body['publication_id'])
             if not binding or binding['revision']!=body['expected_binding_revision']:fail('BINDING_CHANGED')
+            publication=self.binding_target(channel,body['publication_id'])
             if not publication or publication['domain']!=domain:fail('NOT_FOUND',status=404)
             issue,warnings=self.binding_check(channel,binding,publication)
             result=dict(plan_id=cid,publication_id=publication['id'],channel=channel,expected_binding_revision=binding['revision'],expires_at=stamp(now()+timedelta(minutes=5)),
@@ -522,7 +626,7 @@ class Management:
             binding=self.row('active_bindings',table.c.channel==channel,True)
             expected=body['expected_binding_revision']
             if not binding or binding['revision']!=expected:fail('BINDING_CHANGED')
-            publication=self.row('publications',T['publications'].c.id==target)
+            publication=self.binding_target(channel,target)
             if not publication or publication['domain']!=domain:fail('NOT_FOUND',status=404)
             commands=T['commands']
             command=self.row('commands',sa.and_(
@@ -539,16 +643,32 @@ class Management:
             if issue:fail(issue)
             previous=self.row('publications',T['publications'].c.id==binding['publication_id'])
             updated=now()
+            bound_id=None if channel==recipe_catalog.CHANNEL and target==recipe_catalog.BASELINE else target
             changed=self.db.execute(table.update().where(table.c.channel==channel,table.c.revision==expected)
-                .values(publication_id=target,revision=expected+1,updated_by=self.actor,updated_at=updated))
+                .values(publication_id=bound_id,revision=expected+1,updated_by=self.actor,updated_at=updated))
             if changed.rowcount!=1:fail('BINDING_CHANGED')
-            result=dict(channel=channel,publication_id=target,revision=expected+1,updated_at=stamp(updated))
+            result=dict(channel=channel,publication_id=bound_id,revision=expected+1,updated_at=stamp(updated))
             return result,channel,previous['manifest_hash'] if previous else None,publication['manifest_hash']
         return self.command(operation,channel,key,body,domain+'.activate',domain,action)
 
     def binding_enabled(self,channel):
-        return (channel==PRICE_CHANNEL and settings.management_price_policy_enabled
-                and self.db.bind.dialect.name=='postgresql')
+        enabled = {PRICE_CHANNEL: settings.management_price_policy_enabled,
+                   recipe_catalog.CHANNEL: settings.management_recipe_catalog_enabled}
+        return bool(enabled.get(channel) and self.db.get_bind().dialect.name=='postgresql')
+
+    def binding_target(self,channel,target):
+        if channel==recipe_catalog.CHANNEL and target==recipe_catalog.BASELINE:
+            from app.models import RecipeDataRelease
+            release_id = active_recipe_release(self.db)
+            release = self.db.get(RecipeDataRelease,release_id) if release_id else None
+            if release is None:
+                fail('RECIPE_BASELINE_NOT_AVAILABLE')
+            return dict(id=target,domain='recipe',release_id=release.release_id,
+                        manifest_hash=digest('recipe-baseline',{
+                            'release_id':release.release_id,'source_sha256':release.source_sha256,
+                            'capture':legacy_capture(self.db),
+                        }))
+        return self.row('publications',T['publications'].c.id==target)
 
     def plan_hash(self,plan,publication):
         return digest('plan',{'receipt':{key:value for key,value in plan.items() if key!='plan_hash'},
@@ -556,6 +676,8 @@ class Management:
 
     def binding_check(self,channel,binding,publication,rollback=None):
         if not self.binding_enabled(channel):return 'CONSUMER_ADAPTER_NOT_READY',[]
+        if channel==recipe_catalog.CHANNEL:
+            return self.recipe_binding_issue(binding,publication,rollback),[]
         target=publication['id']
         if binding['publication_id']==target:return 'BINDING_ALREADY_ACTIVE',[]
         forward=publication['base_publication_id']==binding['publication_id']
@@ -577,6 +699,51 @@ class Management:
         entries=published_entries(self.db,publication)
         if not entries:return 'PRICE_POLICY_INVALID',[]
         return price_readiness(entries,now())
+
+    def recipe_binding_issue(self,binding,publication,rollback):
+        active = binding['publication_id']
+        target = publication['id']
+        if target == recipe_catalog.BASELINE:
+            if not active or rollback is False:
+                return 'RECIPE_BASELINE_ROLLBACK_ONLY'
+            current = self.row('publications',T['publications'].c.id==active)
+            if not current or current['manifest']['dependency_pins']['legacy_recipe_release_id'] != publication['release_id']:
+                return 'RECIPE_BASELINE_CHANGED'
+            return None
+        if active == target:
+            return 'BINDING_ALREADY_ACTIVE'
+        forward = publication['base_publication_id'] == active
+        if rollback or not forward:
+            commands = T['commands']
+            previous = self.db.scalar(sa.select(commands.c.id).where(
+                commands.c.operation.in_(('binding.activate','binding.rollback')),
+                commands.c.resource_scope==recipe_catalog.CHANNEL, commands.c.state=='completed',
+                commands.c.receipt['publication_id'].as_string()==target,
+            ).limit(1))
+            if rollback is False or not previous:
+                return 'RECIPE_PUBLICATION_BASE_MISMATCH'
+        pins = publication['manifest']['dependency_pins']
+        release = active_recipe_release(self.db)
+        if not release or pins['legacy_recipe_release_id'] != release or (
+            settings.generation_recipe_release_id or release
+        ) != release:
+            return 'RECIPE_BASELINE_CHANGED'
+        if self.dependency_issues(pins,'recipe'):
+            return 'DEPENDENCY_CHANGED'
+        try:
+            catalog = recipe_catalog.publication_recipes(self.db,publication)
+        except recipe_catalog.RecipeCatalogUnavailable:
+            return 'RECIPE_PUBLICATION_INVALID'
+        from app.models import IngredientAlias
+        identities = dict(self.db.execute(sa.select(IngredientAlias.food_id,IngredientAlias.canonical_name).where(
+            IngredientAlias.recipe_release_id==release
+        )).all())
+        if not catalog.recipes or any(
+            identities.get(line['food_id']) != line['canonical_name']
+            for recipe in catalog.recipes.values() for line in recipe.content['ingredients']
+        ):
+            return 'RECIPE_FOOD_DICTIONARY_MISMATCH'
+        return None
 
 def legacy_capture(session):
     """Capture DB content, never certify workbook bytes or inspect T04 approvals."""

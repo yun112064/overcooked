@@ -72,7 +72,7 @@ class ReferenceDishCostTests(unittest.TestCase):
         prices = {"LIQUID": [quote("LIQUID", "150", "0.5", "L"), quote("LIQUID", "5", "500")]}
         with patch("app.services.budget_floor._recipe_floors", return_value=floors), \
              patch("app.services.budget_floor.cost_quote_candidates", return_value=prices), \
-             patch("app.services.budget_floor._cached", side_effect=lambda key, load: load()):
+             patch("app.services.budget_floor._cached", side_effect=lambda key, load, version=None: load()):
             self.assertEqual(minimum_budget(None, dish_count=2, total_n=D("1.5"), available_food_ids=[],
                                             has_staple=True, now=NOW), D(90))
         prices["LIQUID"].pop(0)

@@ -1,0 +1,322 @@
+import { useState } from 'react'
+import { Alert, Box, Button, Chip, Divider, FormControlLabel, MenuItem, Paper, Stack, Switch, TextField, Typography } from '@mui/material'
+import { isGeneratedRecipe, isICook, managementError, originNames } from '../../api/management'
+import type { Content, EditableDomain, Ingredient, Line, Measurement, Price, Recipe, Source } from '../../api/management'
+import { useManagementCommand } from './hooks'
+import { newLine, unknownMeasurement } from './content'
+import { canonicalPackageSize, displayPackageSize, packageDimension } from './packageSize'
+import type { PackageUnit } from './packageSize'
+
+type Update<T> = (value: T) => void
+const nullable = (value: string) => value.trim() || null
+const decimalPattern = '(0|[1-9][0-9]{0,15})(\\.[0-9]{0,5}[1-9])?'
+
+function Field({ label, value, update, required = false, type, hint, multiline = false, readOnly = false }: {
+  label: string; value: string | null; update?: Update<string>; required?: boolean; type?: 'decimal' | 'integer' | 'datetime-local'
+  hint?: string; multiline?: boolean; readOnly?: boolean
+}) {
+  return <TextField fullWidth size="small" label={label} value={value ?? ''} required={required} multiline={multiline}
+    type={type === 'datetime-local' ? type : 'text'} placeholder={required ? undefined : '未知'}
+    helperText={hint} onChange={update ? (event) => update(event.target.value) : undefined}
+    slotProps={{
+      input: { readOnly },
+      inputLabel: type === 'datetime-local' ? { shrink: true } : undefined,
+      htmlInput: type === 'decimal' ? { inputMode: 'decimal', pattern: decimalPattern } :
+        type === 'integer' ? { inputMode: 'numeric', pattern: '[1-9][0-9]{0,15}' } :
+        type === 'datetime-local' ? { step: 1 } : undefined,
+    }} />
+}
+
+function Select<T extends string>({ label, value, choices, update, disabled = false }: {
+  label: string; value: T; choices: Record<T, string>; update: Update<T>; disabled?: boolean
+}) {
+  return <TextField select fullWidth size="small" label={label} value={value} disabled={disabled} onChange={(event) => update(event.target.value as T)}>
+    {Object.entries<string>(choices).map(([id, name]) => <MenuItem key={id} value={id}>{name}</MenuItem>)}
+  </TextField>
+}
+
+function SourceInputs({ domain, sources, append, remove }: {
+  domain: EditableDomain; sources: Source[]; append: Update<Source>; remove: Update<string>
+}) {
+  const [file, setFile] = useState<File | null>(null)
+  const [kind, setKind] = useState<'manual_entry' | 'supplied_document' | 'workbook'>('manual_entry')
+  const [reason, setReason] = useState('')
+  const upload = useManagementCommand<{ artifact_id: string; sha256: string; source_kind: Source['origin_kind'] }>('/artifacts', (data) => {
+    append({ artifact_id: data.artifact_id, artifact_sha256: data.sha256, origin_kind: data.source_kind, source_policy_version_id: null })
+    setFile(null)
+  })
+  function send() {
+    if (!file) return
+    const body = new FormData()
+    body.append('domain', domain)
+    body.append('source_kind', kind)
+    body.append('reason', reason.trim())
+    body.append('file', file)
+    upload.mutate(body)
+  }
+  return <Stack spacing={1.5}>
+    <Typography variant="h6">來源證據</Typography>
+    {sources.length === 0 && <Alert severity="info">草稿需要至少一份來源證據。上傳後可將數量或重量連結到這份證據。</Alert>}
+    {sources.map((source) => <Stack key={source.artifact_id} direction="row" spacing={1} sx={{ alignItems: 'center' }}>
+      <Chip size="small" label={originNames[source.origin_kind]} />
+      <Typography variant="body2" sx={{ overflowWrap: 'anywhere' }}>{source.artifact_id}</Typography>
+      {!['web_capture', 'ai_output'].includes(source.origin_kind) && <Button size="small" onClick={() => remove(source.artifact_id)}>移出草稿</Button>}
+    </Stack>)}
+    <Stack spacing={1} sx={{ maxWidth: 540 }}>
+      <Select label="證據類型" value={kind} update={setKind}
+        choices={{ manual_entry: '人工證據', supplied_document: '提供的文件', workbook: '工作簿' }} />
+      <Button component="label" variant="outlined" sx={{ alignSelf: 'start' }}>
+        選擇證據檔案
+        <input type="file" accept=".txt,.json,.xlsx" hidden onChange={(event) => {
+          setFile(event.target.files?.[0] ?? null)
+          event.target.value = ''
+        }} />
+      </Button>
+      {file && <Typography variant="body2">{file.name}</Typography>}
+      <Field label="上傳理由" value={reason} update={setReason} />
+      <Button onClick={send} disabled={!file || !reason.trim() || upload.isPending}>上傳證據</Button>
+      {upload.isError && <Alert severity="error">{managementError(upload.error)}</Alert>}
+    </Stack>
+  </Stack>
+}
+
+function Evidence({ label, sources, ids, update }: { label: string; sources: Source[]; ids: string[]; update: Update<string[]> }) {
+  return <TextField select fullWidth size="small" label={label} value={ids} onChange={(event) => {
+    const values = event.target.value
+    update(typeof values === 'string' ? values.split(',') : values)
+  }} slotProps={{ select: { multiple: true } }}>
+    {sources.map((source) => <MenuItem key={source.artifact_id} value={source.artifact_id}>
+      {originNames[source.origin_kind]} {source.artifact_id}
+    </MenuItem>)}
+  </TextField>
+}
+
+function MeasurementInput({ label, data, sources, update }: { label: string; data: Measurement; sources: Source[]; update: Update<Measurement> }) {
+  return <Stack spacing={1}>
+    <Field label={label} type="decimal" value={data.value} update={(value) => {
+      update(value ? { status: 'declared', value, unknown_reason: null, evidence_ids: [] } : unknownMeasurement())
+    }} />
+    {data.status === 'unknown' ? <Field label={label + '未知原因'} value={data.unknown_reason} required
+      update={(unknown_reason) => update({ ...data, unknown_reason })} /> :
+      <Evidence label={label + '證據'} sources={sources} ids={data.evidence_ids} update={(evidence_ids) => update({ ...data, evidence_ids })} />}
+  </Stack>
+}
+
+function AllergenInput({ value, update }: { value: string[] | null; update: Update<string[] | null> }) {
+  return <Stack spacing={1}>
+    <FormControlLabel control={<Switch checked={value !== null} onChange={(_, checked) => update(checked ? [] : null)} />}
+      label={value === null ? '過敏原未知' : '來源有明確聲明'} />
+    {value !== null && <Field label="來源聲明的過敏原識別碼" multiline value={value.join('\n')}
+      update={(input) => update(input.split('\n'))} hint="每行一個識別碼。僅在來源明確聲明沒有過敏原時留白。" />}
+  </Stack>
+}
+
+function RecipeFields({ recipe, update }: { recipe: Recipe; update: Update<Recipe> }) {
+  const ai = isGeneratedRecipe(recipe)
+  const captured = isICook(recipe) || ai
+  function editLine(index: number, changed: Partial<Line>) {
+    update({ ...recipe, ingredients: recipe.ingredients.map((line, item) => item === index ? { ...line, ...changed } : line) })
+  }
+  return <Stack spacing={2}>
+    {recipe.logical_recipe_id && <Field label="食譜識別碼" value={recipe.logical_recipe_id} readOnly />}
+    <Field label="食譜名稱" value={recipe.name} required update={(name) => update({ ...recipe, name })} />
+    <Field label="別名" multiline value={recipe.aliases.join('\n')} update={(text) => update({ ...recipe, aliases: text.split('\n') })} hint="每行一個別名。" />
+    <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 1.5 }}>
+      <Field label="分類" value={recipe.category} required={!captured} update={(value) => update({ ...recipe, category: captured ? nullable(value) : value })} />
+      <Field label="料理類型" value={recipe.cuisine} required={!captured} update={(value) => update({ ...recipe, cuisine: captured ? nullable(value) : value })} />
+      <Field label="餐別" value={recipe.meal_type} required={!captured} update={(value) => update({ ...recipe, meal_type: captured ? nullable(value) : value })} />
+      <Field label="標準菜色識別碼" value={recipe.standard_dish_id} update={(value) => update({ ...recipe, standard_dish_id: nullable(value) })} />
+    </Box>
+    <Typography variant="h6">份量</Typography>
+    {!ai && <Field label="來源份量原文" value={recipe.servings.raw_text} required={!captured} readOnly={captured}
+        update={(raw_text) => update({ ...recipe, servings: { ...recipe.servings, raw_text, evidence_ids: [] } })} />}
+    {captured ? <Field label="人份" type="integer" value={recipe.servings.count}
+      hint={ai ? '請依整份食譜確認人份。來源每 n=1 的克數已另存為證據。' : '草稿可留白，送審前須填正整數。人工補填的數值須由食譜審核人員確認。'}
+      update={(value) => update({ ...recipe, servings: { ...recipe.servings, count: nullable(value), evidence_ids: [] } })} /> :
+      <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1}>
+      <Select label="份量基準" value={recipe.servings.basis} choices={{ portions: '份', batch: '批' }} update={(basis) => update({
+        ...recipe, servings: { ...recipe.servings, basis, portions_per_batch: basis === 'portions' ? null : recipe.servings.portions_per_batch, evidence_ids: [] },
+      })} />
+      <Field label="來源數量" type="decimal" value={recipe.servings.count}
+        update={(value) => update({ ...recipe, servings: { ...recipe.servings, count: nullable(value), evidence_ids: [] } })} />
+      {recipe.servings.basis === 'batch' && <Field label="每批份數" type="decimal" value={recipe.servings.portions_per_batch}
+        update={(value) => update({ ...recipe, servings: { ...recipe.servings, portions_per_batch: nullable(value), evidence_ids: [] } })} />}
+    </Stack>}
+    <Evidence label="份量證據" sources={recipe.sources} ids={recipe.servings.evidence_ids}
+      update={(evidence_ids) => update({ ...recipe, servings: { ...recipe.servings, evidence_ids } })} />
+    <Divider />
+    <Typography variant="h6">食材明細</Typography>
+    {recipe.ingredients.map((line, index) => <Paper key={line.line_id} variant="outlined" sx={{ p: 2 }}>
+      <Stack spacing={1.5}>
+        <Typography variant="subtitle1">食材 {index + 1}</Typography>
+        <Field label="食材名稱" value={line.canonical_name} required={!captured}
+          update={(value) => editLine(index, { canonical_name: captured ? nullable(value) : value })} />
+        <Field label={ai && line.line_id.startsWith('line-') ? '來源每份用量' : '來源原文'}
+          value={line.raw_text} required multiline readOnly={captured && line.line_id.startsWith('line-')}
+          update={(raw_text) => editLine(index, { raw_text })} />
+        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1}>
+          <Field label="Food ID" value={line.food_id} update={(value) => editLine(index, { food_id: nullable(value), ingredient_version_id: null })} />
+          <Field label="食材版本識別碼" value={line.ingredient_version_id} update={(value) => editLine(index, { ingredient_version_id: nullable(value) })} />
+          {!captured && <Field label="來源單位" value={line.unit} hint="依來源填寫，例如 g、kg、mL 或 L。"
+            update={(value) => editLine(index, { unit: nullable(value), amount: { ...line.amount, evidence_ids: [] } })} />}
+        </Stack>
+        {captured ? <CapturedQuantity line={line} ai={ai} sources={recipe.sources} update={(values) => editLine(index, values)} /> :
+          <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 1.5 }}>
+          <MeasurementInput label="來源用量" data={line.amount} sources={recipe.sources} update={(amount) => editLine(index, { amount })} />
+          <MeasurementInput label="整份食譜烹調前重量（g）" data={line.weight_g} sources={recipe.sources} update={(weight_g) => editLine(index, { weight_g })} />
+        </Box>}
+        {/^(ml|l|毫升|公升)$/i.test(line.unit ?? '') && <Alert severity="info">
+          請核對容量的來源用量與證據。容量可供價格計算，營養計算仍需有依據的克重，缺少時請保留重量未知。
+        </Alert>}
+        <Button onClick={() => update({ ...recipe, ingredients: recipe.ingredients.filter((_, item) => index !== item) })}>移除此食材</Button>
+      </Stack>
+    </Paper>)}
+    <Button onClick={() => update({ ...recipe, ingredients: [...recipe.ingredients, newLine()] })}>新增食材列</Button>
+    <Typography variant="h6">步驟</Typography>
+    {recipe.steps.map((step, index) => <Stack key={step.step_no} direction="row" spacing={1} sx={{ alignItems: 'center' }}>
+      <Field label={'步驟 ' + step.step_no} required multiline value={step.instruction}
+        update={(instruction) => update({ ...recipe, steps: recipe.steps.map((entry, item) => item === index ? { ...entry, instruction } : entry) })} />
+      <Button onClick={() => update({ ...recipe, steps: recipe.steps.filter((_, item) => item !== index)
+        .map((entry, item) => ({ ...entry, step_no: item + 1 })) })}>移除</Button>
+    </Stack>)}
+    <Button onClick={() => update({ ...recipe, steps: [...recipe.steps, { step_no: recipe.steps.length + 1, instruction: '' }] })}>新增步驟</Button>
+    <AllergenInput value={recipe.declared_allergen_ids} update={(declared_allergen_ids) => update({ ...recipe, declared_allergen_ids })} />
+  </Stack>
+}
+
+function CapturedQuantity({ line, sources, update, ai }: { line: Line; sources: Source[]; update: Update<Partial<Line>>; ai: boolean }) {
+  const unit = line.unit === 'g' || line.unit === 'ml' ? line.unit : ''
+  return <Stack spacing={1}>
+    <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1}>
+      <Field label="用量" type="decimal" value={line.amount.value} update={(value) => {
+        const amount: Measurement = value ? { status: 'declared', value, unknown_reason: null, evidence_ids: [] } : unknownMeasurement()
+        update({ amount, ...(unit === 'g' ? { weight_g: amount } : {}) })
+      }} />
+      <Select label="用量單位" value={unit} choices={{ '': '請選擇', g: 'g', ml: 'ml' }} update={(next) => {
+        update({ unit: next || null, weight_g: next === 'g' ? line.amount : unknownMeasurement() })
+      }} />
+    </Stack>
+    {line.amount.value !== null && <Evidence label="用量證據" sources={sources} ids={line.amount.evidence_ids}
+      update={(evidence_ids) => {
+        const amount = { ...line.amount, evidence_ids }
+        update({ amount, ...(unit === 'g' ? { weight_g: amount } : {}) })
+      }} />}
+    {unit === 'ml' && <>
+      <Alert severity="info">ml 會保留為體積。{ai ? '送審' : '發布'}前請另填有依據的烹調前克重。</Alert>
+      <MeasurementInput label="整份食譜烹調前重量（g）" data={line.weight_g} sources={sources}
+        update={(weight_g) => update({ weight_g })} />
+    </>}
+  </Stack>
+}
+
+function taipeiInput(utc: string | null) {
+  if (!utc || Number.isNaN(Date.parse(utc))) return null
+  return new Date(Date.parse(utc) + 8 * 3_600_000).toISOString().slice(0, 19)
+}
+
+function utcFromTaipei(value: string) {
+  if (!value) return null
+  const epoch = Date.parse(value + '+08:00')
+  return Number.isNaN(epoch) ? null : new Date(epoch).toISOString().replace('.000Z', 'Z')
+}
+
+function PackageSizeFields({ price, update }: { price: Price; update: Update<Price> }) {
+  const [unit, setUnit] = useState<PackageUnit>(price.package_volume_ml != null ? 'mL' : 'g')
+  const [input, setInput] = useState(price.package_volume_ml ?? price.package_mass_g ?? '')
+  const size = canonicalPackageSize(input, unit)
+  function change(value: string, nextUnit: PackageUnit) {
+    setInput(value)
+    setUnit(nextUnit)
+    const quantity = canonicalPackageSize(value, nextUnit)
+    update({ ...price,
+      package_mass_g: packageDimension(nextUnit) === 'mass' ? quantity : null,
+      package_volume_ml: packageDimension(nextUnit) === 'volume' ? quantity : null,
+    })
+  }
+  return <>
+    <Select label="包裝規格單位" value={unit} choices={{ g: 'g（公克）', kg: 'kg（公斤）', mL: 'mL（毫升）', L: 'L（公升）' }}
+      update={(nextUnit) => change(packageDimension(unit) === packageDimension(nextUnit)
+        ? displayPackageSize(size, nextUnit) : '', nextUnit)} />
+    <TextField fullWidth size="small" label={`單包${packageDimension(unit) === 'volume' ? '容量' : '重量'}（${unit}）`}
+      required value={input} error={input !== '' && size === null} onChange={(event) => change(event.target.value, unit)}
+      inputRef={(element: HTMLInputElement | null) => element?.setCustomValidity(
+        input !== '' && size === null ? '請填寫可精確換算的正數包裝規格。' : '')}
+      helperText={input && !size ? '請填正數，換算後最多 16 位整數與 6 位小數。' :
+        size ? `核對規格 ${size} ${packageDimension(unit) === 'volume' ? 'mL' : 'g'}／包` : '依商品標示填寫單包規格。'}
+      slotProps={{ htmlInput: { inputMode: 'decimal', pattern: '[0-9]{1,19}(\\.[0-9]{0,9})?' } }} />
+  </>
+}
+
+function PriceFields({ price, update }: { price: Price; update: Update<Price> }) {
+  const correction = price.correction_kind === 'quote_correction'
+  const replacing = Boolean(price.replaces_version_id)
+  const updateCondition = (key: 'region_condition' | 'store_condition' | 'promotion_condition') =>
+    (value: string) => update({ ...price, [key]: nullable(value) })
+  return <Stack spacing={1.5}>
+    {replacing && <Alert severity="info">此草稿會替換指定發布成員，原發布與審核紀錄保留。</Alert>}
+    <Select label="修訂類別" value={price.correction_kind} disabled={replacing} choices={{ product_binding: '商品對應', quote_correction: '人工價格修訂' }}
+      update={(correction_kind) => update(correction_kind === 'product_binding' ? { ...price, correction_kind, price_twd: null, package_mass_g: null,
+        package_volume_ml: null, observed_at: null, availability: 'unknown' } : { ...price, correction_kind, availability: 'in_stock' })} />
+    <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 1.5 }}>
+      <Field label="Food ID" value={price.food_id} readOnly={replacing} required update={(food_id) => update({ ...price, food_id })} />
+      <Field label="食材版本識別碼" value={price.ingredient_version_id} readOnly={replacing} required update={(ingredient_version_id) => update({ ...price, ingredient_version_id })} />
+      <Select label="價格來源" value={price.provider} disabled={replacing} choices={{ pxmart: '全聯', uniprosperity: '萬家福', manual_evidence: '人工證據' }}
+        update={(provider) => update({ ...price, provider })} />
+      <Field label="商品識別碼" value={price.product_id} required update={(product_id) => update({ ...price, product_id })} />
+      <Field label="商品名稱" value={price.product_name} required update={(product_name) => update({ ...price, product_name })} />
+      <TextField fullWidth size="small" label="參考原始觀察編號" type="number" value={price.snapshot_id ?? ''}
+        slotProps={{ htmlInput: { min: 1, max: Number.MAX_SAFE_INTEGER, step: 1 } }}
+        onChange={(event) => update({ ...price, snapshot_id: event.target.value ? Number(event.target.value) : null })} />
+      {correction && <>
+        <Field label="人工核對的價格（NT$）" type="decimal" value={price.price_twd} required
+          update={(value) => update({ ...price, price_twd: nullable(value) })} />
+        <PackageSizeFields price={price} update={update} />
+        <Field label="實際觀察時間（台北）" type="datetime-local" value={taipeiInput(price.observed_at)} required
+          update={(value) => update({ ...price, observed_at: utcFromTaipei(value) })} />
+      </>}
+      <Field label="有效起日（台北）" type="datetime-local" value={taipeiInput(price.valid_from)} required={correction}
+        update={(value) => update({ ...price, valid_from: utcFromTaipei(value) })} />
+      <Field label="有效迄日（台北）" type="datetime-local" value={taipeiInput(price.valid_until)} required={correction}
+        update={(value) => update({ ...price, valid_until: utcFromTaipei(value) })} />
+      <Field label="適用地區" value={price.region_condition} readOnly={replacing} update={updateCondition('region_condition')} />
+      <Field label="適用店別" value={price.store_condition} readOnly={replacing} update={updateCondition('store_condition')} />
+      <Field label="促銷條件" value={price.promotion_condition} readOnly={replacing} update={updateCondition('promotion_condition')} />
+    </Box>
+    {correction && <Alert severity="info">價格修訂代表有證據支持的有貨觀察。請先核對售價、單包重量或容量與效期。重量與容量之間的換算須另有證據。</Alert>}
+  </Stack>
+}
+
+export function EditFields({ domain, content, update }: {
+  domain: EditableDomain; content: Content; update: React.Dispatch<React.SetStateAction<Content>>
+}) {
+  function remove(artifactId: string) {
+    const keep = (ids: string[]) => ids.filter((id) => id !== artifactId)
+    update((current) => {
+      const sources = current.sources.filter((source) => source.artifact_id !== artifactId)
+      if (!('logical_recipe_id' in current)) return { ...current, sources }
+      return { ...current, sources, servings: { ...current.servings, evidence_ids: keep(current.servings.evidence_ids) },
+        ingredients: current.ingredients.map((line) => ({ ...line,
+          amount: { ...line.amount, evidence_ids: keep(line.amount.evidence_ids) },
+          weight_g: { ...line.weight_g, evidence_ids: keep(line.weight_g.evidence_ids) },
+        })) }
+    })
+  }
+  return <Stack spacing={2}>
+    {'logical_recipe_id' in content ? <RecipeFields recipe={content} update={update} /> :
+      'canonical_name' in content ? <IngredientFields content={content} update={update} /> :
+        <PriceFields price={content} update={update} />}
+    <Divider />
+    <SourceInputs domain={domain} sources={content.sources}
+      append={(source) => update((current) => ({ ...current, sources: [...current.sources, source] }))} remove={remove} />
+  </Stack>
+}
+
+function IngredientFields({ content, update }: { content: Ingredient; update: Update<Ingredient> }) {
+  return <Stack spacing={1.5}>
+    {content.food_id && <Field label="Food ID" value={content.food_id} readOnly />}
+    <Field label="食材名稱" value={content.canonical_name} required update={(canonical_name) => update({ ...content, canonical_name })} />
+    <Field label="食材別名" multiline value={content.aliases.join('\n')} update={(input) => update({ ...content, aliases: input.split('\n') })}
+      hint="每行一個別名。" />
+    <AllergenInput value={content.declared_allergen_ids} update={(declared_allergen_ids) => update({ ...content, declared_allergen_ids })} />
+  </Stack>
+}

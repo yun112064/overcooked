@@ -18,7 +18,7 @@ from app.api.errors import register_error_handlers
 from app.api.sim_market import router
 from app.core.config import settings
 from app.db.base import Base
-from app.db.models import AdoptedMealPlan, Household, MealRequest, Member
+from app.db.models import AdoptedMealPlan, Household, MealRequest, Member, MealConfirmationEvent
 from app.db.session import get_db
 from app.models.recipe import IngredientAlias, Recipe, RecipeDataRelease, RecipeIngredient, SourceArchive
 from app.services import database_menu_plans
@@ -116,7 +116,7 @@ def test_picker_adoption_freezes_exact_market_shortages(market_client, monkeypat
     monkeypatch.setattr(SQLiteTypeCompiler, 'visit_JSONB', SQLiteTypeCompiler.visit_JSON, raising=False)
     db_session = contextmanager(app.dependency_overrides[get_db])
     with db_session() as db, db.begin():
-        for model in (Household, Member, MealRequest, AdoptedMealPlan):
+        for model in (Household, Member, MealRequest, AdoptedMealPlan, MealConfirmationEvent):
             ddl = CreateTable(model.__table__).compile(dialect=db.bind.dialect)
             db.connection().exec_driver_sql(str(ddl).replace('::jsonb', ''))
         db.add(Household(id=household_id, name='Synthetic household'))

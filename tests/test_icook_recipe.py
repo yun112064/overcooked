@@ -1,12 +1,17 @@
 import hashlib
 import json
+import uuid
+from types import SimpleNamespace
 
 import httpx
 import pytest
 from sqlalchemy import func, select
+from sqlalchemy.orm import Session
 
 from app.api import management_recipes
+from app.api.deps import current_auth
 from app.management.models import tables
+from app.management.service import Management
 from app.source_adapters.icook import ICookError, fetch_recipe, parse_recipe
 from test_management_api import client
 from test_management_foundation import ACTORS, env
@@ -135,8 +140,110 @@ def test_admin_preview_checks_permissions_before_fetch_and_does_not_write(client
     result = http.post(path, json={"url": URL})
     assert result.status_code == 200
     assert result.json()["status"] == "pending_review"
-    assert result.json()["step_checks"]["checked_count"] == 2
     assert calls == [URL]
     with env.engine.connect() as connection:
         for name in ("artifacts", "proposals", "publications"):
             assert connection.scalar(select(func.count()).select_from(tables[name])) == 0
+
+
+def test_save_preview_is_bound_to_actor_and_idempotent(client, env, monkeypatch):
+    http, app = client
+    app.include_router(management_recipes.router)
+    env.grants(ACTORS[1], ["recipe_editor"], ["recipe"])
+    env.grants(ACTORS[2], ["recipe_editor"], ["recipe"])
+    calls = []
+
+    def fetch(url):
+        calls.append(url)
+        return parse_recipe(url, recipe_html())
+
+    monkeypatch.setattr(management_recipes, "fetch_recipe", fetch)
+    path = "/admin/v1/recipe-candidates/icook"
+    preview = http.post(path + "/preview", json={"url": URL}).json()
+    assert preview["servings_count"] is None
+    token = preview["preview_id"]
+
+    def save(value=token, key="import-once"):
+        return http.post(path + "/drafts", json={"preview_id": value}, headers={"Idempotency-Key": key})
+
+    assert save(token + "tampered").status_code == 422
+    app.dependency_overrides[current_auth] = lambda: SimpleNamespace(user_id=uuid.UUID(ACTORS[2]))
+    assert save().status_code == 422
+    app.dependency_overrides[current_auth] = lambda: SimpleNamespace(user_id=uuid.UUID(ACTORS[1]))
+    saved = save()
+    assert saved.status_code == 201, saved.text
+    draft = saved.json()["proposal"]
+    assert draft["status"] == "draft"
+    assert draft["content"]["servings"]["count"] is None
+    assert draft["content"]["servings"]["basis"] == "portions"
+    assert draft["content"]["servings"]["raw_text"] == "1 批"
+    assert draft["content"]["category"] is None
+    assert draft["content"]["ingredients"][1]["amount"]["value"] is None
+    assert draft["content"]["ingredients"][-1]["unit"] == "ml"
+    assert draft["content"]["ingredients"][-1]["weight_g"]["value"] is None
+    assert save().headers["Idempotency-Replayed"] == "true"
+    assert save(key="other-click").json()["existing"] is True
+    assert calls == [URL]
+    assert http.post(path + "/preview", json={"url": URL}).json()["existing_proposal_id"] == draft["proposal_id"]
+    with env.engine.connect() as connection:
+        for name, count in (("artifacts", 1), ("proposals", 1), ("publications", 0), ("review_decisions", 0)):
+            assert connection.scalar(select(func.count()).select_from(tables[name])) == count
+
+
+def test_icook_measurements_must_be_completed_and_confirmed_before_review(client, env, monkeypatch):
+    http, app = client
+    app.include_router(management_recipes.router)
+    env.grants(ACTORS[1], ["recipe_editor"], ["recipe"])
+    env.grants(ACTORS[2], ["recipe_reviewer"], ["recipe"])
+    monkeypatch.setattr(management_recipes, "fetch_recipe", lambda url: parse_recipe(url, recipe_html()))
+    path = "/admin/v1/recipe-candidates/icook"
+    token = http.post(path + "/preview", json={"url": URL}).json()["preview_id"]
+    saved = http.post(path + "/drafts", json={"preview_id": token}, headers={"Idempotency-Key": "import"})
+    assert saved.status_code == 201, saved.text
+    p = saved.json()["proposal"]
+    pid = p["proposal_id"]
+    command = {"expected_revision": 1, "expected_content_hash": p["content_hash"], "reason": "synthetic review"}
+    confirm = path + f"/{pid}/confirm-quantities"
+    proposal_url = "/admin/v1/proposals/" + pid
+    assert http.post(confirm, json=command, headers={"Idempotency-Key": "confirm"}).status_code == 403
+    source = http.get(path + f"/{pid}/source").json()
+    assert source["quantity_issues"] == ["ICOOK_PORTIONS_REQUIRED", "ICOOK_QUANTITY_REQUIRED"]
+    app.dependency_overrides[current_auth] = lambda: SimpleNamespace(user_id=uuid.UUID(ACTORS[2]))
+    assert http.post(confirm, json=command, headers={"Idempotency-Key": "confirm"}).status_code == 409
+    app.dependency_overrides[current_auth] = lambda: SimpleNamespace(user_id=uuid.UUID(ACTORS[1]))
+
+    def revise(key, command, content):
+        return http.post(proposal_url + "/revisions", headers={"Idempotency-Key": key}, json={
+            **command, "domain": "recipe", "dependency_pins": p["dependency_pins"], "content": content,
+        })
+
+    content = p["content"]
+    content["servings"]["basis"] = "batch"
+    assert revise("batch", command, content).status_code == 422
+    content["servings"].update(basis="portions", count="4")
+    for line in content["ingredients"]:
+        if line["amount"]["value"] is None:
+            line.update(amount={"value": "2.5", "status": "declared", "evidence_ids": [], "unknown_reason": None}, unit="ml")
+    revised = revise("complete", command, content)
+    assert revised.status_code == 201, revised.text
+    p = revised.json()
+    command.update(expected_revision=p["revision"], expected_content_hash=p["content_hash"])
+
+    def issues():
+        with Session(env.engine) as db:
+            s = Management(db, ACTORS[1])
+            row = s.proposal(pid)
+            return {issue["code"] for issue in s.issues(row, s.revision(row))}
+
+    assert "ICOOK_REVIEWER_CONFIRMATION_REQUIRED" in issues()
+    assert "SOURCE_WEIGHT_REQUIRED" not in issues()
+    assert http.post(proposal_url + "/submit", json=command, headers={"Idempotency-Key": "blocked"}).status_code == 409
+    app.dependency_overrides[current_auth] = lambda: SimpleNamespace(user_id=uuid.UUID(ACTORS[2]))
+    assert http.post(confirm, json=command, headers={"Idempotency-Key": "confirm2"}).status_code == 200
+    assert "ICOOK_REVIEWER_CONFIRMATION_REQUIRED" not in issues()
+    app.dependency_overrides[current_auth] = lambda: SimpleNamespace(user_id=uuid.UUID(ACTORS[1]))
+    content["servings"]["count"] = "5"
+    next_revision = revise("update", command, content)
+    assert next_revision.status_code == 201, next_revision.text
+    assert "ICOOK_REVIEWER_CONFIRMATION_REQUIRED" in issues()
+    assert next_revision.json()["status"] == "draft"

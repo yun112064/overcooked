@@ -47,15 +47,15 @@ class RecipeFloor:
     unquantified_food_ids: frozenset[str] = frozenset()
 
 
-_cache: dict[str, tuple[float, object]] = {}
+_cache: dict[str, tuple[float, object, str | None]] = {}
 
 
-def _cached(key: str, load):
+def _cached(key: str, load, variant: str | None = None):
     hit = _cache.get(key)
-    if hit and time.monotonic() - hit[0] < CACHE_SECONDS:
+    if hit and hit[2] == variant and time.monotonic() - hit[0] < CACHE_SECONDS:
         return hit[1]
     value = load()
-    _cache[key] = (time.monotonic(), value)
+    _cache[key] = (time.monotonic(), value, variant)
     return value
 
 
@@ -86,11 +86,17 @@ def _recipe_floors(db: Session) -> list[RecipeFloor]:
     from app.models import Recipe
     from app.services.meal_calculation import load_recipe_lines, pricing_requirements
     from app.services.recipe_import import standard_dish_id
+    from app.services.recipe_retrieval import active_release_filter
+    from app.management.active_recipe_catalog import active_catalog
 
     factors = load_snapshot(db)
     floors = []
-    for recipe_id, name, category in db.execute(select(Recipe.recipe_id, Recipe.recipe_name, Recipe.category)
-                                                .where(Recipe.is_eligible.is_(True))).all():
+    recipes = db.execute(select(Recipe.recipe_id, Recipe.recipe_name, Recipe.category)
+                         .where(Recipe.is_eligible.is_(True), active_release_filter(db))).all()
+    managed = active_catalog(db)
+    if managed:
+        recipes.extend((r.id, r.content['name'], r.content['category']) for r in managed.recipes.values())
+    for recipe_id, name, category in recipes:
         lines = load_recipe_lines(db, recipe_id, factors)
         requirements = pricing_requirements(lines, (ln.grams_per_n for ln in lines), Decimal(1))
         unquantified = frozenset(ln.food_id for ln in lines) - {item.food_id for item in requirements}
@@ -125,12 +131,14 @@ def reference_dish_cost(floors: list[RecipeFloor], quotes: dict[str, list[PriceQ
 def minimum_budget(db: Session, *, dish_count: int, total_n: Decimal, available_food_ids: Iterable[str],
                    has_staple: bool, now: datetime | None = None) -> Decimal | None:
     """本餐預算下限（整數元）；無法估算時回 None（不擋）。"""
+    from app.management.active_recipe_catalog import active_catalog
     from app.services.seasonings import load_seasonings
     from app.services.synonyms import confirmed_equivalents
     from app.source_adapters.price_collection import load_price_exempt
 
     now = now or datetime.now(timezone.utc)
-    floors = _cached("floors", lambda: _recipe_floors(db))
+    catalog = active_catalog(db)
+    floors = _cached("floors", lambda: _recipe_floors(db), catalog.publication_id if catalog else None)
     prices = _cached("prices", lambda: cost_quote_candidates(db))
     if settings.management_price_policy_enabled:
         requirements = [item for floor in floors for item in floor.requirements]

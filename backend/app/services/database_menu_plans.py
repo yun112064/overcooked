@@ -27,6 +27,7 @@ from app.models.recipe import Recipe
 from app.meal_calc.types import IngredientRequirement
 from app.services import household, meal_history, meal_plans, meal_validation, recipe_retrieval, t12_planning
 from app.services import idempotency
+from app.services import meal_confirmation_events
 from app.services import meal_request as request_service
 from app.services.generation import _jsonable, cost_snapshot
 from app.services.meal_cost import free_foods, meal_cost_from_db
@@ -122,6 +123,7 @@ def adopt(db: Session, *, household_id, user_id, row: MealRequest, draft, member
         snapshot['market_shortages'] = _market_shortages(db, recipe_ids, preview, draft.available_ingredient_ids)
     plan.snapshot = snapshot
     meal_plans.confirm_request(row)
+    meal_confirmation_events.record(db, plan)
     db.flush()
     return plan, True
 

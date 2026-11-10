@@ -1,0 +1,4 @@
+/* 版面與元件樣式由 MUI（CssBaseline、ThemeProvider）提供 */
+html, body, #root {
+  min-height: 100%;
+}

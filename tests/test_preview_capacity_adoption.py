@@ -6,9 +6,10 @@ from types import SimpleNamespace
 from unittest.mock import patch
 
 import pytest
+import sqlalchemy as sa
 
 from app.core.config import settings
-from app.db.models import MealRequest
+from app.db.models import MealRequest, MealConfirmationEvent
 from app.models.recipe import Recipe, SourceArchive
 from app.services import database_menu_plans, meal_cost
 from db_support import requires_db
@@ -136,6 +137,14 @@ class PreviewCapacityAdoptionTests(_MealPlanApiBase):
             retry = self.priced_adopt(preview, price='9999')
         self.assertEqual(retry.status_code, 200, retry.text)
         self.assertEqual(self.client.get(path).json(), detail)
+        with self.factory() as db:
+            events = db.scalars(sa.select(MealConfirmationEvent)
+                                .where(MealConfirmationEvent.plan_id == plan['id'])
+                                .order_by(MealConfirmationEvent.sequence)).all()
+            self.assertEqual([event.stage for event in events], [
+                'confirmed', 'snapshot_saved', 'history_saved', 'ingredients_saved', 'nutrition_saved', 'cost_saved',
+            ])
+            self.assertEqual([event.sequence for event in events], list(range(1, 7)))
 
     def test_capacity_cost_over_budget_is_rejected_without_writes(self):
         res = self.priced_adopt(preview_with((None, '1000.0001')))
@@ -143,6 +152,8 @@ class PreviewCapacityAdoptionTests(_MealPlanApiBase):
         self.assertEqual(res.json()['error']['code'], 'BUDGET_EXCEEDED')
         self.assertEqual(self.client.get('/meal-plans').json()['dates'], [])
         self.assertNotEqual(self.client.get(f"/meal-requests/{self.request['id']}").json()['status'], 'confirmed')
+        with self.factory() as db:
+            self.assertEqual(db.scalar(sa.select(sa.func.count()).select_from(MealConfirmationEvent)), 0)
 
     def test_capacity_cost_still_rechecks_yesterday(self):
         # Explicit picker choices may repeat; exercise the non-exempt questionnaire path.
@@ -154,6 +165,9 @@ class PreviewCapacityAdoptionTests(_MealPlanApiBase):
         self.assertEqual(res.status_code, 409, res.text)
         self.assertEqual(res.json()['error']['code'], 'PREVIOUS_DAY_DISH_CONFLICT')
         self.assertEqual(self.client.get('/meal-plans', params={'date': '2026-08-20'}).json()['meal_plans'], [])
+        with self.factory() as db:
+            self.assertEqual(db.scalar(sa.select(sa.func.count()).select_from(MealConfirmationEvent)
+                                       .where(MealConfirmationEvent.stage == 'confirmed')), 1)
 
     def test_known_capacity_over_budget_cannot_be_hidden_by_unknown_amount(self):
         res = self.priced_adopt(preview_with((None, '1001'), (None, None)))

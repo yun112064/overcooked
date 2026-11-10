@@ -711,7 +711,7 @@ export type GenerationPlanDetail = Omit<GenerationPlanSummary, 'dishes'> & {
   snapshot_available: boolean
   fallback_message?: string | null
   dishes: (MealPlanDish & Partial<Pick<ResultDish, 'cooking_method' | 'steps' | 'steps_display' | 'ingredients' | 'sodium_mg_per_serving' | 'high_sodium'>> & {
-    recipe_source?: { recipe_id: string; source_name: string; source_url: string } | null
+    recipe_source?: { recipe_id: string; source_name: string; source_url: string | null } | null
   })[]
   nutrition?: MealResult['nutrition']
   prices?: MealResult['prices']

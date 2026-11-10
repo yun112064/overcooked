@@ -7,9 +7,12 @@ from datetime import date, datetime, timedelta, timezone
 from decimal import Decimal
 from unittest.mock import patch
 
-from db_support import make_client, migrate_fresh, requires_db, seed_foods, truncate_all
+import sqlalchemy as sa
+
+from db_support import make_client, migrate_fresh, requires_db, seed_foods, session_factory, truncate_all
 from test_t08_meal_requests import PASSWORD, full_draft, member_body
 
+from app.db.models import MealConfirmationEvent
 from app.services import meal_cost, recipe_retrieval
 
 
@@ -109,6 +112,11 @@ class MealPlanApiTests(_MealPlanApiBase):
         self.assertEqual(detail['snapshot']['targets'], {'energy_kcal': '600', 'protein_g': '30'})
         # 精確值保存成字串（不轉 float）
         self.assertEqual(detail['snapshot']['dishes'][0]['ingredients'][0]['display_amount'], '0.50')
+        with session_factory()() as db:
+            self.assertEqual(db.scalars(sa.select(MealConfirmationEvent.stage)
+                                        .order_by(MealConfirmationEvent.sequence)).all(), [
+                'confirmed', 'snapshot_saved', 'history_saved', 'ingredients_saved', 'nutrition_saved', 'cost_saved',
+            ])
 
     def test_adoption_is_refused_when_the_menu_changed_or_nutrition_failed(self):
         self.assertEqual(self.adopt(['R3', 'R4']).json()['error']['code'], 'MENU_CHANGED')

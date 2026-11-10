@@ -21,24 +21,49 @@ _engine = None
 _Session = None
 
 
+def verify_disposable(engine) -> None:
+    """Destructive test setup requires a local test DB and its provisioning marker."""
+    url = engine.url
+    if (url.get_backend_name() != 'postgresql' or url.host not in ('localhost', '127.0.0.1')
+            or not (url.database or '').startswith('meal_planner_1102_v3_')
+            or not url.database.endswith('_test')):
+        raise RuntimeError('Refusing to rebuild a non-disposable database')
+    with engine.connect() as connection:
+        name, marker = connection.execute(text(
+            "SELECT current_database(), shobj_description(oid,'pg_database') "
+            "FROM pg_database WHERE datname=current_database()"
+        )).one()
+        if name != url.database or not marker or not marker.startswith(('overcooked-stage0:', 'overcooked:disposable:')):
+            raise RuntimeError('Disposable test database marker required')
+
+
 def migrate_fresh() -> None:
     """從空資料庫升到 head；同時驗證 downgrade 能完整退回。"""
     from alembic import command
     from alembic.config import Config
 
     global _engine, _Session
+    if _engine is not None:
+        _engine.dispose()
+    _engine = create_engine(TEST_DATABASE_URL, pool_pre_ping=True)
+    verify_disposable(_engine)
     cfg = Config(str(ROOT / "alembic.ini"))
     cfg.set_main_option("script_location", str(ROOT / "migrations"))
     cfg.attributes["database_url"] = TEST_DATABASE_URL
     cfg.attributes["configure_logger"] = False
     command.upgrade(cfg, "head")
+    # Prior test classes can leave a confirmation journal. Clear only the
+    # marker-verified fixture DB before rehearsing downgrade; the migration's
+    # refusal to remove real event data remains unchanged.
+    with _engine.begin() as connection:
+        connection.execute(text('TRUNCATE meal_confirmation_events'))
     command.downgrade(cfg, "base")
     command.upgrade(cfg, "head")
-    _engine = create_engine(TEST_DATABASE_URL, pool_pre_ping=True)
     _Session = sessionmaker(bind=_engine, autoflush=False, expire_on_commit=False)
 
 
 def truncate_all() -> None:
+    verify_disposable(_engine)
     with _engine.begin() as conn:
         tables = conn.execute(text(
             "SELECT tablename FROM pg_tables WHERE schemaname = 'public' "

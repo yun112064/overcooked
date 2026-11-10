@@ -47,7 +47,7 @@ def _adopt(connection,expected_before,expected_after,approver,backup_reference):
     if before_new:raise ValueError('Unexpected rows in newly created table')
     config=cfg(connection)
     command.stamp(config,'d1105merge1',purge=True)
-    command.upgrade(config,'head')
+    command.upgrade(config,'m1107management1')
     if data_hash(connection,exclude=('meal_menu_rejections',))!=protected:raise ValueError('Protected legacy data changed')
     plan=digest('adoption-plan',dict(old=old,before=expected_before,after=expected_after))
     connection.execute(T['schema_adoptions'].insert().values(id=__import__('uuid').uuid4().hex,plan_hash=plan,old_metadata={'revision':old,'source':'synthetic_observed_shape_not_recovered_graph'},

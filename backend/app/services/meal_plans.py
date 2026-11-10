@@ -22,7 +22,7 @@ from sqlalchemy.orm import Session, object_session
 from app.api.errors import ApiError, not_found, version_conflict
 from app.db.models import AdoptedMealPlan, GenerationResult, MealRequest, MealResultDecision
 from app.models import Recipe, SourceArchive
-from app.services import idempotency, meal_history, meal_results, meal_validation, recipe_retrieval, t12_planning
+from app.services import idempotency, meal_confirmation_events, meal_history, meal_results, meal_validation, recipe_retrieval, t12_planning
 from app.services.generation import MODE_LABELS
 
 SNAPSHOT_VERSION = "meal_plan_snapshot/v1"
@@ -99,11 +99,13 @@ def _recipe_sources(db: Session, dishes: list[dict]) -> dict:
         return {}
     rows = db.execute(select(Recipe, SourceArchive).join(SourceArchive, SourceArchive.raw_id == Recipe.raw_id)
                       .where(Recipe.recipe_id.in_(ids))).all()
-    return {r.recipe_id: {"recipe_id": r.recipe_id, "recipe_name": r.recipe_name, "source_name": r.source_name,
+    sources = {r.recipe_id: {"recipe_id": r.recipe_id, "recipe_name": r.recipe_name, "source_name": r.source_name,
                           "source_url": r.source_url, "review_status": r.review_status,
                           "original_servings": str(r.original_servings) if r.original_servings is not None else None,
                           "import_batch_id": a.import_batch_id, "content_hash": a.content_hash}
             for r, a in rows}
+    sources.update({dish['recipe_id']: dish['recipe_source'] for dish in dishes if dish.get('recipe_source')})
+    return sources
 
 
 def _snapshot(db: Session, request: MealRequest, result: GenerationResult, evaluation: dict,
@@ -187,6 +189,7 @@ def adopt(db: Session, *, household_id, user_id, meal_request_id, result_version
     plan.price_exception_accepted = evaluation["price_exception_accepted"]
     plan.snapshot = _snapshot(db, request, result, evaluation, accepted, recheck)
     confirm_request(request)
+    meal_confirmation_events.record(db, plan)
     db.flush()
     return plan, True
 

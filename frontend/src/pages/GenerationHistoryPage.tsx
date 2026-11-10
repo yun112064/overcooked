@@ -258,7 +258,9 @@ function PlanCard({ plan }: { plan: GenerationPlanDetail }) {
               {d.steps && <DishSteps steps={d.steps} display={d.steps_display} />}
               {d.recipe_source && (
                 <Typography variant="caption">
-                  食譜來源：<Link href={d.recipe_source.source_url} target="_blank" rel="noreferrer">{d.recipe_source.source_name}</Link>
+                  食譜來源：{d.recipe_source.source_url
+                    ? <Link href={d.recipe_source.source_url} target="_blank" rel="noreferrer">{d.recipe_source.source_name}</Link>
+                    : d.recipe_source.source_name}
                 </Typography>
               )}
             </Box>

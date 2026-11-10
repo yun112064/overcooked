@@ -1,5 +1,6 @@
 """Thin rc1 management adapter; disabled by default, no automatic workers."""
 import json
+from uuid import UUID
 from fastapi import APIRouter, Depends, Request, Response, UploadFile, File, Form
 from sqlalchemy import select, text
 from app.api.deps import current_auth, verify_origin
@@ -8,6 +9,7 @@ from app.core.config import settings
 from app.db.session import get_db
 from app.management.service import Management, fail
 from app.management.service import now, stamp
+from app.management.contracts import POLICY
 from app.management.models import tables as T
 from app.management.schema_v1 import IMMUTABLE
 
@@ -49,9 +51,23 @@ def complete(s,result):
     return result
 
 @router.get('/capabilities')
-def capabilities(domain:str|None=None,s=Depends(service)):
+def capabilities(domain: str | None = None, include_scopes: bool = False, s=Depends(service)):
     if domain is not None and domain not in ('recipe','ingredient','price','source_policy'):fail('INVALID_INPUT',status=422)
-    return s.capabilities(domain)
+    return s.capabilities(domain, include_scopes)
+
+
+@router.get('/role-grants')
+def role_grants(user_id: UUID, s=Depends(service)):
+    admin = s.require('access.read')
+    scope = set(admin['domain_scope'])
+    grants = [grant for grant in s.grants(str(user_id)) if set(grant['domain_scope']) <= scope]
+    return dict(
+        access_revision=s.db.scalar(select(T['access_state'].c.revision)),
+        domains=sorted(scope), roles=sorted(POLICY['role_presets']),
+        items=[dict(grant_id=grant['id'], role=grant['role'], domain_scope=grant['domain_scope'],
+                    expires_at=stamp(grant['expires_at']) if grant['expires_at'] else None)
+               for grant in sorted(grants, key=lambda grant: grant['role'])],
+    )
 
 @router.post('/role-grants',status_code=201)
 def grant(request:Request,b=Depends(body),s=Depends(service)):return complete(s,s.grant(key(request),b))
@@ -74,7 +90,16 @@ def get(pid:str,s=Depends(service)):return s.get(pid)
 def revise(pid:str,request:Request,b=Depends(body),s=Depends(service)):return complete(s,s.revise(key(request),pid,b))
 
 @router.post('/proposals/{pid}/validations',status_code=202)
-def validation(pid:str,request:Request,b=Depends(body),s=Depends(service)):return complete(s,s.request_validation(key(request),pid,b))
+def validation(pid: str, request: Request, run_now: bool = False, b=Depends(body), s=Depends(service)):
+    receipt = s.request_validation(key(request), pid, b)
+    if run_now:
+        s.run_validation(receipt['task_id'])
+    return complete(s, receipt)
+
+
+@router.post('/tasks/{tid}/run')
+def run_validation(tid: str, s=Depends(service)):
+    return complete(s, s.run_validation(tid))
 
 @router.post('/proposals/{pid}/submit')
 def submit(pid:str,request:Request,b=Depends(body),s=Depends(service)):return complete(s,s.submit(key(request),pid,b))

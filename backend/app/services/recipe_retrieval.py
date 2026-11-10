@@ -20,7 +20,9 @@ from fractions import Fraction
 from sqlalchemy import select
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
+from types import SimpleNamespace
 
+from app.management.active_recipe_catalog import active_catalog
 from app.models import Recipe, RecipeDataRelease, RecipeIngredient
 from app.services import meal_history, staples, synonyms
 from app.services.meal_request import MealRequestDraft
@@ -94,6 +96,9 @@ class _Dish:
 
 def active_release_filter(db: Session):
     """只取啟用中發布的食譜（食譜庫選菜也共用，兩邊看到的菜一致）。"""
+    catalog = active_catalog(db)
+    if catalog:
+        return (Recipe.recipe_release_id == catalog.base_release_id) & Recipe.recipe_id.in_(catalog.legacy_ids)
     active_release_ids = db.scalars(
         select(RecipeDataRelease.release_id).where(RecipeDataRelease.active.is_(True))
     ).all()
@@ -120,13 +125,20 @@ def _load_recipes(db: Session) -> list[dict]:
     ):
         foods.setdefault(line.recipe_id, set()).add(line.food_id)
         lines.setdefault(line.recipe_id, []).append(line)
-    main_vegetable = _main_vegetables(db, lines)
-    return [{"recipe_id": r.recipe_id, "standard_dish_id": r.standard_dish_id, "recipe_name": r.recipe_name,
+    recipes = [{"recipe_id": r.recipe_id, "standard_dish_id": r.standard_dish_id, "recipe_name": r.recipe_name,
              "category": r.category,
              "aliases": [a for a in (r.name_aliases or []) if isinstance(a, str) and a.strip()],
              "tags": [t for t in (r.category, r.cuisine, *(r.cooking_methods or [])) if isinstance(t, str) and t],
-             "food_ids": sorted(foods.get(r.recipe_id, set())),
-             "main_vegetable": main_vegetable.get(r.recipe_id)} for r in rows]
+             "food_ids": sorted(foods.get(r.recipe_id, set()))} for r in rows]
+    catalog = active_catalog(db)
+    if catalog:
+        for recipe in catalog.recipes.values():
+            ingredients = [SimpleNamespace(**row) for row in recipe.ingredient_rows()]
+            lines[recipe.id] = ingredients
+            recipes.append(dict(recipe.summary(), food_ids=sorted({line.food_id for line in ingredients}),
+                                tags=[recipe.content['category'], recipe.content['cuisine'], *recipe.methods]))
+    main_vegetable = _main_vegetables(db, lines)
+    return [dict(recipe, main_vegetable=main_vegetable.get(recipe['recipe_id'])) for recipe in recipes]
 
 
 def _main_vegetables(db: Session, lines: dict[str, list]) -> dict[str, str]:
