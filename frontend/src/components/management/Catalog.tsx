@@ -110,7 +110,7 @@ function PublicationContents({ id, domain, canEdit, select }: {
         {canEdit && domain === 'price' && <Button onClick={() => {
           const price = entity.content as Price
           select({ initial: { ...price, replaces_version_id: entity.ref.version_id, snapshot_id: null,
-            price_twd: null, package_mass_g: null, observed_at: null,
+            price_twd: null, package_mass_g: null, package_volume_ml: null, observed_at: null,
             valid_from: null, valid_until: null, sources: [] }, context: { base_publication_id: id,
             legacy_recipe_release_id: price.legacy_recipe_release_id, ingredient_publication_id: price.ingredient_publication_id } })
         }}>建立明確替換草稿</Button>}
@@ -165,7 +165,8 @@ function LegacyRows({ domain, release, canEdit, select }: {
         {domain === 'recipe' && <>
           <Typography>來源份量 {data.servings_raw || '未知'} · {data.original_servings ?? '未知'} {data.servings_basis === 'batch' ? '批' : '份'}</Typography>
           {data.ingredients?.map((line) => <Typography key={line.line_id} variant="body2">
-            {line.canonical_name} · {line.raw_text} · 來源重量 {line.source_weight_g === null ? '未知' : `${line.source_weight_g} g`}
+            {line.canonical_name} · {line.raw_text} · 來源用量 {line.source_amount ?? '未知'} {line.source_unit ?? ''}
+            {' · '}來源重量 {line.source_weight_g === null ? '未知' : `${line.source_weight_g} g`}
           </Typography>)}
         </>}
         {canEdit && (domain === 'ingredient' || ['portions', 'batch'].includes(data.servings_basis ?? '')) &&
