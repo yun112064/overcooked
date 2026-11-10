@@ -58,7 +58,8 @@ NON_FOOD_MARKERS = (
     "洗衣", "清潔劑", "清潔液", "洗碗", "護髮", "化妝", "保養", "精華液",
     "面膜", "乳液", "牙膏", "除臭", "洗手乳", "漱口水", "ciao", "cat care",
     "寶路", "葛莉思cat", "沛比兒", "狗食", "貓食", "寵食",
-    "偉嘉", "西莎", "希爾思", "whiskas",
+    "偉嘉", "西莎", "希爾思", "whiskas", "冰桶", "保冰桶", "紅酒桶", "紅酒杯", "啤酒壺",
+    "啤酒杯", "啤酒機", "蛋杯", "蛋托", "蛋架", "蔬菜種子", "豆類種子",
 )
 
 PROCESSED_MARKERS = (
@@ -95,6 +96,7 @@ SPECIFIC_CONFLICTS: dict[str, tuple[str, ...]] = {
     "番茄": ("番茄罐", "番茄冬粉", "番茄汁", "蕃茄汁", "柳葉魚"),
     "奶油": ("鮮奶油", "奶油球", "奶油餐包", "人造奶油", "乳瑪琳"),
     "啤酒": ("啤酒酵母",),
+    "紅酒": ("裸麥",),
     "蛋黃": ("蛋黃香", "蛋黃素"),
     "鹹蛋黃": ("蛋黃酥", "方塊酥"),
     "鹹蛋": ("蛋黃酥", "方塊酥"),
@@ -158,7 +160,9 @@ def normalize(value: str) -> str:
 def build_search_terms(query: IngredientQuery, max_terms: int = 3) -> list[str]:
     """Build a bounded, conservative canonical/alias search sequence."""
 
-    terms: list[str] = []
+    terms = list(dict.fromkeys(term.strip() for term in query.preferred_search_terms if term.strip()))
+    if len(terms) >= max_terms:
+        return terms[:max_terms]
     for term in (
         query.canonical_name,
         *CURATED_ALIASES.get(query.canonical_name, ()),
@@ -313,15 +317,29 @@ def parse_package_details(text: str) -> PackageInfo:
         normalized,
         re.IGNORECASE,
     )
+    if not multipack_match:
+        multipack_match = re.search(
+            rf"(?<![\d.])(?P<count>\d+)\s*(?P<pack>包|瓶|罐|盒)[\s_:：]+"
+            rf"(?P<amount>\d+(?:\.\d+)?)\s*(?P<unit>{unit})\s*/\s*(?P=pack)",
+            normalized,
+            re.IGNORECASE,
+        )
     if multipack_match:
         per_item, canonical_unit = _quantity(
             multipack_match.group("amount"), multipack_match.group("unit")
         )
         count = int(multipack_match.group("count"))
+        description = multipack_match.group(0)
+        if normalized[:multipack_match.start()].rstrip().endswith("("):
+            outer = re.match(r"\s*\)\s*[xX×*]\s*([1-9]\d*)\s*(?:組|箱|盒|包)",
+                             normalized[multipack_match.end():])
+            if outer:
+                count *= int(outer.group(1))
+                description = "(" + description + outer.group(0)
         return PackageInfo(
             total_quantity=per_item * count,
             unit=canonical_unit,
-            description=multipack_match.group(0),
+            description=description,
             item_count=count,
             per_item_quantity=per_item,
             edible_quantity=edible_quantity,

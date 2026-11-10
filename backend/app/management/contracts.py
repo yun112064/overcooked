@@ -9,9 +9,20 @@ from app.api.errors import ApiError
 
 ROOT = Path(__file__).with_name('contracts')
 SCHEMAS = json.loads((ROOT/'schemas.json').read_text(encoding='utf-8'))
+PRICE_EXTENSION = json.loads((ROOT/'price-extension-v1.json').read_text(encoding='utf-8'))
+for name, properties in PRICE_EXTENSION['schema_properties'].items():
+    SCHEMAS['$defs'][name]['properties'].update(properties)
+VOLUME_EXTENSION = json.loads((ROOT/'volume-extension-v1.json').read_text(encoding='utf-8'))
+for name, properties in VOLUME_EXTENSION['schema_properties'].items():
+    SCHEMAS['$defs'][name]['properties'].update(properties)
+# Keep the shipped rc1 schema and stored content hashes intact. The composed
+# contract accepts either package dimension while retaining all price gates.
+SCHEMAS['$defs']['PriceContent']['allOf'][0]['then']['properties'].pop('package_mass_g')
+SCHEMAS['$defs']['PriceContent']['allOf'].append(VOLUME_EXTENSION['price_package_rule'])
 POLICY = json.loads((ROOT/'permissions.json').read_text(encoding='utf-8'))
 VERSION = POLICY['contract_version']
-RULES = {'version':'management-core-v1','contract':VERSION,'external_execution':False,'formal_generation':False,'source_review_required':True}
+RULES = {'version':'management-core-v1','contract':VERSION,'external_execution':False,'formal_generation':False,'source_review_required':True,
+         'price_quantity_contract': VOLUME_EXTENSION['extension_version']}
 def normalize(value):
     if hasattr(value,'_mapping'):return [normalize(v) for v in value]
     if isinstance(value,float): raise ApiError(422,'INVALID_INPUT','浮點數不可作為管理資料。')

@@ -15,11 +15,16 @@ from decimal import Decimal
 import sqlalchemy as sa
 from sqlalchemy.exc import IntegrityError
 from app.api.errors import ApiError
+from app.core.config import settings
 from app.db.models import User
 from app.services.recipe_step_style import check_recipe_steps
 from app.services.recipe_volume import VOLUME_UNITS, volume_in_ml
+from .active_price_policy import PRICE_CHANNEL, active_recipe_release, price_readiness, published_entries
 from .contracts import POLICY, VERSION, canonical, digest, rules_pin, validate
 from .models import tables as T
+from .price_policy import price_issues, publication_price_issue, replacement_logical_id
+
+CHANNEL_DOMAINS = {'recipe_catalog':'recipe','ingredient_catalog':'ingredient',PRICE_CHANNEL:'price','source_policy':'source_policy'}
 
 def now(): return datetime.now(timezone.utc)
 def ident(): return uuid.uuid4().hex
@@ -214,6 +219,9 @@ class Management:
         body=validate('ProposalCreate',body);domain=body['domain']
         def action(cid):
             content=copy.deepcopy(body['content']);logical=content.get('logical_recipe_id') if domain=='recipe' else content.get('food_id') if domain=='ingredient' else None
+            if domain=='price' and content.get('replaces_version_id'):
+                logical=replacement_logical_id(self.db,content,body['dependency_pins'])
+                if logical is None:fail('PRICE_REPLACEMENT_TARGET_INVALID')
             if logical is None:
                 logical=('MR4_' if domain=='recipe' else 'MF4_' if domain=='ingredient' else 'MX4_')+ident()[:28]
                 if domain=='recipe':content['logical_recipe_id']=logical
@@ -250,6 +258,11 @@ class Management:
             if body['domain']!=domain:fail('INVALID_INPUT',status=422)
             field='logical_recipe_id' if domain=='recipe' else 'food_id' if domain=='ingredient' else None
             if field and body['content'][field]!=p['logical_id']:fail('ENTITY_ID_IMMUTABLE')
+            if domain=='price':
+                target=body['content'].get('replaces_version_id')
+                if target!=r['content'].get('replaces_version_id'):fail('PRICE_REPLACEMENT_TARGET_IMMUTABLE')
+                if target and replacement_logical_id(self.db,body['content'],body['dependency_pins'])!=p['logical_id']:
+                    fail('PRICE_REPLACEMENT_TARGET_INVALID')
             number=p['current_revision']+1
             self.write_revision(pid,number,domain,body['content'],body['dependency_pins'])
             self.db.execute(T['proposals'].update().where(T['proposals'].c.id==pid).values(current_revision=number,state='draft',
@@ -297,7 +310,10 @@ class Management:
                     if not amount['evidence_ids'] or not set(amount['evidence_ids']) <= source_ids:
                         codes.append('SOURCE_VOLUME_EVIDENCE_REQUIRED')
         if p['domain']=='ingredient' and content['food_id'].startswith('MF4_'):codes.append('NEW_FOOD_ID_NOT_ENABLED')
-        if p['domain']=='price':codes.append('PRICE_DOMAIN_RULES_REQUIRED')
+        if p['domain']=='price':
+            codes.extend(price_issues(self.db,content,r['dependency_pins'],now()))
+            if content.get('replaces_version_id') and replacement_logical_id(self.db,content,r['dependency_pins'])!=p['logical_id']:
+                codes.append('PRICE_REPLACEMENT_TARGET_INVALID')
         targets={'pxmart':'pxmart-fixture','uniprosperity':'uniprosperity-fixture','supplied_document':'manual-fixture','ai_fixture':'ai-fixture'}
         if p['domain']=='source_policy' and content['registered_endpoint_key']!=targets.get(content['provider']):codes.append('TARGET_NOT_REGISTERED')
         issues = [dict(code=c,severity='blocking',json_pointer='',message=c) for c in sorted(set(codes))]
@@ -460,6 +476,9 @@ class Management:
                     logical=entity.recipe_id if domain=='recipe' else entity.food_id
                     members.setdefault(logical,{'logical_id':logical,'ref':{'kind':'legacy','legacy_recipe_release_id':pins['legacy_recipe_release_id'],
                         'logical_id':logical,'captured_content_hash':pins['legacy_db_capture_sha256']}})
+            if domain=='price':
+                issue=publication_price_issue(self.db,members.values(),pins)
+                if issue:fail(issue)
             manifest=dict(contract_version=VERSION,domain=domain,dependency_pins=pins,members=[members[k] for k in sorted(members)],
                 review_decision_ids=sorted(decisions),nutrition_readiness='not_inherited',formal_generation_ready=False)
             validate('PublicationManifest',manifest)
@@ -474,26 +493,90 @@ class Management:
 
     def activation_plan(self,key,channel,body):
         body=validate('ActivationPlanRequest',body)
-        domain={'recipe_catalog':'recipe','ingredient_catalog':'ingredient','price_policy':'price','source_policy':'source_policy'}.get(channel)
+        domain=CHANNEL_DOMAINS.get(channel)
         if not domain:fail('NOT_FOUND',status=404)
         def action(cid):
             binding=self.row('active_bindings',T['active_bindings'].c.channel==channel,True)
             publication=self.row('publications',T['publications'].c.id==body['publication_id'])
             if not binding or binding['revision']!=body['expected_binding_revision']:fail('BINDING_CHANGED')
             if not publication or publication['domain']!=domain:fail('NOT_FOUND',status=404)
+            issue,warnings=self.binding_check(channel,binding,publication)
             result=dict(plan_id=cid,publication_id=publication['id'],channel=channel,expected_binding_revision=binding['revision'],expires_at=stamp(now()+timedelta(minutes=5)),
-                can_activate=False,issues=[dict(code='CONSUMER_ADAPTER_NOT_READY',severity='blocking',json_pointer='',message='尚未啟用受測 consumer adapter。')])
-            result['plan_hash']=digest('plan',result)
+                can_activate=issue is None,issues=([dict(code=issue,severity='blocking',json_pointer='',message=issue)] if issue else [])+warnings)
+            result['plan_hash']=self.plan_hash(result,publication)
             return result,channel,None,publication['manifest_hash']
         return self.command('binding.plan',channel,key,body,domain+'.activate',domain,action)
 
     def activate(self,key,channel,body,rollback=False):
         body=validate('RollbackCommand' if rollback else 'ActivationCommand',body)
-        domain={'recipe_catalog':'recipe','ingredient_catalog':'ingredient','price_policy':'price','source_policy':'source_policy'}.get(channel)
+        domain=CHANNEL_DOMAINS.get(channel)
         if not domain:fail('NOT_FOUND',status=404)
-        self.access_lock();self.require(domain+'.activate',domain)
-        # Deliberate fail-closed boundary; no feature switch can bypass this gate.
-        fail('CONSUMER_ADAPTER_NOT_READY')
+        if not self.binding_enabled(channel):
+            self.access_lock();self.require(domain+'.activate',domain)
+            fail('CONSUMER_ADAPTER_NOT_READY')
+        target=body['target_publication_id' if rollback else 'publication_id']
+        operation='binding.rollback' if rollback else 'binding.activate'
+
+        def action(cid):
+            table=T['active_bindings']
+            binding=self.row('active_bindings',table.c.channel==channel,True)
+            expected=body['expected_binding_revision']
+            if not binding or binding['revision']!=expected:fail('BINDING_CHANGED')
+            publication=self.row('publications',T['publications'].c.id==target)
+            if not publication or publication['domain']!=domain:fail('NOT_FOUND',status=404)
+            commands=T['commands']
+            command=self.row('commands',sa.and_(
+                commands.c.id==body['plan_id'],commands.c.actor_id==self.actor,
+                commands.c.operation=='binding.plan',commands.c.resource_scope==channel,
+                commands.c.state=='completed'))
+            plan=command['receipt'] if command else None
+            if (not plan or plan['publication_id']!=target or plan['expected_binding_revision']!=expected
+                or not plan['can_activate'] or plan['plan_hash']!=body['plan_hash']
+                or self.plan_hash(plan,publication)!=plan['plan_hash']
+                or datetime.fromisoformat(plan['expires_at'])<=now()):
+                fail('ACTIVATION_PLAN_INVALID')
+            issue,_=self.binding_check(channel,binding,publication,rollback)
+            if issue:fail(issue)
+            previous=self.row('publications',T['publications'].c.id==binding['publication_id'])
+            updated=now()
+            changed=self.db.execute(table.update().where(table.c.channel==channel,table.c.revision==expected)
+                .values(publication_id=target,revision=expected+1,updated_by=self.actor,updated_at=updated))
+            if changed.rowcount!=1:fail('BINDING_CHANGED')
+            result=dict(channel=channel,publication_id=target,revision=expected+1,updated_at=stamp(updated))
+            return result,channel,previous['manifest_hash'] if previous else None,publication['manifest_hash']
+        return self.command(operation,channel,key,body,domain+'.activate',domain,action)
+
+    def binding_enabled(self,channel):
+        return (channel==PRICE_CHANNEL and settings.management_price_policy_enabled
+                and self.db.bind.dialect.name=='postgresql')
+
+    def plan_hash(self,plan,publication):
+        return digest('plan',{'receipt':{key:value for key,value in plan.items() if key!='plan_hash'},
+                              'manifest_hash':publication['manifest_hash']})
+
+    def binding_check(self,channel,binding,publication,rollback=None):
+        if not self.binding_enabled(channel):return 'CONSUMER_ADAPTER_NOT_READY',[]
+        target=publication['id']
+        if binding['publication_id']==target:return 'BINDING_ALREADY_ACTIVE',[]
+        forward=publication['base_publication_id']==binding['publication_id']
+        if not forward or rollback:
+            c=T['commands']
+            previous=self.db.scalar(sa.select(c.c.id).where(
+                c.c.operation.in_(('binding.activate','binding.rollback')),c.c.resource_scope==channel,
+                c.c.state=='completed',c.c.receipt['publication_id'].as_string()==target).limit(1))
+            if rollback is False or not previous:return 'PRICE_POLICY_BASE_MISMATCH',[]
+        pins=publication['manifest']['dependency_pins']
+        release=active_recipe_release(self.db)
+        configured_release=settings.generation_recipe_release_id or None
+        if (not release or pins['legacy_recipe_release_id']!=release
+            or configured_release not in (None,release)):
+            return 'PRICE_POLICY_RELEASE_MISMATCH',[]
+        if (digest('manifest',publication['manifest'])!=publication['manifest_hash']
+            or self.dependency_issues(pins,'price')):
+            return 'DEPENDENCY_CHANGED',[]
+        entries=published_entries(self.db,publication)
+        if not entries:return 'PRICE_POLICY_INVALID',[]
+        return price_readiness(entries,now())
 
 def legacy_capture(session):
     """Capture DB content, never certify workbook bytes or inspect T04 approvals."""

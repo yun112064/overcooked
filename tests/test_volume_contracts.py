@@ -12,6 +12,7 @@ from app.management.contracts import validate
 from app.services.recipe_volume import attach_preview_volumes, source_volume_ml, volume_in_ml
 from recipe_workbook import build, ingredient, recipe
 from app.services.recipe_import import parse_recipe_workbook
+from test_management_price import correction
 from test_management_recipe_candidates import candidate, request, intake, recipe_release
 from test_management_foundation import ACTORS, env
 
@@ -45,6 +46,22 @@ def test_import_preserves_original_capacity_and_missing_mass(tmp_path, unit):
     assert source_volume_ml(SimpleNamespace(**row)) == volume_in_ml('0.5', unit)
 
 
+def test_volume_contract_accepts_old_mass_and_new_volume_without_rewriting():
+    original = correction(sources=[dict(artifact_id='fixture', artifact_sha256='a' * 64,
+                                        origin_kind='manual_entry', source_policy_version_id=None)])
+    before = deepcopy(original)
+    assert validate('PriceContent', original) == before
+    capacity = {**original, 'package_mass_g': None, 'package_volume_ml': '500'}
+    assert validate('PriceContent', capacity) == capacity
+    for invalid in [
+        {**original, 'package_volume_ml': '500'},
+        {**capacity, 'package_volume_ml': None},
+        {**capacity, 'package_volume_ml': '0'},
+        {**capacity, 'package_volume_ml': '-1'},
+        {**capacity, 'package_volume_ml': 500},
+    ]:
+        with pytest.raises(ApiError):
+            validate('PriceContent', invalid)
 
 
 

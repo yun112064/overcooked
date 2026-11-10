@@ -11,18 +11,23 @@ from .price_models import PriceQuote, QuoteStatus, SelectionTier, WeightReliabil
 LIVE_QUOTE_MAX_AGE_WITHOUT_SOURCE_EXPIRY = timedelta(hours=48)
 
 
-def quote_unusable_reason(quote: PriceQuote | None, now: datetime) -> str | None:
-    """Return why a quote cannot be used to price a recipe measured in grams."""
+def quote_unusable_reason(quote: PriceQuote | None, now: datetime, *, allow_volume: bool = False) -> str | None:
+    """Validate a quote, retaining gram-only behavior unless volume is requested."""
     if quote is None:
         return "NO_PRICE_DATA"
     if quote.status is not QuoteStatus.SUCCESS or quote.price is None:
         return quote.missing_reason or "NO_PRICE_DATA"
-    if quote.package_unit != "g":
+    if quote.usage_status == "historical_requires_refresh":
+        return "PRICE_REVALIDATION_REQUIRED"
+    units = {"g", "ml", "毫升", "l", "公升"} if allow_volume else {"g"}
+    if (quote.package_unit or "").casefold() not in units:
         return "UNIT_MISMATCH"
     if not quote.package_quantity or quote.package_quantity <= 0:
         return "INVALID_PACKAGE"
     if quote.valid_until is not None and quote.valid_until < now:
         return "PRICE_EXPIRED"
+    if quote.queried_at > now or quote.valid_from is not None and quote.valid_from > now:
+        return "PRICE_NOT_YET_VALID"
     if quote.currency != "TWD":
         return "CURRENCY_MISMATCH"
     return None
