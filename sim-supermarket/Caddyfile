@@ -1,0 +1,19 @@
+:80 {
+    header Referrer-Policy "no-referrer"
+    handle /market-api/checkout {
+        rewrite * /sim-market/checkout
+        reverse_proxy backend:8000 {
+            header_up -Cookie
+            header_up -Authorization
+            header_down -Set-Cookie
+        }
+    }
+    handle /market-api/* {
+        respond 404
+    }
+    handle {
+        root * /usr/share/caddy
+        try_files {path} /index.html
+        file_server
+    }
+}

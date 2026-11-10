@@ -73,12 +73,17 @@ function Picker({ initial, members }: { initial: MealRequest | null; members: Me
     if (initial.status !== 'draft') return 2
     return (location.state as { step?: number } | null)?.step ?? 0
   })
-  const [autoSubmit, setAutoSubmit] = useState(false)
   const [mealType, setMealType] = useState<MealType>(initial?.draft.meal_type ?? mealByClock())
   const [picks, setPicks] = useState<Picks>(() => {
     const byId = new Map(initial?.draft.participants.map((p) => [p.member_id, p]))
     return Object.fromEntries(members.map((m) => [m.id, { dining: byId.get(m.id)?.dining ?? false, bento: byId.get(m.id)?.bento ?? false }]))
   })
+
+  const updateRequest = (row: MealRequest) => {
+    setServer(row)
+    queryClient.setQueryData(['meal-request', row.id], row)
+    void queryClient.invalidateQueries({ queryKey: ['meal-requests'] })
+  }
 
   const staples = useQuery({
     queryKey: ['staple-options'],
@@ -90,11 +95,7 @@ function Picker({ initial, members }: { initial: MealRequest | null; members: Me
     mutationFn: async (draft: MealRequestDraft) => server
       ? (await api.put<MealRequest>(`/meal-requests/${server.id}`, { version: server.version, draft })).data
       : (await api.post<MealRequest>('/meal-requests', draft)).data,
-    onSuccess: (row) => {
-      setServer(row)
-      queryClient.setQueryData(['meal-request', row.id], row)
-      queryClient.invalidateQueries({ queryKey: ['meal-requests'] })
-    },
+    onSuccess: updateRequest,
   })
 
   const locked = server?.status === 'queued' || server?.status === 'running'
@@ -121,17 +122,14 @@ function Picker({ initial, members }: { initial: MealRequest | null; members: Me
     try {
       await save.mutateAsync({ ...pickerDraft(mealType, picks, server.draft), specified_dishes: names, dish_count: names.length, staple })
       setStep(2)
-      setAutoSubmit(true)
     } catch { /* 錯誤訊息已顯示 */ }
   }
 
   const refresh = async () => {
-    if (!server) return
-    const row = (await api.get<MealRequest>(`/meal-requests/${server.id}`)).data
-    setServer(row)
+    if (server) updateRequest((await api.get<MealRequest>(`/meal-requests/${server.id}`)).data)
   }
 
-  const goBack = (to: number) => { setAutoSubmit(false); setStep(to) }
+  const goBack = (to: number) => setStep(to)
 
   return (
     <Stack spacing={3}>
@@ -196,7 +194,7 @@ function Picker({ initial, members }: { initial: MealRequest | null; members: Me
       {step === 1 && server && (
         <Stack spacing={1}>
           <Typography variant="caption">
-            沒挑飯、麵類的菜時會配一份{staples.data?.options[0]?.label ?? '白飯'}；按確定後依人數調整份量並開始生成。
+            沒挑飯、麵類的菜時會配一份{staples.data?.options[0]?.label ?? '白飯'}；按確定後會預覽依人數調整的份量。
           </Typography>
           <RecipeCatalogPicker requestId={server.id} initial={server.draft.specified_dishes}
             disabled={readOnly || save.isPending || !staples.data} onConfirm={confirmDishes} />
@@ -216,10 +214,10 @@ function Picker({ initial, members }: { initial: MealRequest | null; members: Me
             {!server.complete && !readOnly && (
               <Alert severity="warning">{server.issues.map((i) => i.message).join(' ')}</Alert>
             )}
-            {/* 與問卷最後一頁相同：資料庫菜單與營養（T11／T12），再由生成結果補上價格（T13／T14） */}
-            <MenuPreviewPanel row={server} members={members} />
+            <MenuPreviewPanel key={`${server.id}:${server.version}`} row={server} members={members}
+              onAdopted={() => updateRequest({ ...server, status: 'confirmed' })} />
             <Divider />
-            <GenerationPanel row={server} onChanged={refresh} autoSubmit={autoSubmit} />
+            <GenerationPanel row={server} onChanged={refresh} />
           </Stack>
         </Paper>
       )}

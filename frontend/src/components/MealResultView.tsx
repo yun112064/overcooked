@@ -9,6 +9,7 @@ import { useEffect, useRef } from 'react'
 import { Link as RouterLink } from 'react-router'
 import { toNumber, withinTarget } from '../api/nutrition'
 import { api, errorMessage } from '../api/client'
+import MarketCheckoutButton from './MarketCheckoutButton'
 import type {
   DecisionKind, MealPlanSummary, MealResult, MealResultSummary, NutritionSuggestion,
 } from '../api/types'
@@ -141,17 +142,27 @@ export default function MealResultView({ requestId, mealDate, onChanged }: Props
     },
     onSuccess: refreshAll,
   })
+  const displayedResult = result.data
+  const confirmed = displayedResult?.request_status === 'confirmed'
+  const hasShortages = Boolean(displayedResult?.prices.items.length || displayedResult?.prices.unquantified_items?.length)
+  const adoptedPlans = useQuery({
+    queryKey: ['sim-market-adopted-plan', requestId, mealDate],
+    enabled: confirmed && hasShortages && Boolean(mealDate) && !adopt.data,
+    queryFn: async () =>
+      (await api.get<{ meal_plans: MealPlanSummary[] }>('/meal-plans', { params: { date: mealDate } })).data.meal_plans,
+  })
+  const adoptedPlanId = adopt.data?.id ?? adoptedPlans.data?.find((plan) =>
+    plan.meal_request_id === requestId && plan.status === 'adopted' && plan.result_version === displayedResult?.result_version)?.id
 
   if (list.isError || result.isError) return <Alert severity="error">{errorMessage(list.error ?? result.error)}</Alert>
   if (list.data && list.data.length === 0) return null
-  const r = result.data
+  const r = displayedResult
   if (!r) return <Typography color="text.secondary">讀取結果中…</Typography>
   const el = r.eligibility
   // 缺價不擋採用（2026-10-26）：只提示哪些食材查無價格，可重新查價
   const pricePending = r.prices.budget_status === 'PRICE_INCOMPLETE'
   const missingPriceNames = r.prices.items.filter((i) => i.price_status === 'unknown').map((i) => i.name)
   const missingQuantityNames = (r.prices.unquantified_items ?? []).map((i) => i.name)
-  const confirmed = r.request_status === 'confirmed'
   const priceRetry = r.retries?.price ?? null
   const knowledgeRetry = r.retries?.knowledge ?? null
   const priceRetrying = !!priceRetry && ACTIVE.has(priceRetry.status)
@@ -446,6 +457,17 @@ export default function MealResultView({ requestId, mealDate, onChanged }: Props
         )}
         {computed && pricePending && missingPriceNames.length > 0 && (
           <Typography variant="caption" component="p" sx={{ textAlign: 'right', mt: 0.5 }}>部分價格未知，成本只計已知部分</Typography>
+        )}
+        {confirmed && hasShortages && adoptedPlanId && (
+          <Stack direction="row" sx={{ justifyContent: 'flex-end', mt: 2 }}>
+            <MarketCheckoutButton planId={adoptedPlanId} />
+          </Stack>
+        )}
+        {confirmed && hasShortages && !adoptedPlanId && adoptedPlans.isError && (
+          <Alert severity="warning" sx={{ mt: 2 }}
+            action={<Button onClick={() => { void adoptedPlans.refetch() }}>重試</Button>}>
+            無法讀取已採用餐單，暫時無法開啟模擬購物車。
+          </Alert>
         )}
       </Section>
 
