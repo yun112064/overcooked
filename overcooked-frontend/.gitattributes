@@ -1,0 +1,3 @@
+# Rule versions are SHA-256 checked over their exact bytes.
+# Preserve their committed line endings on Windows as well as Linux.
+nutrition_target/rules/*.json -text

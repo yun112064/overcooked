@@ -1,0 +1,11 @@
+node_modules
+dist
+dist-ssr
+.git
+.env
+.env.*
+*.log
+dist-demo
+.npm-cache
+.qa
+.openai

@@ -1,0 +1,98 @@
+{
+  "eggs": {
+    "src": "recipes/eggs.jpg",
+    "author": "Huangdan2060",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File:Hunan_cuisine,_stir-fried_tomato_with_eggs.jpg",
+    "license": "CC BY 3.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by/3.0",
+    "alt": "番茄炒蛋料理示意照片"
+  },
+  "cabbage": {
+    "src": "recipes/cabbage.jpg",
+    "author": "Tianmu peter",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File:%E7%82%92%E9%AB%98%E9%BA%97%E8%8F%9C_-_panoramio.jpg",
+    "license": "CC BY 3.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by/3.0",
+    "alt": "清炒高麗菜料理示意照片"
+  },
+  "mushroom-soup": {
+    "src": "recipes/mushroom-soup.jpg",
+    "author": "David",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File:Southern_Chinese_style_chicken_soup_with_mushrooms_and_corn.jpg",
+    "license": "Public domain",
+    "licenseUrl": "https://creativecommons.org/publicdomain/mark/1.0/",
+    "alt": "香菇玉米雞湯料理示意照片"
+  },
+  "chicken-steak": {
+    "src": "recipes/chicken-steak.jpg",
+    "author": "Gerda Arendt",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File:Grilled_chicken_breast,_Santo_Domingo,_La_Palma.jpg",
+    "license": "CC0",
+    "licenseUrl": "http://creativecommons.org/publicdomain/zero/1.0/deed.en",
+    "alt": "烤雞胸搭配蔬菜的料理示意照片"
+  },
+  "broccoli": {
+    "src": "recipes/broccoli.jpg",
+    "author": "FASTILY",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File:Cooked_Broccoli_1_2021-05-06.jpeg",
+    "license": "CC BY-SA 4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+    "alt": "熟青花菜料理示意照片"
+  },
+  "clear-soup": {
+    "src": "recipes/clear-soup.jpg",
+    "author": "NeoBatfreak",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File:Napa_Cabbage_%26_Tofu_soup_(%E7%99%BD%E8%8F%9C%E8%B1%86%E8%85%90%E6%B9%AF).jpg",
+    "license": "CC BY-SA 4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+    "alt": "白菜豆腐湯料理示意照片"
+  },
+  "ai-chicken": {
+    "src": "recipes/ai-chicken.jpg",
+    "author": "theimpulsivebuy",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File:Panda_Express_Shiitake_Kale_Chicken_Breast_(13942224400).jpg",
+    "license": "CC BY-SA 2.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/2.0",
+    "alt": "雞肉與蔬菜料理示意照片"
+  },
+  "ai-carrot": {
+    "src": "recipes/ai-carrot.jpg",
+    "author": "Karen and Brad Emerson",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File:Ginger_glazed_carrots_2010.jpg",
+    "license": "CC BY 2.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by/2.0",
+    "alt": "薑汁紅蘿蔔料理示意照片"
+  },
+  "ai-tofu": {
+    "src": "recipes/ai-tofu.jpg",
+    "author": "NeoBatfreak",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File:Napa_Cabbage_%26_Tofu_soup_(%E7%99%BD%E8%8F%9C%E8%B1%86%E8%85%90%E6%B9%AF).jpg",
+    "license": "CC BY-SA 4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+    "alt": "白菜豆腐湯料理示意照片"
+  },
+  "staple-rice": {
+    "src": "recipes/staple-rice.jpg",
+    "author": "Douglas Perkins",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File:A_bowl_of_rice.jpg",
+    "license": "CC0",
+    "licenseUrl": "http://creativecommons.org/publicdomain/zero/1.0/deed.en",
+    "alt": "一碗白飯料理示意照片"
+  },
+  "staple-bread": {
+    "src": "recipes/staple-bread.jpg",
+    "author": "Rainer Z ...",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File:Toast-2.jpg",
+    "license": "CC BY-SA 3.0",
+    "licenseUrl": "http://creativecommons.org/licenses/by-sa/3.0/",
+    "alt": "烤吐司料理示意照片"
+  },
+  "staple-noodles": {
+    "src": "recipes/staple-noodles.jpg",
+    "author": "sekido",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File:Kama-age_sanuki_udon_by_sekido_in_Takamatsu,_Kagawa.jpg",
+    "license": "CC BY 2.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by/2.0",
+    "alt": "一碗烏龍麵料理示意照片"
+  }
+}

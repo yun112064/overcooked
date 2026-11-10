@@ -1,0 +1,87 @@
+name: overcooked-ui-demo
+x-environment: &environment
+  DATABASE_URL: postgresql+psycopg://demo:demo-local-only@db:5432/meal_planner_1102_v3_ui_demo_test
+  COOKIE_SECURE: "false"
+  ALLOWED_ORIGINS: http://localhost:5173
+  PROJECT_DATA_ROOT: /app/demo-data
+  PROJECT_RUNTIME_ROOT: /app/runtime
+  PROJECT_BACKUP_ROOT: /app/backups
+  OPENAI_API_KEY: ""
+  GEMINI_API_KEY: ""
+  NUTRITION_LLM_PROVIDER: ""
+  KNOWLEDGE_SERVICE_URL: ""
+  ASSISTANT_SERVICE_URL: ""
+  LOG_CLEANUP_IN_API: "false"
+  DEMO_DATABASE_ONLY: "true"
+services:
+  db:
+    image: pgvector/pgvector:0.8.6-pg17
+    environment:
+      POSTGRES_USER: demo
+      POSTGRES_PASSWORD: demo-local-only
+      POSTGRES_DB: meal_planner_1102_v3_ui_demo_test
+    volumes:
+      - demo-db:/var/lib/postgresql/data
+    healthcheck:
+      test: [CMD-SHELL, "pg_isready -U demo -d meal_planner_1102_v3_ui_demo_test"]
+      interval: 2s
+      timeout: 3s
+      retries: 20
+    networks: [demo]
+  init:
+    image: overcooked-ui-demo-backend:local
+    build:
+      context: ../..
+      dockerfile: overcooked-frontend/demo/Dockerfile
+    environment: *environment
+    command: [python, /app/demo/bootstrap.py]
+    volumes:
+      - demo-runtime:/app/runtime
+      - ./:/app/demo:ro
+    depends_on:
+      db:
+        condition: service_healthy
+    networks: [demo]
+  backend:
+    image: overcooked-ui-demo-backend:local
+    environment: *environment
+    volumes:
+      - demo-runtime:/app/runtime
+      - ./:/app/demo:ro
+    depends_on:
+      init:
+        condition: service_completed_successfully
+    healthcheck:
+      test: [CMD, python, -c, "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health/db', timeout=3)"]
+      interval: 3s
+      timeout: 5s
+      retries: 20
+    networks: [demo]
+  gateway:
+    image: caddy:2-alpine
+    entrypoint: [caddy]
+    command: [reverse-proxy, --from, ':8000', --to, 'backend:8000']
+    ports:
+      - 127.0.0.1:8000:8000
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks: [demo, ingress]
+  worker:
+    image: overcooked-ui-demo-backend:local
+    environment: *environment
+    command: [python, /app/demo/demo_worker.py]
+    volumes:
+      - demo-runtime:/app/runtime
+      - ./:/app/demo:ro
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks: [demo]
+volumes:
+  demo-db:
+  demo-runtime:
+networks:
+  demo:
+    internal: true
+  ingress: {}

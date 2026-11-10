@@ -1,0 +1,101 @@
+{
+  "sourceRepository": "yun112064/overcooked",
+  "sourceCommit": "e7d3dbdbdd0b5550188bd7e37c030a9b5e7fdfc5",
+  "sourcePath": "knowledge_rag/candidates/web_paper_2026-10-30.json",
+  "reviewPath": "knowledge_rag/reviews/web_paper_2026-10-30.json",
+  "sourceVersion": "web-paper-platform-2026-10-30-r3",
+  "mode": "source-snapshot",
+  "records": [
+    {
+      "localIngredientId": "tomato",
+      "knowledgeId": "WEB-021-001--HY-tomato",
+      "foodId": "FOOD001016",
+      "ingredientName": "番茄",
+      "excerpt": "文章指出番茄能促進腸道蠕動，幫助維持排便順暢。",
+      "conditions": "限文中所述一般食用形式；未提供可保證效果的劑量。\n證據限制與不可外推範圍：不把茄紅素試劑的人體研究改寫成吃番茄可治療前列腺或預防癌症。",
+      "sourceUrl": "https://helloyishi.com.tw/healthy-eating/nutrition/tomato-fruit-or-vegetable/",
+      "sourceLabel": "Hello醫師",
+      "evidenceType": "食材直接衛教／非人體試驗"
+    },
+    {
+      "localIngredientId": "egg",
+      "knowledgeId": "WEB-113-001--HY-eggs",
+      "foodId": "FOOD001566",
+      "ingredientName": "雞蛋",
+      "excerpt": "文章指出少數人可能因攝取較多膽固醇而使血中膽固醇升高；糖尿病、慢性腎臟病或高血脂族群，吃蛋份量需依個人狀況與醫師討論。",
+      "conditions": "限雞蛋及上述個別健康情況；不採固定顆數作為人人適用建議。\n證據限制與不可外推範圍：網站衛教說明；沒有把蛋白質或卵磷脂的一般功能拼接成雞蛋療效，也未外推純蛋白、純蛋黃。",
+      "sourceUrl": "https://helloyishi.com.tw/healthy-eating/nutrition/how-many-eggs-can-you-safely-eat/",
+      "sourceLabel": "Hello醫師",
+      "evidenceType": "食材直接衛教／非人體試驗"
+    },
+    {
+      "localIngredientId": "cabbage",
+      "knowledgeId": "WEB-010-001--HY-cabbage",
+      "foodId": "FOOD000867",
+      "ingredientName": "高麗菜",
+      "excerpt": "文章指出高麗菜可增加糞便體積、幫助腸胃蠕動與消化，改善便祕；容易脹氣或腸胃蠕動慢者，文中提醒避免生食。",
+      "conditions": "限文中所述一般食用形式；未提供可保證效果的劑量。\n證據限制與不可外推範圍：不把文中成分、觀察研究或胃炎說法升格為吃高麗菜可治病的確定效果。",
+      "sourceUrl": "https://helloyishi.com.tw/healthy-eating/nutrition/cabbage/",
+      "sourceLabel": "Hello醫師",
+      "evidenceType": "食材直接衛教／非人體試驗"
+    },
+    {
+      "localIngredientId": "mushroom",
+      "knowledgeId": "WEB-083-001--HN-56390",
+      "foodId": "FOOD000700",
+      "ingredientName": "香菇",
+      "excerpt": "營養師把香菇列入菇類食材，指出這類食材可增加飽足感、促進腸胃蠕動。",
+      "conditions": "原文同一段明列香菇及其他菇類；非各菇種單獨試驗。\n證據限制與不可外推範圍：只保留原文明列食材的共同衛教，不宣稱該菇種有獨立人體療效。",
+      "sourceUrl": "https://www.healthnews.com.tw/article/56390",
+      "sourceLabel": "健康醫療網",
+      "evidenceType": "食材直接衛教（未提供完整人體研究）"
+    },
+    {
+      "localIngredientId": "carrot",
+      "knowledgeId": "WEB-017-001--HY-carrot",
+      "foodId": "FOOD000678",
+      "ingredientName": "胡蘿蔔",
+      "excerpt": "文章指出胡蘿蔔煮熟後較有助於類胡蘿蔔素吸收；過量食用則可能使皮膚偏黃。",
+      "conditions": "吸收說明限文中熟食情境；皮膚變黃提醒限過量食用。\n證據限制與不可外推範圍：不採用文中營養素試驗的眼疾風險數字作為吃胡蘿蔔的效果。",
+      "sourceUrl": "https://helloyishi.com.tw/healthy-eating/nutrition/benefits-of-beta-carotene/",
+      "sourceLabel": "Hello醫師",
+      "evidenceType": "食材直接衛教／非人體試驗"
+    },
+    {
+      "localIngredientId": "tofu",
+      "knowledgeId": "WEB-061-001--HY-tofu",
+      "foodId": "FOOD000428",
+      "ingredientName": "豆腐",
+      "excerpt": "文章將豆腐列為適合體重控制的食物選擇；其低熱量與蛋白質特性可用於飲食安排。",
+      "conditions": "限文中所述一般食用形式；未提供可保證效果的劑量。\n證據限制與不可外推範圍：文中多項研究涉及大豆食物、大豆蛋白或異黃酮，未把它們改寫成豆腐本身的人體療效；不外推特定板豆腐或嫩豆腐產品。",
+      "sourceUrl": "https://helloyishi.com.tw/healthy-eating/nutrition/health-benefits-of-tofu/",
+      "sourceLabel": "Hello醫師",
+      "evidenceType": "食材直接衛教／非人體試驗"
+    },
+    {
+      "localIngredientId": "broccoli",
+      "knowledgeId": "WEB-009-001--P33",
+      "foodId": "FOOD000588",
+      "ingredientName": "青花菜",
+      "excerpt": "對吸菸者，吃青花菜可能有助減少體內發炎反應。",
+      "conditions": "一般青花菜250 g/日、10天，年輕男性吸菸者交叉飲食介入；CRP於事後分析下降，其他多項發炎指標未顯著改變。\n證據限制與不可外推範圍：限年輕男性吸菸者及短期生物標記；CRP結果為事後分析，不能外推為治療發炎疾病或抵銷吸菸傷害。",
+      "sourceUrl": "https://pubmed.ncbi.nlm.nih.gov/23992556/",
+      "sourceLabel": "Riso P 等（2014）\nInternational Journal of Food Sciences and Nutrition 65(1):106–111\nEffect of 10-day broccoli consumption on inflammatory status of young healthy smokers",
+      "evidenceType": "人體交叉飲食試驗；一般青花菜"
+    },
+    {
+      "localIngredientId": "chicken",
+      "recipeIds": [
+        "chicken-steak"
+      ],
+      "knowledgeId": "WEB-119-001--HN-49811",
+      "foodId": "FOOD001564",
+      "ingredientName": "雞胸肉",
+      "excerpt": "文章將雞胸肉描述為可較長時間維持飽足感的低脂、高蛋白減重食材。",
+      "conditions": "原文為韓國料理專家的食譜書摘，未提供固定份量對照試驗。\n證據限制與不可外推範圍：屬食材與料理書說明，不能宣稱吃雞胸肉必然減重或預防掉髮。",
+      "sourceUrl": "https://www.healthnews.com.tw/article/49811",
+      "sourceLabel": "健康醫療網",
+      "evidenceType": "食材直接衛教（未提供完整人體研究）"
+    }
+  ]
+}
