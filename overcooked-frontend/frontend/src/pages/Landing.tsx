@@ -1,0 +1,22 @@
+import { useState } from 'react'
+import { useForm } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
+import { ArrowRight, CalendarDays, ChefHat, Eye, EyeOff, NotebookPen, ArrowUpRight } from 'lucide-react'
+import { authSchema } from '../domain/schemas.ts'
+import type { AuthFields } from '../domain/schemas.ts'
+import type { Draft } from '../domain/types.ts'
+import { mealLabels } from '../data/catalog.ts'
+import { ErrorText } from '../components/Common.tsx'
+
+export function AuthPage({ onLogin }: { onLogin: (email: string) => void }) {
+  const [mode, setMode] = useState<'login' | 'register'>('login'), [visible, setVisible] = useState(false)
+  const { register, handleSubmit, setError, formState: { errors } } = useForm<AuthFields>({ resolver: zodResolver(authSchema), defaultValues: { email: '', password: '', confirmation: '' } })
+  const submit = (values: AuthFields) => {
+    if(mode === 'register' && values.password !== values.confirmation) { setError('confirmation', { message: '兩次密碼不一致。' }); return }
+    onLogin(values.email)
+  }
+  return <div className="auth-layout"><section className="auth-story"><div className="brand"><span className="brand-mark"><ChefHat size={24} /></span>今天吃啥</div><div className="auth-copy"><h1>安排餐食，輕輕鬆鬆</h1><p>點一點、按一按，找到適合的料理。</p></div><img src={`${import.meta.env.BASE_URL}produce-hero.webp`} alt="新鮮番茄、花椰菜、紅蘿蔔與彩椒" className="auth-produce" /></section><section className="auth-form-panel"><div className="auth-tabs" role="tablist" aria-label="登入與註冊"><button role="tab" type="button" aria-selected={mode === 'login'} aria-controls="auth-panel" id="auth-login" onClick={() => setMode('login')}>登入</button><button role="tab" type="button" aria-selected={mode === 'register'} aria-controls="auth-panel" id="auth-register" onClick={() => setMode('register')}>註冊</button></div><form id="auth-panel" role="tabpanel" aria-labelledby={mode === 'login' ? 'auth-login' : 'auth-register'} onSubmit={handleSubmit(submit)}><h2>{mode === 'login' ? '歡迎回來' : '建立你的帳號'}</h2><label className="field">Email<input type="email" autoComplete="email" {...register('email')} /></label><ErrorText>{errors.email?.message}</ErrorText><label className="field">密碼<span className="password-field"><input type={visible ? 'text' : 'password'} autoComplete={mode === 'login' ? 'current-password' : 'new-password'} {...register('password')} /><button type="button" aria-label={visible ? '隱藏密碼' : '顯示密碼'} onClick={() => setVisible(!visible)}>{visible ? <EyeOff size={18} /> : <Eye size={18} />}</button></span></label><ErrorText>{errors.password?.message}</ErrorText>{mode === 'register' && <><label className="field">確認密碼<input type={visible ? 'text' : 'password'} autoComplete="new-password" {...register('confirmation')} /></label><ErrorText>{errors.confirmation?.message}</ErrorText></>}<button type="submit" className="button primary block">{mode === 'login' ? '登入' : '建立帳號'}<ArrowRight size={18} /></button><p className="demo-note">示範登入不會傳送或儲存密碼，也不會建立真實帳號。</p><button type="button" className="text-button demo-login" onClick={() => onLogin('demo@example.com')}>登入示範帳號</button></form></section></div>
+}
+export function HomePage({ draft, start, resume, history }: { draft?: Draft; start: () => void; resume: () => void; history: () => void }) {
+  return <><section className="home-hero"><div className="home-copy"><span className="eyebrow">為全家，好好準備一餐</span><h1>把家裡的食材，<br />變成全家的<span>好菜。</span></h1><p>今天吃啥？讓我們一起想。<br />選好這餐的需求，再看看家裡有哪些食材。</p><button className="button primary" type="button" onClick={start}>開始規劃<ArrowRight size={18} /></button><ol className="home-steps"><li><span>1</span>當餐條件</li><li><span>2</span>現有食材</li></ol></div><img src={`${import.meta.env.BASE_URL}produce-hero.webp`} alt="新鮮蔬果" className="home-produce" /></section><div className="home-shortcuts"><section className="panel shortcut"><div className="shortcut-title"><NotebookPen size={22} /><h2>接續上次的規劃</h2><span className="tag">草稿</span></div><p>{draft ? `${draft.date.replaceAll('-', ' / ')} · ${mealLabels[draft.meal]}` : '尚無未完成的草稿'}</p>{draft && <p className="muted small">上次填寫的條件已保留。</p>}<button className="text-button" type="button" onClick={resume} disabled={!draft}>繼續草稿<ArrowUpRight size={17} /></button></section><section className="panel shortcut"><div className="shortcut-title"><CalendarDays size={22} /><h2>翻翻之前的餐食</h2></div><p>從月曆選擇日期，<br />回看已採用的菜單、做法與採購資訊。</p><button className="text-button" type="button" onClick={history}>查看紀錄<ArrowUpRight size={17} /></button></section></div></>
+}

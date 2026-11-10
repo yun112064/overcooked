@@ -1,0 +1,88 @@
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;600;700&display=swap');
+
+html, body, #root { min-height: 100%; }
+.live-shell { min-height: 100vh; }
+.live-header { max-width: 1440px; margin: 0 auto; padding: 0 46px; border-bottom: 1px solid #ebddd0; }
+.live-header-top { min-height: 84px; display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.live-brand { display: inline-flex; align-items: center; gap: 11px; color: #c85f19; font-size: 25px; font-weight: 700; white-space: nowrap; text-decoration: none; }
+.live-account { display: flex; gap: 10px; align-items: center; }
+.live-nav { display: flex; gap: 22px; overflow-x: auto; scrollbar-width: thin; }
+.live-nav .MuiButton-root { flex-shrink: 0; border-radius: 0; padding: 12px 0; border-bottom: 2px solid transparent; font-size: 13px; white-space: nowrap; font-weight: 500; }
+.live-nav .MuiButton-root.active { color: #73549c; border-bottom-color: #73549c; font-weight: 600; }
+.live-nav .MuiButton-startIcon svg { font-size: 18px; }
+.live-main.MuiContainer-root { padding: 34px 42px 25px; }
+.live-footer { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 12px; margin-top: 40px; color: #706761; font-size: 11px; }
+
+.live-auth { min-height: 100vh; display: grid; grid-template-columns: 1fr 1fr; }
+.live-auth-story { background: #fce8cf; position: relative; overflow: hidden; display: flex; flex-direction: column; min-height: 760px; padding: 48px 52px 0; }
+.live-auth-copy { margin-top: 74px; position: relative; z-index: 1; }
+.live-auth-copy h1 { font-size: clamp(28px, 3vw, 42px); line-height: 1.5; font-weight: 700; }
+.live-auth-copy p { margin-top: 16px; color: #706761; font-size: 16px; }
+.live-auth-produce { width: 110%; max-width: 680px; margin: auto -5% 0; display: block; object-fit: contain; }
+.live-auth-form { display: grid; place-items: center; padding: 60px 40px; background: #fff8ef; }
+
+.live-home-hero { position: relative; overflow: hidden; display: grid; grid-template-columns: 1fr 1fr; min-height: 430px; align-items: center; border-bottom: 1px solid #ebddd0; padding: 20px 0 35px; }
+.live-home-copy { position: relative; z-index: 1; }
+.live-eyebrow.MuiTypography-root { font-size: 13px; font-weight: 600; color: #73549c; letter-spacing: .12em; margin-bottom: 18px; }
+.live-home-copy h1 { font-size: clamp(30px, 3.3vw, 44px); line-height: 1.55; font-weight: 700; letter-spacing: .02em; }
+.live-home-copy h1 span { color: #c85f19; }
+.live-home-description.MuiTypography-root { margin: 20px 0 24px; font-size: 15px; line-height: 1.9; color: #706761; }
+.live-home-produce { width: 112%; max-height: 450px; object-fit: contain; margin-left: -4%; }
+.live-home-steps { list-style: none; padding: 0; margin: 26px 0 0; display: flex; flex-wrap: wrap; gap: 15px; color: #706761; font-size: 11px; }
+.live-home-steps li { display: flex; align-items: center; gap: 7px; }
+.live-home-steps span { width: 21px; height: 21px; display: inline-grid; place-items: center; border-radius: 50%; background: #f3eefa; color: #73549c; }
+.live-shortcuts { display: grid; grid-template-columns: 1fr 1fr; gap: 22px; }
+.live-shortcut.MuiPaper-root { padding: 25px; }
+.live-shortcut-heading { display: flex; align-items: center; gap: 10px; margin-bottom: 18px; }
+.live-shortcut-heading > svg { color: #b44c0d; flex-shrink: 0; }
+.live-shortcut-heading h2 { font-size: 17px; font-weight: 600; }
+.live-shortcut-heading span { margin-left: auto; padding: 2px 9px; border-radius: 6px; background: #f3eefa; color: #73549c; font-size: 11px; }
+.live-shortcut > p { font-size: 14px; line-height: 1.9; }
+.live-shortcut > .MuiButton-root { margin: 12px 0 -8px -12px; }
+.live-home-links { display: flex; flex-wrap: wrap; gap: 14px; }
+.live-result-tabs.MuiTabs-root { background: #f3eefa; border: 1px solid #e3d7ee; border-radius: 12px; padding: 5px; }
+.live-result-tabs .MuiTabs-indicator { display: none; }
+.live-result-tabs .MuiTab-root { min-height: 46px; border-radius: 8px; gap: 8px; }
+.live-result-tabs .MuiTab-root.Mui-selected { background: #fff; box-shadow: 0 2px 6px #413d4309; }
+.live-result-panel[hidden] { display: none; }
+
+@media (max-width: 1000px) {
+  .live-header { padding-inline: 28px; }
+  .live-nav { gap: 22px; }
+  .live-auth-story { padding: 40px 30px 0; min-height: 680px; }
+  .live-auth-copy { margin-top: 70px; }
+}
+@media (max-width: 760px) {
+  .live-header { padding-inline: 20px; }
+  .live-header-top { min-height: 74px; }
+  .live-brand { font-size: 21px; gap: 9px; }
+  .live-account { gap: 0; }
+  .live-main.MuiContainer-root { padding: 26px 20px; }
+  .live-auth { grid-template-columns: 1fr; }
+  .live-auth-story { min-height: 260px; padding: 26px 24px; }
+  .live-auth-copy { margin-top: 32px; max-width: 65%; }
+  .live-auth-copy h1 { font-size: 25px; }
+  .live-auth-copy p { font-size: 13px; }
+  .live-auth-produce { position: absolute; right: -40px; bottom: -30px; width: 48%; margin: 0; opacity: .9; }
+  .live-auth-form { padding: 32px 24px 48px; }
+  .live-home-hero { min-height: 350px; grid-template-columns: 1.1fr 1fr; padding-top: 0; }
+  .live-home-copy h1 { font-size: 30px; }
+  .live-home-description.MuiTypography-root { font-size: 13px; }
+  .live-home-produce { width: 150%; margin-left: -24%; }
+  .live-shortcuts { grid-template-columns: 1fr; gap: 16px; }
+}
+@media (max-width: 480px) {
+  .live-account .MuiButton-startIcon { display: none; }
+  .live-account .MuiButton-root { font-size: 12px; padding-inline: 5px; max-width: 115px; }
+  .live-home-hero { display: block; padding-bottom: 25px; }
+  .live-home-copy { max-width: 100%; }
+  .live-home-copy h1 { font-size: 30px; }
+  .live-home-produce { position: absolute; width: 160px; right: -34px; bottom: 28px; margin: 0; opacity: .38; pointer-events: none; }
+  .live-home-steps { font-size: 10px; gap: 10px; }
+  .live-shortcut-heading h2 { font-size: 16px; }
+  .live-shortcut.MuiPaper-root { padding: 20px; }
+  .live-result-tabs .MuiTab-root { padding-inline: 12px; font-size: 12px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .live-shell *, .live-auth * { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
+}
