@@ -173,9 +173,9 @@ def price_env(monkeypatch):
     if not url:
         pytest.skip("Dedicated T02 disposable database not configured")
     engine = sa.create_engine(url)
-    assert (engine.url.host, engine.url.port, engine.url.database) == (
-        "127.0.0.1", 55542, "meal_planner_1102_v3_t02_test",
-    )
+    assert engine.url.get_backend_name() == 'postgresql'
+    assert engine.url.host in ('127.0.0.1', 'localhost')
+    assert engine.url.database == 'meal_planner_1102_v3_t02_test'
     try:
         with engine.connect() as connection, connection.begin() as transaction:
             assert connection.scalar(sa.text("SELECT current_database()")) == engine.url.database

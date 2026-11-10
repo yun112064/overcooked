@@ -4,7 +4,7 @@
 
 ## 分支相依順序
 
-依 T01_V4 → T02_V4 → T13_V3 → Admin_dashboard_V2 → Sim_Supermarket_V1 整合。T02 使用 T01 的管理與來源契約，T13 使用 T02 的審核價格服務；超市與 Dashboard 分別使用共同的容量及價格介面。整合時以 main 已有的飲食小幫手功能與驗收限制為基礎，保留其入口、對話狀態與浮動元件；各功能分支適配共用介面，不能以整份分支檔案覆蓋 main 的新增功能。
+依 T01_V4 → T02_V4 → T13_V3 → Sim_Supermarket_V1 → Admin_dashboard_V2 整合。T02 使用 T01 的管理與來源契約，T13 使用 T02 的審核價格服務；超市與 Dashboard 分別使用共同的容量及價格介面。整合時以 main 已有的飲食小幫手功能與驗收限制為基礎，保留其入口、對話狀態與浮動元件；各功能分支適配共用介面，不能以整份分支檔案覆蓋 main 的新增功能。
 
 合併檢查只針對已提交內容。工作樹中的未提交修改不會自動納入驗證或合併；更新任一分支或整合基底後，應重新檢查差異與相依關係。
 
@@ -29,7 +29,7 @@ python -m pytest tests nutrition_planning/tests -q -ra
 
 未設定隔離 PostgreSQL 時，資料庫專用案例會略過；缺少歷史資料包的案例也可能略過。這些結果必須列明，不可當作通過。上述命令不會提供 PostgreSQL 遷移驗證。
 
-前端改動應執行 `npm --prefix frontend run lint` 與 `npm --prefix frontend run build`。超市分支另在 `frontend` 目錄執行 `node --test tests/simMarket.test.mjs`。依各分支實際存在的測試檔案選擇驗證項目。
+三個網站各自建置：在 `frontend`、`sim-supermarket`、`admin-dashboard` 目錄安裝鎖定依賴後執行 `npm run lint`、`npm run build`。兩個獨立網站另執行 `npm test`；Admin 的 `npm run test:browser` 使用合成 API 驗證登入與權限畫面，不能取代 PostgreSQL 的授權與發布驗收。詳見各網站 README。
 
 ## 功能驗收範圍
 
@@ -39,7 +39,7 @@ python -m pytest tests nutrition_planning/tests -q -ra
 | T02 價格 | 商品、食材與發布版本綁定；效期及條件檢查；已核准人工價優先；替換既有人工價必須明確指定 |
 | T13 成本 | L／mL 精確換算；用量成本與整包實付分開；相容需求先合併再算包數；無可靠換算的混合需求保持待確認 |
 | Sim’s Supermarket | 採用後的缺料可進入模擬結帳；購物車按使用者、家庭、餐單及資料版本隔離；不產生真實交易 |
-| Dashboard | 權限與審核流程有效；重量／容量切換清理不相容欄位；來源用量與未知克重清楚呈現 |
+| Dashboard | 獨立登入與主網站的 Cookie hostname 隔離；確認事件與採用交易一致，重送不重複寫入；權限與審核流程有效；重量／容量切換清理不相容欄位；來源用量與未知克重清楚呈現 |
 | 歷史與營養 | 價格更新不改已採用快照；容量價格估算不取代營養的克重及證據要求；不自動繼承 T04 核准 |
 
 ## PostgreSQL 與介面驗收
