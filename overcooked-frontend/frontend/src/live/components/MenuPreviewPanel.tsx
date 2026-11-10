@@ -194,7 +194,7 @@ export default function MenuPreviewPanel({ row, members, onAdopted }: Props) {
             <Stat label="整餐蛋白質" value={fmt(protein, 1)} unit={protein === null ? undefined : 'g'}
               note={proteinInfo.note} tone={proteinInfo.tone} />
             <Stat label="菜數" value={selected.length} unit="道" note={row.draft.staple ? `主食：${row.draft.staple}` : undefined} />
-            <Stat label="用餐份數" value={n.per_person?.length ?? row.items.length} unit="份"
+            <Stat label="用餐份數" value={n.per_person?.length || row.items.length} unit="份"
               note="含便當；份量依各人營養目標分配" />
           </StatRow>
           {!adopted && (

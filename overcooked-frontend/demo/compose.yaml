@@ -58,7 +58,7 @@ services:
       retries: 20
     networks: [demo]
   gateway:
-    image: overcooked-frontend:latest
+    image: caddy:2-alpine
     entrypoint: [caddy]
     command: [reverse-proxy, --from, ':8000', --to, 'backend:8000']
     ports:

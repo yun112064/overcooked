@@ -1,4 +1,4 @@
-FROM meal-planner-backend:latest
+FROM python:3.12-slim
 WORKDIR /app/backend
 COPY requirements.txt /app/requirements.txt
 RUN pip install --no-cache-dir -r /app/requirements.txt

@@ -1,10 +1,10 @@
 # 獨立前端改版驗證
 
-日期：2026-11-10（Asia/Taipei）。來源為本機 `main@835b4e71224463c1c14276271ac2c31e094eca75`。
+初次驗證：2026-11-10；PR #36 追加驗證：2026-11-11（Asia/Taipei）。來源為本機 `main@835b4e71224463c1c14276271ac2c31e094eca75`。
 
 ## 修改邊界
 
-- 所有新增與修改位於 `overcooked-frontend/`，沒有更改根目錄 `frontend/`、後端、主專案設定、Compose、原資料或 GitHub。
+- 所有新增與修改位於 `overcooked-frontend/`，沒有更改根目錄 `frontend/`、後端、主專案設定、Compose 或原資料。GitHub 更新僅在 PR #36 分支，不合併 main。
 - `frontend-integration-baseline.json` 記錄施工前主專案 974 個受追蹤檔案的 SHA-256。範圍測試確認它們完全一致；最後的主專案 `git diff --exit-code` 通過。
 - 本目錄本身有 `front_page_demo_v1` 的獨立 Git 儲存庫及施工前既存變更。沒有清除、提交、推送或覆寫其歷史。
 - 原示範版保留在既有 `src/`；新增正式版在 `src/live/`。修改 `src/main.tsx` 依建置模式分開載入，避免正式版讀取示範資料或套用示範全域 CSS。
@@ -45,7 +45,7 @@
 - 正式版仍使用原問卷五步驟與儲存流程；示範版的兩步驟流程沒有取代它。
 - 菜單預覽沒有採購報價資料，不顯示示範價格；完整生成結果才呈現既有報價契約。分餐也沒有補算未提供的熟重或個人主食克數。
 - 開發時使用 `npm run dev`，固定 `http://localhost:5173`，避免影響後端既有 Origin 驗證。請先停止占用此端口的另一個前端。保留原後端 `8000` 及原設定。
-- `npm ci` 安裝結果回報 11 個套件弱點（10 moderate、1 high）。此次保留來源前端的依賴版本，沒有自動執行可能改變契約的 `npm audit fix`。
+- 2026-11-11 將正式依賴 `follow-redirects` 更新至 1.16.3；`npm audit --omit=dev` 回報 0 項弱點。完整 audit 尚有 10 項 moderate 開發工具弱點，未做大範圍強制升級。
 - 新增的契約測試依施工前來源版本比對；日後主專案更新時，需先審查 API 差異，再更新此獨立版本與基準。
 
 
@@ -61,3 +61,33 @@
 
 - Chrome 已切換至 `http://localhost:5173/home`，使用示範帳號完成真實 API 登入，畫面可見「獨立展示環境」標示與示範家庭；展示伺服器和容器保留運行供使用者操作。
 - Docker Desktop 的 internal 網路無法直接發布主機端口，另以本機 Caddy gateway 轉送到 backend；API／DB／worker 維持 internal 網路。外部原有 `overcooked_postgres_data` 未被任何展示容器掛載。
+
+
+## PR #36：未修改的 main API 追加驗證（2026-11-11）
+
+本次以 PR checkout 與獨立 `overcooked-pr36-verify` Docker 專案驗證。資料庫名稱與 marker 均先確認為可拋棄的 UI 測試庫，沒有使用正式資料或原 volume。
+
+### 本次修正
+
+- 展示 API 基底改為公開 `python:3.12-slim`，gateway 改為 `caddy:2-alpine`；已從公開基底重新建置，解除其他電腦沒有私有本機 image 就不能啟動的問題。
+- 鎖定 `follow-redirects@1.16.3`，修正正式依賴的高風險公告 GHSA-mrwp-f3q8-3g9p；正式依賴 audit 為 0。
+- main 回傳空的 `per_person` 陣列時，用餐份數改顯示問卷參與人數。Chrome 實測為 1 份，營養未知及禁止採用行為仍保留。
+- Docker 前端建置排除 `.qa`、`.npm-cache`、`.openai`、`dist-demo`，避免納入本機快取與驗證資料。
+- 新增 `demo/compose.verify-main.yaml` 與 `demo/verify_main_api.py`，讓正式前端的 main API 契約驗證可重現。
+
+### 實際執行與結果
+
+- 乾淨 `npm ci`、28 項測試、lint、正式與示範模式建置通過；正式前端 Docker 建置通過。
+- 以公開基底建立新的展示 DB／API／worker，`demo/smoke.py` 通過實際登入、問卷、食譜、合成計算、背景生成、採用及歷史流程。
+- 隨後停止該測試 worker，把同一隔離專案 API 切為原始 `app.main:app`，透過正式 Caddy 前端 `http://localhost:8080/api` 呼叫原始後端 8000。未載入 `demo_app` 或注入合成營養計算器。
+- `demo/verify_main_api.py` 通過：DB 健康、登入、Secure／HttpOnly／SameSite Cookie 屬性、家庭選取、成員新增修改刪除、成員與問卷版本衝突 409、食材搜尋、問卷建立保存、食譜庫及食譜查詢、歷史讀取、SPA fallback、Origin 拒絕 403、管理與內部路徑封鎖 404。
+- Chrome 在 localhost:8080 登入後重新整理仍保留登入；操作選人、挑選食譜與營養預覽成功。main 實際營養路徑回傳 HTTP 200 `calculation_incomplete`，畫面正確保留未知值、顯示資料不足，並停用採用按鈕。
+- Chrome 已恢復 localhost:5173 的獨立展示版登入，供使用者繼續操作。
+
+### 合併前判讀
+
+此次驗證支持正式前端與 main 現有 API／代理端口／登入及表單契約相容。測試 DB 只有合成家庭與食譜，沒有真實營養觀測、價格來源或外部模型，因此不能宣稱真實資料計算、真實報價、辨識、RAG 與外部 AI 已完成端到端驗收。手機實機尚未驗證。
+
+既有 GitHub workflow 的 `frontend-build` 工作只測根目錄 `frontend/`；本目錄的 28 項測試、lint、兩種模式建置與 Docker／Chrome 串接由本機另外執行，不能僅用既有 CI 綠燈推論新前端已受 CI 覆蓋。
+
+PR 僅新增 `overcooked-frontend/`。main 的 Compose 仍建置根目錄 `frontend/`；合併此 PR 不會自動切換線上前端。main 未被合併或推送。

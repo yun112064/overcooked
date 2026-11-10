@@ -28,7 +28,7 @@ VITE_DEMO_ENVIRONMENT=docker npm run dev
 
 開啟 http://localhost:5173 。Windows PowerShell 可先執行 `$env:VITE_DEMO_ENVIRONMENT='docker'`，再執行 `npm run dev`。畫面頂端會標示此為獨立展示環境。
 
-目前 Dockerfile 使用本機已有的 `meal-planner-backend:latest` 作為 Python 基底，再複製目前主專案的程式並安裝 `requirements.txt`。它沒有覆寫原基底 image；第一次重建需要可存取 Python 套件來源。
+展示環境使用公開的 `python:3.12-slim`、`caddy:2-alpine` 與 pgvector 映像，再從同一份主專案 checkout 複製後端程式並安裝 `requirements.txt`。不需要事先建置主專案的本機映像；第一次建置需要可存取 Docker 映像與 Python 套件來源。
 
 停止展示容器但保留示範紀錄：
 
@@ -59,3 +59,19 @@ docker compose -f overcooked-frontend/demo/compose.yaml exec -T backend python /
 ```
 
 `smoke.py` 會新增一份合成問卷並測試：健康檢查、登入、Cookie、成員、六道食譜、合成營養預覽、背景生成、採用及已採用紀錄。它只允許連到這個標示為 `synthetic-ui-demo` 的後端。測試資料會保留在示範資料庫，方便查看歷史。
+
+
+## 驗證未修改的 main API
+
+若要確認正式前端能呼叫 main 的原始 API，可另開獨立專案；不載入 `demo_app`，也不啟動合成 worker。以下只啟動 `frontend` 與其相依服務，避免啟動預設展示 gateway。
+
+```sh
+docker compose -p overcooked-pr36-main-check -f overcooked-frontend/demo/compose.yaml -f overcooked-frontend/demo/compose.verify-main.yaml up -d --build frontend
+docker compose -p overcooked-pr36-main-check -f overcooked-frontend/demo/compose.yaml -f overcooked-frontend/demo/compose.verify-main.yaml exec -T backend python /app/demo/verify_main_api.py
+```
+
+開啟 http://localhost:8080 ，用同一組示範帳號登入。這組服務沿用 main Compose 的 Origin 與 Secure Cookie 設定，資料仍是另外建立的合成資料庫，沒有實際營養觀測值；正確行為是回報資料不足並禁止採用，不能把這項驗證當成正式營養或真實來源的驗收。
+
+測試涵蓋代理、登入與 Cookie 屬性、家庭、成員新增／修改／刪除、問卷與版本衝突、食材搜尋、食譜庫、歷史讀取、SPA 路由及管理／內部 API 邊界。測試程式只允許指定展示資料庫與 marker；HTTPX 的 Cookie 契約檢查另行手動帶 Cookie，Chrome 登入及重新整理才是瀏覽器持續登入的驗證。
+
+用完可對同一組 `-p` 與 `-f` 參數執行 `stop`。這不會停止 `overcooked-ui-demo` 或正式系統。

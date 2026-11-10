@@ -1,0 +1,19 @@
+# Test the original app.main API; no synthetic nutrition adapter or demo worker.
+# Start only the frontend service with this overlay (see README).
+services:
+  backend:
+    command: [sh, -c, 'python -m app.core.schema_gate && exec uvicorn app.main:app --host 0.0.0.0 --port 8000 --no-access-log']
+    environment:
+      COOKIE_SECURE: "true"
+      ALLOWED_ORIGINS: http://localhost:8080
+  frontend:
+    image: overcooked-pr36-frontend:verify
+    build:
+      context: ../frontend
+      dockerfile: Dockerfile
+    ports:
+      - 127.0.0.1:8080:80
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks: [demo, ingress]

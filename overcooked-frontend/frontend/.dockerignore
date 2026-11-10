@@ -5,3 +5,7 @@ dist-ssr
 .env
 .env.*
 *.log
+dist-demo
+.npm-cache
+.qa
+.openai
