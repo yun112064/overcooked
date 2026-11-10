@@ -22,7 +22,7 @@ from sqlalchemy.orm import Session, object_session
 from app.api.errors import ApiError, not_found, version_conflict
 from app.db.models import AdoptedMealPlan, GenerationResult, MealRequest, MealResultDecision
 from app.models import Recipe, SourceArchive
-from app.services import idempotency, meal_history, meal_results, meal_validation, recipe_retrieval, t12_planning
+from app.services import idempotency, meal_confirmation_events, meal_history, meal_results, meal_validation, recipe_retrieval, t12_planning
 from app.services.generation import MODE_LABELS
 
 SNAPSHOT_VERSION = "meal_plan_snapshot/v1"
@@ -70,6 +70,28 @@ def _price_exception(db: Session, result: GenerationResult, evaluation: dict, de
     return accepted
 
 
+def require_adoptable(evaluation: dict) -> None:
+    """兩種採用路徑共用：meal_validation.evaluate 的結果不可採用就拒絕（預算、缺價、版本等同一張決策表）。"""
+    if not evaluation["adoptable"]:
+        raise _reject_blocks(evaluation["blocks"])
+
+
+def require_previous_day(db: Session, context: dict, dishes: list[dict]) -> dict:
+    """兩種採用路徑共用：採用前重讀前一日（與同日其他餐）已採用紀錄，撞菜就拒絕過時的菜單。"""
+    recheck = meal_history.recheck_previous_day(db, context, dishes)
+    if recheck["status"] == "conflict":
+        raise ApiError(409, meal_history.CONFLICT_CODE, "生成後昨日或同一天其他餐的已採用紀錄有變動，此菜單有重複的菜，請重新生成。",
+                       {"conflicting_dishes": [d["dish_name"] for d in recheck["conflicting_dishes"]],
+                        "previous_date": recheck["context"]["previous_date"]})
+    return recheck
+
+
+def previous_day_snapshot(at_generation: dict, recheck: dict) -> dict:
+    return {"at_generation": copy.deepcopy(at_generation),
+            "at_adoption": copy.deepcopy(recheck.get("context") or at_generation),
+            "history_changed": bool(recheck.get("history_changed"))}
+
+
 def _recipe_sources(db: Session, dishes: list[dict]) -> dict:
     """資料庫菜的來源快照（名稱、網址、匯入批次與內容雜湊）；AI 菜沒有來源食譜。"""
     ids = [d["recipe_id"] for d in dishes if d.get("recipe_id")]
@@ -77,11 +99,13 @@ def _recipe_sources(db: Session, dishes: list[dict]) -> dict:
         return {}
     rows = db.execute(select(Recipe, SourceArchive).join(SourceArchive, SourceArchive.raw_id == Recipe.raw_id)
                       .where(Recipe.recipe_id.in_(ids))).all()
-    return {r.recipe_id: {"recipe_id": r.recipe_id, "recipe_name": r.recipe_name, "source_name": r.source_name,
+    sources = {r.recipe_id: {"recipe_id": r.recipe_id, "recipe_name": r.recipe_name, "source_name": r.source_name,
                           "source_url": r.source_url, "review_status": r.review_status,
                           "original_servings": str(r.original_servings) if r.original_servings is not None else None,
                           "import_batch_id": a.import_batch_id, "content_hash": a.content_hash}
             for r, a in rows}
+    sources.update({dish['recipe_id']: dish['recipe_source'] for dish in dishes if dish.get('recipe_source')})
+    return sources
 
 
 def _snapshot(db: Session, request: MealRequest, result: GenerationResult, evaluation: dict,
@@ -104,9 +128,7 @@ def _snapshot(db: Session, request: MealRequest, result: GenerationResult, evalu
         "missing": {"price_food_ids": meal_validation.missing_price_food_ids(payload),
                     "price_exception_accepted": evaluation["price_exception_accepted"],
                     "nutrients": copy.deepcopy(final.get("missing_nutrients") or {})},
-        "previous_day": {"at_generation": copy.deepcopy(payload.get("previous_day") or {}),
-                         "at_adoption": copy.deepcopy(recheck.get("context") or payload.get("previous_day") or {}),
-                         "history_changed": bool(recheck.get("history_changed"))},
+        "previous_day": previous_day_snapshot(payload.get("previous_day") or {}, recheck),
         "versions": {"result_schema_version": payload.get("schema_version"),
                      "snapshot_schema_version": SNAPSHOT_VERSION, "adoption_rule_version": ADOPTION_RULE_VERSION,
                      "nutrition_rule_version": (payload.get("targets") or {}).get("rule_version"),
@@ -154,14 +176,9 @@ def adopt(db: Session, *, household_id, user_id, meal_request_id, result_version
         raise not_found("找不到此結果版本。")
 
     evaluation = meal_results.eligibility(db, request, result)
-    if not evaluation["adoptable"]:
-        raise _reject_blocks(evaluation["blocks"])
+    require_adoptable(evaluation)
     accepted = _price_exception(db, result, evaluation, price_exception_decision_id)
-    recheck = meal_history.recheck_previous_day(db, result.payload["previous_day"], result.payload["dishes"])
-    if recheck["status"] == "conflict":
-        raise ApiError(409, meal_history.CONFLICT_CODE, "生成後昨日或同一天其他餐的已採用紀錄有變動，此菜單有重複的菜，請重新生成。",
-                       {"conflicting_dishes": [d["dish_name"] for d in recheck["conflicting_dishes"]],
-                        "previous_date": recheck["context"]["previous_date"]})
+    recheck = require_previous_day(db, result.payload["previous_day"], result.payload["dishes"])
 
     draft = request.payload
     plan = meal_history.record_adopted(db, household_id, date.fromisoformat(draft["meal_date"]), draft["meal_type"],
@@ -172,6 +189,7 @@ def adopt(db: Session, *, household_id, user_id, meal_request_id, result_version
     plan.price_exception_accepted = evaluation["price_exception_accepted"]
     plan.snapshot = _snapshot(db, request, result, evaluation, accepted, recheck)
     confirm_request(request)
+    meal_confirmation_events.record(db, plan)
     db.flush()
     return plan, True
 

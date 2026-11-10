@@ -8,9 +8,10 @@ from itertools import islice
 import sqlalchemy as sa
 
 from app.api.errors import ApiError
-from app.management.contracts import POLICY, ROOT, VERSION, digest, rules_pin
+from app.management import active_recipe_catalog as recipe_catalog
+from app.management.contracts import ROOT, VERSION, digest, rules_pin
 from app.management.models import tables as T
-from app.management.service import fail, legacy_capture, now, stamp
+from app.management.service import fail, legacy_capture, now, readable_domains, recipe_step_review_issues, stamp
 from app.models.recipe import IngredientAlias, Recipe, RecipeDataRelease, RecipeIngredient, RecipeStep
 
 DATA_TYPES = json.loads((ROOT / 'data_types.json').read_text(encoding='utf-8'))
@@ -64,8 +65,7 @@ def dated_page(s, query, table, limit, cursor, scope, project):
 
 
 def visible_domains(s):
-    return sorted({domain for grant in s.grants() for domain in grant['domain_scope']
-                   if domain + '.read' in POLICY['role_presets'][grant['role']]})
+    return readable_domains(s.grants())
 
 
 def proposal_view(p, r):
@@ -140,7 +140,7 @@ def proposal_diff(s, p, base, target, limit, cursor):
                 next_cursor=encode_cursor(scope, (offset + limit,)) if len(changes) > limit else None)
 
 
-def proposal_workflow(s, p):
+def proposal_workflow(s, p, include_validation_controls=False):
     r = s.revision(p)
     v = T['validation_runs']
     validation = s.db.execute(sa.select(v).where(
@@ -159,8 +159,14 @@ def proposal_workflow(s, p):
         t.c.params['proposal_id'].as_string() == p['id'],
         t.c.params['revision'].as_integer() == r['revision'],
     ).order_by(t.c.created_at.desc(), t.c.id.desc()).limit(1)).mappings().first()
-    return dict(revision=r['revision'], content_hash=r['content_hash'], validation=result, approvals=approvals,
-                latest_task=task_view(newest_task) if newest_task is not None else None)
+    step_style_issues = recipe_step_review_issues(r['content']['steps']) if p['domain'] == 'recipe' else []
+    workflow = dict(revision=r['revision'], content_hash=r['content_hash'], validation=result, approvals=approvals,
+                    step_style_issues=step_style_issues,
+                    latest_task=task_view(newest_task) if newest_task is not None else None)
+    if include_validation_controls:
+        workflow['own_queued_validation'] = bool(newest_task and newest_task['state'] == 'queued'
+                                                 and newest_task['created_by'] == s.actor)
+    return workflow
 
 
 def publication_view(row):
@@ -203,6 +209,14 @@ def binding(s, channel):
 
 def draft_context(s, domain, base_publication_id, ingredient_publication_id, legacy_recipe_release_id, proposal_id):
     s.require(domain + '.edit', domain)
+    if domain == 'recipe' and not proposal_id and not base_publication_id and s.binding_enabled(recipe_catalog.CHANNEL):
+        catalog = recipe_catalog.active_catalog(s.db)
+        if catalog:
+            if legacy_recipe_release_id not in (None, catalog.base_release_id):
+                fail('RECIPE_BASELINE_CHANGED')
+            base_publication_id = catalog.publication_id
+        elif not legacy_recipe_release_id:
+            legacy_recipe_release_id = s.db.scalar(sa.select(RecipeDataRelease.release_id).where(RecipeDataRelease.active))
     pins = dict.fromkeys([
         'legacy_recipe_release_id', 'legacy_recipe_source_sha256', 'legacy_db_capture_sha256',
         'base_publication_id', 'base_publication_manifest_sha256', 'ingredient_publication_id',
@@ -222,6 +236,8 @@ def draft_context(s, domain, base_publication_id, ingredient_publication_id, leg
             or legacy_recipe_release_id not in (None, pins['legacy_recipe_release_id'])
         ):
             fail('DEPENDENCY_CHANGED')
+        if domain == 'recipe' and legacy_recipe_release_id not in (None, pins['legacy_recipe_release_id']):
+            fail('RECIPE_BASELINE_CHANGED')
     if ingredient_publication_id:
         s.require('ingredient.read', 'ingredient')
         ingredient = visible_publication(s, ingredient_publication_id, 'ingredient')

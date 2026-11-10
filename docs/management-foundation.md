@@ -7,8 +7,8 @@
 - `MANAGEMENT_ENABLED` 預設 false。API 使用既有 session 與 Origin 檢查；家庭 membership 不授予管理權限。
 - 正式啟用前配置非 owner PostgreSQL 應用角色，僅授予所需表權限。管理不可變表不授予 UPDATE／DELETE／TRUNCATE；應用角色不得具 schema CREATE、CREATEROLE、CREATEDB 或 superuser。API 檢查不安全角色並拒絕服務。
 - 首位 access_admin 只以離線 `python -m app.management.bootstrap --user-id <existing-user-uuid> --reason <reason>` 授予既有帳號；沒有預設帳密或自動帳號建立。
-- Validation API 建立可追蹤任務；目前可明確用 `python -m app.management.validate_task --task-id <id>` 執行一次純驗證。沒有啟動常駐 worker／scheduler。執行前重新核對發起者權限及 revision。
-- 新發布只寫 management 表。價格通道的 T13 adapter 由 MANAGEMENT_PRICE_POLICY_ENABLED 控制，預設 false，啟用需要 PostgreSQL 與 price.activate 權限。其他通道的 activation plan 仍回傳 adapter 阻擋。正式生成的食譜與營養就緒狀態維持原契約。
+- Validation API 建立可追蹤任務。後台可要求立即執行純資料驗證，也可由原申請人執行自己的排隊任務。原有 `python -m app.management.validate_task --task-id <id>` 仍可用。執行時重新核對發起者權限、提案狀態和修訂版本。
+- 新發布寫入 management 表。價格通道由 `MANAGEMENT_PRICE_POLICY_ENABLED` 控制，食譜通道由 `MANAGEMENT_RECIPE_CATALOG_ENABLED` 控制，兩者皆預設 false。啟用需要 PostgreSQL 和對應領域的 activate 權限。食材與來源政策的啟用通道仍待接入。
 - 價格候選依指定食材發布、Food ID、來源證據、觀察時間及效期驗證。新 Food ID 仍須另外完成下游相容驗收。來源政策只允許已註冊 fixture targets。
 
 ## API 進度
@@ -16,6 +16,23 @@
 支援 `/admin/v1` 的 capabilities、grant／revoke、artifact 上傳、proposal 建立／詳情／修訂／驗證／送審／審核／撤回、publication build／manifest、驗證任務狀態及 activation plan。`GET /tasks/{task_id}/result` 讀取完成的 ValidationResult；capabilities 可用 `domain` 查詢受 scope 限制的動作。這兩個是讀取面的相容補充。
 
 Dashboard 提供列表、diff、版本選單、原始觀察商品全名與分權審核。連線狀態保留未設定語意，真實採集與模型執行保持停用。App 內有完整輸入 schema，部署使用封裝的契約。
+
+總覽依授權領域彙整待審、待補件與失敗驗證，食譜、食材與價格可直接開啟對應清單。提案保留分頁審查意見，稽核帳號只可查閱其稽核領域內的操作紀錄。權限管理員可用既有帳號 UUID 查詢、授予或撤銷角色，權限檢查與稽核沿用共用服務。
+
+主資料庫監控從目前應用連線取得 PostgreSQL 探測耗時、連線數及資料庫容量。排程頁區分 API 環境設定與 PostgreSQL 保存的每日查價執行紀錄。排程程序心跳、下一次執行、其他排程歷史及操作控制尚未接入。
+
+## 菜單確認資料流
+
+- 在獨立管理網站開啟「資料庫與任務 → 即時資料流」。具 `operations.read` 權限的帳號可追蹤最近的確認紀錄。事件只顯示追蹤 ID、菜單模式、里程碑及時間。
+- 兩種菜單採用入口都在同一筆交易內寫入菜單快照與事件。確認成功後可看到採用歷史，以及快照實際保存的食材、營養或成本結果。舊採用紀錄保留原樣，事件表從遷移後的新確認開始累積。
+- 頁面每兩秒讀取已提交的事件。連線失敗時停在最後一次成功回應確認的位置與時間，重連後用新回應同步。動畫只呈現已確認的里程碑。
+- 部署時由遷移角色將 schema 升至 `m1109mealflow1`，應用程式角色需有 `meal_confirmation_events` 的 `SELECT` 及 `INSERT` 權限。
+
+## 食譜版本的啟用與回復
+
+- 在 PostgreSQL 環境，API 和生成 worker 都設 `MANAGEMENT_RECIPE_CATALOG_ENABLED=true`，管理 API 另需 `MANAGEMENT_ENABLED=true` 與非 owner 應用角色。管理者在「食譜與 AI 候選 → 發布版本」選取已雙審核發布的版本，輸入原因，建立並確認五分鐘有效的計畫。每次切換會重驗基底、來源擷取雜湊、正式 Food ID 與指標修訂號。回復可選曾啟用的管理版，或選「回復原始 T01 食譜」。
+- 啟用後，選菜目錄、T11 正式查詢、T12 預覽、生成 worker 與預算下限讀取同一個發布指標。既有 T01 發布與 Food ID 字典作為基底，被修訂的食譜按管理發布清單替換，其餘沿用基底成員。新的生成工作在讀取食譜時固定該次版本，已保存結果及已採用餐單保留原快照。
+- 管理食譜保有自己的配方與食材列識別碼，逐列烹調憑據綁定新版重量和步驟。T04 與 T13 繼續使用基底的已指定來源版本。未核准的營養對照、缺少烹調依據和無法換算的批次份量仍按原有規則呈現缺口。
 
 ### iCook 單頁預覽
 
@@ -54,3 +71,20 @@ Dashboard 提供列表、diff、版本選單、原始觀察商品全名與分權
 SQLite／ASGI 測試：`PYTHONPATH=backend:tests python -m pytest tests/test_management_foundation.py tests/test_management_api.py`（Windows 使用分號分隔 PYTHONPATH）。
 
 PostgreSQL 測試是明確 opt-in：使用新建的 `meal_planner_1102_v3_management_test`、`meal_planner_1102_v3_management_legacy_test`、`meal_planner_1102_v3_management_reference_test`，每個 database comment 設為 `overcooked:disposable:management`。`MANAGEMENT_TEST_DATABASE_URL` 指向第一個庫；測試先檢查實際庫名及 marker，然後只重建這三個庫的 public schema。禁止給正式或匯入資料庫加這個標記。`python -m pytest tests/test_management_postgres.py`。
+
+## iCook 食譜匯入
+
+- 開啟獨立管理網站的「食譜與 AI 候選」，選「從 iCook 匯入」，貼上食譜網址並預覽。確認後將原始擷取欄位、來源網址、擷取時間與 HTML SHA-256 一併保存為 `web_capture` 證據。儲存使用原預覽快照，同一網址已有提案時可開啟既有提案。
+- 具 `recipe.edit` 的帳號可在草稿編輯人份和食材數量，缺值可先保留空白。iCook 草稿的人份必須是正整數，食材用量須是正數並選擇 g 或 ml。人工補填或更正後，由具 `recipe.review` 的帳號對當前修訂確認並留下依據，再執行驗證及送審。需同一帳號填寫並確認時，該帳號須同時具備兩種權限。正式審核仍依既有分權規則辦理。
+- `ml` 保留為體積。食譜發布前仍須補齊有依據的整份烹調前克重。iCook 擷取和草稿儲存由管理人員操作，儲存後可繼續修訂。
+- API 位於 `/admin/v1/recipe-candidates/icook`。預覽簽章有效 20 分鐘，綁定發起帳號。單一程序預設使用啟動時產生的金鑰，多 worker 或多副本部署須共用高熵的 `MANAGEMENT_ICOOK_PREVIEW_SECRET`。
+
+## 從家庭生成結果匯入 AI 菜色
+
+- 在「資料管理 → 食譜與 AI 候選」開啟「匯入已生成的 AI 菜色」。目前家庭的擁有者須同時具備食譜編輯與來源證據上傳權限。選擇單道 AI 菜色，核對每份用量及步驟，再按「確認並儲存 AI 草稿」。
+- 草稿保存單道菜的名稱、食材、步驟、原始 `grams_per_n` 與生成結果版本。人份與整份烹調前克重留待編輯者確認。同一結果的同一道菜已匯入時可開啟既有提案。
+- 管理端讀取既有 T14 結果，確認後將單道菜快照存入管理表的來源證據與提案。家庭問卷、營養、成本和歷史欄位不在匯入資料內。草稿保留原有驗證與審核流程。
+
+## 獨立管理網站
+
+管理介面位於 `admin-dashboard/`，有自己的登入、建置與部署入口；啟動與 hostname 設定見 [管理網站說明](../admin-dashboard/README.md)。一般使用者前端不再提供 `/admin` 頁面或管理 API 代理。後端仍沿用 `/admin/v1` 與既有授權／審核／發布契約，不新增管理資料庫或自動核准。

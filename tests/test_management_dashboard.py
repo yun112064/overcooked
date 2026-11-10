@@ -121,6 +121,41 @@ def test_missing_probe_and_metrics_stay_unknown(dashboard):
     assert metrics['pending_proposal_count'] == 0
 
 
+def test_overview_review_history_and_audit_keep_their_own_scopes(dashboard, env, monkeypatch):
+    c, app = dashboard
+    monkeypatch.setenv('PRICE_SCHEDULER_ENABLED', 'false')
+    p = env.create()
+    validation = env.submit(p)
+    env.call(ACTORS[2], 'review', env.key(), p['proposal_id'], {
+        **env.expected(p), 'reason': '補齊來源', 'validation_id': validation['validation_id'],
+        'dependency_hash': p['dependency_hash'], 'scope': 'content', 'verdict': 'request_changes',
+    })
+    history_path = BASE + '/proposals/' + p['proposal_id'] + '/review-history'
+    assert c.get(history_path).json()['items'][0]['reason'] == '補齊來源'
+    assert c.get(BASE + '/overview').json()['proposals']['source_policy']['changes_requested'] == 1
+    schedule = {row['key']: row for row in c.get(BASE + '/schedule-configuration').json()['items']}
+    assert schedule['recover_expired_jobs']['interval_seconds'] == 60
+    assert schedule['price_collection']['configured_mode'] == 'disabled'
+    assert c.get(BASE + '/database-status').json()['database_bytes'] is None
+    assert c.get(BASE + '/schedule-price-runs').json()['status'] == 'not_configured'
+    assert c.get(BASE + '/audit-events').status_code == 403
+
+    env.grants(ACTORS[3], ['auditor'], ['source_policy'])
+    env.grants(ACTORS[3], ['catalog_viewer'], ['recipe'])
+    app.dependency_overrides[current_auth] = lambda: SimpleNamespace(user_id=uuid.UUID(ACTORS[3]))
+    assert c.get(BASE + '/capabilities', params={'include_scopes': True}).json()['readable_domains'] == ['recipe', 'source_policy']
+    audit = c.get(BASE + '/audit-events', params={'limit': 1}).json()
+    assert audit['domains'] == ['source_policy']
+    assert audit['items'][0]['reason'] == '補齊來源'
+    assert c.get(BASE + '/audit-events', params={'domain': 'recipe'}).status_code == 403
+    assert c.get(BASE + '/audit-events', params={'domain': 'source_policy', 'cursor': audit['next_cursor']}).status_code == 422
+    assert 'price_collection' not in {row['key'] for row in c.get(BASE + '/schedule-configuration').json()['items']}
+    assert c.get(BASE + '/schedule-price-runs').status_code == 403
+    app.dependency_overrides[current_auth] = lambda: SimpleNamespace(user_id=uuid.UUID(ACTORS[0]))
+    assert c.get(history_path).status_code == 404
+    assert c.get(BASE + '/overview').status_code == 403
+
+
 def test_postgres_dashboard_filters_task_json_in_marked_disposable_database():
     import os
 
@@ -128,7 +163,7 @@ def test_postgres_dashboard_filters_task_json_in_marked_disposable_database():
     from sqlalchemy.orm import Session
 
     from app.db.models import User
-    from app.management import dashboard_read
+    from app.management import dashboard_read, operations_read
     from app.management.models import tables as tables
     from app.management.service import Management, now
     from app.models.recipe import RecipeDataRelease
@@ -148,12 +183,24 @@ def test_postgres_dashboard_filters_task_json_in_marked_disposable_database():
                 actor = uuid.uuid4()
                 db.add(User(id=actor, email=f'{actor}@example.invalid', password_hash='synthetic-only'))
                 db.flush()
-                for role, domain in [('source_reviewer', 'source_policy'), ('recipe_editor', 'recipe')]:
+                for role, domain in [('source_reviewer', 'source_policy'), ('recipe_editor', 'recipe'), ('price_editor', 'price')]:
                     db.execute(tables['role_grants'].insert().values(
                         id=uuid.uuid4().hex, user_id=str(actor), role=role, domain_scope=[domain],
                         expires_at=None, revoked_at=None, access_revision=1, created_by=str(actor), created_at=now(),
                     ))
                 s = Management(db, actor)
+                database = operations_read.database_status(s)
+                assert database['status'] == 'healthy' and database['database_bytes'] > 0
+                assert database['client_connections'] >= 1 and database['query_latency_ms'] >= 0
+                db.execute(sa.text('''
+                    INSERT INTO price_collection_runs (id, run_key, provider, trigger_type, scheduled_for,
+                        started_at, status, duration_ms, ingredient_total, success_count, failure_count, fatal_error)
+                    VALUES (:id, :key, 'pxmart', :trigger, :at, :at, 'failed', 100, 2, 1, 1, 'internal only')
+                '''), [dict(id=uuid.uuid4(), key='fixture-' + trigger, trigger=trigger, at=now())
+                       for trigger in ('scheduled', 'manual')])
+                runs = operations_read.scheduled_price_runs(s, 20)['items']
+                assert [run['run_key'] for run in runs] == ['fixture-scheduled']
+                assert runs[0]['has_error'] and runs[0]['failure_count'] == 1 and 'fatal_error' not in runs[0]
                 artifact = s.upload('fixture-evidence', 'source_policy', 'manual_entry', 'text/plain', b'fixture', 'fixture')
                 content = dict(provider='pxmart', external_execution_enabled=False, execution_mode='fixtures_only',
                                registered_endpoint_key='pxmart-fixture', minimum_interval_seconds=2, timeout_seconds=15,

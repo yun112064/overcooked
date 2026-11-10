@@ -467,10 +467,11 @@ class VariantRetrievalTests(unittest.TestCase):
 
 
 def truncate_history():
-    from db_support import _engine
+    from db_support import _engine, verify_disposable
     from sqlalchemy import text
+    verify_disposable(_engine)
     with _engine.begin() as conn:
-        conn.execute(text("TRUNCATE adopted_meal_plans"))
+        conn.execute(text("TRUNCATE meal_confirmation_events, adopted_meal_plans"))
 
 
 if __name__ == "__main__":

@@ -321,6 +321,19 @@ class AdoptedMealPlan(Base):
     )
 
 
+class MealConfirmationEvent(Base):
+    """Operational milestones for an adopted meal, without copying household data."""
+    __tablename__ = "meal_confirmation_events"
+    __table_args__ = (Index("ix_meal_confirmation_event_recent", "stage", "occurred_at", "plan_id"),)
+
+    plan_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("adopted_meal_plans.id", ondelete="CASCADE"), primary_key=True
+    )
+    sequence: Mapped[int] = mapped_column(Integer, primary_key=True)
+    stage: Mapped[str] = mapped_column(String(32), nullable=False)
+    occurred_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+
+
 class GenerationResult(Base):
     """T14 生成結果（GenerationResult 契約）：每個成功的生成工作恰好一筆，不覆寫、不刪改。
 

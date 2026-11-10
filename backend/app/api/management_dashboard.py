@@ -1,12 +1,13 @@
 """Dashboard GET adapters using the existing management session and domain grants."""
 from typing import Annotated, Literal
 
-from fastapi import APIRouter, Depends, Path, Query
+from fastapi import APIRouter, Depends, Path, Query, Response
 import sqlalchemy as sa
 
 from app.api.deps import verify_origin
 from app.api.management import service
 from app.management import dashboard_read as view
+from app.management import operations_read
 from app.management.models import tables as T
 from app.management.service import fail
 
@@ -61,8 +62,13 @@ def proposal_diff(proposal_id: ID, base_revision: QueryVersion, target_revision:
 
 
 @router.get('/proposals/{proposal_id}/workflow')
-def proposal_workflow(proposal_id: ID, s=Depends(service)):
-    return view.proposal_workflow(s, view.visible_proposal(s, proposal_id))
+def proposal_workflow(proposal_id: ID, include_validation_controls: bool = False, s=Depends(service)):
+    return view.proposal_workflow(s, view.visible_proposal(s, proposal_id), include_validation_controls)
+
+
+@router.get('/proposals/{proposal_id}/review-history')
+def review_history(proposal_id: ID, limit: Limit = 50, cursor: Cursor = None, s=Depends(service)):
+    return operations_read.review_history(s, view.visible_proposal(s, proposal_id), limit, cursor)
 
 
 @router.get('/publications')
@@ -82,8 +88,11 @@ def publication(publication_id: ID, s=Depends(service)):
 
 
 @router.get('/bindings/{channel}')
-def binding(channel: Channel, s=Depends(service)):
-    return view.binding(s, channel)
+def binding(channel: Channel, include_runtime: bool = False, s=Depends(service)):
+    result = view.binding(s, channel)
+    if include_runtime and channel == 'recipe_catalog':
+        result['runtime_enabled'] = s.binding_enabled(channel)
+    return result
 
 
 @router.get('/draft-context')
@@ -139,6 +148,37 @@ def tasks(limit: Limit = 50, cursor: Cursor = None, s=Depends(service)):
 @router.get('/metrics/summary')
 def metrics(s=Depends(service)):
     return view.metrics(s)
+
+
+@router.get('/overview')
+def overview(s=Depends(service)):
+    return operations_read.overview(s)
+
+
+@router.get('/database-status')
+def database_status(s=Depends(service)):
+    return operations_read.database_status(s)
+
+
+@router.get('/meal-confirmation-flows')
+def meal_confirmation_flows(response: Response, limit: Annotated[int, Query(ge=1, le=30)] = 20, s=Depends(service)):
+    response.headers['Cache-Control'] = 'no-store'
+    return operations_read.meal_confirmation_flows(s, limit)
+
+
+@router.get('/schedule-configuration')
+def schedule_configuration(s=Depends(service)):
+    return operations_read.schedule_configuration(s)
+
+
+@router.get('/schedule-price-runs')
+def schedule_price_runs(limit: Limit = 20, s=Depends(service)):
+    return operations_read.scheduled_price_runs(s, limit)
+
+
+@router.get('/audit-events')
+def audit_events(domain: Domain | None = None, limit: Limit = 50, cursor: Cursor = None, s=Depends(service)):
+    return operations_read.audit_events(s, domain, limit, cursor)
 
 
 @router.get('/connections')

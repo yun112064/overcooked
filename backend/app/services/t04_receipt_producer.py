@@ -46,10 +46,15 @@ def produce_receipt_from_estimate(factory, *, recipe_release_id: str, nutrition_
     if weight <= 0:
         return None
     with factory() as db:
-        ingredient = db.get(RecipeIngredient, line.recipe_ingredient_id)
-        if (ingredient is None or ingredient.recipe_release_id != recipe_release_id
-                or ingredient.food_id != line.food_id):
-            return None
+        if line.recipe_publication_id:
+            from app.management.active_recipe_catalog import receipt_line_matches
+            if not receipt_line_matches(db, line, recipe_release_id, weight):
+                return None
+        else:
+            ingredient = db.get(RecipeIngredient, line.recipe_ingredient_id)
+            if (ingredient is None or ingredient.recipe_release_id != recipe_release_id
+                    or ingredient.food_id != line.food_id):
+                return None
         query = (select(NutritionFoodMapping, FoodNutrition, NutritionSource)
             .join(FoodNutrition, (FoodNutrition.nutrition_id == NutritionFoodMapping.nutrition_id)
                               & (FoodNutrition.import_id == NutritionFoodMapping.import_id))
@@ -149,6 +154,9 @@ def produce_receipt_from_estimate(factory, *, recipe_release_id: str, nutrition_
                    "retention_fields_available": list(retention),
                    "missing_information": [key for key in ("fat_g", "carbohydrate_g", "sugars_g",
                        "sodium_mg", "dietary_fiber_g") if key not in retention]}
+        if line.recipe_publication_id:
+            context["recipe_publication_id"] = line.recipe_publication_id
+            context["recipe_version_id"] = line.dish_id
         assumptions = list(estimate.assumptions)
         nutrition_id, source_id = observation.nutrition_id, source.source_id
     receipt_id = persist_receipt(factory, recipe_release_id=recipe_release_id,

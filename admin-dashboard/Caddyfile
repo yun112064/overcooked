@@ -1,0 +1,35 @@
+{
+    log default {
+        exclude http.log.error
+    }
+    log sanitized_errors {
+        output stderr
+        include http.log.error
+        format filter {
+            request delete
+            wrap json
+        }
+    }
+}
+
+:80 {
+    header Referrer-Policy "same-origin"
+    header X-Robots-Tag "noindex, nofollow"
+    header Cache-Control "no-store"
+
+    route {
+        @admin_api path /api/auth/login /api/auth/logout /api/auth/me /api/admin/v1 /api/admin/v1/*
+        handle @admin_api {
+            uri strip_prefix /api
+            reverse_proxy backend:8000
+        }
+        handle /api* {
+            respond 404
+        }
+        handle {
+            root * /usr/share/caddy
+            try_files {path} /index.html
+            file_server
+        }
+    }
+}
