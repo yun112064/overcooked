@@ -4,14 +4,16 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from decimal import Decimal
+from fractions import Fraction
 
 
 @dataclass(frozen=True)
 class IngredientRequirement:
-    """一項配方食材的整餐需求量：已乘 N 的生重克數，未取整。"""
+    """整餐用量。同一食材的克數與容量各自涵蓋全部需求，供 T13 選擇計價單位。"""
 
     food_id: str
-    grams: Decimal
+    grams: Decimal | None = None
+    volume_ml: Fraction | None = None
 
 
 @dataclass(frozen=True)

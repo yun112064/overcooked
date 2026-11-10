@@ -294,13 +294,13 @@ class DatabaseMenuResult:
                 label = labels.get(line.line_id) or {'recipe_id': '', 'name': line.food_id, 'food_id': line.food_id,
                                                      'unit': None}
                 grouped.setdefault(str(label['recipe_id']), []).append(
-                    {'name': label['name'], 'food_id': label['food_id'], 'unit': label['unit'],
+                    {'line_id': line.line_id, 'name': label['name'], 'food_id': label['food_id'], 'unit': label['unit'],
                      'grams': str(exact(line.amount_g))})
             order = list(validation.final_recipe.recipe_ids)
         else:
-            for label in labels.values():
+            for line_id, label in labels.items():
                 grouped.setdefault(str(label['recipe_id']), []).append(
-                    {'name': label['name'], 'food_id': label['food_id'], 'unit': label['unit'], 'grams': label['grams']})
+                    {'line_id': line_id, 'name': label['name'], 'food_id': label['food_id'], 'unit': label['unit'], 'grams': label['grams']})
             order = list(dict.fromkeys(str(label['recipe_id']) for label in labels.values()))
         order = [rid for rid in order if rid in grouped and rid != 'staple']
         return tuple({'recipe_id': rid, 'ingredients': grouped[rid], 'steps': list(steps.get(rid, ())),

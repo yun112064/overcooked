@@ -8,6 +8,7 @@ from app.api.deps import current_household_id, verify_origin
 from app.core.config import settings
 from app.db.session import get_db
 from app.models.recipe import IngredientAlias, Recipe, RecipeDataRelease, RecipeIngredient
+from app.services.recipe_volume import source_volume_ml
 
 
 router = APIRouter(prefix="/sim-market", tags=["sim-market"], dependencies=[Depends(verify_origin)])
@@ -21,14 +22,17 @@ DEMO_PACKS = (
 )
 
 
-def _product(food_id: str, name: str) -> dict:
+def _product(food_id: str, name: str, capacity: bool = False) -> dict:
     category, grams, cents = next(
         ((category, grams, cents) for category, terms, grams, cents in DEMO_PACKS
          if any(term in name for term in terms)),
         ("其他食材", 300, 4900),
     )
-    return {"food_id": food_id, "name": name, "category": category,
-            "package_grams": grams, "price_cents": cents}
+    product = {"food_id": food_id, "name": name, "category": category,
+               "package_grams": grams, "price_cents": cents}
+    if capacity:
+        product.update(package_grams=None, package_ml=500, price_cents=15000)
+    return product
 
 
 @router.get("/catalog", dependencies=[Depends(current_household_id)])
@@ -44,13 +48,17 @@ def get_catalog(db: Session = Depends(get_db)):
         return {"recipe_release_id": None, "products": []}
 
     used = db.execute(
-        select(IngredientAlias.food_id, IngredientAlias.canonical_name)
+        select(IngredientAlias.food_id, IngredientAlias.canonical_name, RecipeIngredient)
         .join(RecipeIngredient, RecipeIngredient.food_id == IngredientAlias.food_id)
         .join(Recipe, Recipe.recipe_id == RecipeIngredient.recipe_id)
         .where(IngredientAlias.recipe_release_id == release_id,
                RecipeIngredient.recipe_release_id == release_id,
                Recipe.recipe_release_id == release_id)
-        .distinct()
         .order_by(IngredientAlias.canonical_name, IngredientAlias.food_id)
     )
-    return {"recipe_release_id": release_id, "products": [_product(food_id, name) for food_id, name in used]}
+    products = {}
+    for food_id, name, ingredient in used:
+        capacity = source_volume_ml(ingredient) is not None
+        if food_id not in products or capacity:
+            products[food_id] = _product(food_id, name, capacity)
+    return {"recipe_release_id": release_id, "products": list(products.values())}

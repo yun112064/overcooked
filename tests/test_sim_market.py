@@ -132,9 +132,11 @@ def test_picker_adoption_freezes_exact_market_shortages(market_client, monkeypat
     monkeypatch.setattr(database_menu_plans, 'current_menu', lambda *_: {'selected': selected})
     preview = {'status': 'nutrition_passed', 'dishes': [
         {'ingredients': [{'food_id': 'TEST-CABBAGE', 'name': '高麗菜', 'grams': '500'},
+                         {'food_id': 'TEST-MILK', 'name': '牛奶', 'grams': None, 'volume_ml': '500'},
                          {'food_id': 'TEST-OWNED', 'name': '已有食材', 'grams': '100'},
                          {'food_id': 'TEST-UNKNOWN', 'name': '用量未知', 'grams': '20'}]},
         {'ingredients': [{'food_id': 'TEST-CABBAGE', 'name': '高麗菜', 'grams': '1/3'},
+                         {'food_id': 'TEST-MILK', 'name': '牛奶', 'grams': None, 'volume_ml': '1/3'},
                          {'food_id': 'TEST-UNKNOWN', 'name': '用量未知', 'grams': None}]},
     ], 'staple': {'food_id': 'TEST-RICE', 'name': '白飯', 'final_grams': '160'}}
     monkeypatch.setattr(database_menu_plans.t12_planning, 'preview', lambda *_, **__: preview)
@@ -150,6 +152,7 @@ def test_picker_adoption_freezes_exact_market_shortages(market_client, monkeypat
     assert detail['snapshot']['market_shortages'] == {
         'recipe_release_id': 'test-current',
         'items': [{'food_id': 'TEST-CABBAGE', 'name': '高麗菜', 'shortage_grams': '1501/3'},
+                  {'food_id': 'TEST-MILK', 'name': '牛奶', 'shortage_grams': None, 'shortage_ml': '1501/3'},
                   {'food_id': 'TEST-RICE', 'name': '白飯', 'shortage_grams': '160'}],
         'unquantified_items': [{'food_id': 'TEST-UNKNOWN', 'name': '用量未知'}],
     }
@@ -166,3 +169,53 @@ def test_picker_adoption_freezes_exact_market_shortages(market_client, monkeypat
     assert client.get(path).json() == detail
     app.dependency_overrides[current_household_id] = uuid4
     assert client.get(path).status_code == 404
+
+@pytest.mark.parametrize(('evidence', 'quantity_status', 'capacity'), [
+    ('workbook_volume', 'source_exact', True),
+    ('source_explicit_volume', 'source_exact', True),
+    ('estimate:synthetic', 'source_exact', False),
+    ('workbook_volume', 'reference_amount', False),
+])
+def test_catalog_volume_packs_require_exact_source_evidence(market_client, evidence, quantity_status, capacity):
+    app, client = market_client
+    app.dependency_overrides[current_household_id] = lambda: 'test-household'
+    db_session = contextmanager(app.dependency_overrides[get_db])
+    with db_session() as db, db.begin():
+        row = db.get(RecipeIngredient, 'test-current-0')
+        row.amount, row.unit = '0.1', 'L'
+        row.volume_ml, row.volume_evidence = 100, evidence
+        row.quantity_status = quantity_status
+    product = client.get('/sim-market/catalog').json()['products'][0]
+    if capacity:
+        assert product['package_ml'] == 500
+        assert product['package_grams'] is None
+        assert product['price_cents'] == 15000
+    else:
+        assert product['package_grams'] == 500
+        assert product.get('package_ml') is None
+
+
+def test_snapshot_preserves_volume_pairs_mixed_units_and_unknowns(market_client):
+    app, _ = market_client
+    db_session = contextmanager(app.dependency_overrides[get_db])
+    preview = {'dishes': [{'ingredients': [
+        {'food_id': 'MILK', 'name': '牛奶', 'grams': None, 'volume_ml': '100/3'},
+        {'food_id': 'MILK', 'name': '牛奶', 'grams': None, 'volume_ml': '200/3'},
+        {'food_id': 'MILK', 'name': '牛奶', 'grams': '50', 'volume_ml': None},
+        {'food_id': 'PAIRED', 'name': '雙計量', 'grams': '110', 'volume_ml': '100'},
+        {'food_id': 'PAIRED', 'name': '雙計量', 'grams': '220', 'volume_ml': '200'},
+        {'food_id': 'UNKNOWN', 'name': '未知', 'grams': None, 'volume_ml': '100'},
+        {'food_id': 'UNKNOWN', 'name': '未知', 'grams': None, 'volume_ml': None},
+        {'food_id': 'OWNED', 'name': '已有', 'grams': None, 'volume_ml': '500'},
+    ]}]}
+    with db_session() as db:
+        result = database_menu_plans._market_shortages(db, ['test-current-0'], preview, ['OWNED'])
+    assert result == {
+        'recipe_release_id': 'test-current',
+        'items': [
+            {'food_id': 'MILK', 'name': '牛奶', 'shortage_grams': None, 'shortage_ml': '100'},
+            {'food_id': 'MILK', 'name': '牛奶', 'shortage_grams': '50'},
+            {'food_id': 'PAIRED', 'name': '雙計量', 'shortage_grams': '330', 'shortage_ml': '300'},
+        ],
+        'unquantified_items': [{'food_id': 'UNKNOWN', 'name': '未知'}],
+    }

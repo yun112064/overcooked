@@ -4,7 +4,8 @@ export type MarketProduct = {
   food_id: string
   name: string
   category: string
-  package_grams: number
+  package_grams: number | null
+  package_ml?: number | null
   price_cents: number
 }
 
@@ -14,7 +15,7 @@ export type MarketCatalog = {
 }
 
 type MarketShortages = {
-  items: { food_id: string; name: string; shortage_grams: string; recipe_release_id?: string | null }[]
+  items: { food_id: string; name: string; shortage_grams: string | null; shortage_ml?: string | null; recipe_release_id?: string | null }[]
   unquantified_items?: { food_id: string; name: string }[]
 }
 
@@ -27,7 +28,7 @@ export type MarketPlan = Pick<MealPlanSummary, 'id' | 'status' | 'meal_date' | '
 }
 
 export type MarketCart = { quantities: Record<string, number>; orderId: string | null }
-export type UnavailableIngredient = { foodId: string; name: string; grams?: string; reason: string }
+export type UnavailableIngredient = { foodId: string; name: string; grams?: string | null; ml?: string | null; reason: string }
 
 export const MAX_PACKS = 1_000_000
 
@@ -36,25 +37,58 @@ export function marketPath(page: 'catalog' | 'checkout', planId: string | null =
   return planId ? `${path}?plan=${encodeURIComponent(planId)}` : path
 }
 
-/** Calculate ceil(grams / pack size) exactly for both Decimal and Fraction strings. */
-export function packCount(grams: string, packageGrams: number): number | null {
-  if (!Number.isSafeInteger(packageGrams) || packageGrams <= 0) return null
-  const ratio = /^(\d{1,128})\/([1-9]\d{0,127})$/.exec(grams)
-  let quantity: bigint
-  let size = BigInt(packageGrams)
-  if (ratio) {
-    quantity = BigInt(ratio[1])
-    size *= BigInt(ratio[2])
-  } else {
-    const match = /^(\d{1,16})(?:\.(\d{1,16}))?(?:[eE]([+-]?\d{1,2}))?$/.exec(grams)
-    if (!match) return null
-    const fraction = match[2] ?? ''
-    const scale = fraction.length - Number(match[3] ?? 0)
-    quantity = BigInt(match[1] + fraction) * 10n ** BigInt(Math.max(0, -scale))
-    size *= 10n ** BigInt(Math.max(0, scale))
+type ExactQuantity = { numerator: bigint; denominator: bigint }
+
+function exactQuantity(value: string | null | undefined): ExactQuantity | null {
+  if (value == null) return null
+  const ratio = /^(\d{1,128})\/([1-9]\d{0,127})$/.exec(value)
+  if (ratio) return { numerator: BigInt(ratio[1]), denominator: BigInt(ratio[2]) }
+  const match = /^(\d{1,16})(?:\.(\d{1,16}))?(?:[eE]([+-]?\d{1,2}))?$/.exec(value)
+  if (!match) return null
+  const fraction = match[2] ?? ''
+  const scale = fraction.length - Number(match[3] ?? 0)
+  return {
+    numerator: BigInt(match[1] + fraction) * 10n ** BigInt(Math.max(0, -scale)),
+    denominator: 10n ** BigInt(Math.max(0, scale)),
   }
-  const packs = (quantity + size - 1n) / size
+}
+
+function addQuantity(left: ExactQuantity, right: ExactQuantity): ExactQuantity {
+  const numerator = left.numerator * right.denominator + right.numerator * left.denominator
+  const denominator = left.denominator * right.denominator
+  let divisor = numerator
+  let remainder = denominator
+  while (remainder !== 0n) [divisor, remainder] = [remainder, divisor % remainder]
+  return { numerator: numerator / divisor, denominator: denominator / divisor }
+}
+
+function exactString(quantity: ExactQuantity): string {
+  return quantity.denominator === 1n ? String(quantity.numerator) : `${quantity.numerator}/${quantity.denominator}`
+}
+
+/** Round only after all requirements for the same product have been summed. */
+export function packCount(amount: string, packageSize: number): number | null {
+  if (!Number.isSafeInteger(packageSize) || packageSize <= 0) return null
+  const quantity = exactQuantity(amount)
+  if (quantity === null) return null
+  const size = BigInt(packageSize) * quantity.denominator
+  const packs = (quantity.numerator + size - 1n) / size
   return packs <= MAX_PACKS ? Number(packs) : null
+}
+
+export function packageSpec(product: MarketProduct): { quantity: number; unit: 'g' | 'mL' } | null {
+  const mass = product.package_grams
+  const volume = product.package_ml
+  if (mass != null && volume != null) return null
+  const quantity = volume ?? mass
+  if (quantity == null || !Number.isSafeInteger(quantity) || quantity <= 0) return null
+  return { quantity, unit: volume != null ? 'mL' : 'g' }
+}
+
+export function cartStorageKey(scope: (string | null | undefined)[], catalog: MarketCatalog): string {
+  const packages = catalog.products.map(p => [p.food_id, p.package_grams, p.package_ml ?? null, p.price_cents])
+    .sort((a, b) => String(a[0]).localeCompare(String(b[0])))
+  return `sim-market:v2:${JSON.stringify([scope, catalog.recipe_release_id, packages])}`
 }
 
 export function prepareCart(plan: MarketPlan | undefined, catalog: MarketCatalog) {
@@ -71,23 +105,39 @@ export function prepareCart(plan: MarketPlan | undefined, catalog: MarketCatalog
   const unavailable: UnavailableIngredient[] = (shortagesSource?.unquantified_items ?? []).map((item) => ({
     foodId: item.food_id, name: item.name, reason: '採用餐單未記錄可換算的用量',
   }))
-  const unknownQuantities = new Set(unavailable.map((item) => item.foodId))
+  const blocked = new Set(unavailable.map((item) => item.foodId))
   const shortages = new Map<string, string>()
+  const totals = new Map<string, ExactQuantity>()
   const quantities: Record<string, number> = {}
   for (const item of shortagesSource?.items ?? []) {
-    if (unknownQuantities.has(item.food_id)) continue
+    if (blocked.has(item.food_id)) continue
     const product = products.get(item.food_id)
-    const packs = packCount(item.shortage_grams, product?.package_grams ?? 1)
-    if (packs === 0) continue
-    if (!product || releaseIssue || packs === null) {
+    const spec = product && packageSpec(product)
+    const raw = spec?.unit === 'mL' ? item.shortage_ml : item.shortage_grams
+    const quantity = exactQuantity(raw)
+    if (quantity?.numerator === 0n) continue
+    if (!product || releaseIssue || !spec || quantity === null) {
       unavailable.push({
-        foodId: item.food_id, name: item.name, grams: item.shortage_grams,
-        reason: releaseIssue ?? (!product ? '模擬超市尚未提供此食材' : '缺量或包裝規格無法換算成包數'),
+        foodId: item.food_id, name: item.name, grams: item.shortage_grams, ml: item.shortage_ml,
+        reason: releaseIssue ?? (!product ? '模擬超市尚未提供此食材' : '缺量與商品包裝單位無法換算，請確認用量或換算依據'),
       })
+      blocked.add(item.food_id)
       continue
     }
-    quantities[item.food_id] = packs
-    shortages.set(item.food_id, item.shortage_grams)
+    totals.set(item.food_id, addQuantity(totals.get(item.food_id) ?? { numerator: 0n, denominator: 1n }, quantity))
+  }
+  for (const [foodId, total] of totals) {
+    if (blocked.has(foodId)) continue
+    const product = products.get(foodId)!
+    const spec = packageSpec(product)!
+    const amount = exactString(total)
+    const packs = packCount(amount, spec.quantity)
+    if (packs === null) {
+      unavailable.push({ foodId, name: product.name, reason: '需求包數超過模擬購物車上限' })
+      continue
+    }
+    quantities[foodId] = packs
+    shortages.set(foodId, `${amount} ${spec.unit}`)
   }
   return { quantities, shortages, unavailable, releaseIssue }
 }

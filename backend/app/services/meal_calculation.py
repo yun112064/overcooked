@@ -18,11 +18,12 @@ from decimal import InvalidOperation, ROUND_HALF_UP, Decimal
 from fractions import Fraction
 from functools import lru_cache
 from pathlib import Path
-from typing import Callable
+from typing import Callable, Iterable
 
 from app.core.config import PROJECT_ROOT
 from app.meal_calc.types import EstimatedFactor, IngredientRequirement
 from app.services.recipe_steps import ingredient_group
+from app.services.recipe_volume import source_volume_ml
 
 REQUIRED_NUTRIENTS = ("energy_kcal", "protein_g")
 LOWER, UPPER = Fraction(9, 10), Fraction(11, 10)
@@ -135,6 +136,7 @@ class IngredientLine:
     # 原文沒有明確數量（如「數條」「適量」，quantity_status=reference_amount）：數量是匯入時的參考值，
     # 畫面不顯示原單位數量（避免「袖珍菇 35 條」），有克數時改顯示克數（2026-11-04 使用者要求）
     amount_estimated: bool = False
+    pricing_volume_ml_per_n: Fraction | None = None
 
 
 @dataclass
@@ -570,7 +572,7 @@ def _calculate_meal(lines: list[IngredientLine], targets: MealTargets, *, mode: 
     whole = [g * n for g in grams]
     final_rows, final_totals, final_missing, final_partial = _evaluate(lines, whole, calculator)
     result["ingredients"] = [_row(ln, grams[i], whole[i], final_rows[i], n) for i, ln in enumerate(lines)]
-    result["requirements"] = _requirements(lines, whole)
+    result["requirements"] = pricing_requirements(lines, grams, n)
     final = result["final"]
     final["missing_nutrients"] = final_missing
     _partial_view(final, final_partial, final_missing)
@@ -597,7 +599,7 @@ def _unverified_final(result, lines, grams, n, calculator, final_targets) -> Non
     whole = [g * n if g is not None else None for g in grams]
     rows, totals, missing, partial = _evaluate(lines, whole, calculator)
     result["ingredients"] = [_row(ln, grams[i], whole[i], rows[i], n) for i, ln in enumerate(lines)]
-    result["requirements"] = _requirements(lines, whole)
+    result["requirements"] = pricing_requirements(lines, grams, n)
     final = result["final"]
     final["missing_nutrients"] = missing
     _partial_view(final, partial, missing)
@@ -730,6 +732,8 @@ def _row(ln: IngredientLine, grams, whole, nutrition: IngredientNutrition | None
         "weight_source": ln.weight_source,
         "cooking_method": ln.cooking_method,
         "baseline_grams": grams, "whole_meal_grams": whole,
+        "volume_ml": (str(_pricing_volume(ln, grams, n))
+                      if _pricing_volume(ln, grams, n) is not None else None),
         "display_grams": _display_grams(whole) if whole is not None else None,
         **_display(ln, whole, n),
         "nutrients": nutrition.nutrients if nutrition else None,
@@ -1205,6 +1209,9 @@ def load_recipe_lines(db, recipe_id: str, factors=None) -> list[IngredientLine]:
             unit=row.unit, amount_per_n=per_n(row.amount), raw_text=row.raw_text,
             volume_ml_per_n=per_n(row.volume_ml),
             volume_is_estimated=bool(row.volume_evidence and row.volume_evidence.startswith("estimate:")),
+            pricing_volume_ml_per_n=(Fraction(source_volume_ml(row)) / Fraction(servings)
+                                     if source_volume_ml(row) is not None
+                                     and servings else None),
             weight_source=None if reason else source, group=ingredient_group(row.raw_text)[0],
             intake_parts=intake_adjustments().get(row.recipe_ingredient_id),
             amount_estimated=row.quantity_status == "reference_amount",
@@ -1590,14 +1597,29 @@ def _fill_blanks(lookup: NutrientFillLookup | None, grams: Decimal, nutrients: d
 tfda_calculator = make_tfda_calculator()
 
 
-def _requirements(lines, whole) -> list[IngredientRequirement]:
-    """依 food_id 合併整餐需求量（保持首次出現順序），供 T13 成本計算。
+def _pricing_volume(line: IngredientLine, aligned: Decimal | None, n: Decimal) -> Fraction | None:
+    amount = line.pricing_volume_ml_per_n
+    if amount is None or amount <= 0 or line.amount_estimated:
+        return None
+    scale = Fraction(aligned) / Fraction(line.grams_per_n) if aligned is not None and line.grams_per_n else 1
+    return amount * scale * Fraction(n)
 
-    主食不計價格／缺料（decisions #16），克數未知的食材無法計算成本，兩者都不列入。
-    """
-    merged: dict[str, Decimal] = {}
-    for ln, g in zip(lines, whole):
-        if ln.role == "staple" or g is None:
+
+def pricing_requirements(lines: Iterable[IngredientLine], grams_per_n: Iterable[Decimal | None],
+                         n: Decimal) -> list[IngredientRequirement]:
+    """Keep each food's compatible dimensions and unknown portions separately."""
+    merged: dict[tuple[str, bool, bool], IngredientRequirement] = {}
+    for ln, aligned in zip(lines, grams_per_n):
+        if ln.role == "staple":
             continue
-        merged[ln.food_id] = merged.get(ln.food_id, Decimal(0)) + g
-    return [IngredientRequirement(food_id, g) for food_id, g in merged.items()]
+        g = aligned * n if aligned is not None else None
+        ml = _pricing_volume(ln, aligned, n)
+        if ml is not None and ln.weight_source == "unit_estimate":
+            g = None
+        key = (ln.food_id, g is not None, ml is not None)
+        prior = merged.get(key)
+        if prior is not None:
+            g = prior.grams + g if prior.grams is not None and g is not None else None
+            ml = prior.volume_ml + ml if prior.volume_ml is not None and ml is not None else None
+        merged[key] = IngredientRequirement(ln.food_id, g, ml)
+    return list(merged.values())

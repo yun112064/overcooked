@@ -15,7 +15,7 @@ import { useQuery } from '@tanstack/react-query'
 import { useEffect, useState } from 'react'
 import { Link, useOutletContext, useSearchParams } from 'react-router'
 import { api, errorMessage } from '../api/client'
-import { marketPath, MAX_PACKS, prepareCart, readCart, saveCart } from '../api/simMarket'
+import { cartStorageKey, marketPath, MAX_PACKS, packageSpec, prepareCart, readCart, saveCart } from '../api/simMarket'
 import type { MarketCart, MarketCatalog, MarketPlan, MarketProduct } from '../api/simMarket'
 import type { Me } from '../api/types'
 import heroImage from '../assets/sim-market-hero.webp'
@@ -37,6 +37,11 @@ const contentPadding = { xs: 2, sm: 4, lg: 6 }
 
 type Page = 'catalog' | 'checkout'
 type CartLine = MarketProduct & { quantity: number }
+
+function packageLabel(product: MarketProduct, count = 1) {
+  const spec = packageSpec(product)
+  return spec ? `${spec.quantity * count} ${spec.unit}` : '包裝規格未知'
+}
 
 export default function SimMarketPage({ page }: { page: Page }) {
   const me = useOutletContext<Me>()
@@ -72,7 +77,7 @@ export default function SimMarketPage({ page }: { page: Page }) {
     )
   }
 
-  const key = `sim-market:v1:${JSON.stringify([...scope, catalog.data.recipe_release_id, planId])}`
+  const key = cartStorageKey([...scope, planId], catalog.data)
   return <MarketStore key={key} storageKey={key} page={page} catalog={catalog.data} plan={plan.data} />
 }
 
@@ -229,8 +234,8 @@ function MarketStore({ storageKey, page, catalog, plan }: {
                         <Box>
                           <Typography sx={{ fontWeight: 700, overflowWrap: 'anywhere' }}>{line.name}</Typography>
                           <Typography variant="body2" color="text.secondary">
-                            {shortages.has(line.food_id) && `菜單缺量 ${shortages.get(line.food_id)} g · `}
-                            {line.package_grams} g／包 · 購買 {line.quantity * line.package_grams} g
+                            {shortages.has(line.food_id) && `菜單缺量 ${shortages.get(line.food_id)} · `}
+                            {packageLabel(line)}／包 · 購買 {packageLabel(line, line.quantity)}
                           </Typography>
                           <Typography variant="caption" color="text.secondary">模擬單價 {money(line.price_cents)}／包</Typography>
                         </Box>
@@ -254,7 +259,7 @@ function MarketStore({ storageKey, page, catalog, plan }: {
                     <Typography variant="body2">模擬商品總額 · {count} 包</Typography>
                     <Typography sx={{ color: marketInk, fontWeight: 700, fontSize: '1.3rem' }}>{money(totalCents)}</Typography>
                   </Stack>
-                  <Typography variant="caption" color="text.secondary">此頁僅供模擬，不會付款或配送。</Typography>
+                  <Typography variant="caption" color="text.secondary">商品採用示範包裝與價格，結帳金額依整包計算；食譜的用量成本另列於餐單。此頁僅供模擬，不會付款或配送。</Typography>
                   {!cart.orderId && <Button variant="contained" size="large" sx={marketButton} onClick={confirmOrder} disabled={count === 0}>確認模擬訂單</Button>}
                   {cart.orderId && !plan && <Button onClick={() => setCart({ quantities: {}, orderId: null })}>開始新購物車</Button>}
                 </Stack>
@@ -266,7 +271,7 @@ function MarketStore({ storageKey, page, catalog, plan }: {
                 <Box component="ul" sx={{ mb: 0 }}>
                   {unavailable.map((item) => (
                     <Typography key={item.foodId} component="li" variant="body2">
-                      {item.name}{item.grams && `（缺量 ${item.grams} g）`} · {item.reason}
+                      {item.name}{item.ml != null ? `（缺量 ${item.ml} mL）` : item.grams != null && `（缺量 ${item.grams} g）`} · {item.reason}
                     </Typography>
                   ))}
                 </Box>
@@ -372,7 +377,7 @@ function ProductCard({ product, quantity, disabled, onAdd }: {
         {!imagePosition && <Inventory2Outlined sx={{ fontSize: 46 }} />}
       </Box>
       <Stack sx={{ gap: 0.5, flex: 1 }}>
-        <Typography variant="caption">{product.category} · {product.package_grams} g／包</Typography>
+        <Typography variant="caption">{product.category} · {packageLabel(product)}／包</Typography>
         <Typography component="h3" variant="body1" sx={{ fontWeight: 700, overflowWrap: 'anywhere', lineHeight: 1.45 }}>{product.name}</Typography>
         <Typography variant="body2" sx={{ mt: 'auto', pt: 0.5, fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>
           {money(product.price_cents)}

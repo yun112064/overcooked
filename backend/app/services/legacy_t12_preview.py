@@ -9,6 +9,7 @@ from sqlalchemy.orm import Session
 from app.core.config import settings
 from app.services import household, meal_request, per_person_nutrition
 from app.services.seasonings import display_group, spoon_display
+from app.services.recipe_volume import attach_preview_volumes
 from nutrition_planning import (NutritionPolicy, NutritionDataUnavailable,
                                 RecipeDataUnavailable, validate_database_menu)
 
@@ -34,6 +35,7 @@ def preview(db: Session, *, draft: meal_request.MealRequestDraft, members: dict,
     except (RecipeDataUnavailable, NutritionDataUnavailable) as exc:
         raise T12PlanningUnavailable(exc.code, '營養或食譜資料暫時無法讀取，請稍後重試。') from None
     payload: dict[str, Any] = dict(result.to_dict())
+    attach_preview_volumes(db, result, payload)
     payload['dishes'] = [{**dish, 'ingredients': [_with_spoons(i) for i in dish['ingredients']]}
                          for dish in payload.get('dishes') or ()]
     # 每人（用餐與便當分開）對照每日建議攝取量，畫面用
@@ -49,5 +51,11 @@ def _with_spoons(ingredient: dict) -> dict:
     shown = (spoon_display(ingredient['food_id'], Decimal(grams.numerator) / Decimal(grams.denominator),
                            ingredient.get('unit'))
              if ingredient.get('food_id') and grams is not None else None)
+    if ingredient.get('volume_ml') is not None:
+        ml = Fraction(ingredient['volume_ml'])
+        liters = str(ingredient.get('unit', '')).casefold() in ('l', '公升', '升')
+        amount = ml / 1000 if liters else ml
+        shown = {'display_amount': str(Decimal(amount.numerator) / Decimal(amount.denominator)),
+                 'display_unit': 'L' if liters else 'mL', 'display_text': None}
     return {**ingredient, 'group': display_group(ingredient.get('food_id')),
             **(shown or {'display_amount': None, 'display_unit': None, 'display_text': None})}

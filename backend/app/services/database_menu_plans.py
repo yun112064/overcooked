@@ -125,7 +125,7 @@ def _market_shortages(db: Session, recipe_ids: list[str], preview: dict, availab
     if staple := preview.get('staple'):
         ingredients.append({'food_id': staple['food_id'], 'name': staple['name'], 'grams': staple.get('final_grams')})
 
-    amounts: dict[str, Fraction] = {}
+    amounts: dict[tuple[str, bool, bool], tuple[Fraction | None, Fraction | None]] = {}
     unknown: set[str] = set()
     names: dict[str, str] = {}
     for line in ingredients:
@@ -134,14 +134,27 @@ def _market_shortages(db: Session, recipe_ids: list[str], preview: dict, availab
             continue
         names.setdefault(food_id, line['name'])
         grams = line.get('grams')
-        if grams is None:
+        volume = line.get('volume_ml')
+        if grams is None and volume is None:
             unknown.add(food_id)
         else:
-            amounts[food_id] = amounts.get(food_id, Fraction()) + Fraction(grams)
+            key = (food_id, grams is not None, volume is not None)
+            prior_g, prior_ml = amounts.get(key, (Fraction(), Fraction()))
+            amounts[key] = (prior_g + Fraction(grams) if grams is not None else None,
+                            prior_ml + Fraction(volume) if volume is not None else None)
+
+    items = []
+    for (food_id, _, _), (grams, volume) in amounts.items():
+        if food_id in unknown or not any(value is not None and value > 0 for value in (grams, volume)):
+            continue
+        item = {'food_id': food_id, 'name': names[food_id],
+                'shortage_grams': str(grams) if grams is not None else None}
+        if volume is not None:
+            item['shortage_ml'] = str(volume)
+        items.append(item)
 
     return {'recipe_release_id': release_id,
-            'items': [{'food_id': food_id, 'name': names[food_id], 'shortage_grams': str(grams)}
-                      for food_id, grams in amounts.items() if food_id not in unknown and grams > 0],
+            'items': items,
             'unquantified_items': [{'food_id': food_id, 'name': name}
                                    for food_id, name in names.items() if food_id in unknown]}
 

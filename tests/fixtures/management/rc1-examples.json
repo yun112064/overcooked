@@ -1,0 +1,1787 @@
+{
+  "contract_version": "management-v1.0.0-rc1",
+  "fixtures_only": true,
+  "note": "valid=true only means payload shape; no approval, live evidence or runtime success is implied",
+  "cases": [
+    {
+      "id": "recipe_950_portions",
+      "schema": "ProposalCreate",
+      "valid": true,
+      "value": {
+        "domain": "recipe",
+        "content": {
+          "logical_recipe_id": "SYNTHETIC-R0252",
+          "name": "合成950人份配方",
+          "standard_dish_id": "SYNTHETIC-D0252",
+          "aliases": [],
+          "category": "主菜",
+          "cuisine": "合成",
+          "meal_type": "正餐",
+          "servings": {
+            "count": "950",
+            "basis": "portions",
+            "raw_text": "950人份",
+            "portions_per_batch": null,
+            "evidence_ids": [
+              "fixture-source-01"
+            ]
+          },
+          "ingredients": [
+            {
+              "line_id": "fixture-line-1",
+              "food_id": "FOOD000001",
+              "ingredient_version_id": null,
+              "canonical_name": "合成食材",
+              "raw_text": "合成食材 300g",
+              "amount": {
+                "value": "300",
+                "status": "declared",
+                "evidence_ids": [
+                  "fixture-source-01"
+                ],
+                "unknown_reason": null
+              },
+              "unit": "g",
+              "weight_g": {
+                "value": "300",
+                "status": "declared",
+                "evidence_ids": [
+                  "fixture-source-01"
+                ],
+                "unknown_reason": null
+              },
+              "weight_basis": "whole_source_recipe_before_cooking"
+            }
+          ],
+          "steps": [
+            {
+              "step_no": 1,
+              "instruction": "合成步驟，只供契約檢查。"
+            }
+          ],
+          "sources": [
+            {
+              "artifact_id": "fixture-source-01",
+              "artifact_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "origin_kind": "workbook",
+              "source_policy_version_id": null
+            }
+          ],
+          "declared_allergen_ids": null
+        },
+        "dependency_pins": {
+          "legacy_recipe_release_id": "synthetic-release",
+          "base_publication_id": null,
+          "ingredient_publication_id": "fixture-dictionary-1",
+          "source_policy_publication_id": null,
+          "legacy_recipe_source_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "legacy_db_capture_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+          "base_publication_manifest_sha256": null,
+          "ingredient_manifest_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "source_policy_manifest_sha256": null,
+          "rule_set_version": "fixture-rules-1",
+          "rule_set_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "contract_version": "management-v1.0.0-rc1"
+        },
+        "reason": "合成範例，沒有來源核准。"
+      }
+    },
+    {
+      "id": "recipe_batch_unknown_portions",
+      "schema": "ProposalCreate",
+      "valid": true,
+      "value": {
+        "domain": "recipe",
+        "content": {
+          "logical_recipe_id": "SYNTHETIC-R0252",
+          "name": "合成950人份配方",
+          "standard_dish_id": "SYNTHETIC-D0252",
+          "aliases": [],
+          "category": "主菜",
+          "cuisine": "合成",
+          "meal_type": "正餐",
+          "servings": {
+            "count": "1",
+            "basis": "batch",
+            "raw_text": "1批",
+            "portions_per_batch": null,
+            "evidence_ids": [
+              "fixture-source-01"
+            ]
+          },
+          "ingredients": [
+            {
+              "line_id": "fixture-line-1",
+              "food_id": "FOOD000001",
+              "ingredient_version_id": null,
+              "canonical_name": "合成食材",
+              "raw_text": "合成食材 300g",
+              "amount": {
+                "value": "300",
+                "status": "declared",
+                "evidence_ids": [
+                  "fixture-source-01"
+                ],
+                "unknown_reason": null
+              },
+              "unit": "g",
+              "weight_g": {
+                "value": "300",
+                "status": "declared",
+                "evidence_ids": [
+                  "fixture-source-01"
+                ],
+                "unknown_reason": null
+              },
+              "weight_basis": "whole_source_recipe_before_cooking"
+            }
+          ],
+          "steps": [
+            {
+              "step_no": 1,
+              "instruction": "合成步驟，只供契約檢查。"
+            }
+          ],
+          "sources": [
+            {
+              "artifact_id": "fixture-source-01",
+              "artifact_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "origin_kind": "workbook",
+              "source_policy_version_id": null
+            }
+          ],
+          "declared_allergen_ids": null
+        },
+        "dependency_pins": {
+          "legacy_recipe_release_id": "synthetic-release",
+          "base_publication_id": null,
+          "ingredient_publication_id": "fixture-dictionary-1",
+          "source_policy_publication_id": null,
+          "legacy_recipe_source_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "legacy_db_capture_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+          "base_publication_manifest_sha256": null,
+          "ingredient_manifest_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "source_policy_manifest_sha256": null,
+          "rule_set_version": "fixture-rules-1",
+          "rule_set_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "contract_version": "management-v1.0.0-rc1"
+        },
+        "reason": "合成範例，沒有來源核准。"
+      }
+    },
+    {
+      "id": "unknown_weight_draft_only",
+      "schema": "ProposalCreate",
+      "valid": true,
+      "value": {
+        "domain": "recipe",
+        "content": {
+          "logical_recipe_id": "SYNTHETIC-R0252",
+          "name": "合成950人份配方",
+          "standard_dish_id": "SYNTHETIC-D0252",
+          "aliases": [],
+          "category": "主菜",
+          "cuisine": "合成",
+          "meal_type": "正餐",
+          "servings": {
+            "count": "950",
+            "basis": "portions",
+            "raw_text": "950人份",
+            "portions_per_batch": null,
+            "evidence_ids": [
+              "fixture-source-01"
+            ]
+          },
+          "ingredients": [
+            {
+              "line_id": "fixture-line-1",
+              "food_id": "FOOD000001",
+              "ingredient_version_id": null,
+              "canonical_name": "合成食材",
+              "raw_text": "合成食材 300g",
+              "amount": {
+                "value": "300",
+                "status": "declared",
+                "evidence_ids": [
+                  "fixture-source-01"
+                ],
+                "unknown_reason": null
+              },
+              "unit": "g",
+              "weight_g": {
+                "value": null,
+                "status": "unknown",
+                "evidence_ids": [],
+                "unknown_reason": "來源未提供克數"
+              },
+              "weight_basis": "whole_source_recipe_before_cooking"
+            }
+          ],
+          "steps": [
+            {
+              "step_no": 1,
+              "instruction": "合成步驟，只供契約檢查。"
+            }
+          ],
+          "sources": [
+            {
+              "artifact_id": "fixture-source-01",
+              "artifact_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "origin_kind": "workbook",
+              "source_policy_version_id": null
+            }
+          ],
+          "declared_allergen_ids": null
+        },
+        "dependency_pins": {
+          "legacy_recipe_release_id": "synthetic-release",
+          "base_publication_id": null,
+          "ingredient_publication_id": "fixture-dictionary-1",
+          "source_policy_publication_id": null,
+          "legacy_recipe_source_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "legacy_db_capture_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+          "base_publication_manifest_sha256": null,
+          "ingredient_manifest_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "source_policy_manifest_sha256": null,
+          "rule_set_version": "fixture-rules-1",
+          "rule_set_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "contract_version": "management-v1.0.0-rc1"
+        },
+        "reason": "合成範例，沒有來源核准。"
+      }
+    },
+    {
+      "id": "unknown_not_zero",
+      "schema": "Measurement",
+      "valid": false,
+      "value": {
+        "value": "0",
+        "status": "unknown",
+        "evidence_ids": [],
+        "unknown_reason": "來源未提供克數"
+      }
+    },
+    {
+      "id": "unknown_reason_required",
+      "schema": "Measurement",
+      "valid": false,
+      "value": {
+        "value": null,
+        "status": "unknown",
+        "evidence_ids": [],
+        "unknown_reason": null
+      }
+    },
+    {
+      "id": "declared_cannot_be_null",
+      "schema": "Measurement",
+      "valid": false,
+      "value": {
+        "value": null,
+        "status": "declared",
+        "evidence_ids": [
+          "fixture-source-01"
+        ],
+        "unknown_reason": null
+      }
+    },
+    {
+      "id": "float_rejected",
+      "schema": "ProposalCreate",
+      "valid": false,
+      "value": {
+        "domain": "recipe",
+        "content": {
+          "logical_recipe_id": "SYNTHETIC-R0252",
+          "name": "合成950人份配方",
+          "standard_dish_id": "SYNTHETIC-D0252",
+          "aliases": [],
+          "category": "主菜",
+          "cuisine": "合成",
+          "meal_type": "正餐",
+          "servings": {
+            "count": "950",
+            "basis": "portions",
+            "raw_text": "950人份",
+            "portions_per_batch": null,
+            "evidence_ids": [
+              "fixture-source-01"
+            ]
+          },
+          "ingredients": [
+            {
+              "line_id": "fixture-line-1",
+              "food_id": "FOOD000001",
+              "ingredient_version_id": null,
+              "canonical_name": "合成食材",
+              "raw_text": "合成食材 300g",
+              "amount": {
+                "value": "300",
+                "status": "declared",
+                "evidence_ids": [
+                  "fixture-source-01"
+                ],
+                "unknown_reason": null
+              },
+              "unit": "g",
+              "weight_g": {
+                "value": 300.0,
+                "status": "declared",
+                "evidence_ids": [
+                  "fixture-source-01"
+                ],
+                "unknown_reason": null
+              },
+              "weight_basis": "whole_source_recipe_before_cooking"
+            }
+          ],
+          "steps": [
+            {
+              "step_no": 1,
+              "instruction": "合成步驟，只供契約檢查。"
+            }
+          ],
+          "sources": [
+            {
+              "artifact_id": "fixture-source-01",
+              "artifact_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "origin_kind": "workbook",
+              "source_policy_version_id": null
+            }
+          ],
+          "declared_allergen_ids": null
+        },
+        "dependency_pins": {
+          "legacy_recipe_release_id": "synthetic-release",
+          "base_publication_id": null,
+          "ingredient_publication_id": "fixture-dictionary-1",
+          "source_policy_publication_id": null,
+          "legacy_recipe_source_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "legacy_db_capture_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+          "base_publication_manifest_sha256": null,
+          "ingredient_manifest_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "source_policy_manifest_sha256": null,
+          "rule_set_version": "fixture-rules-1",
+          "rule_set_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "contract_version": "management-v1.0.0-rc1"
+        },
+        "reason": "合成範例，沒有來源核准。"
+      }
+    },
+    {
+      "id": "negative_rejected",
+      "schema": "Measurement",
+      "valid": false,
+      "value": {
+        "value": "-1",
+        "status": "declared",
+        "evidence_ids": [
+          "fixture-source-01"
+        ],
+        "unknown_reason": null
+      }
+    },
+    {
+      "id": "exponent_rejected",
+      "schema": "Measurement",
+      "valid": false,
+      "value": {
+        "value": "3e2",
+        "status": "declared",
+        "evidence_ids": [
+          "fixture-source-01"
+        ],
+        "unknown_reason": null
+      }
+    },
+    {
+      "id": "trailing_zero_not_canonical",
+      "schema": "Measurement",
+      "valid": false,
+      "value": {
+        "value": "300.000000",
+        "status": "declared",
+        "evidence_ids": [
+          "fixture-source-01"
+        ],
+        "unknown_reason": null
+      }
+    },
+    {
+      "id": "zero_declared_draft_value_is_not_unknown",
+      "schema": "Measurement",
+      "valid": true,
+      "value": {
+        "value": "0",
+        "status": "declared",
+        "evidence_ids": [
+          "fixture-source-01"
+        ],
+        "unknown_reason": null
+      }
+    },
+    {
+      "id": "wrong_weight_basis",
+      "schema": "ProposalCreate",
+      "valid": false,
+      "value": {
+        "domain": "recipe",
+        "content": {
+          "logical_recipe_id": "SYNTHETIC-R0252",
+          "name": "合成950人份配方",
+          "standard_dish_id": "SYNTHETIC-D0252",
+          "aliases": [],
+          "category": "主菜",
+          "cuisine": "合成",
+          "meal_type": "正餐",
+          "servings": {
+            "count": "950",
+            "basis": "portions",
+            "raw_text": "950人份",
+            "portions_per_batch": null,
+            "evidence_ids": [
+              "fixture-source-01"
+            ]
+          },
+          "ingredients": [
+            {
+              "line_id": "fixture-line-1",
+              "food_id": "FOOD000001",
+              "ingredient_version_id": null,
+              "canonical_name": "合成食材",
+              "raw_text": "合成食材 300g",
+              "amount": {
+                "value": "300",
+                "status": "declared",
+                "evidence_ids": [
+                  "fixture-source-01"
+                ],
+                "unknown_reason": null
+              },
+              "unit": "g",
+              "weight_g": {
+                "value": "300",
+                "status": "declared",
+                "evidence_ids": [
+                  "fixture-source-01"
+                ],
+                "unknown_reason": null
+              },
+              "weight_basis": "per_adult_portion"
+            }
+          ],
+          "steps": [
+            {
+              "step_no": 1,
+              "instruction": "合成步驟，只供契約檢查。"
+            }
+          ],
+          "sources": [
+            {
+              "artifact_id": "fixture-source-01",
+              "artifact_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "origin_kind": "workbook",
+              "source_policy_version_id": null
+            }
+          ],
+          "declared_allergen_ids": null
+        },
+        "dependency_pins": {
+          "legacy_recipe_release_id": "synthetic-release",
+          "base_publication_id": null,
+          "ingredient_publication_id": "fixture-dictionary-1",
+          "source_policy_publication_id": null,
+          "legacy_recipe_source_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "legacy_db_capture_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+          "base_publication_manifest_sha256": null,
+          "ingredient_manifest_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "source_policy_manifest_sha256": null,
+          "rule_set_version": "fixture-rules-1",
+          "rule_set_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "contract_version": "management-v1.0.0-rc1"
+        },
+        "reason": "合成範例，沒有來源核准。"
+      }
+    },
+    {
+      "id": "portions_cannot_set_batch_conversion",
+      "schema": "ProposalCreate",
+      "valid": false,
+      "value": {
+        "domain": "recipe",
+        "content": {
+          "logical_recipe_id": "SYNTHETIC-R0252",
+          "name": "合成950人份配方",
+          "standard_dish_id": "SYNTHETIC-D0252",
+          "aliases": [],
+          "category": "主菜",
+          "cuisine": "合成",
+          "meal_type": "正餐",
+          "servings": {
+            "count": "950",
+            "basis": "portions",
+            "raw_text": "950人份",
+            "portions_per_batch": "2",
+            "evidence_ids": [
+              "fixture-source-01"
+            ]
+          },
+          "ingredients": [
+            {
+              "line_id": "fixture-line-1",
+              "food_id": "FOOD000001",
+              "ingredient_version_id": null,
+              "canonical_name": "合成食材",
+              "raw_text": "合成食材 300g",
+              "amount": {
+                "value": "300",
+                "status": "declared",
+                "evidence_ids": [
+                  "fixture-source-01"
+                ],
+                "unknown_reason": null
+              },
+              "unit": "g",
+              "weight_g": {
+                "value": "300",
+                "status": "declared",
+                "evidence_ids": [
+                  "fixture-source-01"
+                ],
+                "unknown_reason": null
+              },
+              "weight_basis": "whole_source_recipe_before_cooking"
+            }
+          ],
+          "steps": [
+            {
+              "step_no": 1,
+              "instruction": "合成步驟，只供契約檢查。"
+            }
+          ],
+          "sources": [
+            {
+              "artifact_id": "fixture-source-01",
+              "artifact_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "origin_kind": "workbook",
+              "source_policy_version_id": null
+            }
+          ],
+          "declared_allergen_ids": null
+        },
+        "dependency_pins": {
+          "legacy_recipe_release_id": "synthetic-release",
+          "base_publication_id": null,
+          "ingredient_publication_id": "fixture-dictionary-1",
+          "source_policy_publication_id": null,
+          "legacy_recipe_source_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "legacy_db_capture_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+          "base_publication_manifest_sha256": null,
+          "ingredient_manifest_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "source_policy_manifest_sha256": null,
+          "rule_set_version": "fixture-rules-1",
+          "rule_set_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "contract_version": "management-v1.0.0-rc1"
+        },
+        "reason": "合成範例，沒有來源核准。"
+      }
+    },
+    {
+      "id": "no_client_actor",
+      "schema": "ProposalCreate",
+      "valid": false,
+      "value": {
+        "domain": "recipe",
+        "content": {
+          "logical_recipe_id": "SYNTHETIC-R0252",
+          "name": "合成950人份配方",
+          "standard_dish_id": "SYNTHETIC-D0252",
+          "aliases": [],
+          "category": "主菜",
+          "cuisine": "合成",
+          "meal_type": "正餐",
+          "servings": {
+            "count": "950",
+            "basis": "portions",
+            "raw_text": "950人份",
+            "portions_per_batch": null,
+            "evidence_ids": [
+              "fixture-source-01"
+            ]
+          },
+          "ingredients": [
+            {
+              "line_id": "fixture-line-1",
+              "food_id": "FOOD000001",
+              "ingredient_version_id": null,
+              "canonical_name": "合成食材",
+              "raw_text": "合成食材 300g",
+              "amount": {
+                "value": "300",
+                "status": "declared",
+                "evidence_ids": [
+                  "fixture-source-01"
+                ],
+                "unknown_reason": null
+              },
+              "unit": "g",
+              "weight_g": {
+                "value": "300",
+                "status": "declared",
+                "evidence_ids": [
+                  "fixture-source-01"
+                ],
+                "unknown_reason": null
+              },
+              "weight_basis": "whole_source_recipe_before_cooking"
+            }
+          ],
+          "steps": [
+            {
+              "step_no": 1,
+              "instruction": "合成步驟，只供契約檢查。"
+            }
+          ],
+          "sources": [
+            {
+              "artifact_id": "fixture-source-01",
+              "artifact_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "origin_kind": "workbook",
+              "source_policy_version_id": null
+            }
+          ],
+          "declared_allergen_ids": null
+        },
+        "dependency_pins": {
+          "legacy_recipe_release_id": "synthetic-release",
+          "base_publication_id": null,
+          "ingredient_publication_id": "fixture-dictionary-1",
+          "source_policy_publication_id": null,
+          "legacy_recipe_source_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "legacy_db_capture_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+          "base_publication_manifest_sha256": null,
+          "ingredient_manifest_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "source_policy_manifest_sha256": null,
+          "rule_set_version": "fixture-rules-1",
+          "rule_set_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "contract_version": "management-v1.0.0-rc1"
+        },
+        "reason": "合成範例，沒有來源核准。",
+        "actor_id": "00000000-0000-4000-8000-000000000001"
+      }
+    },
+    {
+      "id": "no_client_approval",
+      "schema": "ProposalCreate",
+      "valid": false,
+      "value": {
+        "domain": "recipe",
+        "content": {
+          "logical_recipe_id": "SYNTHETIC-R0252",
+          "name": "合成950人份配方",
+          "standard_dish_id": "SYNTHETIC-D0252",
+          "aliases": [],
+          "category": "主菜",
+          "cuisine": "合成",
+          "meal_type": "正餐",
+          "servings": {
+            "count": "950",
+            "basis": "portions",
+            "raw_text": "950人份",
+            "portions_per_batch": null,
+            "evidence_ids": [
+              "fixture-source-01"
+            ]
+          },
+          "ingredients": [
+            {
+              "line_id": "fixture-line-1",
+              "food_id": "FOOD000001",
+              "ingredient_version_id": null,
+              "canonical_name": "合成食材",
+              "raw_text": "合成食材 300g",
+              "amount": {
+                "value": "300",
+                "status": "declared",
+                "evidence_ids": [
+                  "fixture-source-01"
+                ],
+                "unknown_reason": null
+              },
+              "unit": "g",
+              "weight_g": {
+                "value": "300",
+                "status": "declared",
+                "evidence_ids": [
+                  "fixture-source-01"
+                ],
+                "unknown_reason": null
+              },
+              "weight_basis": "whole_source_recipe_before_cooking"
+            }
+          ],
+          "steps": [
+            {
+              "step_no": 1,
+              "instruction": "合成步驟，只供契約檢查。"
+            }
+          ],
+          "sources": [
+            {
+              "artifact_id": "fixture-source-01",
+              "artifact_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "origin_kind": "workbook",
+              "source_policy_version_id": null
+            }
+          ],
+          "declared_allergen_ids": null,
+          "review_status": "approved"
+        },
+        "dependency_pins": {
+          "legacy_recipe_release_id": "synthetic-release",
+          "base_publication_id": null,
+          "ingredient_publication_id": "fixture-dictionary-1",
+          "source_policy_publication_id": null,
+          "legacy_recipe_source_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "legacy_db_capture_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+          "base_publication_manifest_sha256": null,
+          "ingredient_manifest_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "source_policy_manifest_sha256": null,
+          "rule_set_version": "fixture-rules-1",
+          "rule_set_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "contract_version": "management-v1.0.0-rc1"
+        },
+        "reason": "合成範例，沒有來源核准。"
+      }
+    },
+    {
+      "id": "no_client_nutrition_fill",
+      "schema": "ProposalCreate",
+      "valid": false,
+      "value": {
+        "domain": "recipe",
+        "content": {
+          "logical_recipe_id": "SYNTHETIC-R0252",
+          "name": "合成950人份配方",
+          "standard_dish_id": "SYNTHETIC-D0252",
+          "aliases": [],
+          "category": "主菜",
+          "cuisine": "合成",
+          "meal_type": "正餐",
+          "servings": {
+            "count": "950",
+            "basis": "portions",
+            "raw_text": "950人份",
+            "portions_per_batch": null,
+            "evidence_ids": [
+              "fixture-source-01"
+            ]
+          },
+          "ingredients": [
+            {
+              "line_id": "fixture-line-1",
+              "food_id": "FOOD000001",
+              "ingredient_version_id": null,
+              "canonical_name": "合成食材",
+              "raw_text": "合成食材 300g",
+              "amount": {
+                "value": "300",
+                "status": "declared",
+                "evidence_ids": [
+                  "fixture-source-01"
+                ],
+                "unknown_reason": null
+              },
+              "unit": "g",
+              "weight_g": {
+                "value": "300",
+                "status": "declared",
+                "evidence_ids": [
+                  "fixture-source-01"
+                ],
+                "unknown_reason": null
+              },
+              "weight_basis": "whole_source_recipe_before_cooking"
+            }
+          ],
+          "steps": [
+            {
+              "step_no": 1,
+              "instruction": "合成步驟，只供契約檢查。"
+            }
+          ],
+          "sources": [
+            {
+              "artifact_id": "fixture-source-01",
+              "artifact_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "origin_kind": "workbook",
+              "source_policy_version_id": null
+            }
+          ],
+          "declared_allergen_ids": null,
+          "nutrition": {
+            "protein_g": "0"
+          }
+        },
+        "dependency_pins": {
+          "legacy_recipe_release_id": "synthetic-release",
+          "base_publication_id": null,
+          "ingredient_publication_id": "fixture-dictionary-1",
+          "source_policy_publication_id": null,
+          "legacy_recipe_source_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "legacy_db_capture_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+          "base_publication_manifest_sha256": null,
+          "ingredient_manifest_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "source_policy_manifest_sha256": null,
+          "rule_set_version": "fixture-rules-1",
+          "rule_set_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "contract_version": "management-v1.0.0-rc1"
+        },
+        "reason": "合成範例，沒有來源核准。"
+      }
+    },
+    {
+      "id": "no_client_t04_approval",
+      "schema": "ProposalCreate",
+      "valid": false,
+      "value": {
+        "domain": "recipe",
+        "content": {
+          "logical_recipe_id": "SYNTHETIC-R0252",
+          "name": "合成950人份配方",
+          "standard_dish_id": "SYNTHETIC-D0252",
+          "aliases": [],
+          "category": "主菜",
+          "cuisine": "合成",
+          "meal_type": "正餐",
+          "servings": {
+            "count": "950",
+            "basis": "portions",
+            "raw_text": "950人份",
+            "portions_per_batch": null,
+            "evidence_ids": [
+              "fixture-source-01"
+            ]
+          },
+          "ingredients": [
+            {
+              "line_id": "fixture-line-1",
+              "food_id": "FOOD000001",
+              "ingredient_version_id": null,
+              "canonical_name": "合成食材",
+              "raw_text": "合成食材 300g",
+              "amount": {
+                "value": "300",
+                "status": "declared",
+                "evidence_ids": [
+                  "fixture-source-01"
+                ],
+                "unknown_reason": null
+              },
+              "unit": "g",
+              "weight_g": {
+                "value": "300",
+                "status": "declared",
+                "evidence_ids": [
+                  "fixture-source-01"
+                ],
+                "unknown_reason": null
+              },
+              "weight_basis": "whole_source_recipe_before_cooking"
+            }
+          ],
+          "steps": [
+            {
+              "step_no": 1,
+              "instruction": "合成步驟，只供契約檢查。"
+            }
+          ],
+          "sources": [
+            {
+              "artifact_id": "fixture-source-01",
+              "artifact_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "origin_kind": "workbook",
+              "source_policy_version_id": null
+            }
+          ],
+          "declared_allergen_ids": null
+        },
+        "dependency_pins": {
+          "legacy_recipe_release_id": "synthetic-release",
+          "base_publication_id": null,
+          "ingredient_publication_id": "fixture-dictionary-1",
+          "source_policy_publication_id": null,
+          "legacy_recipe_source_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "legacy_db_capture_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+          "base_publication_manifest_sha256": null,
+          "ingredient_manifest_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "source_policy_manifest_sha256": null,
+          "rule_set_version": "fixture-rules-1",
+          "rule_set_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "contract_version": "management-v1.0.0-rc1"
+        },
+        "reason": "合成範例，沒有來源核准。",
+        "nutrition_mapping_approved": true
+      }
+    },
+    {
+      "id": "recipe_domain_cannot_use_price_content",
+      "schema": "ProposalCreate",
+      "valid": false,
+      "value": {
+        "domain": "recipe",
+        "content": {
+          "correction_kind": "quote_correction",
+          "food_id": "FOOD000001",
+          "ingredient_version_id": "fixture-food-1",
+          "ingredient_publication_id": "fixture-dictionary-1",
+          "legacy_recipe_release_id": "synthetic-release",
+          "provider": "manual_evidence",
+          "product_id": "fixture-sku",
+          "product_name": "合成商品 300g",
+          "snapshot_id": null,
+          "price_twd": "60",
+          "package_mass_g": "300",
+          "observed_at": "2026-11-07T00:00:00Z",
+          "valid_from": "2026-11-07T00:00:00Z",
+          "valid_until": "2026-11-08T00:00:00Z",
+          "availability": "in_stock",
+          "region_condition": null,
+          "store_condition": null,
+          "promotion_condition": null,
+          "sources": [
+            {
+              "artifact_id": "fixture-source-01",
+              "artifact_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "origin_kind": "workbook",
+              "source_policy_version_id": null
+            }
+          ]
+        },
+        "dependency_pins": {
+          "legacy_recipe_release_id": "synthetic-release",
+          "base_publication_id": null,
+          "ingredient_publication_id": "fixture-dictionary-1",
+          "source_policy_publication_id": null,
+          "legacy_recipe_source_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "legacy_db_capture_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+          "base_publication_manifest_sha256": null,
+          "ingredient_manifest_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "source_policy_manifest_sha256": null,
+          "rule_set_version": "fixture-rules-1",
+          "rule_set_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "contract_version": "management-v1.0.0-rc1"
+        },
+        "reason": "合成範例，沒有來源核准。"
+      }
+    },
+    {
+      "id": "dependency_id_requires_hash",
+      "schema": "DependencyPins",
+      "valid": false,
+      "value": {
+        "legacy_recipe_release_id": "synthetic-release",
+        "base_publication_id": null,
+        "ingredient_publication_id": "fixture-dictionary-1",
+        "source_policy_publication_id": null,
+        "legacy_recipe_source_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "legacy_db_capture_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "base_publication_manifest_sha256": null,
+        "ingredient_manifest_sha256": null,
+        "source_policy_manifest_sha256": null,
+        "rule_set_version": "fixture-rules-1",
+        "rule_set_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "contract_version": "management-v1.0.0-rc1"
+      }
+    },
+    {
+      "id": "no_hash_without_dependency_id",
+      "schema": "DependencyPins",
+      "valid": false,
+      "value": {
+        "legacy_recipe_release_id": "synthetic-release",
+        "base_publication_id": null,
+        "ingredient_publication_id": "fixture-dictionary-1",
+        "source_policy_publication_id": null,
+        "legacy_recipe_source_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "legacy_db_capture_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "base_publication_manifest_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "ingredient_manifest_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "source_policy_manifest_sha256": null,
+        "rule_set_version": "fixture-rules-1",
+        "rule_set_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "contract_version": "management-v1.0.0-rc1"
+      }
+    },
+    {
+      "id": "price_correction",
+      "schema": "PriceContent",
+      "valid": true,
+      "value": {
+        "correction_kind": "quote_correction",
+        "food_id": "FOOD000001",
+        "ingredient_version_id": "fixture-food-1",
+        "ingredient_publication_id": "fixture-dictionary-1",
+        "legacy_recipe_release_id": "synthetic-release",
+        "provider": "manual_evidence",
+        "product_id": "fixture-sku",
+        "product_name": "合成商品 300g",
+        "snapshot_id": null,
+        "price_twd": "60",
+        "package_mass_g": "300",
+        "observed_at": "2026-11-07T00:00:00Z",
+        "valid_from": "2026-11-07T00:00:00Z",
+        "valid_until": "2026-11-08T00:00:00Z",
+        "availability": "in_stock",
+        "region_condition": null,
+        "store_condition": null,
+        "promotion_condition": null,
+        "sources": [
+          {
+            "artifact_id": "fixture-source-01",
+            "artifact_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "origin_kind": "workbook",
+            "source_policy_version_id": null
+          }
+        ]
+      }
+    },
+    {
+      "id": "product_binding_is_not_known_price",
+      "schema": "PriceContent",
+      "valid": true,
+      "value": {
+        "correction_kind": "product_binding",
+        "food_id": "FOOD000001",
+        "ingredient_version_id": "fixture-food-1",
+        "ingredient_publication_id": "fixture-dictionary-1",
+        "legacy_recipe_release_id": "synthetic-release",
+        "provider": "manual_evidence",
+        "product_id": "fixture-sku",
+        "product_name": "合成商品 300g",
+        "snapshot_id": null,
+        "price_twd": null,
+        "package_mass_g": null,
+        "observed_at": null,
+        "valid_from": null,
+        "valid_until": null,
+        "availability": "unknown",
+        "region_condition": null,
+        "store_condition": null,
+        "promotion_condition": null,
+        "sources": [
+          {
+            "artifact_id": "fixture-source-01",
+            "artifact_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "origin_kind": "workbook",
+            "source_policy_version_id": null
+          }
+        ]
+      }
+    },
+    {
+      "id": "correction_requires_price",
+      "schema": "PriceContent",
+      "valid": false,
+      "value": {
+        "correction_kind": "quote_correction",
+        "food_id": "FOOD000001",
+        "ingredient_version_id": "fixture-food-1",
+        "ingredient_publication_id": "fixture-dictionary-1",
+        "legacy_recipe_release_id": "synthetic-release",
+        "provider": "manual_evidence",
+        "product_id": "fixture-sku",
+        "product_name": "合成商品 300g",
+        "snapshot_id": null,
+        "price_twd": null,
+        "package_mass_g": "300",
+        "observed_at": "2026-11-07T00:00:00Z",
+        "valid_from": "2026-11-07T00:00:00Z",
+        "valid_until": "2026-11-08T00:00:00Z",
+        "availability": "in_stock",
+        "region_condition": null,
+        "store_condition": null,
+        "promotion_condition": null,
+        "sources": [
+          {
+            "artifact_id": "fixture-source-01",
+            "artifact_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "origin_kind": "workbook",
+            "source_policy_version_id": null
+          }
+        ]
+      }
+    },
+    {
+      "id": "zero_retail_price_rejected",
+      "schema": "PriceContent",
+      "valid": false,
+      "value": {
+        "correction_kind": "quote_correction",
+        "food_id": "FOOD000001",
+        "ingredient_version_id": "fixture-food-1",
+        "ingredient_publication_id": "fixture-dictionary-1",
+        "legacy_recipe_release_id": "synthetic-release",
+        "provider": "manual_evidence",
+        "product_id": "fixture-sku",
+        "product_name": "合成商品 300g",
+        "snapshot_id": null,
+        "price_twd": "0",
+        "package_mass_g": "300",
+        "observed_at": "2026-11-07T00:00:00Z",
+        "valid_from": "2026-11-07T00:00:00Z",
+        "valid_until": "2026-11-08T00:00:00Z",
+        "availability": "in_stock",
+        "region_condition": null,
+        "store_condition": null,
+        "promotion_condition": null,
+        "sources": [
+          {
+            "artifact_id": "fixture-source-01",
+            "artifact_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "origin_kind": "workbook",
+            "source_policy_version_id": null
+          }
+        ]
+      }
+    },
+    {
+      "id": "float_price_rejected",
+      "schema": "PriceContent",
+      "valid": false,
+      "value": {
+        "correction_kind": "quote_correction",
+        "food_id": "FOOD000001",
+        "ingredient_version_id": "fixture-food-1",
+        "ingredient_publication_id": "fixture-dictionary-1",
+        "legacy_recipe_release_id": "synthetic-release",
+        "provider": "manual_evidence",
+        "product_id": "fixture-sku",
+        "product_name": "合成商品 300g",
+        "snapshot_id": null,
+        "price_twd": 60.0,
+        "package_mass_g": "300",
+        "observed_at": "2026-11-07T00:00:00Z",
+        "valid_from": "2026-11-07T00:00:00Z",
+        "valid_until": "2026-11-08T00:00:00Z",
+        "availability": "in_stock",
+        "region_condition": null,
+        "store_condition": null,
+        "promotion_condition": null,
+        "sources": [
+          {
+            "artifact_id": "fixture-source-01",
+            "artifact_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "origin_kind": "workbook",
+            "source_policy_version_id": null
+          }
+        ]
+      }
+    },
+    {
+      "id": "missing_mass_not_guessed",
+      "schema": "PriceContent",
+      "valid": false,
+      "value": {
+        "correction_kind": "quote_correction",
+        "food_id": "FOOD000001",
+        "ingredient_version_id": "fixture-food-1",
+        "ingredient_publication_id": "fixture-dictionary-1",
+        "legacy_recipe_release_id": "synthetic-release",
+        "provider": "manual_evidence",
+        "product_id": "fixture-sku",
+        "product_name": "合成商品 300g",
+        "snapshot_id": null,
+        "price_twd": "60",
+        "package_mass_g": null,
+        "observed_at": "2026-11-07T00:00:00Z",
+        "valid_from": "2026-11-07T00:00:00Z",
+        "valid_until": "2026-11-08T00:00:00Z",
+        "availability": "in_stock",
+        "region_condition": null,
+        "store_condition": null,
+        "promotion_condition": null,
+        "sources": [
+          {
+            "artifact_id": "fixture-source-01",
+            "artifact_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "origin_kind": "workbook",
+            "source_policy_version_id": null
+          }
+        ]
+      }
+    },
+    {
+      "id": "correction_observation_time_not_guessed",
+      "schema": "PriceContent",
+      "valid": false,
+      "value": {
+        "correction_kind": "quote_correction",
+        "food_id": "FOOD000001",
+        "ingredient_version_id": "fixture-food-1",
+        "ingredient_publication_id": "fixture-dictionary-1",
+        "legacy_recipe_release_id": "synthetic-release",
+        "provider": "manual_evidence",
+        "product_id": "fixture-sku",
+        "product_name": "合成商品 300g",
+        "snapshot_id": null,
+        "price_twd": "60",
+        "package_mass_g": "300",
+        "observed_at": null,
+        "valid_from": "2026-11-07T00:00:00Z",
+        "valid_until": "2026-11-08T00:00:00Z",
+        "availability": "in_stock",
+        "region_condition": null,
+        "store_condition": null,
+        "promotion_condition": null,
+        "sources": [
+          {
+            "artifact_id": "fixture-source-01",
+            "artifact_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "origin_kind": "workbook",
+            "source_policy_version_id": null
+          }
+        ]
+      }
+    },
+    {
+      "id": "fixture_source_policy",
+      "schema": "SourcePolicyContent",
+      "valid": true,
+      "value": {
+        "provider": "pxmart",
+        "external_execution_enabled": false,
+        "execution_mode": "fixtures_only",
+        "registered_endpoint_key": "pxmart-fixture",
+        "minimum_interval_seconds": 2,
+        "timeout_seconds": 15,
+        "max_retries": 1,
+        "freshness_seconds": 172800,
+        "sources": [
+          {
+            "artifact_id": "fixture-source-01",
+            "artifact_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "origin_kind": "workbook",
+            "source_policy_version_id": null
+          }
+        ]
+      }
+    },
+    {
+      "id": "cannot_enable_external_execution",
+      "schema": "SourcePolicyContent",
+      "valid": false,
+      "value": {
+        "provider": "pxmart",
+        "external_execution_enabled": true,
+        "execution_mode": "fixtures_only",
+        "registered_endpoint_key": "pxmart-fixture",
+        "minimum_interval_seconds": 2,
+        "timeout_seconds": 15,
+        "max_retries": 1,
+        "freshness_seconds": 172800,
+        "sources": [
+          {
+            "artifact_id": "fixture-source-01",
+            "artifact_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "origin_kind": "workbook",
+            "source_policy_version_id": null
+          }
+        ]
+      }
+    },
+    {
+      "id": "cannot_switch_live_mode",
+      "schema": "SourcePolicyContent",
+      "valid": false,
+      "value": {
+        "provider": "pxmart",
+        "external_execution_enabled": false,
+        "execution_mode": "live",
+        "registered_endpoint_key": "pxmart-fixture",
+        "minimum_interval_seconds": 2,
+        "timeout_seconds": 15,
+        "max_retries": 1,
+        "freshness_seconds": 172800,
+        "sources": [
+          {
+            "artifact_id": "fixture-source-01",
+            "artifact_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "origin_kind": "workbook",
+            "source_policy_version_id": null
+          }
+        ]
+      }
+    },
+    {
+      "id": "no_arbitrary_source_url",
+      "schema": "SourcePolicyContent",
+      "valid": false,
+      "value": {
+        "provider": "pxmart",
+        "external_execution_enabled": false,
+        "execution_mode": "fixtures_only",
+        "registered_endpoint_key": "https://example.invalid",
+        "minimum_interval_seconds": 2,
+        "timeout_seconds": 15,
+        "max_retries": 1,
+        "freshness_seconds": 172800,
+        "sources": [
+          {
+            "artifact_id": "fixture-source-01",
+            "artifact_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "origin_kind": "workbook",
+            "source_policy_version_id": null
+          }
+        ]
+      }
+    },
+    {
+      "id": "fixture_task",
+      "schema": "TaskCreate",
+      "valid": true,
+      "value": {
+        "kind": "price_fixture_collection",
+        "registered_target_key": "pxmart-fixture",
+        "scope_food_ids": [
+          "FOOD000001"
+        ],
+        "execution_mode": "fixtures_only",
+        "reason": "合成工作"
+      }
+    },
+    {
+      "id": "no_live_task_kind",
+      "schema": "TaskCreate",
+      "valid": false,
+      "value": {
+        "kind": "price_collection",
+        "registered_target_key": "pxmart-fixture",
+        "scope_food_ids": [
+          "FOOD000001"
+        ],
+        "execution_mode": "fixtures_only",
+        "reason": "合成工作"
+      }
+    },
+    {
+      "id": "empty_price_scope_does_not_mean_all",
+      "schema": "TaskCreate",
+      "valid": false,
+      "value": {
+        "kind": "price_fixture_collection",
+        "registered_target_key": "pxmart-fixture",
+        "scope_food_ids": [],
+        "execution_mode": "fixtures_only",
+        "reason": "合成工作"
+      }
+    },
+    {
+      "id": "role_grant",
+      "schema": "RoleGrantCreate",
+      "valid": true,
+      "value": {
+        "user_id": "00000000-0000-4000-8000-000000000001",
+        "role": "recipe_editor",
+        "domain_scope": [
+          "recipe"
+        ],
+        "expires_at": null,
+        "expected_access_revision": 1,
+        "reason": "合成角色範例"
+      }
+    },
+    {
+      "id": "no_superadmin_role",
+      "schema": "RoleGrantCreate",
+      "valid": false,
+      "value": {
+        "user_id": "00000000-0000-4000-8000-000000000001",
+        "role": "superadmin",
+        "domain_scope": [
+          "recipe"
+        ],
+        "expires_at": null,
+        "expected_access_revision": 1,
+        "reason": "合成角色範例"
+      }
+    },
+    {
+      "id": "no_client_permission_list",
+      "schema": "RoleGrantCreate",
+      "valid": false,
+      "value": {
+        "user_id": "00000000-0000-4000-8000-000000000001",
+        "role": "recipe_editor",
+        "domain_scope": [
+          "recipe"
+        ],
+        "expires_at": null,
+        "expected_access_revision": 1,
+        "reason": "合成角色範例",
+        "permissions": [
+          "t04.approve"
+        ]
+      }
+    },
+    {
+      "id": "review_command",
+      "schema": "ReviewCommand",
+      "valid": true,
+      "value": {
+        "expected_revision": 1,
+        "expected_content_hash": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "validation_id": "fixture-validation",
+        "dependency_hash": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "scope": "content",
+        "verdict": "approve",
+        "reason": "合成獨立審核"
+      }
+    },
+    {
+      "id": "no_reviewer_actor_from_body",
+      "schema": "ReviewCommand",
+      "valid": false,
+      "value": {
+        "expected_revision": 1,
+        "expected_content_hash": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "validation_id": "fixture-validation",
+        "dependency_hash": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "scope": "content",
+        "verdict": "approve",
+        "reason": "合成獨立審核",
+        "actor_id": "00000000-0000-4000-8000-000000000001"
+      }
+    },
+    {
+      "id": "publication_manifest",
+      "schema": "PublicationManifest",
+      "valid": true,
+      "value": {
+        "contract_version": "management-v1.0.0-rc1",
+        "domain": "recipe",
+        "dependency_pins": {
+          "legacy_recipe_release_id": "synthetic-release",
+          "base_publication_id": null,
+          "ingredient_publication_id": "fixture-dictionary-1",
+          "source_policy_publication_id": null,
+          "legacy_recipe_source_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "legacy_db_capture_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+          "base_publication_manifest_sha256": null,
+          "ingredient_manifest_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "source_policy_manifest_sha256": null,
+          "rule_set_version": "fixture-rules-1",
+          "rule_set_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "contract_version": "management-v1.0.0-rc1"
+        },
+        "members": [
+          {
+            "logical_id": "SYNTHETIC-R0252",
+            "ref": {
+              "kind": "managed",
+              "version_id": "fixture-version-1",
+              "content_hash": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+            }
+          }
+        ],
+        "review_decision_ids": [
+          "fixture-content-review",
+          "fixture-source-review"
+        ],
+        "nutrition_readiness": "not_inherited",
+        "formal_generation_ready": false
+      }
+    },
+    {
+      "id": "no_formal_activation_claim",
+      "schema": "PublicationManifest",
+      "valid": false,
+      "value": {
+        "contract_version": "management-v1.0.0-rc1",
+        "domain": "recipe",
+        "dependency_pins": {
+          "legacy_recipe_release_id": "synthetic-release",
+          "base_publication_id": null,
+          "ingredient_publication_id": "fixture-dictionary-1",
+          "source_policy_publication_id": null,
+          "legacy_recipe_source_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "legacy_db_capture_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+          "base_publication_manifest_sha256": null,
+          "ingredient_manifest_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "source_policy_manifest_sha256": null,
+          "rule_set_version": "fixture-rules-1",
+          "rule_set_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "contract_version": "management-v1.0.0-rc1"
+        },
+        "members": [
+          {
+            "logical_id": "SYNTHETIC-R0252",
+            "ref": {
+              "kind": "managed",
+              "version_id": "fixture-version-1",
+              "content_hash": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+            }
+          }
+        ],
+        "review_decision_ids": [
+          "fixture-content-review",
+          "fixture-source-review"
+        ],
+        "nutrition_readiness": "not_inherited",
+        "formal_generation_ready": true
+      }
+    },
+    {
+      "id": "no_nutrition_approval_inheritance",
+      "schema": "PublicationManifest",
+      "valid": false,
+      "value": {
+        "contract_version": "management-v1.0.0-rc1",
+        "domain": "recipe",
+        "dependency_pins": {
+          "legacy_recipe_release_id": "synthetic-release",
+          "base_publication_id": null,
+          "ingredient_publication_id": "fixture-dictionary-1",
+          "source_policy_publication_id": null,
+          "legacy_recipe_source_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "legacy_db_capture_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+          "base_publication_manifest_sha256": null,
+          "ingredient_manifest_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "source_policy_manifest_sha256": null,
+          "rule_set_version": "fixture-rules-1",
+          "rule_set_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "contract_version": "management-v1.0.0-rc1"
+        },
+        "members": [
+          {
+            "logical_id": "SYNTHETIC-R0252",
+            "ref": {
+              "kind": "managed",
+              "version_id": "fixture-version-1",
+              "content_hash": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+            }
+          }
+        ],
+        "review_decision_ids": [
+          "fixture-content-review",
+          "fixture-source-review"
+        ],
+        "nutrition_readiness": "approved",
+        "formal_generation_ready": false
+      }
+    },
+    {
+      "id": "recipe_distinct_name_1",
+      "schema": "RecipeContent",
+      "valid": true,
+      "value": {
+        "logical_recipe_id": "SYNTHETIC-R0252",
+        "name": "番茄配方",
+        "standard_dish_id": "SYNTHETIC-D0252",
+        "aliases": [],
+        "category": "主菜",
+        "cuisine": "合成",
+        "meal_type": "正餐",
+        "servings": {
+          "count": "950",
+          "basis": "portions",
+          "raw_text": "950人份",
+          "portions_per_batch": null,
+          "evidence_ids": [
+            "fixture-source-01"
+          ]
+        },
+        "ingredients": [
+          {
+            "line_id": "fixture-line-1",
+            "food_id": "FOOD000001",
+            "ingredient_version_id": null,
+            "canonical_name": "合成食材",
+            "raw_text": "合成食材 300g",
+            "amount": {
+              "value": "300",
+              "status": "declared",
+              "evidence_ids": [
+                "fixture-source-01"
+              ],
+              "unknown_reason": null
+            },
+            "unit": "g",
+            "weight_g": {
+              "value": "300",
+              "status": "declared",
+              "evidence_ids": [
+                "fixture-source-01"
+              ],
+              "unknown_reason": null
+            },
+            "weight_basis": "whole_source_recipe_before_cooking"
+          }
+        ],
+        "steps": [
+          {
+            "step_no": 1,
+            "instruction": "合成步驟，只供契約檢查。"
+          }
+        ],
+        "sources": [
+          {
+            "artifact_id": "fixture-source-01",
+            "artifact_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "origin_kind": "workbook",
+            "source_policy_version_id": null
+          }
+        ],
+        "declared_allergen_ids": null
+      }
+    },
+    {
+      "id": "recipe_distinct_name_2",
+      "schema": "RecipeContent",
+      "valid": true,
+      "value": {
+        "logical_recipe_id": "SYNTHETIC-R0252",
+        "name": "蕃茄配方",
+        "standard_dish_id": "SYNTHETIC-D0252",
+        "aliases": [],
+        "category": "主菜",
+        "cuisine": "合成",
+        "meal_type": "正餐",
+        "servings": {
+          "count": "950",
+          "basis": "portions",
+          "raw_text": "950人份",
+          "portions_per_batch": null,
+          "evidence_ids": [
+            "fixture-source-01"
+          ]
+        },
+        "ingredients": [
+          {
+            "line_id": "fixture-line-1",
+            "food_id": "FOOD000001",
+            "ingredient_version_id": null,
+            "canonical_name": "合成食材",
+            "raw_text": "合成食材 300g",
+            "amount": {
+              "value": "300",
+              "status": "declared",
+              "evidence_ids": [
+                "fixture-source-01"
+              ],
+              "unknown_reason": null
+            },
+            "unit": "g",
+            "weight_g": {
+              "value": "300",
+              "status": "declared",
+              "evidence_ids": [
+                "fixture-source-01"
+              ],
+              "unknown_reason": null
+            },
+            "weight_basis": "whole_source_recipe_before_cooking"
+          }
+        ],
+        "steps": [
+          {
+            "step_no": 1,
+            "instruction": "合成步驟，只供契約檢查。"
+          }
+        ],
+        "sources": [
+          {
+            "artifact_id": "fixture-source-01",
+            "artifact_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "origin_kind": "workbook",
+            "source_policy_version_id": null
+          }
+        ],
+        "declared_allergen_ids": null
+      }
+    },
+    {
+      "id": "offset_time_requires_utc_normalization",
+      "schema": "PriceContent",
+      "valid": false,
+      "value": {
+        "correction_kind": "quote_correction",
+        "food_id": "FOOD000001",
+        "ingredient_version_id": "fixture-food-1",
+        "ingredient_publication_id": "fixture-dictionary-1",
+        "legacy_recipe_release_id": "synthetic-release",
+        "provider": "manual_evidence",
+        "product_id": "fixture-sku",
+        "product_name": "合成商品 300g",
+        "snapshot_id": null,
+        "price_twd": "60",
+        "package_mass_g": "300",
+        "observed_at": "2026-11-07T08:00:00+08:00",
+        "valid_from": "2026-11-07T00:00:00Z",
+        "valid_until": "2026-11-08T00:00:00Z",
+        "availability": "in_stock",
+        "region_condition": null,
+        "store_condition": null,
+        "promotion_condition": null,
+        "sources": [
+          {
+            "artifact_id": "fixture-source-01",
+            "artifact_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "origin_kind": "workbook",
+            "source_policy_version_id": null
+          }
+        ]
+      }
+    },
+    {
+      "id": "invalid_date_rejected",
+      "schema": "PriceContent",
+      "valid": false,
+      "value": {
+        "correction_kind": "quote_correction",
+        "food_id": "FOOD000001",
+        "ingredient_version_id": "fixture-food-1",
+        "ingredient_publication_id": "fixture-dictionary-1",
+        "legacy_recipe_release_id": "synthetic-release",
+        "provider": "manual_evidence",
+        "product_id": "fixture-sku",
+        "product_name": "合成商品 300g",
+        "snapshot_id": null,
+        "price_twd": "60",
+        "package_mass_g": "300",
+        "observed_at": "2026-11-99T00:00:00Z",
+        "valid_from": "2026-11-07T00:00:00Z",
+        "valid_until": "2026-11-08T00:00:00Z",
+        "availability": "in_stock",
+        "region_condition": null,
+        "store_condition": null,
+        "promotion_condition": null,
+        "sources": [
+          {
+            "artifact_id": "fixture-source-01",
+            "artifact_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "origin_kind": "workbook",
+            "source_policy_version_id": null
+          }
+        ]
+      }
+    },
+    {
+      "id": "access_audit_has_own_domain",
+      "schema": "AuditEvent",
+      "valid": true,
+      "value": {
+        "event_id": "fixture-event",
+        "occurred_at": "2026-11-07T00:00:00Z",
+        "actor_id": "00000000-0000-4000-8000-000000000001",
+        "action": "role_grant.create",
+        "domain": "access",
+        "resource_id": "fixture-grant",
+        "command_id": "fixture-command",
+        "before_hash": null,
+        "after_hash": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "reason": "合成稽核範例"
+      }
+    }
+  ]
+}

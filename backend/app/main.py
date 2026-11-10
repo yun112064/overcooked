@@ -7,6 +7,9 @@ from contextlib import asynccontextmanager, suppress
 from fastapi import FastAPI
 
 from app.api.auth import router as auth_router
+from app.api.management import router as management_router
+from app.api.management_price import router as management_price_router
+from app.api.management_recipes import router as management_recipes_router
 from app.api.errors import register_error_handlers
 from app.api.health import router as health_router
 from app.api.households import router as household_router
@@ -79,6 +82,9 @@ register_error_handlers(app)
 
 app.include_router(health_router)
 app.include_router(auth_router)
+app.include_router(management_router)
+app.include_router(management_price_router)
+app.include_router(management_recipes_router)
 app.include_router(household_router)
 app.include_router(member_router)
 app.include_router(ingredient_router)

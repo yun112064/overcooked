@@ -94,6 +94,7 @@ def _ingredient(r: dict) -> dict:
             "weight_basis": r.get("weight_basis"),
             "weight_basis_source": r.get("weight_basis_source"),
             "whole_meal_grams": r.get("whole_meal_grams"), "display_grams": r.get("display_grams"),
+            "volume_ml": r.get("volume_ml"),
             **_shown(r),
             # decisions #19：克數或烹調係數來自 LLM 推估時標示；estimates 保留模型、版本與覆核狀態供追溯
             "llm_estimated": bool(r.get("llm_estimated")),
@@ -177,6 +178,7 @@ def staple_view(payload: dict) -> dict | None:
     return {"label": staple["label"], "tfda_name": staple.get("tfda_name"), "food_id": staple.get("food_id"),
             "review_status": staple.get("review_status"), "unresolved_reason": staple.get("unresolved_reason"),
             "whole_meal_grams": row.get("whole_meal_grams"), "display_amount": row.get("display_amount"),
+            "volume_ml": row.get("volume_ml"),
             "display_unit": row.get("display_unit"), "display_text": row.get("display_text"),
             "counts_for_price": False, "llm_estimated": bool(row.get("llm_estimated"))}
 
@@ -262,11 +264,14 @@ def _prices(payload: dict) -> dict:
         if ln["price_status"] not in ("known", "unknown"):
             continue  # 已有種類與免計價（水）不列入價格區
         quote = ln.get("quote") or {}
-        items.append({"food_id": ln["food_id"], "name": names.get(ln["food_id"], ln["food_id"]),
-                      "shortage_grams": ln["shortage_grams"], "price_status": ln["price_status"],
-                      "packs": ln.get("packs"), "purchase_price": ln.get("purchase_price"), "cost": ln.get("cost"),
-                      "missing_reason": ln.get("missing_reason"), "source_name": _source_name(quote),
-                      **{k: quote.get(k) for k in QUOTE_FIELDS}})
+        item = {"food_id": ln["food_id"], "name": names.get(ln["food_id"], ln["food_id"]),
+                "shortage_grams": ln["shortage_grams"], "price_status": ln["price_status"],
+                "packs": ln.get("packs"), "purchase_price": ln.get("purchase_price"), "cost": ln.get("cost"),
+                "missing_reason": ln.get("missing_reason"), "source_name": _source_name(quote),
+                **{k: quote.get(k) for k in QUOTE_FIELDS}}
+        if ln.get("shortage_ml") is not None:
+            item["shortage_ml"] = ln["shortage_ml"]
+        items.append(item)
     result = {"status": "computed", **{k: cost.get(k) for k in (
         "budget", "budget_status", "price_complete", "purchase_total", "cost_total", "known_purchase_total",
         "known_cost_total")}, "items": items, "unquantified_items": unquantified}

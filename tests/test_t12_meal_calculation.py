@@ -487,8 +487,11 @@ class CompletenessTests(unittest.TestCase):
         self.assertIn("NUTRITION_INCOMPLETE", codes)
         self.assertIsNone(result["baseline"]["energy_kcal"])
         self.assertEqual(result["unresolved_ingredients"][0]["reason"], "unverified_conversion")
-        # P2：已知克數的食材仍列出整餐用量與成本需求量；無法換算者不填 0
-        self.assertEqual([r.food_id for r in result["requirements"]], ["F-雞胸肉", "F-白飯"])
+        # Preserve the unknown portion so mixed-unit pricing cannot silently
+        # count only another known portion of the same food.
+        self.assertEqual([r.food_id for r in result["requirements"]], ["F-雞胸肉", "F-白飯", "F-醬油"])
+        self.assertIsNone(result["requirements"][-1].grams)
+        self.assertIsNone(result["requirements"][-1].volume_ml)
         self.assertEqual(result["ingredients"][0]["whole_meal_grams"], D("150"))
         self.assertIsNone(result["ingredients"][2]["whole_meal_grams"])
         [hint] = result["suggestions"]

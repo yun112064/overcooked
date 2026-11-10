@@ -48,6 +48,7 @@ from app.services.meal_calculation import (MODEL_DECLARED, REQUIRED_NUTRIENTS, I
                                           calculate_meal, combined_method_key, is_water, load_recipe_lines,
                                           targets_from_t03)
 from app.services.meal_cost import meal_cost_from_db
+from app.meal_calc.types import IngredientRequirement
 from app.services.recipe_import import METHOD_KEYWORDS, normalize_name, standard_dish_id
 from app.services.recipe_steps import expand_steps
 
@@ -160,6 +161,11 @@ def _jsonable(value):
         return str(value)
     if isinstance(value, BaseModel):
         return value.model_dump(mode="json")
+    if isinstance(value, IngredientRequirement):
+        data = {"food_id": value.food_id, "grams": _jsonable(value.grams)}
+        if value.volume_ml is not None:
+            data["volume_ml"] = str(value.volume_ml)
+        return data
     if is_dataclass(value) and not isinstance(value, type):
         return _jsonable(asdict(value))
     if isinstance(value, dict):
@@ -635,18 +641,16 @@ DATABASE_NOT_ADOPTABLE = "DATABASE_MENU_NOT_ADOPTABLE"
 DATABASE_OVER_BUDGET = "DATABASE_MENU_OVER_BUDGET"
 
 
-def _cost_view(ctx, draft, calc, staple_lines, now) -> dict:
-    staple_ids = {line.food_id for line in staple_lines}
-    unquantified = sorted({r["food_id"] for r in calc["unresolved_ingredients"]
-                           if r["food_id"] not in staple_ids})
-    if not calc["requirements"]:
+def _cost_view(ctx, draft, calc, now) -> dict:
+    requirements = calc["requirements"]
+    unquantified = {row["food_id"] for row in calc["ingredients"] if row["role"] != "staple"} - {
+        item.food_id for item in requirements}
+    if not requirements:
         return {"status": "not_computed", "reason": "NO_FINAL_REQUIREMENTS", "budget_status": None,
-                "unquantified_food_ids": unquantified}
+                "unquantified_food_ids": sorted(unquantified)}
     with ctx.factory() as db:
-        cost_view = cost_snapshot(
-            meal_cost_from_db(db, calc["requirements"], draft.available_ingredient_ids, draft.budget, now=now))
-    cost_view["unquantified_food_ids"] = unquantified
-    return cost_view
+        return cost_snapshot(meal_cost_from_db(db, requirements, draft.available_ingredient_ids, draft.budget,
+                                               now=now, unquantified_food_ids=unquantified))
 
 
 def _choose_database_menu(candidates, *, draft, excluded, context, targets, extra_lines, calculator,
@@ -833,6 +837,8 @@ def _scale_line(ln: IngredientLine, ratio: Decimal) -> IngredientLine:
         return None if v is None else (v * ratio).quantize(Decimal("0.001"), rounding=ROUND_HALF_UP)
     return replace(ln, grams_per_n=times(ln.grams_per_n), amount_per_n=times(ln.amount_per_n),
                    volume_ml_per_n=times(ln.volume_ml_per_n),
+                   pricing_volume_ml_per_n=(ln.pricing_volume_ml_per_n * Fraction(ratio)
+                                            if ln.pricing_volume_ml_per_n is not None else None),
                    adjustable_min=times(ln.adjustable_min), adjustable_max=times(ln.adjustable_max))
 
 
@@ -973,7 +979,7 @@ def _generate(ctx, *, responder, knowledge_client, embedder, calculator, now) ->
     mode, tried = None, []
     fallback_reason, fallback_details = retrieval.reason, retrieval.details
     def cost_of(calc):
-        return _cost_view(ctx, draft, calc, staple_lines, now)
+        return _cost_view(ctx, draft, calc, now)
 
     sodium_budget = meal_sodium_budget(targets_info)
     sodium_adjustment = None
@@ -1102,14 +1108,21 @@ def _generate(ctx, *, responder, knowledge_client, embedder, calculator, now) ->
 
 def cost_snapshot(cost) -> dict:
     """T13 MealCost → 結果快照的 cost 區（T14 生成與 T15 缺價重試共用）。"""
-    return {"status": "computed", "budget": cost.budget, "budget_status": cost.budget_status,
+    snapshot = {"status": "computed", "budget": cost.budget, "budget_status": cost.budget_status,
             "price_complete": cost.price_complete, "purchase_total": cost.purchase_total,
             "cost_total": cost.cost_total, "known_purchase_total": cost.known_purchase_total,
-            "known_cost_total": cost.known_cost_total,
+            "known_cost_total": cost.known_cost_total, "unquantified_food_ids": cost.unquantified_food_ids,
             "lines": [{"food_id": c.food_id, "required_grams": c.required_grams,
+                       "required_ml": str(c.required_ml) if c.required_ml is not None else None,
+                       "shortage_ml": str(c.shortage_ml) if c.shortage_ml is not None else None,
                        "shortage_grams": c.shortage_grams, "price_status": c.price_status,
                        "packs": c.packs, "purchase_price": c.purchase_price, "cost": c.cost,
                        "missing_reason": c.missing_reason, "quote": c.quote} for c in cost.lines]}
+    managed_releases = {line.quote.recipe_release_id for line in cost.lines
+                        if line.quote is not None and line.quote.price_policy_publication_id}
+    if len(managed_releases) == 1:
+        snapshot["price_recipe_release_id"] = next(iter(managed_releases))
+    return snapshot
 
 
 def next_result_version(db, meal_request_id) -> int:
