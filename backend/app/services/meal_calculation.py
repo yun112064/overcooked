@@ -137,6 +137,7 @@ class IngredientLine:
     # 畫面不顯示原單位數量（避免「袖珍菇 35 條」），有克數時改顯示克數（2026-11-04 使用者要求）
     amount_estimated: bool = False
     pricing_volume_ml_per_n: Fraction | None = None
+    recipe_publication_id: str | None = None
 
 
 @dataclass
@@ -936,6 +937,9 @@ def versioned_sql_calculator(factory, *, recipe_release_id: str | None,
                     if line.recipe_release_id is not None and line.recipe_release_id != recipe_release_id:
                         results.append(failed(line, "recipe_release_mismatch"))
                         continue
+                    if line.recipe_publication_id and not line.cooking_method and not line.consumed_as_is:
+                        results.append(failed(line, "managed_cooking_method_unresolved"))
+                        continue
                     if line.weight_basis not in ("raw", "cooked"):
                         results.append(failed(line, "nutrition_weight_basis_unsupported"))
                         continue
@@ -1154,9 +1158,36 @@ def load_recipe_lines(db, recipe_id: str, factors=None) -> list[IngredientLine]:
     from sqlalchemy import select
 
     from app.models import Recipe, RecipeDataRelease, RecipeIngredient
+    from app.management.active_recipe_catalog import active_catalog, managed_recipe
+
+    managed = managed_recipe(db, recipe_id)
+    if managed:
+        servings = managed.servings
+        methods = managed.methods
+
+        def per_serving(amount):
+            return amount / servings if amount is not None and servings is not None else None
+
+        return [IngredientLine(
+            food_id=row['food_id'], name=row['canonical_name'], grams_per_n=per_serving(row['weight_g']),
+            recipe_ingredient_id=row['recipe_ingredient_id'], dish_id=recipe_id,
+            recipe_release_id=managed.base_release_id, weight_basis_source='managed_before_cooking',
+            recipe_publication_id=active_catalog(db).publication_id,
+            cooking_method=methods[0] if len(methods) == 1 else None,
+            cooking_methods=tuple(methods) if len(methods) > 1 else (),
+            unresolved_reason=('batch_servings_unresolved' if managed.content['servings']['basis'] == 'batch'
+                               else 'servings_unresolved') if servings is None else
+                              ('weight_unresolved' if row['weight_g'] is None else None),
+            amount_per_n=per_serving(row['amount']), unit=row['unit'], raw_text=row['raw_text'],
+            volume_ml_per_n=per_serving(row['amount'] * (1000 if row['unit'] == 'L' else 1))
+            if row['amount'] is not None and row['unit'] in ('ml', 'L') else None,
+            group=ingredient_group(row['raw_text'])[0],
+            weight_source='recipe_grams' if row['weight_g'] is not None else None,
+        ) for row in managed.ingredient_rows()]
 
     recipe = db.get(Recipe, recipe_id)
-    if recipe is None:
+    catalog = active_catalog(db)
+    if recipe is None or (catalog and recipe_id not in catalog.legacy_ids):
         raise LookupError(recipe_id)
     active_releases = db.scalars(select(RecipeDataRelease.release_id).where(
         RecipeDataRelease.active.is_(True))).all()

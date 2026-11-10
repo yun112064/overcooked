@@ -84,7 +84,7 @@ def test_empty_main_upgrade_downgrade_and_no_automatic_grants():
         command.downgrade(cfg(c),'d1105merge1')
         assert not sa.inspect(c).has_table('management_publications')
         command.upgrade(cfg(c),'head')
-        assert c.scalar(sa.text('SELECT version_num FROM alembic_version'))=='m1107management1'
+        assert c.scalar(sa.text('SELECT version_num FROM alembic_version'))=='m1109mealflow1'
     engine.dispose()
 
 def test_synthetic_legacy_reconciliation_preserves_snapshots_and_t04(tmp_path):
@@ -108,6 +108,8 @@ def test_synthetic_legacy_reconciliation_preserves_snapshots_and_t04(tmp_path):
         assert c.scalar(sa.text('SELECT count(*) FROM management_publications'))==0
         assert c.scalar(sa.text("SELECT status FROM admin_recipe_proposals WHERE id='legacy-proposal'"))=='approved'
         assert c.scalar(sa.text('SELECT count(*) FROM management_schema_adoptions'))==1
+    with legacy.begin() as c:
+        command.upgrade(cfg(c), 'head')
         command.check(cfg(c))
     (tmp_path/'synthetic-adoption-result.json').write_text(__import__('json').dumps(report,indent=2),encoding='utf8')
     reference.dispose();legacy.dispose()

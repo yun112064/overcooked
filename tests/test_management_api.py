@@ -71,3 +71,50 @@ def test_artifact_mime_cannot_disguise_executable_or_invalid_workbook(client):
     c,_=client
     response=c.post('/admin/v1/artifacts',headers={'Idempotency-Key':'bad-xlsx'},data={'domain':'source_policy','source_kind':'workbook','reason':'bad fixture'},files={'file':('x.xlsx',b'not a zip file','application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')})
     assert response.status_code==422
+
+
+def test_browser_can_validate_immediately_and_resume_its_own_queued_task(client, env):
+    c, app = client
+    p = env.create()
+    path = '/admin/v1/proposals/' + p['proposal_id'] + '/validations'
+    headers = {'Idempotency-Key': 'browser-validation'}
+    first = c.post(path, params={'run_now': True}, json=env.expected(p), headers=headers)
+    assert first.status_code == 202, first.text
+    task_path = '/admin/v1/tasks/' + first.json()['task_id']
+    result = c.get(task_path + '/result').json()
+    assert result['catalog_ready'] is True
+    replay = c.post(path, params={'run_now': True}, json=env.expected(p), headers=headers)
+    assert replay.json() == first.json()
+    assert c.get(task_path + '/result').json() == result
+    assert c.get(task_path).json()['attempt'] == 1
+
+    queued = c.post(path, json=env.expected(p), headers={'Idempotency-Key': 'legacy-queued'}).json()
+    run_path = '/admin/v1/tasks/' + queued['task_id'] + '/run'
+    env.grants(ACTORS[3], ['source_reviewer'], ['source_policy'])
+    app.dependency_overrides[current_auth] = lambda: SimpleNamespace(user_id=uuid.UUID(ACTORS[3]))
+    assert c.post(run_path).status_code == 403
+    app.dependency_overrides[current_auth] = lambda: SimpleNamespace(user_id=uuid.UUID(ACTORS[1]))
+    assert c.post(run_path, headers={'Origin': 'https://example.invalid'}).status_code == 403
+    assert c.post(run_path).json()['catalog_ready'] is True
+
+
+def test_role_admin_can_list_grant_and_revoke_active_roles(client, env):
+    c, app = client
+    path = '/admin/v1/role-grants'
+    query = {'user_id': ACTORS[3]}
+    assert c.get(path, params=query).status_code == 403
+    app.dependency_overrides[current_auth] = lambda: SimpleNamespace(user_id=uuid.UUID(ACTORS[0]))
+    before = c.get(path, params=query).json()
+    assert before['items'] == [] and 'auditor' in before['roles']
+    body = dict(user_id=ACTORS[3], role='auditor', domain_scope=['recipe'], expires_at=None,
+                expected_access_revision=before['access_revision'], reason='管理測試')
+    created = c.post(path, json=body, headers={'Idempotency-Key': 'browser-grant'})
+    assert created.status_code == 201, created.text
+    after = c.get(path, params=query).json()
+    assert after['items'] == [dict(grant_id=created.json()['resource_id'], role='auditor',
+                                   domain_scope=['recipe'], expires_at=None)]
+    revoke = c.post(path + '/' + created.json()['resource_id'] + '/revoke',
+                    json={'expected_access_revision': after['access_revision'], 'reason': '結束測試'},
+                    headers={'Idempotency-Key': 'browser-revoke'})
+    assert revoke.status_code == 200, revoke.text
+    assert c.get(path, params=query).json()['items'] == []

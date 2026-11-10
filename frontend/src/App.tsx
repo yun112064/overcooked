@@ -13,8 +13,6 @@ import {
   Link, NavLink, Navigate, Outlet, RouterProvider, createBrowserRouter, useLocation, useNavigate,
 } from 'react-router'
 import { api, errorStatus } from './api/client'
-import { read as readManagement } from './api/management'
-import type { Capabilities } from './api/management'
 import type { Me } from './api/types'
 import HouseholdPage from './pages/HouseholdPage'
 import LoginPage from './pages/LoginPage'
@@ -23,7 +21,6 @@ import MembersPage from './pages/MembersPage'
 import { Suspense, lazy } from 'react'
 
 // 圖表（Recharts）與問卷編輯較大，用到才載入，首頁更快
-const ManagementPage = lazy(() => import('./pages/ManagementPage'))
 const MealHistoryPage = lazy(() => import('./pages/MealHistoryPage'))
 const GenerationHistoryPage = lazy(() => import('./pages/GenerationHistoryPage'))
 const MealRequestEditor = lazy(() => import('./pages/MealRequestEditor'))
@@ -79,11 +76,6 @@ const NAV = [
 
 function Layout() {
   const me = useMe()
-  const management = useQuery({
-    queryKey: ['management', '/capabilities', undefined],
-    enabled: Boolean(me.data), retry: false,
-    queryFn: ({ signal }) => readManagement<Capabilities>('/capabilities', undefined, signal),
-  })
   const client = useQueryClient()
   const navigate = useNavigate()
   const { pathname } = useLocation()
@@ -131,10 +123,6 @@ function Layout() {
                 border: `1px solid ${tokens.line}`, bgcolor: tokens.paper, '&:hover': { bgcolor: tokens.paper, borderColor: tokens.lineStrong } }}>
               <Box component="span" sx={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{household.name}</Box>
             </Button>
-          )}
-          {me.data && (
-            management.data?.permissions.includes('management.enter') &&
-            <Button component={Link} to="/admin" color="inherit" sx={{ flexShrink: 0 }}>資料管理</Button>
           )}
           {me.data && (
             <Tooltip title="登出">
@@ -186,7 +174,6 @@ const router = createBrowserRouter([
       element: <Layout />,
       children: [
         { path: '/households', element: <HouseholdPage /> },
-        { path: '/admin', element: <ManagementPage /> },
         {
           element: <Protected requireHousehold />,
           children: [

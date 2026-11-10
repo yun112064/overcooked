@@ -11,7 +11,9 @@ PROJECT_ROOT = Path(__file__).resolve().parents[3]
 class Settings(BaseSettings):
     database_url: str
     management_enabled: bool = False
+    management_icook_preview_secret: str | None = None
     management_price_policy_enabled: bool = False
+    management_recipe_catalog_enabled: bool = False
 
     # 登入 session：只存在伺服器端，Cookie 僅帶隨機 token
     session_cookie_name: str = "mp_session"

@@ -1,5 +1,7 @@
 
 x-runtime-environment: &runtime-environment
+  MANAGEMENT_ENABLED: ${MANAGEMENT_ENABLED:-false}
+  MANAGEMENT_RECIPE_CATALOG_ENABLED: ${MANAGEMENT_RECIPE_CATALOG_ENABLED:-false}
   GENERATION_RECIPE_RELEASE_ID: ${GENERATION_RECIPE_RELEASE_ID:-}
   GENERATION_NUTRITION_IMPORT_ID: ${GENERATION_NUTRITION_IMPORT_ID:-}
   GENERATION_FOOD_MAPPING_VERSION: ${GENERATION_FOOD_MAPPING_VERSION:-}
@@ -135,6 +137,17 @@ services:
     ports:
       - "127.0.0.1:8080:80"
 
+    depends_on:
+      backend:
+        condition: service_healthy
+
+  admin-dashboard:
+    profiles: [admin]
+    build:
+      context: ./admin-dashboard
+      dockerfile: Dockerfile
+    ports:
+      - "127.0.0.1:8082:80"
     depends_on:
       backend:
         condition: service_healthy

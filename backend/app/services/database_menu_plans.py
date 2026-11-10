@@ -19,7 +19,7 @@ from sqlalchemy.orm import Session
 
 from app.api.errors import ApiError, version_conflict
 from app.db.models import AdoptedMealPlan, MealMenuRejection, MealRequest
-from app.services import meal_history, recipe_retrieval, t12_planning, idempotency
+from app.services import meal_confirmation_events, meal_history, recipe_retrieval, t12_planning, idempotency
 from app.services import meal_request as request_service
 
 ALL_REJECTED = "all_menus_rejected"
@@ -95,6 +95,7 @@ def adopt(db: Session, *, household_id, user_id, row: MealRequest, draft, member
     plan.idempotency_key, plan.request_hash, plan.adopted_by = idempotency_key, digest, user_id
     plan.snapshot = _snapshot(selected, preview, draft)
     row.status = 'confirmed'
+    meal_confirmation_events.record(db, plan)
     db.flush()
     return plan, True
 

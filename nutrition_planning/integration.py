@@ -740,13 +740,15 @@ def _recipe_grams(row: Mapping) -> str | None:
     return None if grams is None else str(grams)
 
 
-def validate_database_menu(db: Connection, recipe_ids: Sequence[str], **kwargs) -> DatabaseMenuResult:
+def validate_database_menu(db: Connection, recipe_ids: Sequence[str], *, rows: RecipeRows | None = None,
+                           **kwargs) -> DatabaseMenuResult:
     """T12 for database recipes; every result also carries each dish's ingredients and steps.
 
     The ingredient names, recipe grams and steps come from the recipe rows, so they are
     shown even when nutrition could not be calculated (see ``_validate_database_menu``).
     """
-    rows = load_database_recipe_rows(db, recipe_ids)
+    if rows is None:
+        rows = load_database_recipe_rows(db, recipe_ids)
     result = _validate_database_menu(db, recipe_ids, rows=rows, **kwargs)
     line_labels = {row['recipe_ingredient_id']: {'recipe_id': row['recipe_id'], 'food_id': row['food_id'],
                                                  'name': row.get('canonical_name') or row['food_id'],

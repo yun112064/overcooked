@@ -5,6 +5,7 @@ import type { Collection, Connection, Metrics, Observation, Task, DataType } fro
 import { ReadState, ResultPage } from './shared'
 import { useManagementRead } from './hooks'
 import { PriceReleaseSelect } from './PriceVersions'
+import { PrimaryDatabaseStatus } from './OperationsViews'
 
 const statuses = {
   historical_requires_refresh: '歷史觀察，需重新取得',
@@ -64,11 +65,10 @@ export function Operations() {
   const tasks = useManagementRead<Collection<Task>>('/tasks', { cursor }, true, 10_000)
   const connections = useManagementRead<Collection<Connection>>('/connections', undefined, true, 20_000)
   return <Stack spacing={2}>
-    <Alert severity="info">監控僅涵蓋目前管理權限內的資料。連線探測尚未設定，外部執行停用。</Alert>
+    <PrimaryDatabaseStatus />
     <Typography variant="h6">管理摘要</Typography>
     <ReadState query={metrics}>{(data) => <Stack spacing={0.5}>
       <Typography>待審提案 {data.pending_proposal_count ?? '未知'} · 執行中任務 {data.running_task_count ?? '未知'}</Typography>
-      <Typography>食譜數 {data.recipe_count ?? '未知'} · 資料庫容量 {data.database_bytes === null ? '未知' : data.database_bytes + ' bytes'}</Typography>
       <Typography variant="body2" color="text.secondary">觀察時間 {time(data.as_of)}</Typography>
     </Stack>}</ReadState>
     <Typography variant="h6">任務</Typography>

@@ -6,6 +6,7 @@ from sqlalchemy import select
 from sqlalchemy.exc import SQLAlchemyError
 
 from app.core.config import settings
+from app.management.active_recipe_catalog import RECIPE_PREFIX, active_catalog, planning_rows
 from app.services import household, meal_request, per_person_nutrition
 from app.services.legacy_t12_preview import _with_spoons
 from app.services.recipe_volume import attach_preview_volumes
@@ -26,29 +27,41 @@ class T12PlanningUnavailable(Exception):
 def preview(db: Session, *, draft: meal_request.MealRequestDraft, members: dict,
             recipe_ids: list[str]) -> dict:
     """Calculate with only server-side questionnaire, recipe and nutrition data."""
+    try:
+        catalog = active_catalog(db)
+    except SQLAlchemyError:
+        raise T12PlanningUnavailable('RECIPE_DATA_UNAVAILABLE', '目前食譜發布無法讀取，請稍後重試。') from None
+    managed_ids = {rid for rid in recipe_ids if rid.startswith(RECIPE_PREFIX)}
+    if ((managed_ids and (not catalog or not managed_ids <= catalog.recipes.keys()))
+            or (catalog and not (set(recipe_ids) - managed_ids) <= catalog.legacy_ids)):
+        raise T12PlanningUnavailable('RECIPE_PUBLICATION_CHANGED', '食譜版本已切換，請重新查詢菜單。')
     if (hasattr(settings, 'generation_recipe_release_id')
             and not settings.generation_recipe_release_id
-            and not settings.generation_nutrition_import_id):
+            and not settings.generation_nutrition_import_id and not managed_ids):
         from app.services.legacy_t12_preview import preview as legacy_preview
         return legacy_preview(db, draft=draft, members=members, recipe_ids=recipe_ids)
     if not settings.generation_nutrition_import_id:
         raise T12PlanningUnavailable(
             'NUTRITION_VERSION_REQUIRED', '營養資料版本尚未確認，請先完成資料來源整合。')
     try:
-        recipe_release_id = getattr(settings, 'generation_recipe_release_id', None)
+        recipe_release_id = getattr(settings, 'generation_recipe_release_id', None) or (
+            catalog.base_release_id if managed_ids else None)
+        rows = planning_rows(db, catalog, recipe_ids) if managed_ids else None
         if recipe_release_id:
             release = db.get(RecipeDataRelease, recipe_release_id)
             imported = db.get(NutritionImport, settings.generation_nutrition_import_id)
             if (not release or not imported or not recipe_import_matches(db, release, imported,
                     mapping_version=getattr(settings, 'generation_food_mapping_version', None))):
                 raise T12PlanningUnavailable('RECIPE_NUTRITION_RELEASE_MISMATCH', '食譜與營養資料發布版本不相符。')
+            legacy_ids = set(recipe_ids) - managed_ids
             selected = list(db.execute(select(Recipe.recipe_id, Recipe.recipe_release_id).where(
-                Recipe.recipe_id.in_(recipe_ids))))
-            if (set(r.recipe_id for r in selected) != set(recipe_ids)
+                Recipe.recipe_id.in_(legacy_ids))))
+            if (set(r.recipe_id for r in selected) != legacy_ids
                     or any(r.recipe_release_id != recipe_release_id for r in selected)):
                 raise T12PlanningUnavailable('RECIPE_NUTRITION_RELEASE_MISMATCH', '所選食譜不屬於目前的營養資料發布。')
         result = validate_database_menu(
-            db.connection(), recipe_ids, participations=meal_request.target_participations(draft, members),
+            db.connection(), recipe_ids, **({'rows': rows} if rows else {}),
+            participations=meal_request.target_participations(draft, members),
             target_service=household.target_service(),
             # Imported Food_ID records replace the catalog path; this placeholder
             # is never read in imported mode.
@@ -69,11 +82,12 @@ def preview(db: Session, *, draft: meal_request.MealRequestDraft, members: dict,
             NutritionFoodMapping.import_id == settings.generation_nutrition_import_id,
             NutritionFoodMapping.mapping_version == settings.generation_food_mapping_version,
             NutritionFoodMapping.approval_status == 'approved')))
-        lines = db.execute(select(RecipeIngredient.recipe_id, RecipeIngredient.recipe_ingredient_id,
-                                  RecipeIngredient.food_id).where(RecipeIngredient.recipe_id.in_(recipe_ids)))
-        pending = [{'code': 'nutrition_mapping_pending_review', 'recipe_id': r.recipe_id,
-                    'line_id': r.recipe_ingredient_id, 'message': 'V3 營養對照尚未核准，請先完成 T04 審查。',
-                    'adoption_blocked': True} for r in lines if r.food_id not in approved]
+        lines = rows.ingredients if rows else db.execute(select(
+            RecipeIngredient.recipe_id, RecipeIngredient.recipe_ingredient_id,
+            RecipeIngredient.food_id).where(RecipeIngredient.recipe_id.in_(recipe_ids))).mappings()
+        pending = [{'code': 'nutrition_mapping_pending_review', 'recipe_id': r['recipe_id'],
+                    'line_id': r['recipe_ingredient_id'], 'message': 'V3 營養對照尚未核准，請先完成 T04 審查。',
+                    'adoption_blocked': True} for r in lines if r['food_id'] not in approved]
         if pending:
             payload.update(status='calculation_incomplete', status_message='V3 營養對照尚未核准',
                            nutrition_passed=False, adoption_blocked=True, final_food_ids=(),

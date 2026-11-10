@@ -306,11 +306,17 @@ def check_menu(dishes: list[dict], *, dish_count: int, specified: list[str], exc
 
 
 def _database_dishes(db, selected: list[dict]) -> tuple[list[dict], list[IngredientLine]]:
+    from app.management.active_recipe_catalog import active_catalog, managed_recipe
+
     dishes, lines = [], []
     for s in selected:
         recipe_lines = load_recipe_lines(db, s["recipe_id"])
-        steps = db.scalars(select(RecipeStep.instruction_clean).where(RecipeStep.recipe_id == s["recipe_id"])
-                           .order_by(RecipeStep.step_no)).all()
+        managed = managed_recipe(db, s["recipe_id"])
+        if managed:
+            steps = [step['instruction'] for step in managed.steps]
+        else:
+            steps = db.scalars(select(RecipeStep.instruction_clean).where(RecipeStep.recipe_id == s["recipe_id"])
+                               .order_by(RecipeStep.step_no)).all()
         lines += recipe_lines
         dishes.append({
             "standard_dish_id": s["standard_dish_id"], "dish_name": s["recipe_name"], "aliases": s["aliases"],
@@ -324,6 +330,8 @@ def _database_dishes(db, selected: list[dict]) -> tuple[list[dict], list[Ingredi
             "ingredients": [{"food_id": ln.food_id, "name": ln.name, "grams_per_n": ln.grams_per_n,
                              "weight_basis": ln.weight_basis} for ln in recipe_lines],
         })
+        if managed:
+            dishes[-1]['recipe_source'] = managed.evidence(active_catalog(db).publication_id)
     return dishes, lines
 
 

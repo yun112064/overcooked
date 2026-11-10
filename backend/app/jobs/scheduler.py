@@ -13,6 +13,10 @@ from app.core.logging_config import scheduler_logger
 
 # 專案固定的 advisory lock 識別碼
 SCHEDULER_LOCK_ID = 74_070_610
+MAINTENANCE_INTERVAL_SECONDS = 60
+LOG_CLEANUP_HOUR = 3
+LOG_CLEANUP_MINUTE = 30
+SCHEDULER_TIMEZONE = 'Asia/Taipei'
 
 
 class SingletonLock:
@@ -45,14 +49,14 @@ def acquire_singleton(engine) -> SingletonLock | None:
 def build_scheduler(factory) -> BlockingScheduler:
     from app.services import jobs
 
-    scheduler = BlockingScheduler(timezone="Asia/Taipei")
-    scheduler.add_job(lambda: jobs.recover_expired(factory), "interval", seconds=60,
+    scheduler = BlockingScheduler(timezone=SCHEDULER_TIMEZONE)
+    scheduler.add_job(lambda: jobs.recover_expired(factory), "interval", seconds=MAINTENANCE_INTERVAL_SECONDS,
                       id="recover_expired_jobs", max_instances=1, coalesce=True)
     # 排隊過久的工作判逾時並解鎖問卷
-    scheduler.add_job(lambda: jobs.expire_queued(factory), "interval", seconds=60,
+    scheduler.add_job(lambda: jobs.expire_queued(factory), "interval", seconds=MAINTENANCE_INTERVAL_SECONDS,
                       id="expire_queued_jobs", max_instances=1, coalesce=True)
     apply = os.getenv("LOG_CLEANUP_APPLY", "false").lower() == "true"
-    scheduler.add_job(lambda: cleanup(apply=apply), "cron", hour=3, minute=30,
+    scheduler.add_job(lambda: cleanup(apply=apply), "cron", hour=LOG_CLEANUP_HOUR, minute=LOG_CLEANUP_MINUTE,
                       id="log_cleanup", max_instances=1, coalesce=True)
     add_price_collection(scheduler)
     return scheduler

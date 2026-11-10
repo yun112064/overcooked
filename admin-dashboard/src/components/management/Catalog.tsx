@@ -16,14 +16,22 @@ export function Publications({ domain, canEdit, canActivate, select }: {
   const [cursor, setCursor] = useState<string>()
   const [publication, setPublication] = useState<string>()
   const list = useManagementRead<Collection<Publication>>('/publications', { domain, cursor })
-  const binding = useManagementRead<Binding>('/bindings/' + channels[domain])
+  const binding = useManagementRead<Binding>('/bindings/' + channels[domain], domain === 'recipe' ? { include_runtime: 'true' } : undefined)
+  const recipeEnabled = binding.data?.runtime_enabled === true
+  const channel = channels[domain]
   return <Stack spacing={2}>
     <Alert severity="info">{domain === 'price'
       ? '啟用價格版本會影響新的成本計算。既有採用餐單保留當時的快照。'
-      : '發布版本可供管理檢視。正式餐單生成尚未就緒。'}</Alert>
+      : domain === 'recipe' && recipeEnabled
+        ? '啟用食譜版本後，新的正式查詢與生成會使用該版本。營養仍須通過既有檢查。'
+        : '發布版本可供管理檢視。'}</Alert>
     <ReadState query={binding}>{(data) => <Typography color="text.secondary">
-      目前啟用版本 {data.publication_id ?? '尚未啟用'} · 更新於 {time(data.updated_at)}
+      目前啟用版本 {domain === 'recipe' && !recipeEnabled ? '原始 T01（管理啟用關閉）' :
+        data.publication_id ?? (domain === 'recipe' ? '原始 T01' : '尚未啟用')} · 更新於 {time(data.updated_at)}
     </Typography>}</ReadState>
+    {domain === 'recipe' && recipeEnabled && canActivate && binding.data?.publication_id &&
+      <VersionActivation key={'baseline:' + binding.data.revision} channel={channel}
+        publication="t01:baseline" binding={binding.data} baseline />}
     <ReadState query={list}>{(data) => <ResultPage empty={!data.items.length} next={data.next_cursor} advance={setCursor}
       reset={cursor ? () => setCursor(undefined) : undefined}>
       {data.items.map((item) => <Paper key={item.publication_id} variant="outlined" sx={{ p: 1.5 }}>
@@ -32,24 +40,28 @@ export function Publications({ domain, canEdit, canActivate, select }: {
           <Typography>{time(item.created_at)} · {item.member_count} 筆</Typography>
           <Stack direction="row" spacing={1}>
             <Chip size="small" label="已發布" />
-            {binding.data && <Chip size="small" label={binding.data.publication_id === item.publication_id ? '已啟用' : '尚未啟用'} />}
+            {binding.data && <Chip size="small" label={(domain !== 'recipe' || recipeEnabled) &&
+              binding.data.publication_id === item.publication_id ? '已啟用' : '未生效'} />}
           </Stack>
           <Button onClick={() => setPublication(item.publication_id)} sx={{ alignSelf: 'start' }}>檢視發布內容</Button>
         </Stack>
       </Paper>)}
     </ResultPage>}</ReadState>
     {publication && <>
-      {domain === 'price' && canActivate && binding.data && binding.data.publication_id !== publication &&
-        <PriceActivation key={publication + ':' + binding.data.revision} publication={publication} binding={binding.data} />}
+      {(domain === 'price' || domain === 'recipe' && recipeEnabled) && canActivate && binding.data && binding.data.publication_id !== publication &&
+        <VersionActivation key={publication + ':' + binding.data.revision} channel={channel} publication={publication} binding={binding.data} />}
       <PublicationContents key={publication} id={publication} domain={domain} canEdit={canEdit} select={select} />
     </>}
   </Stack>
 }
 
-function PriceActivation({ publication, binding }: { publication: string; binding: Binding }) {
+function VersionActivation({ publication, binding, channel, baseline = false }: {
+  publication: string; binding: Binding; channel: string; baseline?: boolean
+}) {
   const [reason, setReason] = useState('')
-  const [mode, setMode] = useState<'activate' | 'rollback'>('activate')
-  const base = '/bindings/price_policy/'
+  const [mode, setMode] = useState<'activate' | 'rollback'>(baseline ? 'rollback' : 'activate')
+  const base = '/bindings/' + channel + '/'
+  const name = channel === 'recipe_catalog' ? '食譜' : '價格'
   const plan = useManagementCommand<ActivationPlan>(base + 'plans')
   const activate = useManagementCommand<Binding>(base + 'activate')
   const rollback = useManagementCommand<Binding>(base + 'rollback')
@@ -57,17 +69,17 @@ function PriceActivation({ publication, binding }: { publication: string; bindin
   const expected = { expected_binding_revision: binding.revision, reason: reason.trim() }
   const busy = plan.isPending || command.isPending
   return <Paper variant="outlined" sx={{ p: 2 }}><Stack spacing={1}>
-    <Typography sx={{ overflowWrap: 'anywhere' }}>核對價格版本 {publication}</Typography>
-    <TextField select size="small" label="價格版本操作" value={mode} disabled={busy} onChange={(event) => {
+    <Typography sx={{ overflowWrap: 'anywhere' }}>{baseline ? '回復原始 T01 食譜' : '核對' + name + '版本 ' + publication}</Typography>
+    {!baseline && <TextField select size="small" label={name + '版本操作'} value={mode} disabled={busy} onChange={(event) => {
       setMode(event.target.value as typeof mode)
       plan.reset()
     }}>
       <MenuItem value="activate">啟用後續版本</MenuItem>
       <MenuItem value="rollback">回復先前啟用版本</MenuItem>
-    </TextField>
+    </TextField>}
     <TextField size="small" label="啟用或回復原因" value={reason} disabled={busy}
       onChange={(event) => { setReason(event.target.value); plan.reset() }} />
-    <Button disabled={busy || !reason.trim()} onClick={() => plan.mutate({ ...expected, publication_id: publication })}>核對價格版本啟用計畫</Button>
+    <Button disabled={busy || !reason.trim()} onClick={() => plan.mutate({ ...expected, publication_id: publication })}>核對{name}版本{mode === 'rollback' ? '回復' : '啟用'}計畫</Button>
     {plan.data && <Alert severity={plan.data.can_activate ? 'info' : 'warning'}>
       {plan.data.can_activate ? '版本核對完成，有效至 ' + time(plan.data.expires_at) : '版本尚未就緒'}
       {plan.data.issues.map((issue, index) => <Typography variant="body2" key={issue.code + index}>{issue.message}</Typography>)}
@@ -76,7 +88,7 @@ function PriceActivation({ publication, binding }: { publication: string; bindin
       if (!plan.data) return
       command.mutate({ ...expected, plan_id: plan.data.plan_id, plan_hash: plan.data.plan_hash,
         ...(mode === 'activate' ? { publication_id: publication } : { target_publication_id: publication }) })
-    }}>{mode === 'activate' ? '確認啟用價格版本' : '確認回復價格版本'}</Button>}
+    }}>{mode === 'activate' ? '確認啟用' + name + '版本' : '確認回復' + name + '版本'}</Button>}
     {(plan.isError || command.isError) && <Alert severity="error">{managementError(plan.error ?? command.error)}</Alert>}
   </Stack></Paper>
 }

@@ -7,6 +7,7 @@ import json
 from decimal import Decimal
 
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import sessionmaker
 
 from app.models import RecipeDataRelease
@@ -93,7 +94,7 @@ def persist_receipt(factory: sessionmaker, *, recipe_release_id: str, nutrition_
         existing = db.get(T04CookingReceipt, receipt_id)
         if existing:
             return existing.receipt_id
-        db.add(T04CookingReceipt(receipt_id=receipt_id, recipe_release_id=recipe_release_id,
+        receipt = T04CookingReceipt(receipt_id=receipt_id, recipe_release_id=recipe_release_id,
             nutrition_import_id=nutrition_import_id, mapping_version=mapping_version,
             recipe_ingredient_id=recipe_ingredient_id, food_id=food_id,
             nutrition_id=nutrition_id, nutrition_source_id=nutrition_source_id,
@@ -102,5 +103,14 @@ def persist_receipt(factory: sessionmaker, *, recipe_release_id: str, nutrition_
             yield_factor=yield_factor, retention={k: str(v) for k,v in retention.items()},
             source_version=source_version, input_digest=input_digest, is_estimated=is_estimated,
             assumptions=list(assumptions), reference_ids=list(reference_ids), receipt=material,
-            created_at=datetime.now(timezone.utc)))
+            created_at=datetime.now(timezone.utc))
+        try:
+            with db.begin_nested():
+                db.add(receipt)
+                db.flush()
+        except IntegrityError:
+            # Another worker may have persisted the same receipt after our read.
+            existing = db.get(T04CookingReceipt, receipt_id)
+            if existing is None or existing.input_digest != input_digest:
+                raise
         return receipt_id

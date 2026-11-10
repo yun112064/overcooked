@@ -1,27 +1,31 @@
 import { useState } from 'react'
 import { Alert, Box, Button, Chip, Divider, MenuItem, Paper, Stack, TextField, Typography } from '@mui/material'
-import { contentName, expectRevision, managementError, originNames, proposalStates, taskStates, time } from '../../api/management'
-import type { Binding, Collection, Content, EditableDomain, Entity, Pins, Price, Proposal, Diff, ReviewScope, Verdict, Workflow } from '../../api/management'
+import { contentName, expectRevision, isGeneratedRecipe, isICook, managementError, originNames, proposalStates, taskStates, time } from '../../api/management'
+import type { Binding, Collection, Content, EditableDomain, Entity, Pins, Price, Proposal, Diff, ReviewDecision, ReviewScope, Verdict, Workflow } from '../../api/management'
 import { EditFields } from './EditFields'
+import { GeneratedRecipeEvidence } from './GeneratedRecipeImport'
 import { cleanLists } from './content'
 import { PriceObservations } from './Monitoring'
 import { PriceBaseVersionSelect, PriceIngredientVersionSelect, PriceReleaseSelect } from './PriceVersions'
-import { ReadState } from './shared'
+import { ReadState, ResultPage } from './shared'
 import { useManagementCommand, useManagementRead } from './hooks'
 
 export function ContentPreview({ content }: { content: Content }) {
+  const captured = isICook(content) || isGeneratedRecipe(content)
   return <Stack spacing={1}>
     <Typography variant="h6">{contentName(content)}</Typography>
     {'logical_recipe_id' in content && <>
-      <Typography>{content.category} · {content.cuisine} · {content.meal_type}</Typography>
-      <Typography>份量原文 {content.servings.raw_text} · 數量 {content.servings.count ?? '未知'} {content.servings.basis === 'batch' ? '批' : '份'}</Typography>
+      <Typography>{[content.category, content.cuisine, content.meal_type].filter(Boolean).join(' · ')}</Typography>
+      {captured ? <Typography>人份 {content.servings.count ?? ''}</Typography> :
+        <Typography>份量原文 {content.servings.raw_text} · 數量 {content.servings.count ?? '未知'} {content.servings.basis === 'batch' ? '批' : '份'}</Typography>}
       {content.servings.basis === 'batch' && <Typography>每批份數 {content.servings.portions_per_batch ?? '未知'}</Typography>}
       <Typography sx={{ fontWeight: 'bold' }}>食材與整份烹調前重量</Typography>
       <Box component="ul" sx={{ pl: 3, m: 0 }}>
         {content.ingredients.map((line) => <li key={line.line_id}>
-          {line.canonical_name} · {line.weight_g.value === null ? `重量未知（${line.weight_g.unknown_reason ?? '來源未提供'}）` : `${line.weight_g.value} g`}
+          {line.canonical_name}{line.weight_g.value !== null ? ` · ${line.weight_g.value} g` :
+            captured ? '' : ` · 重量未知（${line.weight_g.unknown_reason ?? '來源未提供'}）`}
           <Typography variant="body2" color="text.secondary">
-            原文 {line.raw_text} · 用量 {line.amount.value ?? '未知'} {line.unit ?? ''} · Food ID {line.food_id ?? '待確認'}
+            原文 {line.raw_text} · 用量 {line.amount.value ?? (captured ? '' : '未知')} {line.unit ?? ''} · Food ID {line.food_id ?? '待確認'}
           </Typography>
         </li>)}
       </Box>
@@ -175,7 +179,7 @@ function IngredientPicker({ publication, selected, apply }: { publication: strin
 const scopeNames = { content: '內容審核', source_rights: '來源權利審核' }
 const verdictNames = { approve: '核准', request_changes: '要求修改', reject: '退件' }
 type Action = 'validate' | 'submit' | 'review' | 'publish' | 'withdraw'
-const labels: Record<Action, string> = { validate: '排入驗證', submit: '送審', review: '提交審核決定', publish: '建立發布版本', withdraw: '撤回提案' }
+const labels: Record<Action, string> = { validate: '執行資料驗證', submit: '送審', review: '提交審核決定', publish: '建立發布版本', withdraw: '撤回提案' }
 
 function ProposalActions({ proposal, workflow, permissions, actor }: { proposal: Proposal; workflow: Workflow; permissions: string[]; actor: string }) {
   const { proposal_id, domain, status } = proposal
@@ -183,13 +187,18 @@ function ProposalActions({ proposal, workflow, permissions, actor }: { proposal:
   const [reason, setReason] = useState('')
   const self = proposal.contributors.includes(actor)
   const validation = workflow.validation
+  const stepIssues = workflow.step_style_issues ?? []
+  const catalogReady = validation?.catalog_ready === true && stepIssues.length === 0
+  const validationIssues = validation?.issues.filter((issue) =>
+    workflow.step_style_issues === undefined || issue.code !== 'RECIPE_STEP_STYLE_REVIEW_REQUIRED') ?? []
   const scopes: ReviewScope[] = [
     ...(permissions.includes(domain + '.review') ? ['content' as const] : []),
     ...(permissions.includes('source.rights_review') ? ['source_rights' as const] : []),
   ]
   const [scope, setScope] = useState<ReviewScope>(scopes[0] ?? 'content')
   const [verdict, setVerdict] = useState<Verdict>('approve')
-  const validate = useManagementCommand(base + '/validations')
+  const validate = useManagementCommand(base + '/validations?run_now=true')
+  const resumeValidation = useManagementCommand(`/tasks/${workflow.latest_task?.task_id}/run`)
   const submit = useManagementCommand(base + '/submit')
   const review = useManagementCommand(base + '/reviews')
   const publish = useManagementCommand('/publications')
@@ -198,15 +207,15 @@ function ProposalActions({ proposal, workflow, permissions, actor }: { proposal:
   const isDraft = status === 'draft' || status === 'changes_requested'
   const allow: Record<Action, boolean> = {
     validate: isDraft && permissions.includes(domain + '.submit') && workflow.latest_task?.status !== 'queued' && workflow.latest_task?.status !== 'running',
-    submit: isDraft && permissions.includes(domain + '.submit') && validation?.catalog_ready === true,
-    review: status === 'submitted' && !self && scopes.length > 0 && validation?.catalog_ready === true,
-    publish: status === 'approved' && !self && permissions.includes(domain + '.publish') && validation?.catalog_ready === true &&
+    submit: isDraft && permissions.includes(domain + '.submit') && catalogReady,
+    review: status === 'submitted' && !self && scopes.length > 0 && catalogReady,
+    publish: status === 'approved' && !self && permissions.includes(domain + '.publish') && catalogReady &&
       Boolean(workflow.approvals.content && workflow.approvals.source_rights),
     withdraw: ['draft', 'changes_requested', 'submitted', 'approved'].includes(status) && permissions.includes(domain + '.edit'),
   }
   const visibleActions = (Object.keys(allow) as Action[]).filter((action) => allow[action])
   const results = Object.entries(commands)
-  const pending = results.some(([, mutation]) => mutation.isPending)
+  const pending = resumeValidation.isPending || results.some(([, mutation]) => mutation.isPending)
   function run(action: Action) {
     const fields = { ...expectRevision(proposal), reason: reason.trim() }
     if (action === 'review') {
@@ -224,13 +233,19 @@ function ProposalActions({ proposal, workflow, permissions, actor }: { proposal:
   return <Stack spacing={1.5}>
     <Divider />
     <Typography variant="h6">驗證與審核</Typography>
+    {domain === 'recipe' && workflow.step_style_issues !== undefined && <Alert severity={stepIssues.length ? 'warning' : 'success'}>
+      {stepIssues.length ? '請修正以下步驟，再儲存成新修訂。' : '目前修訂的步驟用詞檢查通過。' }
+      {stepIssues.map((issue) => <Typography key={issue.json_pointer} variant="body2">{issue.message}</Typography>)}
+    </Alert>}
     {workflow.latest_task && <Typography>最近驗證任務 {taskStates[workflow.latest_task.status] ?? workflow.latest_task.status} · {workflow.latest_task.task_id}</Typography>}
-    {(workflow.latest_task?.status === 'queued' || workflow.latest_task?.status === 'running') &&
-      <Alert severity="info">驗證已排隊，等待隔離環境的純資料驗證執行器。此頁會更新驗證狀態。</Alert>}
+    {workflow.latest_task?.status === 'queued' && <Alert severity="info">驗證已排隊，可由原申請者執行。</Alert>}
+    {isDraft && workflow.own_queued_validation && permissions.includes(domain + '.submit') &&
+      <Button onClick={() => resumeValidation.mutate({})} disabled={pending} sx={{ alignSelf: 'start' }}>執行已排隊的驗證</Button>}
+    {resumeValidation.isError && <Alert severity="error">{managementError(resumeValidation.error)}</Alert>}
     {validation === null ? <Typography color="text.secondary">目前版本尚無驗證結果。</Typography> :
       <Alert severity={validation.catalog_ready ? 'success' : 'warning'}>
         {validation.catalog_ready ? '上次目錄驗證通過' : '上次驗證有阻擋問題'} · {time(validation.evaluated_at)}
-        {validation.issues.map((issue, index) => <Typography key={issue.code + index} variant="body2">{issue.message}{issue.json_pointer && `（${issue.json_pointer}）`}</Typography>)}
+        {validationIssues.map((issue, index) => <Typography key={issue.code + index} variant="body2">{captureIssues[issue.code] ?? issue.message}{issue.json_pointer && `（${issue.json_pointer}）`}</Typography>)}
       </Alert>}
     <Typography variant="body2">內容審核 {workflow.approvals.content ? '已核准' : '待有效核准'} · 來源權利 {workflow.approvals.source_rights ? '已核准' : '待有效核准'}</Typography>
     {self && status === 'submitted' && <Alert severity="info">請由具備對應權限且未參與編輯的帳號審核。</Alert>}
@@ -250,6 +265,18 @@ function ProposalActions({ proposal, workflow, permissions, actor }: { proposal:
     {results.map(([action, mutation]) => mutation.isError ?
       <Alert key={action} severity="error">{managementError(mutation.error)}</Alert> : null)}
   </Stack>
+}
+
+function ReviewHistory({ id }: { id: string }) {
+  const [cursor, setCursor] = useState<string>()
+  const decisions = useManagementRead<Collection<ReviewDecision>>(`/proposals/${id}/review-history`, { cursor })
+  return <ReadState query={decisions}>{(data) => <ResultPage empty={!data.items.length} next={data.next_cursor}
+    advance={setCursor} reset={cursor ? () => setCursor(undefined) : undefined}>
+    {data.items.map((item) => <Box key={item.decision_id}>
+      <Typography variant="body2">第 {item.revision} 版 · {scopeNames[item.scope]} · {verdictNames[item.verdict]} · {time(item.created_at)}</Typography>
+      <Typography sx={{ whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' }}>{item.reason}</Typography>
+    </Box>)}
+  </ResultPage>}</ReadState>
 }
 
 function Changes({ id, revision }: { id: string; revision: number }) {
@@ -275,16 +302,21 @@ export function ProposalDetail({ id, permissions, actor, edit }: {
 }) {
   const [showChanges, setShowChanges] = useState(false)
   const [showPrice, setShowPrice] = useState(false)
+  const [showReviews, setShowReviews] = useState(false)
   const query = useManagementRead<Proposal>(`/proposals/${id}`, undefined, true, 12_000)
-  const flow = useManagementRead<Workflow>(`/proposals/${id}/workflow`, undefined, true, 8_000)
+  const flow = useManagementRead<Workflow>(`/proposals/${id}/workflow`, { include_validation_controls: 'true' }, true, 8_000)
   return <ReadState query={query}>{(proposal) => <Paper variant="outlined" sx={{ p: 2 }}>
     <Stack spacing={2}>
       <Stack direction="row" spacing={1} sx={{ alignItems: 'center', flexWrap: 'wrap' }}>
         <Chip label={proposalStates[proposal.status]} />
         <Typography variant="body2">第 {proposal.revision} 版 · {time(proposal.updated_at)}</Typography>
       </Stack>
+      {proposal.domain === 'recipe' && proposal.status === 'published' &&
+        <Alert severity="info">已建立管理發布版本。請到「發布版本」查看正式查詢與生成目前使用的版本。</Alert>}
       <ContentPreview content={proposal.content} />
-      {proposal.domain === 'recipe' && permissions.includes('artifact.read') && <CandidateEvidence id={id} />}
+      {proposal.domain === 'recipe' && permissions.includes('artifact.read') && (isICook(proposal.content)
+        ? <ICookEvidence key={proposal.revision} proposal={proposal} canConfirm={permissions.includes('recipe.review')} />
+        : isGeneratedRecipe(proposal.content) ? <GeneratedRecipeEvidence id={id} /> : <CandidateEvidence id={id} />)}
       {'price_twd' in proposal.content && <>
         <Button onClick={() => setShowPrice(!showPrice)} sx={{ alignSelf: 'start' }}>
           {showPrice ? '收合原始觀察' : '比對同一食材的原始價格觀察'}
@@ -296,14 +328,63 @@ export function ProposalDetail({ id, permissions, actor, edit }: {
         {permissions.includes(proposal.domain + '.edit') && ['draft', 'changes_requested', 'rejected', 'approved'].includes(proposal.status) &&
           <Button variant="outlined" onClick={() => edit(proposal)}>編輯為新修訂</Button>}
         {proposal.revision > 1 && <Button onClick={() => setShowChanges(!showChanges)}>{showChanges ? '隱藏差異' : '檢視與上一版的差異'}</Button>}
+        <Button onClick={() => setShowReviews(!showReviews)}>{showReviews ? '隱藏審查意見' : '查看審查意見'}</Button>
       </Stack>
       {showChanges && proposal.revision > 1 && <Changes key={proposal.revision} id={id} revision={proposal.revision} />}
+      {showReviews && <ReviewHistory id={id} />}
       <ReadState query={flow}>{(workflow) => workflow.revision !== proposal.revision || workflow.content_hash !== proposal.content_hash ?
         <Alert severity="info">正在更新此提案的驗證資料。</Alert> :
         <ProposalActions key={`${proposal.revision}-${proposal.status}`} proposal={proposal} workflow={workflow} permissions={permissions} actor={actor} />}
       </ReadState>
     </Stack>
   </Paper>}</ReadState>
+}
+
+const captureIssues: Record<string, string> = {
+  ICOOK_PORTIONS_REQUIRED: '請填寫正整數人份。',
+  ICOOK_QUANTITY_REQUIRED: '請為每項食材填寫大於零的用量，並選擇 g 或 ml。',
+  ICOOK_GRAMS_MISMATCH: '用量為 g 時，烹調前克重必須與用量一致。',
+  ICOOK_REVIEWER_CONFIRMATION_REQUIRED: '人工補填的數值須由食譜審核人員確認。',
+  ICOOK_CLASSIFICATION_REQUIRED: '請補齊分類、料理類型及餐別。',
+  ICOOK_WEIGHT_EVIDENCE_REQUIRED: '人工補填的克重須連結補充證據。',
+  AI_RECIPE_PORTIONS_REQUIRED: '請填寫正整數人份。',
+  AI_RECIPE_QUANTITY_REQUIRED: '請為每項食材填寫整份用量，並選擇 g 或 ml。',
+  AI_RECIPE_GRAMS_MISMATCH: '用量為 g 時，烹調前克重必須與用量一致。',
+  AI_RECIPE_CLASSIFICATION_REQUIRED: '請補齊分類、料理類型及餐別。',
+  AI_RECIPE_WEIGHT_EVIDENCE_REQUIRED: '整份克重須連結補充證據。',
+}
+
+type ICookSource = {
+  source: { url: string; observed_at: string | null }
+  quantity_issues: string[]
+  confirmation_required: boolean
+  quantities_confirmed: boolean
+  revision: number
+}
+
+function ICookEvidence({ proposal, canConfirm }: { proposal: Proposal; canConfirm: boolean }) {
+  const [reason, setReason] = useState('')
+  const path = `/recipe-candidates/icook/${proposal.proposal_id}`
+  const evidence = useManagementRead<ICookSource>(path + '/source', undefined, true, 12_000)
+  const confirm = useManagementCommand(path + '/confirm-quantities', () => setReason(''))
+  return <ReadState query={evidence}>{(data) => <Stack spacing={1}>
+    <Typography variant="body2" sx={{ overflowWrap: 'anywhere' }}>iCook 來源 {data.source.url} · 擷取時間 {time(data.source.observed_at)}</Typography>
+    {data.revision === proposal.revision && <>
+      {data.quantity_issues.length > 0 && <Alert severity="warning">
+        {data.quantity_issues.map((code) => <Typography key={code} variant="body2">{captureIssues[code]}</Typography>)}
+      </Alert>}
+      {data.confirmation_required && data.quantity_issues.length === 0 && <Alert severity={data.quantities_confirmed ? 'success' : 'info'}>
+        {data.quantities_confirmed ? '本修訂的人份及食材用量已確認。' : captureIssues.ICOOK_REVIEWER_CONFIRMATION_REQUIRED}
+      </Alert>}
+      {canConfirm && ['draft','changes_requested'].includes(proposal.status) && data.confirmation_required &&
+        !data.quantities_confirmed && data.quantity_issues.length === 0 && <>
+          <TextField size="small" label="份量與用量確認依據" value={reason} onChange={(event) => setReason(event.target.value)} />
+          <Button variant="outlined" sx={{ alignSelf: 'start' }} disabled={!reason.trim() || confirm.isPending}
+            onClick={() => confirm.mutate({ ...expectRevision(proposal), reason: reason.trim() })}>確認人份與食材用量</Button>
+        </>}
+    </>}
+    {confirm.isError && <Alert severity="error">{managementError(confirm.error)}</Alert>}
+  </Stack>}</ReadState>
 }
 
 type CandidateEvidenceResult = {

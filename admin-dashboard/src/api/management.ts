@@ -3,7 +3,7 @@ import { api, apiError, errorStatus } from './client'
 export type Domain = 'recipe' | 'ingredient' | 'price' | 'source_policy'
 export type EditableDomain = Exclude<Domain, 'source_policy'>
 export type Collection<T> = { items: T[]; next_cursor: string | null }
-export type Capabilities = { user_id: string; permissions: string[]; external_execution_enabled: false }
+export type Capabilities = { user_id: string; permissions: string[]; readable_domains?: Domain[]; external_execution_enabled: false }
 export type Source = {
   artifact_id: string
   artifact_sha256: string
@@ -20,7 +20,7 @@ export type Line = {
   line_id: string
   food_id: string | null
   ingredient_version_id: string | null
-  canonical_name: string
+  canonical_name: string | null
   raw_text: string
   amount: Measurement
   unit: string | null
@@ -32,11 +32,11 @@ export type Recipe = {
   name: string
   standard_dish_id: string | null
   aliases: string[]
-  category: string
-  cuisine: string
-  meal_type: string
+  category: string | null
+  cuisine: string | null
+  meal_type: string | null
   servings: {
-    count: string | null; basis: 'portions' | 'batch'; raw_text: string
+    count: string | null; basis: 'portions' | 'batch'; raw_text: string | null
     portions_per_batch: string | null; evidence_ids: string[]
   }
   ingredients: Line[]
@@ -72,6 +72,12 @@ export type Price = {
   sources: Source[]
 }
 export type Content = Recipe | Ingredient | Price
+export function isICook(content: Content) {
+  return 'logical_recipe_id' in content && content.sources.some((source) => source.origin_kind === 'web_capture')
+}
+export function isGeneratedRecipe(content: Content) {
+  return 'logical_recipe_id' in content && content.sources.some((source) => source.origin_kind === 'ai_output')
+}
 export type Pins = {
   legacy_recipe_release_id: string | null
   ingredient_publication_id: string | null
@@ -88,6 +94,8 @@ export type Proposal = {
 export type Workflow = {
   revision: number; content_hash: string
   validation: { validation_id: string; evaluated_at: string; catalog_ready: boolean; issues: Issue[] } | null
+  step_style_issues?: Issue[]
+  own_queued_validation?: boolean
   approvals: Partial<Record<ReviewScope, string>>
   latest_task: Task | null
 }
@@ -96,7 +104,7 @@ export type ReviewScope = 'content' | 'source_rights'
 export type Verdict = 'approve' | 'request_changes' | 'reject'
 export type Diff = { changes: { json_pointer: string; op: string; before: unknown; after: unknown }[]; next_cursor: string | null }
 export type Publication = { publication_id: string; created_at: string; member_count: number; manifest_hash: string }
-export type Binding = { publication_id: string | null; revision: number; updated_at: string }
+export type Binding = { publication_id: string | null; revision: number; updated_at: string; runtime_enabled?: boolean }
 export type ActivationPlan = {
   plan_id: string; plan_hash: string; can_activate: boolean; expires_at: string; issues: Issue[]
 }
@@ -121,6 +129,22 @@ export type Observation = {
 export type Task = { task_id: string; kind: string; status: string; attempt: number; observed_at: string; execution_mode: string }
 export type Connection = { registered_target_key: string; status: string; checked_at: string | null; latency_ms: string | null; reason_code: string | null }
 export type Metrics = { as_of: string; recipe_count: number | null; pending_proposal_count: number | null; database_bytes: number | null; running_task_count: number | null }
+export type OverviewSummary = {
+  observed_at: string
+  proposals: Partial<Record<Domain, { submitted: number; changes_requested: number }>>
+  failed_validation_tasks: number | null
+}
+export type DatabaseStatus = {
+  status: 'healthy' | 'not_configured'; checked_at: string | null; query_latency_ms: number | null
+  database_bytes: number | null; client_connections: number | null
+}
+export type ScheduleConfiguration = {
+  observed_at: string
+  items: { key: string; interval_seconds?: number; hour?: number; minute?: number; timezone?: string
+    configured_mode?: 'apply' | 'dry_run' | 'enabled' | 'disabled' | 'invalid' }[]
+}
+export type AuditEvent = { event_id: string; actor_id: string; domain: Domain; resource_id: string; action: string; reason: string; created_at: string }
+export type ReviewDecision = { decision_id: string; revision: number; scope: ReviewScope; verdict: Verdict; reason: string; created_at: string }
 export type DataType = { key: string; storage_kind: string; owner: string; read_policy: string; write_policy: string; phase1_action: string }
 
 export const domains = { recipe: '食譜', ingredient: '食材', price: '價格', source_policy: '來源政策' }
@@ -140,8 +164,8 @@ export const originNames: Record<Source['origin_kind'], string> = {
   ai_output: 'AI 候選', web_capture: '網頁截存', workbook: '工作簿', manual_entry: '人工證據', supplied_document: '提供的文件',
 }
 
-export async function read<T>(path: string, params?: Record<string, string | number | undefined>, signal?: AbortSignal) {
-  return (await api.get<T>('/admin/v1' + path, { params, signal })).data
+export async function read<T>(path: string, params?: Record<string, string | number | undefined>, signal?: AbortSignal, timeout?: number) {
+  return (await api.get<T>('/admin/v1' + path, { params, signal, timeout })).data
 }
 
 export async function command<T>(path: string, body: object, key: string) {

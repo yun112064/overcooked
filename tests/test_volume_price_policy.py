@@ -156,7 +156,7 @@ def test_budget_floor_uses_live_manual_binding_without_caching_it(monkeypatch):
     demand = [IngredientRequirement(FOOD, volume_ml=Fraction(100))]
     floors = [budget_floor.RecipeFloor(str(i), str(i), "主菜", demand) for i in range(budget_floor.MIN_PRICED_DISHES)]
     monkeypatch.setattr(budget_floor, "_recipe_floors", lambda _: floors)
-    monkeypatch.setattr(budget_floor, "_cached", lambda key, load: load())
+    monkeypatch.setattr(budget_floor, "_cached", lambda key, load, version=None: load())
     monkeypatch.setattr(budget_floor, "cost_quote_candidates", lambda _: {FOOD: [quote(FOOD, "1", "500", "ml")]})
     override = Mock(return_value={FOOD: reviewed_volume()})
     monkeypatch.setattr(budget_floor, "active_overrides", override)

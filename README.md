@@ -12,7 +12,7 @@
 |---|---|---|
 | 1 | `T01_V4` | 共用管理權限、來源證據、修訂、驗證、內容與來源權利分開審核，以及不可變發布。T01 可匯入本機 JSON 食譜與 AI 候選樣本，清理文字與數值，保留原始證據、批次／份量語意與未知值，並提出重複候選供人工判斷。審查權限、遷移與候選生命週期。[main → T01 差異](https://github.com/yun112064/overcooked/compare/main...T01_V4) |
 | 2 | `T02_V4` | 保留原始價格觀察，支援樣本取得、商品對應、人工價格提案與審核。價格發布與啟用分開，已發布人工價可指名替換並重新審核，也可回復至曾啟用的版本。T13 成本與預算下限優先使用符合食材版本、條件及效期的已啟用人工價。審查價格來源、有效期、人工價優先及歷史快照保護。[T01 → T02 差異](https://github.com/yun112064/overcooked/compare/T01_V4...T02_V4) |
-| 3 | `Admin_dashboard_V2` | `/admin` 提供食譜與 AI 候選審核、食譜／食材修訂、價格版本選單、原始商品全名、價格啟用與替換、任務與連線狀態，以及標明可操作範圍的資料清冊。審查角色可見範圍、審核操作和未知／未設定狀態的顯示。[T02 → Dashboard 差異](https://github.com/yun112064/overcooked/compare/T02_V4...Admin_dashboard_V2) |
+| 3 | `Admin_dashboard_V2` | 獨立 [Admin Dashboard](admin-dashboard/README.md) 提供食譜與 AI 候選審核、食譜／食材修訂、價格版本選單、原始商品全名、價格啟用與替換、任務與連線狀態，以及標明可操作範圍的資料清冊。審查角色可見範圍、審核操作和未知／未設定狀態的顯示。[T02 → Dashboard 差異](https://github.com/yun112064/overcooked/compare/T02_V4...Admin_dashboard_V2) |
 
 ### 實際驗收結果
 

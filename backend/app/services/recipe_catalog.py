@@ -6,7 +6,9 @@
 """
 from sqlalchemy import select
 from sqlalchemy.orm import Session
+from types import SimpleNamespace
 
+from app.management.active_recipe_catalog import active_catalog
 from app.models import Recipe, RecipeIngredient
 from app.services.recipe_import import normalize_name
 from app.services.recipe_retrieval import DESSERT, MAIN, SOUP, STAPLE, _group, active_release_filter
@@ -81,6 +83,11 @@ def catalog(db: Session, excluded_food_ids: set[str]) -> dict:
     recipes = [{"recipe_id": r.recipe_id, "standard_dish_id": r.standard_dish_id, "recipe_name": r.recipe_name,
                 "category": r.category, "cuisine": r.cuisine, "meal_type": r.meal_type,
                 "aliases": [a for a in (r.name_aliases or []) if isinstance(a, str) and a.strip()]} for r in rows]
+    managed = active_catalog(db)
+    if managed:
+        for recipe in managed.recipes.values():
+            recipes.append(recipe.summary())
+            ingredients[recipe.id] = [SimpleNamespace(**line) for line in recipe.ingredient_rows()]
     dishes = _group(recipes)
     # 與 T11 _resolve_specified 相同的比對：菜名正規化後只能對到一道菜
     owners: dict[str, set[str]] = {}
