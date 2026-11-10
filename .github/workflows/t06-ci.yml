@@ -61,7 +61,9 @@ jobs:
 
       - name: Prepare disposable T02 database
         run: |
+          docker exec "${{ job.services.db.id }}" psql -U postgres -c "COMMENT ON DATABASE meal_planner_1102_v3_ci_test IS 'overcooked:disposable:ci'"
           docker exec "${{ job.services.db.id }}" createdb -U postgres meal_planner_1102_v3_t02_test
+          docker exec "${{ job.services.db.id }}" psql -U postgres -c "COMMENT ON DATABASE meal_planner_1102_v3_t02_test IS 'overcooked-stage0:T02_V4:20261107'"
           DATABASE_URL="$T02_TEST_DATABASE_URL" alembic -c alembic.ini upgrade head
 
       - name: Run backend tests (unittest and pytest)

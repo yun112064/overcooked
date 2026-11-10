@@ -1,3 +1,4 @@
+import ChatBubbleOutlineOutlined from '@mui/icons-material/ChatBubbleOutlineOutlined'
 import EventNoteOutlined from '@mui/icons-material/EventNoteOutlined'
 import GroupOutlined from '@mui/icons-material/GroupOutlined'
 import HistoryEduOutlined from '@mui/icons-material/HistoryEduOutlined'
@@ -25,6 +26,9 @@ const MealHistoryPage = lazy(() => import('./pages/MealHistoryPage'))
 const GenerationHistoryPage = lazy(() => import('./pages/GenerationHistoryPage'))
 const MealRequestEditor = lazy(() => import('./pages/MealRequestEditor'))
 const RecipePickerPage = lazy(() => import('./pages/RecipePickerPage'))
+const AssistantPage = lazy(() => import('./pages/AssistantPage'))
+import AssistantChatProvider from './assistant/AssistantChatProvider'
+import FloatingAssistant from './assistant/FloatingAssistant'
 import { BrandMark } from './components/ui'
 import { theme, tokens } from './theme'
 
@@ -72,6 +76,7 @@ const NAV = [
   { to: '/history', label: '已採用紀錄', short: '紀錄', icon: <HistoryEduOutlined /> },
   { to: '/generation-history', label: '營養與採購紀錄', short: '採購紀錄', icon: <HistoryEduOutlined /> },
   { to: '/members', label: '家庭成員', short: '成員', icon: <GroupOutlined /> },
+  { to: '/assistant', label: '飲食小幫手', short: '問答', icon: <ChatBubbleOutlineOutlined /> },
 ]
 
 function Layout() {
@@ -89,6 +94,7 @@ function Layout() {
   const household = me.data?.current_household
   const current = [...NAV, { to: '/households' }].find((n) => pathname.startsWith(n.to))?.to ?? false
   return (
+    <AssistantChatProvider>
     <Box sx={{ minHeight: '100vh', pb: { xs: household ? 9 : 0, md: 0 } }}>
       <Box component="header" sx={{
         position: 'sticky', top: 0, zIndex: 10, bgcolor: alpha(tokens.washi, 0.92), backdropFilter: 'blur(8px)',
@@ -145,9 +151,9 @@ function Layout() {
           borderTop: `1px solid ${tokens.line}`, pb: 'env(safe-area-inset-bottom)',
         }}>
           <BottomNavigation showLabels value={current} sx={{ bgcolor: tokens.paper,
-            '& .MuiBottomNavigationAction-root': { color: tokens.inkMuted, minWidth: 0 },
+            '& .MuiBottomNavigationAction-root': { color: tokens.inkMuted, minWidth: 0, px: 0.25 },
             '& .Mui-selected': { color: tokens.ink },
-            '& .MuiBottomNavigationAction-label': { letterSpacing: '0.1em', fontSize: '0.72rem !important', mt: 0.25 } }}>
+            '& .MuiBottomNavigationAction-label': { letterSpacing: '0.04em', whiteSpace: 'nowrap', fontSize: '0.72rem !important', mt: 0.25 } }}>
             {[...NAV, { to: '/households', short: '家庭', icon: <HomeOutlined /> }].map((n) => (
               <BottomNavigationAction key={n.to} value={n.to} label={n.short} icon={n.icon}
                 component={Link} to={n.to} />
@@ -155,7 +161,10 @@ function Layout() {
           </BottomNavigation>
         </Paper>
       )}
+      {/* 每頁都有可以隨時問的吉祥物；飲食小幫手頁本身就是完整對話，不重複顯示 */}
+      {!pathname.startsWith('/assistant') && <FloatingAssistant />}
     </Box>
+    </AssistantChatProvider>
   )
 }
 
@@ -184,6 +193,7 @@ const router = createBrowserRouter([
             { path: '/pick/:id', element: <RecipePickerPage /> },
             { path: '/history', element: <MealHistoryPage /> },
             { path: '/generation-history', element: <GenerationHistoryPage /> },
+            { path: '/assistant', element: <AssistantPage /> },
           ],
         },
       ],
