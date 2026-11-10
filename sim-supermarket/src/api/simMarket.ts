@@ -1,5 +1,3 @@
-import type { GenerationPlanDetail, MealPlanSummary } from './types'
-
 export type MarketProduct = {
   food_id: string
   name: string
@@ -19,8 +17,10 @@ type MarketShortages = {
   unquantified_items?: { food_id: string; name: string }[]
 }
 
-export type MarketPlan = Pick<MealPlanSummary, 'id' | 'status' | 'meal_date' | 'meal_request_id' | 'dishes' | 'result_version'>
-  & Pick<GenerationPlanDetail, 'snapshot_available' | 'prices'> & {
+export type MarketPlan = {
+  id: string; status: string; meal_date: string; result_version?: number | null
+  dishes: { dish_name: string }[]; snapshot_available: boolean
+  prices?: MarketShortages
   snapshot?: {
     result?: { dishes?: { recipe_release_id?: string | null }[] }
     market_shortages?: MarketShortages & { recipe_release_id: string | null }
@@ -32,9 +32,8 @@ export type UnavailableIngredient = { foodId: string; name: string; grams?: stri
 
 export const MAX_PACKS = 1_000_000
 
-export function marketPath(page: 'catalog' | 'checkout', planId: string | null = null) {
-  const path = page === 'checkout' ? '/sim-market/checkout' : '/sim-market'
-  return planId ? `${path}?plan=${encodeURIComponent(planId)}` : path
+export function marketPath(page: 'catalog' | 'checkout') {
+  return page === 'checkout' ? '/checkout' : '/'
 }
 
 type ExactQuantity = { numerator: bigint; denominator: bigint }

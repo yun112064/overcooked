@@ -1,10 +1,10 @@
+import ChatBubbleOutlineOutlined from '@mui/icons-material/ChatBubbleOutlineOutlined'
 import EventNoteOutlined from '@mui/icons-material/EventNoteOutlined'
 import GroupOutlined from '@mui/icons-material/GroupOutlined'
 import HistoryEduOutlined from '@mui/icons-material/HistoryEduOutlined'
 import HomeOutlined from '@mui/icons-material/HomeOutlined'
 import LogoutOutlined from '@mui/icons-material/LogoutOutlined'
 import MenuBookOutlined from '@mui/icons-material/MenuBookOutlined'
-import ShoppingBasketOutlined from '@mui/icons-material/ShoppingBasketOutlined'
 import {
   BottomNavigation, BottomNavigationAction, Box, Button, CircularProgress, Container, CssBaseline, IconButton,
   Paper, ThemeProvider, Tooltip, Typography, alpha,
@@ -26,7 +26,9 @@ const MealHistoryPage = lazy(() => import('./pages/MealHistoryPage'))
 const GenerationHistoryPage = lazy(() => import('./pages/GenerationHistoryPage'))
 const MealRequestEditor = lazy(() => import('./pages/MealRequestEditor'))
 const RecipePickerPage = lazy(() => import('./pages/RecipePickerPage'))
-const SimMarketPage = lazy(() => import('./pages/SimMarketPage'))
+const AssistantPage = lazy(() => import('./pages/AssistantPage'))
+import AssistantChatProvider from './assistant/AssistantChatProvider'
+import FloatingAssistant from './assistant/FloatingAssistant'
 import { BrandMark } from './components/ui'
 import { theme, tokens } from './theme'
 
@@ -65,16 +67,16 @@ function Protected({ requireHousehold = false }: { requireHousehold?: boolean })
   if (me.isError) return <Typography sx={{ p: 3 }} color="text.secondary">無法連線到伺服器，請稍後再試。</Typography>
   if (!me.data) return <Navigate to="/login" replace />
   if (requireHousehold && !me.data.current_household) return <Navigate to="/households" replace />
-  return <Outlet context={me.data} />
+  return <Outlet />
 }
 
 const NAV = [
   { to: '/plan', label: '規劃餐食', short: '規劃', icon: <EventNoteOutlined /> },
   { to: '/pick', label: '食譜庫選菜', short: '選菜', icon: <MenuBookOutlined /> },
   { to: '/history', label: '已採用紀錄', short: '紀錄', icon: <HistoryEduOutlined /> },
-  { to: '/generation-history', label: '營養與採購紀錄', short: '採購', icon: <HistoryEduOutlined /> },
-  { to: '/sim-market', label: '模擬超市', short: '超市', icon: <ShoppingBasketOutlined /> },
+  { to: '/generation-history', label: '營養與採購紀錄', short: '採購紀錄', icon: <HistoryEduOutlined /> },
   { to: '/members', label: '家庭成員', short: '成員', icon: <GroupOutlined /> },
+  { to: '/assistant', label: '飲食小幫手', short: '問答', icon: <ChatBubbleOutlineOutlined /> },
 ]
 
 function Layout() {
@@ -91,12 +93,12 @@ function Layout() {
   })
   const household = me.data?.current_household
   const current = [...NAV, { to: '/households' }].find((n) => pathname.startsWith(n.to))?.to ?? false
-  const isMarket = current === '/sim-market'
   return (
-    <Box sx={{ minHeight: '100vh', pb: { xs: household ? 9 : 0, md: 0 }, bgcolor: isMarket ? '#fff' : undefined }}>
+    <AssistantChatProvider>
+    <Box sx={{ minHeight: '100vh', pb: { xs: household ? 9 : 0, md: 0 } }}>
       <Box component="header" sx={{
-        position: 'sticky', top: 0, zIndex: 10, bgcolor: isMarket ? '#fff' : alpha(tokens.washi, 0.92), backdropFilter: 'blur(8px)',
-        borderBottom: `1px solid ${isMarket ? '#E6E3DF' : tokens.line}`,
+        position: 'sticky', top: 0, zIndex: 10, bgcolor: alpha(tokens.washi, 0.92), backdropFilter: 'blur(8px)',
+        borderBottom: `1px solid ${tokens.line}`,
       }}>
         <Container maxWidth="lg" sx={{ display: 'flex', alignItems: 'center', gap: 3, height: 64 }}>
           <Box component={Link} to={household ? '/plan' : '/households'}
@@ -138,8 +140,7 @@ function Layout() {
           )}
         </Container>
       </Box>
-      <Container maxWidth={isMarket ? 'xl' : 'md'} component="main" disableGutters={isMarket}
-        sx={{ py: isMarket ? 0 : { xs: 3, sm: 5 } }}>
+      <Container maxWidth="md" component="main" sx={{ py: { xs: 3, sm: 5 } }}>
         <Suspense fallback={<FullPageSpinner />}>
           <Outlet />
         </Suspense>
@@ -147,12 +148,12 @@ function Layout() {
       {household && (
         <Paper square sx={{
           display: { md: 'none' }, position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 10,
-          borderTop: `1px solid ${isMarket ? '#E6E3DF' : tokens.line}`, pb: 'env(safe-area-inset-bottom)',
+          borderTop: `1px solid ${tokens.line}`, pb: 'env(safe-area-inset-bottom)',
         }}>
-          <BottomNavigation showLabels value={current} sx={{ bgcolor: isMarket ? '#fff' : tokens.paper,
-            '& .MuiBottomNavigationAction-root': { color: tokens.inkMuted, minWidth: 0 },
+          <BottomNavigation showLabels value={current} sx={{ bgcolor: tokens.paper,
+            '& .MuiBottomNavigationAction-root': { color: tokens.inkMuted, minWidth: 0, px: 0.25 },
             '& .Mui-selected': { color: tokens.ink },
-            '& .MuiBottomNavigationAction-label': { letterSpacing: '0.1em', fontSize: '0.72rem !important', mt: 0.25 } }}>
+            '& .MuiBottomNavigationAction-label': { letterSpacing: '0.04em', whiteSpace: 'nowrap', fontSize: '0.72rem !important', mt: 0.25 } }}>
             {[...NAV, { to: '/households', short: '家庭', icon: <HomeOutlined /> }].map((n) => (
               <BottomNavigationAction key={n.to} value={n.to} label={n.short} icon={n.icon}
                 component={Link} to={n.to} />
@@ -160,7 +161,10 @@ function Layout() {
           </BottomNavigation>
         </Paper>
       )}
+      {/* 每頁都有可以隨時問的吉祥物；飲食小幫手頁本身就是完整對話，不重複顯示 */}
+      {!pathname.startsWith('/assistant') && <FloatingAssistant />}
     </Box>
+    </AssistantChatProvider>
   )
 }
 
@@ -189,8 +193,7 @@ const router = createBrowserRouter([
             { path: '/pick/:id', element: <RecipePickerPage /> },
             { path: '/history', element: <MealHistoryPage /> },
             { path: '/generation-history', element: <GenerationHistoryPage /> },
-            { path: '/sim-market', element: <SimMarketPage page="catalog" /> },
-            { path: '/sim-market/checkout', element: <SimMarketPage page="checkout" /> },
+            { path: '/assistant', element: <AssistantPage /> },
           ],
         },
       ],

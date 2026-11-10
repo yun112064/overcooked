@@ -51,11 +51,11 @@ test('unknown amounts, invalid packages and changed recipe releases stay unavail
   assert.equal(packCount('1/0', 500), null)
 })
 
-test('cart persistence is scoped by household, release, plan and package specification', () => {
-  const base = cartStorageKey(['user', 'household', 'plan'], catalog)
+test('cart persistence is scoped by authorized handoff, release, plan and package specification', () => {
+  const base = cartStorageKey(['handoff-a', 'plan'], catalog)
   assert.match(base, /^sim-market:v2:/)
-  assert.notEqual(base, cartStorageKey(['user', 'other-household', 'plan'], catalog))
-  assert.notEqual(base, cartStorageKey(['user', 'household', 'other-plan'], catalog))
-  assert.notEqual(base, cartStorageKey(['user', 'household', 'plan'], { ...catalog, products: [{ ...product, package_ml: 1000 }] }))
-  assert.notEqual(base, cartStorageKey(['user', 'household', 'plan'], { ...catalog, products: [{ ...product, package_ml: null, package_grams: 500 }] }))
+  assert.notEqual(base, cartStorageKey(['handoff-b', 'plan'], catalog))
+  assert.notEqual(base, cartStorageKey(['handoff-a', 'other-plan'], catalog))
+  assert.notEqual(base, cartStorageKey(['handoff-a', 'plan'], { ...catalog, products: [{ ...product, package_ml: 1000 }] }))
+  assert.notEqual(base, cartStorageKey(['handoff-a', 'plan'], { ...catalog, products: [{ ...product, package_ml: null, package_grams: 500 }] }))
 })

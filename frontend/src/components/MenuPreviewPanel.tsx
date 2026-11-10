@@ -1,11 +1,10 @@
 import CheckCircleOutlineOutlined from '@mui/icons-material/CheckCircleOutlineOutlined'
-import ShoppingBasketOutlined from '@mui/icons-material/ShoppingBasketOutlined'
 import { Alert, Box, Button, Chip, CircularProgress, Link, Stack, Typography } from '@mui/material'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useRef } from 'react'
 import { Link as RouterLink } from 'react-router'
 import { api, errorMessage } from '../api/client'
-import { marketPath } from '../api/simMarket'
+import MarketCheckoutButton from './MarketCheckoutButton'
 import type { KnowledgeTips, MealPlanSummary, MealRequest, Member, NutritionPreview, RecipeRetrieval } from '../api/types'
 import { tokens } from '../theme'
 import { NUTRIENTS, toNumber, withinTarget } from '../api/nutrition'
@@ -179,8 +178,7 @@ export default function MenuPreviewPanel({ row, members, onAdopted }: Props) {
             <Typography variant="body2">已採用並保存為已採用餐食紀錄（不代表實際已食用）。</Typography>
             <Button variant="outlined" component={RouterLink} to={`/history?date=${adopted.meal_date}`}>查看已採用紀錄</Button>
             {adopted.status === 'adopted' && adopted.market_shortages_available && (
-              <Button variant="contained" component={RouterLink} to={marketPath('checkout', adopted.id)}
-                startIcon={<ShoppingBasketOutlined />}>一鍵加入購物車</Button>
+              <MarketCheckoutButton planId={adopted.id} />
             )}
           </Stack>
         </Alert>

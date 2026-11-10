@@ -1,5 +1,4 @@
 import CheckCircleOutlineOutlined from '@mui/icons-material/CheckCircleOutlineOutlined'
-import ShoppingBasketOutlined from '@mui/icons-material/ShoppingBasketOutlined'
 import {
   Alert, Box, Button, Chip, Link, Stack, Table, TableBody, TableCell, TableHead, TableRow, Typography,
 } from '@mui/material'
@@ -10,8 +9,7 @@ import { useEffect, useRef } from 'react'
 import { Link as RouterLink } from 'react-router'
 import { toNumber, withinTarget } from '../api/nutrition'
 import { api, errorMessage } from '../api/client'
-import { marketPath } from '../api/simMarket'
-import type { MarketPlan } from '../api/simMarket'
+import MarketCheckoutButton from './MarketCheckoutButton'
 import type {
   DecisionKind, MealPlanSummary, MealResult, MealResultSummary, NutritionSuggestion,
 } from '../api/types'
@@ -151,7 +149,7 @@ export default function MealResultView({ requestId, mealDate, onChanged }: Props
     queryKey: ['sim-market-adopted-plan', requestId, mealDate],
     enabled: confirmed && hasShortages && Boolean(mealDate) && !adopt.data,
     queryFn: async () =>
-      (await api.get<{ meal_plans: MarketPlan[] }>('/meal-plans', { params: { date: mealDate } })).data.meal_plans,
+      (await api.get<{ meal_plans: MealPlanSummary[] }>('/meal-plans', { params: { date: mealDate } })).data.meal_plans,
   })
   const adoptedPlanId = adopt.data?.id ?? adoptedPlans.data?.find((plan) =>
     plan.meal_request_id === requestId && plan.status === 'adopted' && plan.result_version === displayedResult?.result_version)?.id
@@ -462,8 +460,7 @@ export default function MealResultView({ requestId, mealDate, onChanged }: Props
         )}
         {confirmed && hasShortages && adoptedPlanId && (
           <Stack direction="row" sx={{ justifyContent: 'flex-end', mt: 2 }}>
-            <Button component={RouterLink} to={marketPath('checkout', adoptedPlanId)} variant="contained"
-              startIcon={<ShoppingBasketOutlined />}>一鍵加入購物車</Button>
+            <MarketCheckoutButton planId={adoptedPlanId} />
           </Stack>
         )}
         {confirmed && hasShortages && !adoptedPlanId && adoptedPlans.isError && (

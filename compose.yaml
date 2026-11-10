@@ -53,9 +53,21 @@ services:
       # 狀態修改請求只接受這些前端來源；正式網域部署時改為 https://<網域>
       ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-http://localhost:8080}
       COOKIE_SECURE: ${COOKIE_SECURE:-true}
+      SIM_MARKET_URL: ${SIM_MARKET_URL:-}
+      SIM_MARKET_HANDOFF_KEY: ${SIM_MARKET_HANDOFF_KEY:-}
       # T09 團隊電腦 YOLO 推論服務；未設定時辨識顯示不可用，可手動輸入
       RECOGNITION_SERVICE_URL: ${RECOGNITION_SERVICE_URL:-}
       RECOGNITION_SERVICE_TOKEN: ${RECOGNITION_SERVICE_TOKEN:-}
+      # R14 團隊電腦飲食小幫手；未設定時小幫手頁顯示未啟用
+      ASSISTANT_SERVICE_URL: ${ASSISTANT_SERVICE_URL:-}
+      ASSISTANT_SERVICE_TOKEN: ${ASSISTANT_SERVICE_TOKEN:-}
+      # OpenAI 版小幫手（選用）：回答經 /internal/assistant/chat 由雲端呼叫 OpenAI（T10 額度）
+      ASSISTANT_OPENAI_SERVICE_URL: ${ASSISTANT_OPENAI_SERVICE_URL:-}
+      ASSISTANT_OPENAI_MODEL: ${ASSISTANT_OPENAI_MODEL:-gpt-5.4-mini-2026-03-17}
+      INTERNAL_API_TOKEN: ${INTERNAL_API_TOKEN:-}
+      # Cloudflare Access 服務權杖（呼叫團隊電腦的服務共用）
+      TEAM_ACCESS_CLIENT_ID: ${TEAM_ACCESS_CLIENT_ID:-}
+      TEAM_ACCESS_CLIENT_SECRET: ${TEAM_ACCESS_CLIENT_SECRET:-}
 
     ports:
       - "127.0.0.1:8000:8000"
@@ -135,6 +147,16 @@ services:
     ports:
       - "127.0.0.1:8080:80"
 
+    depends_on:
+      backend:
+        condition: service_healthy
+
+  sim-supermarket:
+    profiles: [sim-market]
+    build:
+      context: ./sim-supermarket
+    ports:
+      - "127.0.0.1:8081:80"
     depends_on:
       backend:
         condition: service_healthy

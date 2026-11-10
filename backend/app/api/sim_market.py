@@ -1,17 +1,46 @@
 """Read-only T01 catalogue for the simulated supermarket."""
 
-from fastapi import APIRouter, Depends
+import uuid
+from fastapi import APIRouter, Depends, Request, Response
+from pydantic import BaseModel, Field
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.api.deps import current_household_id, verify_origin
+from app.api.deps import AuthContext, current_auth, current_household_id, verify_origin
+from app.api.errors import ApiError
 from app.core.config import settings
 from app.db.session import get_db
 from app.models.recipe import IngredientAlias, Recipe, RecipeDataRelease, RecipeIngredient
 from app.services.recipe_volume import source_volume_ml
+from app.services import market_handoff
 
 
-router = APIRouter(prefix="/sim-market", tags=["sim-market"], dependencies=[Depends(verify_origin)])
+router = APIRouter(prefix="/sim-market", tags=["sim-market"])
+
+
+class HandoffBody(BaseModel):
+    plan_id: uuid.UUID
+
+
+class CheckoutBody(BaseModel):
+    token: str = Field(min_length=1, max_length=2048)
+
+
+@router.post('/handoffs', dependencies=[Depends(verify_origin)])
+def create_handoff(body: HandoffBody, response: Response, auth: AuthContext = Depends(current_auth),
+                   household_id=Depends(current_household_id), db: Session = Depends(get_db)):
+    response.headers['Cache-Control'] = 'no-store'
+    return market_handoff.issue(db, auth, household_id, body.plan_id)
+
+
+@router.post('/checkout')
+def checkout(body: CheckoutBody, request: Request, response: Response, db: Session = Depends(get_db)):
+    if request.headers.get('origin') != market_handoff.market_origin():
+        raise ApiError(403, 'FORBIDDEN', '請求來源未被允許。')
+    response.headers['Cache-Control'] = 'no-store'
+    result = market_handoff.redeem(db, body.token)
+    result['catalog'] = get_catalog(db)
+    return result
 
 # Store-defined demonstration packs and TWD cents. These values do not come from T01 or T02.
 DEMO_PACKS = (

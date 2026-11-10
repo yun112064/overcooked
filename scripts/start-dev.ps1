@@ -1,6 +1,6 @@
 ﻿<#
 .SYNOPSIS
-  一鍵啟動本機開發環境：資料庫、後端、worker、前端、YOLO 推論服務。
+  一鍵啟動本機開發環境：資料庫、後端、worker、前端、YOLO 推論服務、T11 知識服務與 R14 飲食小幫手。
 
 .DESCRIPTION
   每次執行都會自動同步，新增功能通常不用改這支腳本：
@@ -303,6 +303,61 @@ if ((Cfg 'DEV_SKIP_KNOWLEDGE') -ne '1') {
     }
 }
 
+# ---------- 6c. R14 飲食小幫手 ----------
+# 需要 Data Root 的 assistant_rag\db.env（索引已建好）以及兩個既有容器：pgvector 資料庫與 TEI 重排服務。
+# 這裡只啟動既有容器，不建立容器、不建索引、不下載模型；回答模型由本機 Ollama 提供（需自行開啟）。
+# 缺任何一項就不啟動，小幫手頁會顯示離線。
+$UseAssistant = $false
+if ((Cfg 'DEV_SKIP_ASSISTANT') -ne '1') {
+    $AssistantEnv = Join-Path $DataRoot 'assistant_rag\db.env'
+    $AssistantContainers = @((Cfg 'DEV_ASSISTANT_DB_CONTAINER' 'overcooked-assistant-db'),
+        (Cfg 'DEV_ASSISTANT_RERANKER_CONTAINER' 'overcooked-assistant-reranker'))
+    $missing = @()
+    if (-not (Test-Path $AssistantEnv) -and -not (Cfg 'ASSISTANT_DATABASE_URL')) { $missing += 'assistant_rag\db.env' }
+    foreach ($c in $AssistantContainers) {
+        if (-not (docker ps -a --filter "name=^$c$" --format '{{.Names}}')) { $missing += "容器 $c" }
+    }
+    if ($missing) {
+        Write-Host "    飲食小幫手未啟動（缺少：$($missing -join '、')；建置方式見 assistant_rag/README.md）。" -ForegroundColor Yellow
+    } else {
+        Step '啟動飲食小幫手的資料庫與重排容器'
+        foreach ($c in $AssistantContainers) { docker start $c | Out-Null }
+        $AsStamp = Join-Path $Root '.venv\.assistant-requirements.sha256'
+        $AsHash = (Get-FileHash (Join-Path $Root 'assistant_rag\requirements.txt')).Hash
+        if (-not (Test-Path $AsStamp) -or (Get-Content $AsStamp) -ne $AsHash) {
+            Step '安裝飲食小幫手套件（assistant_rag/requirements.txt 有更新）'
+            & $Py -m pip install --disable-pip-version-check -r assistant_rag/requirements.txt
+            if ($LASTEXITCODE -eq 0) { Set-Content $AsStamp $AsHash }
+        }
+        # 權杖只在本機後端與小幫手服務之間使用，存在 .dev\assistant-token（已在 .gitignore）
+        if (-not (Cfg 'ASSISTANT_SERVICE_TOKEN')) {
+            $AsTokenFile = Join-Path $StateDir 'assistant-token'
+            if (-not (Test-Path $AsTokenFile)) { Set-Content $AsTokenFile ([guid]::NewGuid().ToString('N')) -NoNewline }
+            $Cfg['ASSISTANT_SERVICE_TOKEN'] = (Get-Content $AsTokenFile -Raw).Trim()
+        }
+        $env:ASSISTANT_SERVICE_TOKEN = $Cfg['ASSISTANT_SERVICE_TOKEN']
+        $AssistantPort = Cfg 'ASSISTANT_PORT' '8093'
+        $env:ASSISTANT_SERVICE_URL = "http://127.0.0.1:$AssistantPort"
+        $UseAssistant = $true
+        # OpenAI 版小幫手（選用）：設定 ASSISTANT_OPENAI_PORT（例如 8094）才另外啟動一份。檢索仍在本機，
+        # 回答經本機後端 /internal/assistant/chat 呼叫 OpenAI（T10 額度）；需要 .env.dev 的 OPENAI_API_KEY。
+        $AssistantOpenAIPort = Cfg 'ASSISTANT_OPENAI_PORT'
+        if ($AssistantOpenAIPort) {
+            if (-not (Cfg 'OPENAI_API_KEY')) {
+                Write-Host '    OpenAI 版小幫手：.env.dev 沒有 OPENAI_API_KEY，回答會失敗。' -ForegroundColor Yellow
+            }
+            # 內部 API 權杖只在本機後端與 OpenAI 版小幫手之間使用，存在 .dev\internal-token（已在 .gitignore）
+            if (-not (Cfg 'INTERNAL_API_TOKEN')) {
+                $InTokenFile = Join-Path $StateDir 'internal-token'
+                if (-not (Test-Path $InTokenFile)) { Set-Content $InTokenFile ([guid]::NewGuid().ToString('N')) -NoNewline }
+                $Cfg['INTERNAL_API_TOKEN'] = (Get-Content $InTokenFile -Raw).Trim()
+            }
+            $env:INTERNAL_API_TOKEN = $Cfg['INTERNAL_API_TOKEN']
+            $env:ASSISTANT_OPENAI_SERVICE_URL = "http://127.0.0.1:$AssistantOpenAIPort"
+        }
+    }
+}
+
 Step '啟動服務（全部在這個視窗，輸出以 [服務名稱] 區分）'
 if ((Cfg 'KNOWLEDGE_DATABASE_URL') -and (Cfg 'KNOWLEDGE_SERVICE_TOKEN')) {
     $KnowledgePort = Cfg 'KNOWLEDGE_PORT' '8091'
@@ -317,6 +372,15 @@ if ((Cfg 'KNOWLEDGE_DATABASE_URL') -and (Cfg 'KNOWLEDGE_SERVICE_TOKEN')) {
     Start-Service-Here 'knowledge' $KnowledgePort "& '$Py' -m uvicorn knowledge_rag.server:create_app --factory --host 127.0.0.1 --port $KnowledgePort"
 } else {
     Write-Host '    食材知識服務未設定；知識結果會顯示不可用及缺少設定。' -ForegroundColor Yellow
+}
+if ($UseAssistant) {
+    Start-Service-Here 'assistant' $AssistantPort "& '$Py' -m assistant_rag.server --port $AssistantPort"
+    if ($AssistantOpenAIPort) {
+        # 同一份程式、只換回答模型；權杖從環境變數帶入，不寫在指令列
+        Start-Service-Here 'assistant-openai' $AssistantOpenAIPort ("`$env:RAG_LLM_PROVIDER = 'openai'; " +
+            "`$env:CLOUD_INTERNAL_URL = 'http://127.0.0.1:8000'; `$env:CLOUD_INTERNAL_TOKEN = `$env:INTERNAL_API_TOKEN; " +
+            "& '$Py' -m assistant_rag.server --port $AssistantOpenAIPort")
+    }
 }
 if ($UseYolo) {
     Start-Service-Here 'yolo' $YoloPort "& '$YoloPy' inference/server.py"

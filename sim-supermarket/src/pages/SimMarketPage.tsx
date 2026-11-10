@@ -13,11 +13,10 @@ import {
 } from '@mui/material'
 import { useQuery } from '@tanstack/react-query'
 import { useEffect, useState } from 'react'
-import { Link, useOutletContext, useSearchParams } from 'react-router'
-import { api, errorMessage } from '../api/client'
+import { Link, useLocation } from 'react-router'
+import { loadCheckout, checkoutToken } from '../api/handoff'
 import { cartStorageKey, marketPath, MAX_PACKS, packageSpec, prepareCart, readCart, saveCart } from '../api/simMarket'
 import type { MarketCart, MarketCatalog, MarketPlan, MarketProduct } from '../api/simMarket'
-import type { Me } from '../api/types'
 import heroImage from '../assets/sim-market-hero.webp'
 import categoryImage from '../assets/sim-market-categories.webp'
 
@@ -44,41 +43,19 @@ function packageLabel(product: MarketProduct, count = 1) {
 }
 
 export default function SimMarketPage({ page }: { page: Page }) {
-  const me = useOutletContext<Me>()
-  const [params] = useSearchParams()
-  const planId = params.get('plan')
-  const householdId = me.current_household?.id
-  const scope = [me.user.id, householdId]
-  const catalog = useQuery({
-    queryKey: ['sim-market-catalog', ...scope],
-    queryFn: async () => (await api.get<MarketCatalog>('/sim-market/catalog')).data,
+  useLocation() // Re-evaluate grants when a new link opens in this same browser tab.
+  const token = checkoutToken()
+  const checkout = useQuery({
+    queryKey: ['checkout', token], enabled: Boolean(token),
+    queryFn: () => loadCheckout(token!), retry: false, refetchInterval: 30_000,
+    refetchOnWindowFocus: 'always',
   })
-  const plan = useQuery({
-    queryKey: ['sim-market-plan', ...scope, planId],
-    enabled: Boolean(planId),
-    queryFn: async () => (await api.get<MarketPlan>(`/meal-plans/${encodeURIComponent(planId ?? '')}`)).data,
-    retry: false,
-  })
-
-  if (plan.isError) {
-    return <Alert severity="error" sx={{ m: 2 }}>{errorMessage(plan.error, '無法讀取此家庭的已採用餐單。')}</Alert>
-  }
-  if (catalog.isError) return <Alert severity="error" sx={{ m: 2 }}>{errorMessage(catalog.error, '商品目錄暫時無法載入。')}</Alert>
-  if (!catalog.data || (planId && !plan.data)) {
-    return <CircularProgress size={28} aria-label="載入模擬超市" sx={{ m: 3 }} />
-  }
-  if (planId && (plan.data?.status !== 'adopted' || !plan.data.snapshot_available
-    || !(plan.data.snapshot?.market_shortages || (plan.data.result_version && plan.data.prices)))) {
-    return (
-      <Stack spacing={2} sx={{ p: contentPadding }}>
-        <Alert severity="info">這份餐單沒有可用的採用缺料快照。</Alert>
-        <Button component={Link} to="/sim-market" sx={{ alignSelf: 'start' }}>瀏覽模擬超市</Button>
-      </Stack>
-    )
-  }
-
-  const key = cartStorageKey([...scope, planId], catalog.data)
-  return <MarketStore key={key} storageKey={key} page={page} catalog={catalog.data} plan={plan.data} />
+  if (!token) return <Alert severity="info" sx={{ m: 3 }}>請從今天吃啥的已採用餐單點選「一鍵購入」，開啟這次購物清單。</Alert>
+  if (checkout.isError) return <Alert severity="error" sx={{ m: 3 }}>{checkout.error.message}</Alert>
+  if (!checkout.data) return <CircularProgress aria-label="載入模擬超市" sx={{ m: 3 }} />
+  const { catalog, plan, handoff_id } = checkout.data
+  const key = cartStorageKey([handoff_id, plan.id], catalog)
+  return <MarketStore key={key} storageKey={key} page={page} catalog={catalog} plan={plan} />
 }
 
 function MarketStore({ storageKey, page, catalog, plan }: {
@@ -89,11 +66,8 @@ function MarketStore({ storageKey, page, catalog, plan }: {
   const [search, setSearch] = useState('')
   const [category, setCategory] = useState<string | null>(null)
   const [filtersOpen, setFiltersOpen] = useState(false)
-  const planId = plan?.id ?? null
-  const checkoutPath = marketPath('checkout', planId)
-  const catalogPath = marketPath('catalog', planId)
-  const mealPath = plan?.snapshot?.market_shortages ? '/pick' : '/plan'
-  const returnPath = plan?.meal_request_id ? `${mealPath}/${encodeURIComponent(plan.meal_request_id)}` : mealPath
+  const checkoutPath = marketPath('checkout')
+  const catalogPath = marketPath('catalog')
 
   useEffect(() => { saveCart(storageKey, cart) }, [storageKey, cart])
 
@@ -143,7 +117,7 @@ function MarketStore({ storageKey, page, catalog, plan }: {
         sx={{ px: contentPadding, pt: { xs: page === 'catalog' ? 3 : 2, md: 4 } }}>
         {page === 'checkout' && (
           <Box component="header" sx={{ borderBottom: 1, borderColor: marketLine, pb: { xs: 1.5, md: 2 } }}>
-            <Button component={Link} to={cart.orderId ? '/sim-market' : catalogPath} startIcon={<ArrowBackOutlined />}
+            <Button component={Link} to={cart.orderId ? '/' : catalogPath} startIcon={<ArrowBackOutlined />}
               sx={{ color: marketInk, px: 0.5, mb: 0.75 }}>繼續選購</Button>
             <Typography component="h1" variant="h4" sx={{ color: marketInk }}>
               {cart.orderId && !releaseIssue ? '模擬訂單已完成' : '模擬結帳'}
@@ -155,7 +129,7 @@ function MarketStore({ storageKey, page, catalog, plan }: {
           ? <Alert severity="info">目前沒有可用的 T01 商品目錄。</Alert>
           : catalog.products.length === 0 && <Alert severity="info">此 T01 版本目前沒有可展示的商品。</Alert>}
         {releaseIssue && (
-          <Alert severity="warning" action={<Button component={Link} to="/sim-market" size="small">瀏覽目前目錄</Button>}>
+          <Alert severity="warning" action={<Button component={Link} to="/" size="small">瀏覽目前目錄</Button>}>
             {releaseIssue}。此餐單的食材無法自動加入購物車。
           </Alert>
         )}
@@ -277,7 +251,7 @@ function MarketStore({ storageKey, page, catalog, plan }: {
                 </Box>
               </Paper>
             )}
-            {plan && <Button component={Link} to={returnPath} sx={{ alignSelf: 'start' }}>返回餐單</Button>}
+            <Typography variant="caption">完成後可回到原本的今天吃啥分頁。</Typography>
           </>
         )}
       </Stack>
@@ -350,7 +324,7 @@ function MobileCart({ checkoutPath, count, totalCents }: {
   return (
     <Paper component="aside" aria-label="購物車摘要" square variant="outlined" sx={{
       display: { xs: 'block', md: 'none' }, position: 'fixed', left: 12, right: 12,
-      bottom: 'calc(64px + env(safe-area-inset-bottom))', zIndex: 2, p: 1.25, bgcolor: '#fff',
+      bottom: 'calc(12px + env(safe-area-inset-bottom))', zIndex: 2, p: 1.25, bgcolor: '#fff',
       borderColor: marketLine, boxShadow: '0 4px 16px #00000014',
     }}>
       <Stack direction="row" sx={{ justifyContent: 'space-between', alignItems: 'center', gap: 1 }}>
