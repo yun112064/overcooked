@@ -36,6 +36,7 @@
 | `config/model_pricing.json` | T10 付費呼叫預留與結算用的模型價格表（未列價模型一律拒絕呼叫） | 正式接入前須依官方價格重新核對 |
 | `inference/` | T09 團隊電腦 YOLO26s 推論服務（OpenCV 降噪前處理），權重不進 Git | [推論服務 README](inference/README.md) |
 | `knowledge_rag/` | T11：結構化食譜查詢、昨日去重、地端營養知識檢索與Excel／JSON維護 | [T11 README](knowledge_rag/README.md) |
+| `assistant_rag/` | R14／T21：獨立的飲食客服 RAG（健康醫療網＋Hello醫師、六種檢索方法比較），與 T11 資料分開 | [飲食客服 README](assistant_rag/README.md) |
 | `migrations/` | 資料庫遷移 | `alembic.ini` |
 | `tests/` | T06 日誌與隱私、T07／T08／T10 API 與資料庫測試；T03 測試已移入模組 | CI 見 `.github/workflows/t06-ci.yml` |
 | `docs/` | 跨模組決議及 T04 驗收／交接記錄 | [決議與整合待辦](docs/T04-T06-merge-pending.md) |

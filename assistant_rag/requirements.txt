@@ -1,0 +1,3 @@
+# 飲食客服 RAG（R14）額外套件；其餘沿用專案 requirements.txt（httpx、psycopg、fastapi、uvicorn）
+jieba==0.42.1
+opencc-python-reimplemented==0.1.7
