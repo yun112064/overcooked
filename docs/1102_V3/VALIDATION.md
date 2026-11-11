@@ -347,3 +347,7 @@ Executed on the clean selected worktree: 130 passed, 3 skipped, 40 subtests pass
 ## 2026-11-11 portable nutrition release（codex/1111-selected，本輪執行）
 
 真實17表資料包在兩個全新不同名稱的隔離PostgreSQL完成遷移、匯入與受限帳號驗證。293道／2477列中2473列預覽及正式營養與來源一致，4列維持recipe-derived-only阻擋；18張活動表為空。實測既有庫拒絕覆蓋。Python 152 passed、3 skipped、40 subtests passed；交付映像建置與映像內dotenv驗證通過。正式庫／main／原始Excel未變更，驗證時尚未推送新增成果。詳細命令、資料hash、真實與合成測試界線、同名Excel來源限制見 ../portable-nutrition-validation.md。
+
+## 2026-11-11 PR #37 CI fixture correction
+
+GitHub Actions run 42977436133 failed only the 23 T11 fixed-scenario subtests: fixture history cleanup omitted sim_market_orders after the new foreign key to adopted_meal_plans. Added that table to the explicit TRUNCATE list; retained verify_disposable and production constraints. Re-ran test_t11_recipe_retrieval via unittest against a newly created, marker-verified meal_planner_1102_v3_pr37_ci_test in the isolated container: 32 tests passed, including all fixed-scenario subtests. These fixtures are synthetic; no imported or production database was used. Frontend, Sim, Admin and inference jobs in the initial run had passed. Full CI will rerun on the fix commit.
