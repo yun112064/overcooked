@@ -1,7 +1,8 @@
 import { Box, Chip, Tooltip, Typography } from '@mui/material'
 import type { ResultIngredient } from '../api/types'
+import CookingQuantity from './CookingQuantity'
 
-type Ingredient = Pick<ResultIngredient, 'name' | 'group' | 'display_amount' | 'display_unit' | 'display_text' | 'display_grams'>
+type Ingredient = Pick<ResultIngredient, 'name' | 'group' | 'display_amount' | 'display_unit' | 'display_text' | 'display_grams'> & Partial<Pick<ResultIngredient, 'whole_meal_grams'>>
 
 /** 每日鈉上限（mg），與 config/daily_reference_nutrients.json 一致；只用於提示文字 */
 const SODIUM_DAILY_MAX = 2400
@@ -17,25 +18,6 @@ export function HighSodiumTag({ high, sodium }: { high?: boolean | null; sodium?
   )
 }
 
-const FRACTIONS: Record<number, string> = { 0.25: '¼', 0.5: '½', 0.75: '¾' }
-
-/** 調味料的量匙用量取到 ¼（如 1.5 → 1½、0.25 → ¼）；其他數量原樣 */
-function amount(value: string) {
-  const n = Number(value)
-  const whole = Math.floor(n)
-  const frac = FRACTIONS[Math.round((n - whole) * 100) / 100]
-  if (!frac) return String(n)
-  return whole > 0 ? `${whole}${frac}` : frac
-}
-
-/** 後端已取整的畫面用量（克到 1 g、調味料為小匙／大匙、其他單位到整數）；沒有數量時顯示原文（如「少許」） */
-function shown(i: Ingredient) {
-  if (i.display_amount != null && i.display_unit === 'L') return `${Number(i.display_amount)} L`
-  if (i.display_amount != null && i.display_unit) return `${amount(i.display_amount)} ${i.display_unit}`
-  if (i.display_text) return i.display_text
-  return i.display_grams == null ? '無法換算' : `${Math.round(Number(i.display_grams))} g`
-}
-
 /** 食材清單：沒有分組的先列，其後依食譜原文的分組（decisions #41，如「調味」「醃料」）加小標。 */
 export function DishIngredients({ ingredients }: { ingredients: Ingredient[] }) {
   const groups = new Map<string, Ingredient[]>()
@@ -47,9 +29,11 @@ export function DishIngredients({ ingredients }: { ingredients: Ingredient[] }) 
   return (
     <>
       {ordered.map(([group, items]) => (
-        <Typography key={group || '_'} variant="body2">
+        <Typography key={group || '_'} variant="body2" component="div">
           {group && <Box component="span" sx={{ fontWeight: 'bold' }}>{group}：</Box>}
-          {items.map((i) => `${i.name} ${shown(i)}`).join('、')}
+          {items.map((i, idx) => <Box component="span" key={`${i.name}-${idx}`}>
+            {idx > 0 && '、'}{i.name} <CookingQuantity ingredient={i} name={i.name} />
+          </Box>)}
         </Typography>
       ))}
     </>

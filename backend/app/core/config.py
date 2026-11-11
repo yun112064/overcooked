@@ -102,6 +102,11 @@ class Settings(BaseSettings):
     team_access_client_secret: str | None = None
 
     knowledge_explain_model: str = "gpt-5.4-mini-2026-03-17"
+    # Explicit local-only knowledge wording; never used for AI menu fallback.
+    knowledge_explain_provider: Literal['openai', 'ollama'] = 'openai'
+    knowledge_ollama_url: str | None = None
+    knowledge_ollama_model: str = 'qwen3.5:9b-q4_K_M'
+    knowledge_ollama_timeout_seconds: float = 120.0
     # R14 飲食小幫手 OpenAI 版：團隊電腦經內部 API 請雲端代為生成（T10 額度）；模型須列在 model_pricing.json
     assistant_openai_model: str = "gpt-5.4-mini-2026-03-17"
     assistant_openai_max_output_tokens: int = 2000

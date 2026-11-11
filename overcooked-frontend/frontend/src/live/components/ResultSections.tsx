@@ -1,13 +1,23 @@
 import { Box, Stack, Tab, Tabs } from '@mui/material'
 import { BookOpen, ChartNoAxesColumn, ShoppingBasket, Utensils } from 'lucide-react'
-import { useId, useState, type ReactNode } from 'react'
+import { useEffect, useId, useRef, useState, type ReactNode } from 'react'
 
 /** 隱藏未選頁籤但保留掛載，避免切換頁籤重送查詢或知識生成請求。 */
-export default function ResultSections({ recipes, shopping, nutrition, portions }: {
+export default function ResultSections({ recipes, shopping, nutrition, portions, showShopping = false }: {
   recipes: ReactNode; shopping: ReactNode; nutrition: ReactNode; portions: ReactNode
+  showShopping?: boolean
 }) {
   const id = useId()
-  const [tab, setTab] = useState(0)
+  const [tab, setTab] = useState(showShopping ? 1 : 0)
+  const tabsRef = useRef<HTMLDivElement>(null)
+  const previouslyShopping = useRef(showShopping)
+  useEffect(() => {
+    if (showShopping && !previouslyShopping.current) {
+      setTab(1)
+      tabsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }
+    previouslyShopping.current = showShopping
+  }, [showShopping])
   const labels = [
     { label: '食譜', icon: <BookOpen size={18} />, content: recipes },
     { label: '採購', icon: <ShoppingBasket size={18} />, content: shopping },
@@ -15,7 +25,7 @@ export default function ResultSections({ recipes, shopping, nutrition, portions 
     { label: '分餐', icon: <Utensils size={18} />, content: portions },
   ]
   return <>
-    <Tabs className="live-result-tabs" value={tab} onChange={(_, value) => setTab(value)} variant="scrollable"
+    <Tabs ref={tabsRef} className="live-result-tabs" value={tab} onChange={(_, value) => setTab(value)} variant="scrollable"
       scrollButtons="auto" allowScrollButtonsMobile aria-label="菜單內容">
       {labels.map((item, index) => <Tab key={item.label} label={item.label} icon={item.icon} iconPosition="start"
         id={`${id}-tab-${index}`} aria-controls={`${id}-panel-${index}`} />)}

@@ -28,6 +28,17 @@ class T12PlanningUnavailable(Exception):
 def preview(db: Session, *, draft: meal_request.MealRequestDraft, members: dict,
             recipe_ids: list[str]) -> dict:
     """Calculate with only server-side questionnaire, recipe and nutrition data."""
+    from app.services import staples
+    if staples.is_auto_value(draft.staple):
+        excluded = meal_request.restrictions(db, draft, members)['excluded_food_ids']
+        options = staples.automatic_options(excluded)
+        if not options:
+            raise T12PlanningUnavailable('STAPLE_NO_ALLOWED_OPTION',
+                '目前沒有符合忌口、過敏且營養資料完整的主食，請調整問卷或選擇不需要主食。')
+        results = [preview(db, draft=draft.model_copy(update={'staple': option.label}),
+                           members=members, recipe_ids=recipe_ids) for option in options]
+        return next((result for result in results if result.get('nutrition_passed')
+                     and not result.get('adoption_blocked')), results[0])
     try:
         continued_policy = reconciled_policy.load_policy() if reconciled_policy.enabled() else None
         if continued_policy:

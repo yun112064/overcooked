@@ -24,6 +24,7 @@ from sqlalchemy.orm import sessionmaker
 from app.core.config import settings
 from app.db.models import BackgroundJob, MealRequestRevision
 from app.services import generation, jobs, result_retry, spend
+from app.services.knowledge_deadline import job_deadline_scope
 
 
 class LeaseLost(Exception):
@@ -107,6 +108,7 @@ def run_once(factory: sessionmaker, owner: str, handlers: dict | None = None, *,
     if job is None:
         return None
     timer = None
+    deadline = time.monotonic() + timeout if timeout else None
     if timeout:
         def expire():
             # 工作已完成、取消或被回收時 abort_attempt 回 False，不必中止
@@ -116,7 +118,8 @@ def run_once(factory: sessionmaker, owner: str, handlers: dict | None = None, *,
         timer.daemon = True
         timer.start()
     try:
-        return _run(factory, owner, handlers, job)
+        with job_deadline_scope(deadline):
+            return _run(factory, owner, handlers, job)
     finally:
         if timer is not None:
             timer.cancel()

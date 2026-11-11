@@ -3,6 +3,7 @@ import hashlib
 import json
 import uuid
 from datetime import datetime, timezone
+from urllib.parse import urlsplit
 
 from sqlalchemy import func, select
 
@@ -11,10 +12,55 @@ from app.db.models import AdoptedMealPlan, MealConfirmationEvent, SimMarketOrder
 from app.source_adapters.price_scope import latest_quotes, quote_unusable_reason
 
 
-def real_products(db, release_id, names):
+def ingredient_category(name):
+    for category, terms in (
+        ('豆蛋乳品', ('豆腐', '豆干', '豆乾', '雞蛋', '鴨蛋', '蛋液', '牛奶', '起司', '乳酪')),
+        ('肉品海鮮', ('豬', '牛肉', '雞', '羊肉', '鴨肉', '魚', '蝦', '貝', '蛤', '蟹', '魷')),
+        ('蔬果菇類', ('菜', '瓜', '菇', '薯', '筍', '筊白', '蕃茄', '番茄', '椒', '蘿蔔', '洋蔥', '大蒜', '蘋果', '檸檬')),
+        ('米麵雜糧', ('米', '麵', '燕麥', '地瓜粉', '粉絲')),
+    ):
+        if any(term in name for term in terms):
+            return category
+    return '其他食材'
+
+
+def source_image(quote):
+    # Only the selected source product may supply its picture; never borrow a rejected candidate.
+    candidate = next((c for c in quote.candidates if c.product_id == quote.product_id and quote.product_id), None)
+    if candidate is None:
+        return None
+    image = candidate.raw.get('image')
+    if isinstance(image, list):
+        image = image[0] if image else None
+    if isinstance(image, dict):
+        image = image.get('url') or image.get('contentUrl')
+    if not isinstance(image, str):
+        return None
+    try:
+        url = urlsplit(image)
+        if url.scheme == 'https' and url.hostname and not url.username and not url.password:
+            return image
+    except ValueError:
+        pass
+    return None
+
+
+def real_catalog(db, release_id, names):
+    now = datetime.now(timezone.utc)
+    quotes = latest_quotes(db, names, now=now)
+    products = real_products(db, release_id, names, quotes=quotes)
+    available = {p['food_id'] for p in products}
+    unavailable = [dict(food_id=food_id, name=name, category=ingredient_category(name),
+                        reason=quote_unusable_reason(quotes.get(food_id), now, allow_volume=True) or 'PACKAGE_NOT_PURCHASABLE')
+                   for food_id, name in names.items() if food_id not in available]
+    return dict(recipe_release_id=release_id, real_checkout=True, products=products,
+                unavailable_ingredients=unavailable, ingredient_count=len(names))
+
+
+def real_products(db, release_id, names, *, quotes=None):
     now = datetime.now(timezone.utc)
     products = []
-    for food_id, quote in latest_quotes(db, names, now=now).items():
+    for food_id, quote in (quotes if quotes is not None else latest_quotes(db, names, now=now)).items():
         if quote.recipe_release_id != release_id or quote_unusable_reason(quote, now, allow_volume=True):
             continue
         size = quote.package_quantity
@@ -26,7 +72,7 @@ def real_products(db, release_id, names):
         if (size != size.to_integral_value() or cents != cents.to_integral_value() or not quote.snapshot_id
                 or size > 9007199254740991 or cents > 9007199254740991):
             continue
-        products.append(dict(food_id=food_id, name=names[food_id], category='真實來源商品',
+        products.append(dict(food_id=food_id, name=names[food_id], category=ingredient_category(names[food_id]), image_url=source_image(quote),
             package_grams=int(size) if unit == 'g' else None,
             package_ml=None if unit == 'g' else int(size), price_cents=int(cents),
             quote_snapshot_id=quote.snapshot_id, source=quote.source, source_url=quote.source_url,

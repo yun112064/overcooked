@@ -1,0 +1,127 @@
+# Merge after ../compose.yaml; paths are relative to that first Compose file.
+services:
+  backend:
+    networks: [private, egress]
+    environment: &links
+      RECOGNITION_SERVICE_URL: http://yolo:8765
+      RECOGNITION_SERVICE_TOKEN: ${INFERENCE_TOKEN:?required}
+      KNOWLEDGE_PROVIDER: ollama
+      KNOWLEDGE_SERVICE_URL: http://t11:8091
+      KNOWLEDGE_SERVICE_TOKEN: ${KNOWLEDGE_SERVICE_TOKEN:?required}
+      KNOWLEDGE_TIMEOUT_SECONDS: 120
+      KNOWLEDGE_EXPLAIN_PROVIDER: openai
+      KNOWLEDGE_OLLAMA_URL: http://ollama:11434
+      KNOWLEDGE_OLLAMA_MODEL: qwen3.5:9b-q4_K_M
+      KNOWLEDGE_OLLAMA_TIMEOUT_SECONDS: 420
+      ASSISTANT_SERVICE_URL: http://assistant:8093
+      ASSISTANT_SERVICE_TOKEN: ${ASSISTANT_SERVICE_TOKEN:?required}
+      ASSISTANT_TIMEOUT_SECONDS: 600
+  worker:
+    networks: [private, egress]
+    environment: *links
+  yolo:
+    build:
+      context: ../..
+      dockerfile: deploy/1111_update_V2/services/Dockerfile.yolo
+    environment:
+      INFERENCE_TOKEN: ${INFERENCE_TOKEN:?required}
+    networks: [private]
+    restart: unless-stopped
+  t11-db:
+    image: pgvector/pgvector:0.8.6-pg17
+    environment:
+      POSTGRES_DB: meal_planner_1102_v3_1111_update_v2_knowledge
+      POSTGRES_USER: t11
+      POSTGRES_PASSWORD: ${T11_DB_PASSWORD:?required}
+    volumes: [t11-data:/var/lib/postgresql/data]
+    networks: [private]
+    healthcheck:
+      test: [CMD-SHELL, pg_isready -U t11 -d meal_planner_1102_v3_1111_update_v2_knowledge]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+    restart: unless-stopped
+  t11:
+    volumes: [t11-evidence:/data/t11_evidence]
+    build: &rag-build
+      context: ../..
+      dockerfile: deploy/1111_update_V2/services/Dockerfile
+    image: overcooked-1111_update_v2-rag:local
+    environment: &t11-env
+      KNOWLEDGE_DATABASE_URL: postgresql://t11:${T11_DB_PASSWORD:?required}@t11-db/meal_planner_1102_v3_1111_update_v2_knowledge
+      KNOWLEDGE_SERVICE_TOKEN: ${KNOWLEDGE_SERVICE_TOKEN:?required}
+      OLLAMA_URL: http://ollama:11434
+    command: [python, -m, uvicorn, knowledge_rag.server:create_app, --factory, --host, 0.0.0.0, --port, '8091', --no-access-log]
+    networks: [private]
+    depends_on:
+      t11-db: {condition: service_healthy}
+    restart: unless-stopped
+  assistant-db:
+    image: pgvector/pgvector:0.8.6-pg17
+    environment:
+      POSTGRES_DB: overcooked_assistant_1111_update_v2
+      POSTGRES_USER: assistant
+      POSTGRES_PASSWORD: ${ASSISTANT_DB_PASSWORD:?required}
+    volumes: [assistant-db-data:/var/lib/postgresql/data]
+    networks: [private]
+    healthcheck:
+      test: [CMD-SHELL, pg_isready -U assistant -d overcooked_assistant_1111_update_v2]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+    restart: unless-stopped
+  assistant:
+    build: *rag-build
+    image: overcooked-1111_update_v2-rag:local
+    environment:
+      ASSISTANT_DATABASE_URL: postgresql://assistant:${ASSISTANT_DB_PASSWORD:?required}@assistant-db/overcooked_assistant_1111_update_v2
+      ASSISTANT_DATA_DIR: /data/assistant_rag
+      ASSISTANT_SERVICE_TOKEN: ${ASSISTANT_SERVICE_TOKEN:?required}
+      INFERENCE_TOKEN: ${INFERENCE_TOKEN:?required}
+      KNOWLEDGE_SERVICE_TOKEN: ${KNOWLEDGE_SERVICE_TOKEN:?required}
+      RAG_OLLAMA_URL: http://ollama:11434
+      RAG_RERANK_URL: http://reranker:80
+      RAG_LLM_PROVIDER: ollama
+      RAG_LLM_MAX_OUTPUT_TOKENS: 512
+      RAG_LLM_TIMEOUT_SECONDS: 600
+      RAG_LLM_MODEL: qwen3.5:9b-q4_K_M
+    volumes: [assistant-corpus:/data]
+    command: [python, -m, assistant_rag.server, --host, 0.0.0.0, --port, '8093']
+    networks: [private, egress]
+    depends_on:
+      assistant-db: {condition: service_healthy}
+    restart: unless-stopped
+  ollama:
+    healthcheck:
+      test: [CMD, ollama, list]
+      interval: 3s
+      timeout: 5s
+      retries: 40
+    gpus: all
+    mem_limit: 8g
+    cpus: 4
+    image: ollama/ollama:latest
+    volumes: [ollama-models:/root/.ollama]
+    networks: [private, egress]
+    environment:
+      OLLAMA_CONTEXT_LENGTH: 4096
+      OLLAMA_MAX_LOADED_MODELS: 1
+      OLLAMA_NUM_PARALLEL: 1
+    restart: unless-stopped
+  reranker:
+    image: ghcr.io/huggingface/text-embeddings-inference:cpu-1.9.4
+    command: [--model-id, BAAI/bge-reranker-v2-m3, --port, '80', --max-batch-tokens, '512', --max-concurrent-requests, '64']
+    volumes: [reranker-models:/data]
+    networks: [private, egress]
+    restart: unless-stopped
+networks:
+  egress: {}
+volumes:
+  t11-evidence:
+    external: true
+    name: overcooked-1111_update_v2_t11-evidence
+  t11-data: {}
+  assistant-db-data: {}
+  assistant-corpus: {}
+  ollama-models: {}
+  reranker-models: {}

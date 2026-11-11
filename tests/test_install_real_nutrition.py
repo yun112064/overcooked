@@ -54,6 +54,46 @@ def test_database_identifier_rejected(name):
         installer.database_name(name)
 
 
+def test_service_role_names_are_distinct_and_bounded():
+    roles = [installer.service_role_name('a'*63, suffix)
+             for suffix in ('app', 'crawler', 'management_worker')]
+    assert len(set(roles)) == 3
+    assert all(len(role) <= 63 for role in roles)
+
+
+def test_every_service_role_is_checked_before_database_creation():
+    class Connection:
+        values = iter([False, False, True])
+        def scalar(self, statement, values):
+            return next(self.values)
+        def exec_driver_sql(self, sql):
+            pytest.fail('Existing crawler role must prevent database creation')
+    with pytest.raises(installer.InstallError, match='already exists'):
+        installer.create_new_database(Connection(), 'fresh', 'app', ('crawler', 'validator'))
+
+
+def test_privileges_separate_crawler_validator_and_source_evidence():
+    class Connection:
+        def __init__(self): self.sql = []
+        def exec_driver_sql(self, sql): self.sql.append(sql)
+    app, crawler, worker = Connection(), Connection(), Connection()
+    installer.grant_application_access(app, 'app', 'fresh')
+    installer.grant_service_access(crawler, 'crawler', 'fresh', kind='crawler')
+    installer.grant_service_access(worker, 'validator', 'fresh', kind='management_worker')
+    app_writes = [s for s in app.sql if s.startswith('GRANT') and 'SELECT' not in s]
+    assert 'GRANT INSERT ON t04_cooking_receipts TO "app"' in app_writes
+    assert not any('price_quote_snapshots' in s for s in app_writes)
+    assert not any('t04_cooking_receipts' in s and ('UPDATE' in s or 'DELETE' in s) for s in app_writes)
+    assert any('INSERT, UPDATE ON price_collection_runs,retailer_product_mappings' in s for s in crawler.sql)
+    assert not any('users' in s or 'DELETE' in s for s in crawler.sql)
+    worker_writes = [s for s in worker.sql if s.startswith('GRANT') and 'SELECT' not in s]
+    assert any('INSERT ON management_validation_runs,management_task_attempts,management_audit_events' in s for s in worker_writes)
+    assert not any('management_review_decisions' in s or 'management_role_grants' in s
+                   or 'management_publications' in s for s in worker_writes)
+    for statements in (crawler.sql, worker.sql):
+        assert not any('GRANT ALL' in s or 'BYPASSRLS' in s for s in statements)
+
+
 def test_bundle_hash_and_forbidden_table_fail_before_database(tmp_path):
     counts = {name: 0 for name in installer.CORE_TABLES}
     payload = {'tables': {name: [] for name in counts}}

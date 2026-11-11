@@ -11,7 +11,7 @@
     "dev:demo": "vite --mode demo --host localhost --port 5175 --strictPort",
     "build:demo": "tsc -b && vite build --mode demo --outDir dist-demo",
     "test:demo": "node --experimental-strip-types --test src/domain/rules.test.ts src/domain/knowledge.test.ts src/services/storage.test.ts",
-    "test": "npm run test:demo && node --test tests/live-contracts.test.mjs"
+    "test": "npm run test:demo && node --test tests/live-contracts.test.mjs tests/cooking-quantity.test.mjs"
   },
   "dependencies": {
     "@emotion/react": "^11.14.0",

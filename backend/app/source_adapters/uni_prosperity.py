@@ -1,7 +1,7 @@
 """萬家福線上購物（原家樂福線上購物）公開搜尋頁的保守查價 Adapter（決策 #25）。
 
 只在全聯查無／不可用時使用。沿用 T02 的商品比對、包裝換算、可用性判斷與快照格式，
-只保留事實資料（商品名稱、售價、包裝規格、網址、查詢時間、來源），不存圖片與描述。
+只保留事實資料（商品名稱、售價、包裝規格、網址、查詢時間、來源與來源圖片網址），不下載圖片或描述。
 遵守 robots.txt：每個請求送出前檢查網址；請求間隔至少 2 秒；可識別的 User-Agent。
 """
 
@@ -59,11 +59,21 @@ class _TileParser(HTMLParser):
     def __init__(self) -> None:
         super().__init__(convert_charrefs=True)
         self.tiles: list[dict[str, str]] = []
+        self.current_tile: dict[str, str] | None = None
 
     def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
         values = {key: value or "" for key, value in attrs}
         if tag == "a" and "gtm-product-alink" in values.get("class", "").split():
             self.tiles.append(values)
+            self.current_tile = values
+        elif tag == 'img' and self.current_tile is not None:
+            image = values.get('data-src') or values.get('src')
+            if image:
+                self.current_tile['source-image'] = urljoin(BASE_URL, image)
+
+    def handle_endtag(self, tag: str) -> None:
+        if tag == 'a':
+            self.current_tile = None
 
 
 _WEIGHT = re.compile(r"(\d+(?:\.\d+)?)\s*(kg|g|ml|l)(?![a-z])", re.IGNORECASE)
@@ -94,6 +104,7 @@ def parse_tiles(html_text: str) -> list[dict[str, object]]:
             "productID": pid,
             "name": name,
             "url": url,
+            **({"image": tile["source-image"]} if tile.get("source-image", "").startswith("https://") else {}),
             **({"brand": brand} if brand else {}),
             "offers": {
                 "price": tile.get("data-price") or None,

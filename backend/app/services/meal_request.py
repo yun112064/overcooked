@@ -199,7 +199,8 @@ def staple_options() -> dict:
     none_values = list(config.get("none_values") or [])
     return {
         "options": [{"label": label, "aliases": list(o.get("aliases") or [])}
-                    for label, o in config["options"].items() if o.get("tfda_name")],
+                    for label, o in config["options"].items() if o.get("tfda_name")]
+                   + ([{"label": staples.AUTO_VALUE, "aliases": []}] if any(o.get('tfda_name') for o in config['options'].values()) else []),
         "none_value": none_values[0] if none_values else "不需要主食",
         "none_values": none_values,
         "config_version": config.get("version"),
@@ -211,6 +212,8 @@ def staple_issue(text: str | None) -> dict | None:
     from app.services import staples
 
     if text is None:
+        return None
+    if staples.is_auto_value(text) and staples.automatic_options():
         return None
     if not getattr(household_service.settings, 'generation_recipe_release_id', None):
         # Standalone main preview accepts its reviewed rice choices; V3 uses its own pending contract.

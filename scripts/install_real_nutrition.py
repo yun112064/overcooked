@@ -159,22 +159,29 @@ def canonical_rows_digest(table, rows):
 
 
 def application_role_name(database, configured=None):
+    return service_role_name(database, 'app', configured)
+
+
+def service_role_name(database, suffix, configured=None):
     if configured:
         return database_name(configured)
-    candidate = database + '_app'
+    candidate = database + '_' + suffix
     if len(candidate) > 63:
-        candidate = database[:50] + '_app_' + hashlib.sha256(database.encode()).hexdigest()[:8]
+        candidate = database[:53-len(suffix)] + '_' + suffix + '_' + hashlib.sha256(database.encode()).hexdigest()[:8]
     return database_name(candidate)
 
 
-def create_new_database(connection, name, app_role):
+def create_new_database(connection, name, app_role, additional_roles=()):
     from sqlalchemy import text
     database_name(name)
-    database_name(app_role)
+    roles = [database_name(role) for role in (app_role, *additional_roles)]
+    if len(set(roles)) != len(roles):
+        raise InstallError('Application, crawler and management worker roles must be distinct.')
     if connection.scalar(text('SELECT 1 FROM pg_database WHERE datname=:name'), {'name': name}):
         raise InstallError('Database already exists; no existing database can be initialized by this command.')
-    if connection.scalar(text('SELECT 1 FROM pg_roles WHERE rolname=:name'), {'name': app_role}):
-        raise InstallError('Application role already exists; choose a new --app-role.')
+    for role in roles:
+        if connection.scalar(text('SELECT 1 FROM pg_roles WHERE rolname=:name'), {'name': role}):
+            raise InstallError('Service role already exists; choose a new role name.')
     connection.exec_driver_sql('CREATE DATABASE "' + name + '"')
 
 
@@ -191,6 +198,9 @@ def grant_application_access(connection, role, database):
                'recognitions,meal_result_decisions,knowledge_crawl_requests,meal_menu_rejections')
     connection.exec_driver_sql('GRANT INSERT, UPDATE, DELETE ON ' + mutable + ' TO ' + quoted)
     connection.exec_driver_sql('GRANT INSERT ON adopted_meal_plans,generation_results,meal_confirmation_events,sim_market_orders TO ' + quoted)
+    # New receipts are evidence. Existing imported receipts remain immutable to
+    # the application: neither UPDATE nor DELETE is granted.
+    connection.exec_driver_sql('GRANT INSERT ON t04_cooking_receipts TO ' + quoted)
     connection.exec_driver_sql('GRANT UPDATE (meal_request_id,generation_result_id,result_version,request_version,'
         'idempotency_key,request_hash,adopted_by,price_exception_accepted,snapshot) ON adopted_meal_plans TO ' + quoted)
     connection.exec_driver_sql('GRANT INSERT ON management_role_grants,management_artifacts,management_proposals,'
@@ -199,6 +209,35 @@ def grant_application_access(connection, role, database):
         'management_commands,management_tasks,management_task_attempts,management_audit_events TO ' + quoted)
     connection.exec_driver_sql('GRANT UPDATE ON management_access_state,management_role_grants,management_proposals,'
         'management_commands,management_tasks,management_active_bindings TO ' + quoted)
+
+
+def grant_service_access(connection, role, database, *, kind):
+    quoted = '"' + database_name(role) + '"'
+    connection.exec_driver_sql('GRANT CONNECT ON DATABASE "' + database_name(database) + '" TO ' + quoted)
+    connection.exec_driver_sql('GRANT USAGE ON SCHEMA public TO ' + quoted)
+    if kind == 'crawler':
+        readable = ('alembic_version,recipe_data_releases,recipes,recipe_ingredients,ingredient_aliases,'
+            'price_collection_runs,retailer_product_mappings,price_quote_snapshots,price_snapshot_foods,'
+            'price_data_releases,price_package_mass_evidence,'
+            'management_active_bindings,management_publications,management_publication_members,management_entity_versions')
+        connection.exec_driver_sql('GRANT SELECT ON ' + readable + ' TO ' + quoted)
+        connection.exec_driver_sql('GRANT INSERT, UPDATE ON price_collection_runs,retailer_product_mappings TO ' + quoted)
+        connection.exec_driver_sql('GRANT INSERT ON price_quote_snapshots,price_snapshot_foods TO ' + quoted)
+        connection.exec_driver_sql('GRANT USAGE, SELECT ON SEQUENCE price_quote_snapshots_id_seq,retailer_product_mappings_id_seq TO ' + quoted)
+    elif kind == 'management_worker':
+        from app.management.models import tables
+        readable = ','.join(sorted(ALLOWED_TABLES | {table.name for table in tables.values()} |
+            {'alembic_version', 'price_collection_runs', 'price_quote_snapshots', 'price_snapshot_foods',
+             'price_data_releases', 'price_package_mass_evidence'}))
+        connection.exec_driver_sql('GRANT SELECT ON ' + readable + ' TO ' + quoted)
+        connection.exec_driver_sql('GRANT INSERT ON management_validation_runs,management_task_attempts,management_audit_events TO ' + quoted)
+        connection.exec_driver_sql('GRANT UPDATE ON management_tasks TO ' + quoted)
+        # PostgreSQL row locks require UPDATE on at least one column. The
+        # executor only locks these rows; it cannot grant roles or publish.
+        connection.exec_driver_sql('GRANT UPDATE (revision) ON management_access_state TO ' + quoted)
+        connection.exec_driver_sql('GRANT UPDATE (id) ON management_proposals TO ' + quoted)
+    else:
+        raise InstallError('Unknown service role kind.')
 
 
 def validate_schema(actual, expected, dialect):
@@ -255,6 +294,8 @@ def install(args):
 
     name = database_name(args.database)
     app_role = application_role_name(name, args.app_role)
+    crawler_role = service_role_name(name, 'crawler', getattr(args, 'crawler_role', None))
+    management_role = service_role_name(name, 'management_worker', getattr(args, 'management_worker_role', None))
     output = check_output(args.output_env)
     folder = args.bundle.resolve()
     manifest, tables, policy = load_bundle(folder)
@@ -291,7 +332,7 @@ def install(args):
     created = False
     try:
         with admin.connect() as connection:
-            create_new_database(connection, name, app_role)
+            create_new_database(connection, name, app_role, (crawler_role, management_role))
             created = True
         command.upgrade(config, SCHEMA_HEAD)
         target = create_engine(target_url, hide_parameters=True)
@@ -331,13 +372,16 @@ def install(args):
                 reconciled_policy.validate_database(session, policy)
             # A new role is created only after source validation succeeds. The
             # generated password is hex and never printed or sent as a CLI arg.
-            app_password = secrets.token_hex(32)
+            role_passwords = {role: secrets.token_hex(32) for role in (app_role, crawler_role, management_role)}
             with admin.connect() as connection:
-                connection.exec_driver_sql('CREATE ROLE "' + app_role + '" LOGIN NOSUPERUSER NOCREATEDB '
-                    "NOCREATEROLE NOREPLICATION NOBYPASSRLS PASSWORD '" + app_password + "'")
+                for role, password in role_passwords.items():
+                    connection.exec_driver_sql('CREATE ROLE "' + role + '" LOGIN NOSUPERUSER NOCREATEDB '
+                        "NOCREATEROLE NOREPLICATION NOBYPASSRLS PASSWORD '" + password + "'")
             with target.begin() as connection:
                 grant_application_access(connection, app_role, name)
-            application_url = target_url.set(username=app_role, password=app_password)
+                grant_service_access(connection, crawler_role, name, kind='crawler')
+                grant_service_access(connection, management_role, name, kind='management_worker')
+            application_url = target_url.set(username=app_role, password=role_passwords[app_role])
             application = create_engine(application_url, hide_parameters=True)
             try:
                 with Session(application) as session:
@@ -347,12 +391,17 @@ def install(args):
                     if elevated:
                         raise InstallError('Application role unexpectedly has administrative privileges.')
                     for table_name in tables:
-                        if session.scalar(text("SELECT has_table_privilege(current_user,:table,'INSERT,UPDATE,DELETE')"),
-                                          {'table': table_name}):
+                        forbidden = 'UPDATE,DELETE' if table_name == 't04_cooking_receipts' else 'INSERT,UPDATE,DELETE'
+                        if session.scalar(text("SELECT has_table_privilege(current_user,:table,:privileges)"),
+                                          {'table': table_name, 'privileges': forbidden}):
                             raise InstallError('Application role can modify imported source data.')
             finally:
                 application.dispose()
             settings_values['DATABASE_URL'] = application_url.render_as_string(hide_password=False)
+            settings_values['CRAWLER_DATABASE_URL'] = target_url.set(username=crawler_role,
+                password=role_passwords[crawler_role]).render_as_string(hide_password=False)
+            settings_values['MANAGEMENT_WORKER_DATABASE_URL'] = target_url.set(username=management_role,
+                password=role_passwords[management_role]).render_as_string(hide_password=False)
         finally:
             target.dispose()
         output.parent.mkdir(parents=True, exist_ok=True)
@@ -381,6 +430,8 @@ def main():
     parser.add_argument('--database', required=True)
     parser.add_argument('--output-env', type=Path, required=True)
     parser.add_argument('--app-role', help='New restricted login role; defaults to the new database name plus _app.')
+    parser.add_argument('--crawler-role', help='Separate new login for T02 price collection.')
+    parser.add_argument('--management-worker-role', help='Separate new login for pure management validation.')
     args = parser.parse_args()
     try:
         install(args)

@@ -11,6 +11,7 @@
 import copy
 import functools
 import json
+import re
 import unicodedata
 from collections.abc import Callable
 from datetime import datetime, timedelta, timezone
@@ -21,6 +22,7 @@ from sqlalchemy.orm import sessionmaker
 from app.core.config import PROJECT_ROOT, settings
 from app.services import spend
 from app.services.team_link import TeamCredentials, failure_reason, settings_credentials
+from app.services.knowledge_deadline import LocalKnowledgeTimeout, bounded_local_call, local_timeout
 
 RECORD_FIELDS = ("knowledge_id", "source_version", "ingredient_id", "excerpt", "source_url", "rights", "conditions")
 # G07 出處欄位（外部來源必帶；合成資料為 None）。顯示時一律保留，不可移除（健康醫療網使用條款第 7 條）
@@ -93,15 +95,23 @@ class KnowledgeUnavailable(Exception):
 class HttpKnowledgeClient:
     """團隊電腦知識服務：POST {url}/v1/knowledge/search，Bearer token，經 HTTPS 或加密通道（T17）。"""
 
-    def __init__(self, url: str, credentials: TeamCredentials, timeout: float):
+    def __init__(self, url: str, credentials: TeamCredentials, timeout: float, *, provider: str = "openai"):
         self.url = url.rstrip("/")
         self.credentials = credentials
         self.timeout = timeout
+        self.provider = provider
 
-    def _post(self, payload: dict) -> dict:
+    def _post(self, payload: dict, *, path: str = "/v1/knowledge/search") -> dict:
         headers = self.credentials.headers()
         try:
-            res = httpx.post(f"{self.url}/v1/knowledge/search", json=payload, headers=headers, timeout=self.timeout)
+            if self.provider == 'ollama':
+                timeout = local_timeout(self.timeout)
+                res = bounded_local_call(lambda: httpx.post(
+                    f"{self.url}{path}", json=payload, headers=headers, timeout=timeout), timeout)
+            else:
+                res = httpx.post(f"{self.url}{path}", json=payload, headers=headers, timeout=self.timeout)
+        except LocalKnowledgeTimeout:
+            raise KnowledgeUnavailable("TIMEOUT") from None
         except httpx.TimeoutException:
             raise KnowledgeUnavailable("TIMEOUT") from None
         except httpx.HTTPError:
@@ -120,6 +130,23 @@ class HttpKnowledgeClient:
         body = self._post({"food_ids": list(food_ids), "query_embedding": query_embedding,
                            "embedding_model": embedding_model, "limit_per_ingredient": limit_per_ingredient})
         return _validated(body, set(food_ids), embedding_model)
+
+    def retrieve(self, food_ids: list[str], query_text: str) -> dict:
+        body = self._post({"food_ids": food_ids, "query_text": query_text}, path="/v1/retrieve")
+        if not isinstance(body, dict):
+            raise KnowledgeUnavailable("INVALID_RESPONSE")
+        model = body.get("embedding_model")
+        if (not isinstance(model, str) or not re.fullmatch(r"embeddinggemma:latest@[0-9a-f]{64}", model)
+                or body.get("embedding_dimensions") != 768
+                or body.get("template_version") != "t11-embeddinggemma-document-query-v1"):
+            raise KnowledgeUnavailable("MODEL_MISMATCH")
+        result = _validated(body, set(food_ids), model)
+        found = {r["ingredient_id"] for r in result["records"]}
+        expected = {f: "available" if f in found else "not_found" for f in food_ids}
+        if (body.get("by_ingredient") != expected
+                or body.get("status") != ("available" if found else "not_found")):
+            raise KnowledgeUnavailable("INVALID_RESPONSE")
+        return dict(result, embedding_model=model)
 
 
 def _validated(body, wanted: set[str], embedding_model: str) -> dict:
@@ -154,7 +181,7 @@ def default_knowledge_client() -> HttpKnowledgeClient | None:
     if not settings.knowledge_service_url:
         return None
     return HttpKnowledgeClient(settings.knowledge_service_url, settings_credentials(settings.knowledge_service_token),
-                               settings.knowledge_timeout_seconds)
+                               settings.knowledge_timeout_seconds, provider=settings.knowledge_provider)
 
 
 def _snapshot(food_ids: list[str], status: str, *, records=(), index_version=None, embedding_model=None,
@@ -186,6 +213,14 @@ def retrieve_knowledge(*, final_food_ids: list[str], query_text: str, client, em
         return _snapshot(food_ids, "not_found")
     if client is None:
         return _snapshot(food_ids, "unavailable", reason="NOT_CONFIGURED")
+    if getattr(client, "provider", None) == "ollama":
+        try:
+            result = client.retrieve(food_ids, query_text)
+        except KnowledgeUnavailable as exc:
+            return _snapshot(food_ids, "unavailable", reason=exc.reason)
+        records = result["records"]
+        return _snapshot(food_ids, "available" if records else "not_found", records=records,
+                         index_version=result["index_version"], embedding_model=result["embedding_model"])
     if embedder is None:
         return _snapshot(food_ids, "unavailable", reason="EMBEDDING_NOT_CONFIGURED")
 

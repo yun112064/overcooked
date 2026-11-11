@@ -233,6 +233,8 @@ def make_calculator(factory):
     records = None
     errors = {}
     line_foods = {}
+    food_records = {}
+    food_errors = {}
     policy_error = None
     pinned_release = None
 
@@ -257,6 +259,23 @@ def make_calculator(factory):
                     records.update(result.line_records)
                     line_foods.update({r['recipe_ingredient_id']: r['food_id'] for r in rows.ingredients})
                     errors.update({i.line_id: i.code for i in result.issues})
+                    # AI dishes have no immutable recipe line ID. Build a FOOD
+                    # lookup only from records that passed the exact same release,
+                    # source and overlap-review gates above. Never ask the model
+                    # for nutrient values or choose among conflicting samples.
+                    for lid, fid in line_foods.items():
+                        if lid.startswith('staple:'):
+                            continue
+                        if lid in errors:
+                            food_errors[fid] = errors[lid]
+                        candidate = records.get(lid)
+                        if candidate is None:
+                            continue
+                        existing = food_records.get(fid)
+                        if existing is not None and existing != candidate:
+                            food_errors[fid] = 'nutrition_policy_food_source_ambiguous'
+                        else:
+                            food_records[fid] = candidate
             except PolicyUnavailable as exc:
                 policy_error = str(exc)
         results = []
@@ -264,7 +283,15 @@ def make_calculator(factory):
             lid = 'staple:' + line.food_id if line.role == 'staple' else line.recipe_ingredient_id
             code = policy_error or errors.get(lid)
             record = records.get(lid)
-            if not code and (not record or line_foods.get(lid) != line.food_id or line.recipe_publication_id):
+            food_lookup = (line.role == 'dish' and line.recipe_ingredient_id is None
+                           and line.recipe_release_id is None and line.recipe_publication_id is None)
+            if food_lookup and not code:
+                record = food_records.get(line.food_id)
+                code = food_errors.get(line.food_id)
+                if not code and record and line.weight_basis != record['state']:
+                    code = 'nutrition_policy_food_state_mismatch'
+            if not code and (not record or (not food_lookup and line_foods.get(lid) != line.food_id)
+                             or line.recipe_publication_id):
                 code = 'nutrition_policy_line_not_bound'
             if not code and line.recipe_release_id not in (None, pinned_release):
                 code = 'nutrition_policy_recipe_changed'
@@ -276,7 +303,9 @@ def make_calculator(factory):
                 Fraction(record['nutrition_per_100g'][key]) * Fraction(grams) / 100) for key in ALL_NUTRIENTS}
             values = {key: None if val is None else Decimal(val.numerator) / Decimal(val.denominator)
                       for key, val in values.items()}
-            results.append(IngredientNutrition(values, {**record['source'], 'weight_basis': record['state'],
+            results.append(IngredientNutrition(values, {**record['source'],
+                **({'nutrition_policy_resolution': 'food_id_source'} if food_lookup else {}),
+                'weight_basis': record['state'],
                 'nutrition_basis': 'reconciled_factor_one', 'is_estimated': False,
                 'cooking_conversion_applied': False}, None))
         return results

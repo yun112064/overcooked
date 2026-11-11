@@ -7,6 +7,7 @@ from sqlalchemy import bindparam, text
 from sqlalchemy.orm import Session
 
 from .price_models import PriceQuote, QuoteStatus, SelectionTier, WeightReliability
+from .product_matching import identity_conflicts
 
 LIVE_QUOTE_MAX_AGE_WITHOUT_SOURCE_EXPIRY = timedelta(hours=48)
 
@@ -17,6 +18,8 @@ def quote_unusable_reason(quote: PriceQuote | None, now: datetime, *, allow_volu
         return "NO_PRICE_DATA"
     if quote.status is not QuoteStatus.SUCCESS or quote.price is None:
         return quote.missing_reason or "NO_PRICE_DATA"
+    if identity_conflicts(quote.canonical_name, quote.product_name or ''):
+        return "PRODUCT_IDENTITY_CONFLICT"
     if quote.usage_status == "historical_requires_refresh":
         return "PRICE_REVALIDATION_REQUIRED"
     units = {"g", "ml", "毫升", "l", "公升"} if allow_volume else {"g"}

@@ -1,5 +1,69 @@
 # 1102_V3 驗證紀錄
 
+## 2026-11-12 T02 新舊報價唯讀追查
+
+- 使用者要求找出所有報價。搜尋專案／工作樹的價格檔案及本機 Downloads、Documents 名稱候選，並讀取運行中的 V2 與舊 1111_update 隔離庫價格表；未啟動或讀寫正式庫、未批量重新爬價、未更動原查詢時間或核准狀態。
+- V2：9 批、457 筆查詢快照，其中 206 筆有成功價格，700 個候選出現次數；歷史價格 release 表為空。
+- 舊 1111_update：19 批、3,406 筆查詢快照，其中 1,497 筆有成功價格，5,675 個候選出現次數；存在 2 個 historical_requires_refresh 價格版本。原查詢時間範圍 2026-10-20 至 2026-11-11 UTC。兩庫快照合計 3,863，並非 3,863 個獨立可購買商品。
+- 找回歷史 release `price-history-3ccfb9bad043de58917f`（manifest 指向 2,279 快照／8 批）與 `price-history-90d83aeff7d7aea57089`（450 快照／2 批）。原壓縮包檔案本輪未找到，但價格紀錄、來源 manifest、雜湊與 Food ID 綁定仍存在於舊隔離庫，已唯讀匯出保留。
+- 舊 restore_02c1ec65 的 3,406 筆價格整體摘要與舊主隔離庫相同；restore_6c954c70 的 3,402 筆與 portable_nutrition_source_20261111 的 3,399 筆經逐筆 ID／row MD5 比對均是其子集，未發現額外紀錄。未啟動其他停機容器，故不宣稱已檢查所有停機庫。
+- 現有 432 食材中，233 缺可用報價；其中 231 有舊查詢、83 有舊成功報價，另外 148 僅有舊失敗／審查資料。沒有舊查詢的 2 項為水與滾水，不宜當作缺少超市商品。83 項只是後續複核候選，包含大蒜→蒜苗誤配，不能直接核准。
+- 舊庫另有兩筆 manufacturer package mass evidence：芝麻油 543 mL／500 g、鮮奶油商品的原廠 200 g；V2 evidence 表為空。本輪只找回，未自動發布／匯入。
+- 本機忽略目錄 `.test-runtime/1111_update_V2/` 保存 `all-price-tables-readonly.json`、`old-all-price-tables-readonly.json`、`price-inventory-20261112.html`／`.txt`／`.json` 與 SHA256 manifest。報告按 432 個 Food ID 列出新舊查詢及候選；原始匯出保存全部價格表（不含使用者／訂單）。已驗證數量及 JSON 可讀。這些資料未上傳 GitHub。
+
+## 2026-11-12 GitHub 上傳檢查
+
+- 使用者要求保存目前成果至 GitHub，目標為 `1111_update_V2`，不合併 main。只選程式、測試、部署範本與文件；`.test-runtime`、金鑰、帳密、資料庫內容／驗收訂單、原文快取、依賴及建置產物不提交。飲食小幫手兩份程式及兩份測試的先前修改留在本機，本次不提交。
+- 前端 `npm test` 30 passed。後端／安裝／T11／Sim／身份／排程選集 122 passed（SQLite／mock，TEST_DATABASE_URL 未設定）。第一次缺 DATABASE_URL 而 collection 失敗；補 SQLite 後預設暫存目錄權限造成 25 setup errors，指定工作區內全新 basetemp 後同一選集全部通過。沒有執行資料庫遷移、匯入或正式庫操作。
+- 新增／修改檔案掃描沒有發現實際 API token 或私鑰；命中的資料庫 URL 為環境變數範本、測試假值或既有不可連線範例。
+- 更正先前 R0036「分類問題」的說法：使用者確認記得曾將蒜頭雞改成主食，目前庫確實保留這個分類，不能據此斷定來源錯誤。待釐清的是指定主食菜與額外主食的搭配規則，不擅自改分類。
+- 此次為可追溯的工作成果快照，非全部功能驗收通過；價格／圖片缺口及鴻喜菇長小數解析問題仍保留在缺項清單。
+
+## 2026-11-12 超市缺項複查與移除候選營養入口
+
+- 使用者要求移除確認頁「檢查候選菜單的營養資料」：移除 GenerationPanel 的 T04DataPanel 掛載及 import，保留正式生成營養驗證。TypeScript/Vite build 通過，僅部署 V2 frontend；HTTP 實際取得的新 bundle 與本機 build 完全相同且不含該按鈕文字。本次未另做瀏覽器點擊驗收。
+- V2 唯讀目錄複查仍為 432 食材、199 可購買、150 真實圖、233 缺可採用報價；49 個可購買品項缺圖。逐項名稱、Food ID 與原因見 `docs/1111_update_V2/SIM-MISSING-20261112.txt`。
+- 截圖的薑為商品匹配失敗；大蒜為 PRODUCT_IDENTITY_CONFLICT（蒜苗不可當蒜頭）；鴻喜菇 FOOD001523 有 100g／2700 cents 商品及圖片，問題是 Sim exactQuantity 僅接受 16 位小數，拒絕長尾零的 25.000… 字串。這是解析缺陷，不是缺少商品；本次只診斷尚未修正。
+- 沒有改資料庫、原始食譜或飲食小幫手，沒有推送。前端 image config digest `053acdd61a7b3bdf77ad4f9f875828d50ad0f95145416a236468165df7f01ac2`。
+
+## 2026-11-12 V2 使用者問題 1–9：本輪修正與實測結果
+
+範圍為巢狀工作樹 `1111_update_V2`、Compose `overcooked-1111_update_v2`、業務庫 `meal_planner_1102_v3_1111_update_v2`（schema `m1111simorder1`）。沒有操作正式庫或外層 main，沒有推送。本輪不修改飲食小幫手；工作樹原先已有的 assistant 修改保留，不能視為本輪成果。
+
+| 組別／原問題 | 實際結果 | 限制 |
+|---|---|---|
+| 1／4、5、6 | 問卷移除平行可採用的預覽結果，正式生成只有一份版本化結果；營養與底部採用按鈕屬於同一結果。草稿儲存／無變更回饋已驗；第五步不再顯示混淆的儲存草稿。瀏覽器已驗生成、重新生成、採用。 | 不代表每組問卷都一定有可行菜單。 |
+| 2／8、9 | 真實報價採集與完整 Sim 食材目錄接通；432 個食材 ID 中 199 個可購買、150 個具有真實商品圖。確認訂單後重開仍保留全目錄及凍結訂單。 | 233 個缺可採用報價，另 49 個可購買項目尚缺圖片；不能宣稱全覆蓋。 |
+| 3／7 | 瀏覽器從未採用結果點採用，成功後採購頁籤自動選取並捲動至採購表；重開已採用結果預設採購。 | 舊訂單與營養快照不回寫。 |
+| 4／1 | 移除主食下拉重複標頭；新增不指定，沿用已核准白飯／糙米飯候選，過敏、忌口、營養限制仍適用。真實生成選出白飯；同時排除兩項回傳 STAPLE_NO_ALLOWED_OPTION。 | 未新增未審核主食；另發現既有 R0036 分類問題，見下。 |
+| 5／3 | 使用者核准少量顯示方式：食鹽顯示「少於 1小匙」，點開為「0.25 小匙；本餐計算量：1.00000 g」。舊數字型別與文字約 0.01 L 皆相容，後者顯示約 10 mL。瀏覽器實測通過。 | 僅改顯示，保留精確計算量；無可靠密度時不自行換算克數。 |
+| 6／2 | T11 說明改 OpenAI、仍使用原本本機索引及 T10 控管。核准的大蒜、水蓮在預覽與正式說明兩條服務路徑各回傳 2 項、0 dropped、有引用；約 3.67 秒與 3.39 秒。 | 未核准／無證據項目仍不產生說明；非所有食材都有知識。 |
+
+### 真實流程證據
+
+- API 流程：request `18101db7-3c47-491d-818e-a9df3287edfb`，job `bc3f30e9-f227-4a73-8f64-43e0a13a3f45` 第一次成功；真實雙菜、自動白飯，1484.797 kcal／54.2143 g。plan `feaad5b2-8e26-49de-8722-d007bbf41f30`。
+- Sim 訂單 `34bce458-078e-4339-9197-34813732f4d9`：5 個有真實報價的商品、整包合計 267 元；重送取得同一訂單。這是缺海帶芽／高湯的部分可購買籃，不能當成所有食材已買齊。
+- Admin 同一 trace 觀察到 confirmed、snapshot_saved、history_saved、ingredients_saved、nutrition_saved、cost_saved、sim_checkout_confirmed 共 7 事件，結帳事件僅一次。
+- 瀏覽器新問卷 `e715f066-22cd-498a-b56b-841cc4198760`：兩位既有家庭成員、糖醋豆腐與韓式海帶芽蛋花湯、不指定主食，完成生成 1677 kcal／57.5 g → 採用 → 自動採購，已知整包 267 元、比例用量成本 65 元。這筆是新建驗收紀錄，未覆寫使用者原餐單。
+- 重新載入最新前端後，確認約 10 mL 與小匙精確量展開；畫面、營養及採購均正常。
+- 私有證據保留在忽略目錄 `.test-runtime/1111_update_V2/`：`nine-flow-after.json`、`price-coverage-after.json`、`t11-openai-final.jsonl`，不打包帳密／金鑰。
+
+### 檢查、部署與資料界線
+
+- 前端 `npm test`：22 demo + 8 live/quantity，共 30 passed；TypeScript／Vite production build 成功。原前端防改測試改為只比對原 `frontend/` 並正規化文字換行；舊全庫 byte freeze 同時包含 CRLF 差異與已授權的後端／Sim／Admin 整合，不能繼續用來禁止合法整合。API 方法、URL、body 等契約檢查仍保留。
+- 價格／Sim 選集：23 passed、19 skipped、25 subtests；T11 選集 21 passed；自動主食 2 passed；Sim 前端 8 passed。略過與較早中止的廣泛測試不列為通過。
+- 單元測試使用合成資料／假 provider；runtime 驗收用真實食譜、營養、核准來源與賣場報價。API 測試的家庭設定及雙主食排除成員是測試設定，訂單為 Sim 模擬交易。
+- 發現大蒜誤配蒜苗商品，新增 `pxmart-selection-v4` 身份排除與讀取時拒絕衝突舊報價；沒有刪改原報價。真實採集有 291 個 canonical queries，主來源 147 success／8 review／136 failure，fallback 49 success／4 review／94 failure，未把 review 當核准價格。
+- Docker 曾無回應，依既有使用者授權重啟成功；沒有刪容器資料卷。前端改以主機建置後部署 Caddy，降低建置記憶體需求。
+- 最後部署 config digest：backend `d9ed8f7b2c49284eccf576da371659bfc07db5c00e93caa83be425a0f62d0ed7`；Sim `7100a143020e1b5723e2cf141ea129e2614f2ea80a28a6806c1e6cd1f7f341ca`；frontend `a72eabfc603f3759ceddc7b67e85415fd862d062e9e7355d0b387f69565972cb`。
+
+### 尚未解決，不能宣告全專案驗收通過
+
+1. 233 個食材尚無可採用報價，49 個可購買商品無真實圖片；需要繼續逐項核對來源、包裝與商品身份，不能填假價格或未核准估算。
+2. 唯讀查核確認真實庫 R0036「簡單蒜頭雞(電鍋版)」category 為「主食」，導致選主食時報 SPECIFIED_DISH_STAPLE_CONFLICT。原來源分類須追溯修正；本輪沒有擅改食譜分類。
+3. 單人、單道糖醋豆腐、自動主食的實測走 AI 後兩次未通過 PORTION_OUT_OF_RANGE，問卷保留並阻擋採用。這是待排查案例，不能以雙菜成功掩蓋。
+
+
 共用測試環境、功能分支驗收範圍與相依順序見 [驗證指南](VALIDATION-GUIDE.md)。下列各節保留原始受測版本、結果與限制；歷史紀錄不代表目前分支或最新整合版本已重新通過驗收。
 
 執行日期：2026-11-03（Asia/Taipei）。基底 `007e51dff66069195544468c0ba5f7020cafd303`，測試對象為本次 `1102_V3` 工作樹；最終整合 commit 以該分支 Git log 為準。沒有引用 V1 歷史測試數字作為本次通過證據。
@@ -61,7 +125,7 @@ T11 測試所需的 fake responder／knowledge client 與基底 fixture 已從�
 
 Python 3.12；Node 24.21.0／npm 11.19.0。專案 `.venv` 使用既有 Python 套件及額外安裝的 argon2-cffi，完整 requirements 從零重建尚未驗證。前端依 lockfile 安裝。
 
-測試使用 `DATABASE_URL=postgresql+psycopg://v3_disabled:v3_disabled@127.0.0.1:1/v3_no_database`，`TEST_DATABASE_URL`、模型 key／provider 清空，`PROJECT_DATA_ROOT` 指向 Git ignored `.test-runtime`。測試資料只放暫存檔及 SQLite 記憶體；沒有把真實來源匯入 PostgreSQL。
+測試使用 `DATABASE_URL` 指向 `127.0.0.1:1/v3_no_database`（刻意不可連線的測試位置），`TEST_DATABASE_URL`、模型 key／provider 清空，`PROJECT_DATA_ROOT` 指向 Git ignored `.test-runtime`。測試資料只放暫存檔及 SQLite 記憶體；沒有把真實來源匯入 PostgreSQL。
 
 一般 sandbox 初次執行遇到 Windows TemporaryDirectory 權限／npm DNS 限制；取得工具執行權限後重跑，上表只將成功重跑結果算入。這些環境錯誤沒有被當成程式已通過的證據。
 
@@ -351,3 +415,106 @@ Executed on the clean selected worktree: 130 passed, 3 skipped, 40 subtests pass
 ## 2026-11-11 PR #37 CI fixture correction
 
 GitHub Actions run 42977436133 failed only the 23 T11 fixed-scenario subtests: fixture history cleanup omitted sim_market_orders after the new foreign key to adopted_meal_plans. Added that table to the explicit TRUNCATE list; retained verify_disposable and production constraints. Re-ran test_t11_recipe_retrieval via unittest against a newly created, marker-verified meal_planner_1102_v3_pr37_ci_test in the isolated container: 32 tests passed, including all fixed-scenario subtests. These fixtures are synthetic; no imported or production database was used. Frontend, Sim, Admin and inference jobs in the initial run had passed. Full CI will rerun on the fix commit.
+
+## 2026-11-11 V2 isolated acceptance administrator
+
+On branch 1111_update_V2, after the user's explicit confirmation for http://127.0.0.1:8242, deploy/1111_update_V2/provision_acceptance_admin.py completed against exact database meal_planner_1102_v3_1111_update_v2 and the isolated container scope label. The existing acceptance identity was preserved; login credentials were changed and previous sessions revoked. A fresh HTTP login verified all 12 management roles and 34 permissions. Temporary operator access was revoked. Existing prohibition on self-review was not modified. Evidence: ignored .test-runtime/1111_update_V2/acceptance-admin-evidence.json; credentials are excluded from Git. This verifies provisioning and capabilities, not completion of every management workflow. No production database was targeted.
+
+## 2026-11-11 V2 OpenAI configuration and runtime recovery
+
+User supplied the local secret and explicitly authorized Docker Desktop restart after the engine returned HTTP 500 and V2 HTTP was unreachable. Docker Desktop restart stalled in stopping; force-stop followed by start recovered engine 29.7.2 without removing containers or volumes. V2 start-core completed. API and worker both reported key configured; API current_database was meal_planner_1102_v3_1111_update_v2. The secret file remains Git-ignored; no key value was printed.
+
+Executed deploy/1111_update_V2/ai_acceptance.py using a synthetic acceptance household and real FOOD identifiers via the ordinary HTTP request/job route. Job f6d34718-6d02-4347-9a9e-a3d4f20c49d6 failed after two attempts. Both menu_generation reservations (1.0882 TWD each) were released with no actual usage, not settled. A non-generating provider model lookup returned HTTP 401, invalid_api_key. This is not successful AI acceptance; the user must replace the local credential. Evidence stays in ignored .test-runtime/1111_update_V2/ai-flow-20261111-162818.json.
+
+Built and deployed the bounded local-knowledge fix: per-call limit 30s, shared optional knowledge budget 45s, reserve 10s before job deadline to save results. Unit/regression run by standard_services: 57 passed, 22 database-gated skipped. Late responses are discarded; knowledge may remain unavailable and remote cancellation is not guaranteed. No paid fallback was added. Real generation/adoption recheck is separately recorded after completion.
+
+V2 real-flow recheck after the fix passed: job 197984e2-0e43-41b2-9025-2e5275da4d62 completed in approximately 42s using database_menu and real R0036 nutrition; adopted plan e443e6cb-7d01-4ff4-8757-babebbdd3a84. deploy/1111_update_V2/sim_acceptance.py passed with real quote-backed checkout (99 TWD), order 13d7043d-b507-4310-bb7c-c8e451ba6179. Repeated order submission returned the same receipt; reopening retained it; Admin had exactly one sim_checkout_confirmed event alongside confirmed/snapshot_saved/history_saved/ingredients_saved/nutrition_saved/cost_saved. Only the acceptance identity, household profile and resulting order/events are test activity; no synthetic food/nutrition/price was used. This is HTTP end-to-end evidence, not a complete browser walkthrough or T01-T16 signoff. Knowledge availability and AI-menu acceptance remain separate. Evidence: ignored real-flow.json and sim-real-flow.json; earlier failed flow retained as real-flow-before-deadline-fix.json.
+
+## 2026-11-11 V2 updated key retry
+
+Reloaded user-updated local secret into V2 API/worker with start-core; model lookup returned HTTP 200. Ran ai_acceptance.py once via ordinary HTTP and T10. Job f23a2f8e-9d39-4bb2-807d-00b594c0cb33 made the configured two attempts and failed with INGREDIENT_ID_MISMATCH (AI food identity validation), without creating a result version. Both real menu_generation calls settled: 0.1036 and 0.0976 TWD, total 0.2012 TWD at the configured T10 rate/pricing. Provider access and spend accounting passed; end-to-end AI menu acceptance did not. Validation was not relaxed and no invalid menu was adopted. Report: ignored .test-runtime/1111_update_V2/ai-flow-20261111-190825.json. No production database targeted; no secret value printed.
+
+## 2026-11-11 V2 AI identity correction
+
+User approved the identity-diagnosis/remediation plan. Implemented names-only external menu schema with backend identity resolution, explicit ambiguity refusal, version-bound per-attempt private diagnostics, and corrective retry feedback. Internal legacy name/ID mismatches remain rejected. No source mappings were merged or approved. Added matching and different-stock real scenarios to ai_acceptance.py. Details and actual pass/failure evidence are in ../1111_update_V2/AI-IDENTITY-VALIDATION.md.
+
+Executed deterministic tests for identity/diagnostics/portable AI source resolution: 25 passed before final enum refinement. Agent regression run: 38 passed, 11 database-gated skipped. An additional parent combined management test invocation stalled after 12 tests and was interrupted; it is not counted as passed (agent's management regression completed separately). Initial diagnostics collection required explicit PYTHONPATH and synthetic DATABASE_URL settings; subsequent isolated runs passed.
+
+Real v7/v3 matching scenario completed on attempt 2, identity checks passed and eligibility.adoptable=true. Different-stock scenario was blocked twice on ambiguous salt; it did not pass and was not adopted. This evidence led to enforcing legal names in the external schema rather than relying on prompt wording alone. T10 remained active throughout; raw model text and secrets were not logged.
+
+Final hardening: request-specific name enum (schema v4/prompt v8) removed identity failures but real different-stock job 782db66a-d6a9-424b-940f-982ed65969ae failed INVALID_QUANTITY after two settled calls (0.1669 + 0.1683 TWD). This is retained as a failed run. Added external numeric bounds (finite 0 < grams_per_n <= 2000), omit-unused-food instruction, and bounded numeric diagnostics, versioned as schema v5/prompt v9. Final deterministic identity/diagnostics/source-resolution suite: 41 passed. No name/ID or nutrition checks were disabled. Final v5 HTTP evidence follows separately.
+
+Final deployed prompt v9/schema v5 HTTP verification passed both real AI cases in one attempt each: different-stock job ae7015e8-266e-4a36-8d0f-9b9b623d7906 (0.1653 TWD), matching job ac1202f3-358b-487a-8ce4-8cfafccfcab9 (0.1608 TWD). Both results use breast FOOD001564, exclude leg FOOD001578, and eligibility.adoptable=true. These tests stop at eligibility, not actual adoption. Knowledge explanation remains unavailable. All final and intermediate real calls in this correction total 1.0584 TWD under T10. Final build/deployment and git diff --check passed; all historical failed reports retained. No production source or production database changed; nothing pushed. See ../1111_update_V2/AI-IDENTITY-VALIDATION.md for detailed evidence and limits.
+
+## 2026-11-11 V2 user-acceptance preparation: real photo
+
+Authenticated POST /api/recognitions with the existing real image data/recipe_pic/R0010_pic_01.jpg (SHA256 09b9e6c8b8617d56d91da680e087bec398873c28a077d78c41357283c2a41735) returned HTTP 201, status succeeded, recognition 09ba8528-162d-4c91-8c3a-3dadd2403140. Model suggested 牛番茄 with ingredient_id=null; confirmed remained empty. Visual inspection shows tomatoes beside a sandwich, but does not establish the suggested subtype. No automatic FOOD ID assignment or human-confirmation claim was made. This verifies upload→real inference→unconfirmed suggestion only, not recall/precision quality gate or completed T09 confirmation. Evidence: ignored .test-runtime/1111_update_V2/yolo-real-photo-v2.json.
+
+## 2026-11-11 T11 deferred and V2 recovery / T15-T16
+
+User explicitly requested skipping T11; it is deferred, not accepted, and no cloud explanation switch was made. Independent assistant remains in scope. Local warm Qwen short-schema probe timed out at 60.04s with no accepted output. The CPU reranker float16 experiment was stopped: ORT rejected float16, alternate backend warmup used ~4.99GiB (not a memory improvement); original service settings restored.
+
+T15/T16 HTTP evidence is now recorded in ../1111_update_V2/T15-T16-HTTP-VALIDATION.md (two dates, stale result refusal, idempotency, family isolation, immutable readback; user browser acceptance remains pending).
+
+Docker became unresponsive during overlapping model/Node work. Interrupted frontend build and assistant client, retained their failures; price update did not pass its initial database guard. Recovered Docker using existing user restart authorization, preserved all volumes, temporarily stopped V2 model services, built/deployed frontend successfully (TypeScript+Vite), restored V2 Ollama/reranker/assistant, and stopped five unused OLD 1111_update application containers (all databases preserved). Actual resource observation: host ~16GB RAM, Docker ~7.7GiB, reranker ~4.35GiB. Interrupted assistant run is not acceptance evidence.
+
+After recovery, all three V2 entries returned 200; /health/db returned ok; admin listed 2 confirmation flows. Original and current capability sets are identical: 12 roles, 34 permissions. Earlier text claiming 39 was a counting/reporting error and has been corrected; no permission was lost. Evidence: ignored entry-readiness-after-recovery.json and acceptance-admin-evidence.json.
+
+Post-adoption real price refresh succeeded via uniprosperity fallback: new snapshot 10 for FOOD000039 queried 2026-11-11T14:06:37.100776Z after both plans; prior snapshot 7 queried 07:47:23.919930Z. PXMart snapshot 9 remains unusable_package with null price. New usable quote remains 180g / 99 TWD; this is a new observation, not a changed numeric price or published policy. HTTP snapshot recheck passed for both plans, which still reference snapshot 7 with unchanged full hashes. Evidence: t16-price-refresh-readonly.json and t16-after-price-refresh.json in ignored V2 runtime. See T15-T16-HTTP-VALIDATION.md for precise scope and remaining publication/rollback tests.
+
+Independent assistant after recovery: water-snowflake query returned out_of_scope with top_score0.1938 after44.27s, but read-only SQL confirms a real water-snowflake article exists. Treat this as retrieval false-negative to investigate, not successful coverage. A short pumpkin query completed with meta/references/delta/done, citation[1], top_score0.9733, removed.dose=1, elapsed362.19s (retrieve31.378s/generate328.425s). Evidence: assistant-single-after-recovery.json and assistant-pumpkin-after-recovery.json. This proves a real sourced streaming answer, not acceptable interactive latency or full-corpus coverage.
+
+User-provided C:/Users/linzi/Desktop/overcooked/assistant_rag contains code, schema.sql and evaluation JSONL, not full articles or a DB dump. Historical full index v-762f2ad289 (1298 articles/5858 chunks) is documented; its D:/AIPE04期末專題_data/assistant_rag root and overcooked-assistant-db volume are not located here. Read-only old1111_update SQL and old1111test corpus-volume inspection found only bounded acceptance data. No original source was erased, no full-corpus absence was inferred merely from Git, and no new source approval was invented. User guide records this limitation.
+
+Runtime lifecycle hardening: repeated install now verifies existing source data without requiring empty activity tables, never reimports existing credentials' database, and preserves original new-only installer refusal when DB already exists. Start/start-core/verify now validate installed marker plus application/crawler/management URL targets BEFORE Docker operations. Mocked lifecycle scope/rerun tests: 14 passed. Actual runtime.py verify passed with schema gate m1111simorder1; a full repeated install/build was not executed during live model inference.
+
+Independent assistant retrieval bug confirmed on the same real index/source: short water query scored0.9232; adding the standalone presentation suffix scored0.1938. Implemented a narrow retrieval-only suffix separation, preserving the complete question for safety and answer prompts and retaining threshold0.5. Agent answer/safety tests:113 passed,1 deselected due unavailable host opencc; retrieval-suite collection lacked host jieba (not counted passed). RAG image built and assistant redeployed without redeploying T11. Full HTTP recheck is separately recorded after completion.
+
+## 2026-11-11 V2 assistant retrieval recheck completed
+
+The same full water-vegetable question completed after the narrow retrieval-format fix: answer with reference 1, top_score 0.9232 (threshold unchanged at provisional 0.5), retrieve 35.933s, generate 307.974s, total 343.913s. SSE reached done, dose filter removed one segment. Evidence: ignored .test-runtime/1111_update_V2/assistant-water-after-fix.json. This resolves the observed retrieval false negative only: the output did not obey the one-sentence request, and latency and claim-level answer review remain open. Do not count this as complete assistant acceptance. The user-provided outer assistant_rag path contains source code/evaluation, not the historical full corpus or database backup. Current real acceptance index remains 11 articles / 52 chunks; historical 1,298 / 5,858 corpus is not located. T11 remains deferred by user instruction.
+
+## 2026-11-11 User acceptance fixes, group 1 (issues 4/5/6)
+
+Root cause: questionnaire confirmation mounted MenuPreviewPanel (independently retrieved and adoptable preview) alongside GenerationPanel (durable generated result). These are distinct selection/adoption routes, so the user saw two menus and conflicting action groups. Removed the independent preview from questionnaire mode only; recipe-picker preview remains available. Formal recipe, nutrition, shopping and portion tabs still use one MealResult payload/result_version. Generated results now have one sticky action bar with version, energy/protein, regenerate and adoption; generation and adoption pending states prevent repeat clicks. Explicit job completion invalidates cached result lists/details. Candidate-source checks are hidden once a formal result exists. Confirmation no longer offers draft-save as a misleading completion action; earlier steps show explicit saved/no-changes feedback, cleared on edits.
+
+Browser validation in V2: existing user plan request d11232a2-4ec9-49ae-8fc2-522008fda6f4 was read only; one formal menu displayed 1677 kcal / 57.5 g protein, with per-person nutrition accessible. Created isolated acceptance questionnaire 93c69511-0a11-4313-92a7-3065848aea62 in the current acceptance household. Saved budget 1000 and observed both saved and no-unsaved-changes feedback. Entered one adult / one dish / real recipe R0036 / no additional staple; confirmation showed a single generation action, without preview adoption or draft-save. Real database-menu generation completed version 1 (660 kcal / 76.5 g protein), then clicked regenerate and observed version 2 automatically without page reload. Clicked sticky adoption for version 2 and observed confirmed/read-only state and removal of generate/adopt actions. This adds one test adopted meal to the user's V2 acceptance household; the earlier adopted meal was not changed. No synthetic source values or prices used; no production DB or independent assistant changed. T11 OpenAI switch newly authorized but not part of this group's change; current knowledge warning remains until that group is completed.
+
+Initial host npm build failed because local tsc dependencies are absent; Docker build TypeScript/Vite succeeded. The UI walkthrough used the initial deployed group-1 build; subsequent final refinements clear stale save feedback on edits and hide candidate checks on results. Final deployment and regression results are recorded below after execution. No full T01-T16 signoff implied.
+
+Group-1 final verification: Docker TypeScript/Vite build passed and frontend-only deployment completed (image manifest db6af3d3937484e39cb43b9bbb2effc43f3dc0133c0dd9f1f2745c9cb3d09d47). npm test in a network-disabled disposable container: 22 demo regressions and 5 live API/numeric/SSE contracts passed; one repository byte-baseline check failed at .coveragerc. HEAD blob matches baseline, while Windows working-copy bytes differ (CRLF); no .coveragerc edits made. This is not an all-green npm test claim. UI-changing components now retain exact API request-body/version/idempotency comparisons instead of obsolete whole-component byte equality with the old UI. The original baseline check remains intact. git diff --check passed. Current group addresses issues 4/5/6; issues 1/2/3/7/8/9 remain separate.
+# 2026-11-11 V2 user issues 1–9: follow-up work in progress
+
+Scope: nested checkout `1111_update_V2`, Docker project `overcooked-1111_update_v2`, database `meal_planner_1102_v3_1111_update_v2`. No production database migration/import or source-file replacement. Existing assistant changes predate this request; no assistant code/config change was made for this repair task.
+
+- Issues 4/5/6: the questionnaire no longer mounts a second independently adoptable preview; formal results retain nutrition and version-bound adoption. Sticky result actions and draft-save acknowledgement were tested through the browser (see detailed entries below).
+- Issues 8/9: real catalog now retains every recipe ingredient, separately lists unavailable ingredients, uses only the selected retailer product's image URL, and keeps the full catalog separate from frozen order receipts. Browser verified tofu 300 g / NT$20 with actual product picture, search, add-to-cart, and NT$119 total after adding it to an existing NT$99 cart. This cart was NOT confirmed: inspection found the existing garlic quote actually described garlic shoots.
+- Added identity exclusion for garlic shoots/green garlic versus garlic bulbs. Both fresh matching and reads of historical/current stored quotes reject known identity conflicts without overwriting the raw quote. New matching policy `pxmart-selection-v4`. Catalog tests include this regression and wrong-release/expired/unknown quotes.
+- Real collection `v2-all-used-food-prices-20261111`: 291 canonical ingredient queries, primary 147 success / 8 review / 136 failure; fallback 147 queries, 49 success / 4 review / 94 failure. Both completed with errors. These are provider observations, NOT unique purchasable ingredient coverage. No estimate/review was manually approved and no historical observation was relabelled current. Fallback collection used the pre-image-parser runtime image; those missing images still need refresh.
+- Executed Python tests: `test_sim_real_catalog.py test_t02_pricing.py test_t02_uni_prosperity.py`: **23 passed, 19 skipped, 25 subtests passed** (synthetic unit fixtures; PostgreSQL integration tests skipped). Sim frontend's 8 tests and TypeScript/Vite builds passed before the later changes. A broad `test_sim_market` attempt was interrupted after failures and is not counted as passing.
+- Issue 7: added result-tab selection and scroll on successful adoption, plus shopping as initial tab for a confirmed result. Build passed and deployed; browser re-verification was blocked by repeated CDP timeout, so not yet recorded as UI passed.
+- Issue 1: added explicit automatic staple selection, exclusion filtering, nutrition trials across supported choices, and preview equivalent selection. Removed duplicate nonselectable dropdown header. `test_automatic_staples.py`: **2 passed** using synthetic fixtures. Real workflow verification still pending at this checkpoint.
+- Issue 3: user chose small-quantity summary plus expandable exact detail. New shared presentation uses `少於 1小匙`, integer spoon amounts, ranges for fractional larger spoons, mL instead of tiny liters, and preserves raw calculation values in details. No numerical source/recipe/nutrition alteration. Host Node tests: **2 passed**. Latest TS/build and browser checks pending.
+- T11: user explicitly requested OpenAI explanation, retaining local reviewed retrieval and independent assistant. V2 API/worker environment was switched to `KNOWLEDGE_EXPLAIN_PROVIDER=openai`. Official model page checked 2026-11-11: https://developers.openai.com/api/docs/models/gpt-5.4-mini ; existing snapshot `gpt-5.4-mini-2026-03-17`, Responses/structured outputs, input USD 0.75/output USD 4.50 per million agree with current T10 table; price values not changed.
+- Real T11 calls under T10: preview available in 17.85 s, formal completed by 23.23 s total, same index `1111-update-v2-reviewed-garlic-water-evidence-v1`. Garlic returned citations; water was rejected (`PORTION_ACCOUNTING` / `NOT_GROUNDED_IN_NUTRITION_FACT`). Preview exposed broader legacy facts, so this is diagnostic evidence, NOT final acceptance. Follow-up now restricts preview to the same `nutrition_fact` + `evidence_quote` as formal generation and adds shared grounding validation; formal prompt v4 removes examples that suggested unsupported fiber effects. **21 tests passed** across local explanation/formal retrieval/nutrition source boundaries with fake providers. Latest real retest pending.
+- Infrastructure: later Docker build stalled, read-only Docker request returned HTTP 500, `docker info` timed out after 15 s, and IAB operations timed out on both existing and fresh tabs. Cancelled the stuck build. Windows reported ~1.3 GiB free physical RAM. Initiated `docker desktop restart --timeout 180` under the user's previous explicit restart authorization; no volume/container deletion. Recovery status and subsequent validation must be recorded separately below.
+
+## 2026-11-12 — V2 recovery of the frozen 83 quote gaps
+
+- Scope verified: nested `1111_update_V2`, Docker project `overcooked-1111_update_v2`, business DB `meal_planner_1102_v3_1111_update_v2`, release `recipe-1103-v3-dd4f75c13772`. Crawler and application connection targets guarded before writes. Production DB and original recipe/nutrition files untouched. No push performed for this recovery work.
+- Final current catalog verification: **72/83 restored, 11 unresolved**; full catalog **199 -> 271** products. The 72 contain **56 gram packages and 16 milliliter packages**; this is available-price coverage, not proof that every gram-based recipe can purchase every liquid. Unknown conversions remain blocked. Full source-linked list and unresolved reasons: [PRICE-RECOVERY-83](../1111_update_V2/PRICE-RECOVERY-83.md).
+- Catalog-only collection now explicitly includes seasoning IDs. Normal meal seasoning exemptions remain unchanged. Historical timestamps were preserved, expired sources freshly queried via robots-aware single-connection clients with >=2-second request spacing. Direct former SKU URLs recovered real tilapia, cabbage and raw rice. Sesame-oil mass evidence restored only for the exact existing 543mL/500g SKU with original evidence timestamp; no invented density.
+- Deployed matching policy `pxmart-selection-v10`: protects existing observations as well as new candidates from known non-food/wrong-food identities; preserves review gates for flour type, cinnamon form, etc. Garlic uses real whole garlic, not sprouts. Final refinements recovered real blueberries, plain mustard and plain fermented black beans. Mirin now accepts its actual liquid package without gram conversion.
+- Sim decimal parser accepts up to 128 fractional digits using exact BigInt arithmetic. Existing 25.00000000000000000000000000 g mushroom need now becomes 1 x 100g pack. Regression verifies a need just above 100g requires 2 packs and oversized inputs remain rejected. Sim tests: **9 passed**; TypeScript/Vite build succeeded and Sim-only deployment completed.
+- Browser executed against user's existing adopted lunch: one-click handoff reached Sim checkout with **鴻喜菇 25g -> 100g x 1, NT$27**, and **大蒜 12g -> 600g x 1, NT$149**. Only ginger remained in that cart's unavailable list (outside the frozen 83). No order confirmation submitted. Preserved adopted snapshot prices; latest Sim prices do not rewrite historical costs.
+- Final Python suite: `test_t02_pricing.py test_t02_uni_prosperity.py test_volume_price_policy.py test_garlic_price_identity.py test_sim_real_catalog.py`: **66 passed, 21 skipped, 25 subtests passed**. `TEST_DATABASE_URL` unset; disposable-PostgreSQL tests skipped. These routine tests used synthetic fixtures/fake HTTP; restored runtime quotes and browser meal used real data, no synthetic runtime price.
+- Broth evidence is NOT missing: existing `config/t02_confirmed_recheck.json` approval for exact PX Box SKU 19672 was freshly verified as in-stock 500mL / NT$48. File-level approval still needs provenance binding to the management manual-revision/review-decision contract. Attempted recovery first failed the adapter context interface, then failed strict manual-approval model validation; no successful broth quote was inserted, no provenance IDs fabricated, no guard weakened. Replaced the attempted writer with a read-only `verify_approved_broth.py`; broth remains unresolved, also without a g/mL conversion. This does not request the user to reapprove the same source.
+- Other execution failures retained honestly: initial backend crawler attempt lacked INSERT privileges; corrected to scheduler's existing crawler role, without granting privileges. Initial direct script import-path failure corrected. Intermediate 74/83 and 71/83 counts were provisional and superseded by final 72/83 after identity audits. Wrong observations remain audit records but cannot be served under current identity gates.
+- Evidence (ignored local artifacts): `recovery83-targets.json`, `recovery83-final-audit.json`, `recovery83-final-coverage.json`, `recovery83-broth-source-check.json`, collection logs under `.test-runtime/1111_update_V2/`. Existing assistant changes were not modified by this task.
+
+## 2026-11-12 — PR #38 T11 CI fixture repair
+
+- GitHub Actions run `43067548387` failed only two `test_t11_knowledge_tips.py` service tests; backend totals were 2 failed / 1253 passed / 12 skipped / 154 subtests. Frontend, Admin, Sim and inference jobs passed.
+- Reproduced both failures locally before editing. Their old fixtures had `fact_zh` only, so the newer `nutrition_fact` + `evidence_quote` gate correctly filtered them before overclaim/budget handling.
+- Updated synthetic garlic/pepper evidence fixtures to exercise the intended paths. Added two negative regressions proving either missing evidence field prevents a paid call even when legacy `fact_zh` exists. No application validation, approved content, database or assistant changes.
+- Targeted validation: `test_t11_knowledge_tips.py test_local_knowledge_explanation.py test_1111_local_generation_knowledge.py test_prepare_t11_evidence.py`: **34 passed, 3 skipped** (database-only API cases; TEST_DATABASE_URL unset). GitHub full PostgreSQL suite will verify the pushed commit.

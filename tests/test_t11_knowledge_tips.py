@@ -70,6 +70,9 @@ class KnowledgeTipsApiTests(unittest.TestCase):
 
 REC = dict(knowledge_id='K1', source_version='v', ingredient_id='FOOD000001', ingredient_name='大蒜',
            fact_zh='食用大蒜有助提振食慾；一次吃太多可能造成腹瀉。', conditions='限一般食用量。',
+           # Synthetic evidence fixture, not an approval of production source content.
+           nutrition_fact='食用大蒜有助提振食慾；一次吃太多可能造成腹瀉。',
+           evidence_quote='食用大蒜有助提振食慾；一次吃太多可能造成腹瀉。',
            evidence_type='食材直接衛教', source_url='https://example.test/a', status='approved')
 
 
@@ -93,7 +96,9 @@ def calls_through(**kw):
 def test_explain_snapshot_keeps_verified_and_drops_overclaim():
     ke = pytest.importorskip('app.services.knowledge_explanation')
     rec2 = dict(REC, knowledge_id='K2', ingredient_id='FOOD000002', ingredient_name='辣椒',
-                fact_zh='規律吃辣椒，可能減輕飯後胰島素升高。')
+                fact_zh='規律吃辣椒，可能減輕飯後胰島素升高。',
+                nutrition_fact='規律吃辣椒，可能減輕飯後胰島素升高。',
+                evidence_quote='規律吃辣椒，可能減輕飯後胰島素升高。')
     snap = dict(status='available', records=[REC, rec2],
                 by_ingredient={'FOOD000001': 'available', 'FOOD000002': 'available', 'FOOD000003': 'not_found'})
     out = ke.explain_snapshot(calls_through, FakeExplainer({'大蒜': '大蒜有助提振食慾，但吃太多可能腹瀉。',
@@ -119,6 +124,19 @@ def test_missing_key_reports_not_configured():
     ke = pytest.importorskip('app.services.knowledge_explanation')
     snap = dict(status='available', records=[REC], by_ingredient={'FOOD000001': 'available'})
     assert ke.explain_snapshot(calls_through, None, snap)['reason'] == 'EXPLANATION_NOT_CONFIGURED'
+
+
+@pytest.mark.parametrize('missing_field', ['nutrition_fact', 'evidence_quote'])
+def test_missing_evidence_never_calls_paid_explainer(missing_field):
+    from app.services import knowledge_explanation as ke
+    record = {k: v for k, v in REC.items() if k != missing_field}
+
+    def forbidden(**kwargs):
+        pytest.fail('A legacy fact_zh alone must not reach a paid model call')
+
+    snap = dict(status='available', records=[record], by_ingredient={'FOOD000001': 'available'})
+    out = ke.explain_snapshot(forbidden, FakeExplainer({}), snap)
+    assert out == {'status': 'not_found', 'items': [], 'dropped': [], 'not_found': ['FOOD000001']}
 
 
 def test_request_paid_call_uses_unique_keys(monkeypatch):
