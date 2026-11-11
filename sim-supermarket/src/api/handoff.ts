@@ -1,6 +1,6 @@
-import type { MarketCatalog, MarketPlan } from './simMarket'
+import type { MarketCatalog, MarketPlan, MarketProduct } from './simMarket'
 
-type Checkout = { handoff_id: string; expires_at: number; catalog: MarketCatalog; plan: MarketPlan; order?: { order_id: string; lines: { food_id: string; quantity: number }[] } | null }
+type Checkout = { handoff_id: string; expires_at: number; catalog: MarketCatalog; plan: MarketPlan; order?: { order_id: string; lines: (MarketProduct & { quantity: number })[] } | null }
 let token: string | null | undefined
 
 export async function submitOrder(quantities: Record<string, number>, quote_ids: Record<string, number>) {

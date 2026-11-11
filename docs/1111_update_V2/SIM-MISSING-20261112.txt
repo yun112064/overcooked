@@ -1,0 +1,292 @@
+V2 超市缺資料清單（2026-11-12 唯讀查詢）
+食材 432；可購買 199；真實圖片 150；缺可採用價格 233
+
+一、缺可採用報價（逐項原因）
+001. 七味粉 [FOOD000002] — NO_PRICE_DATA
+002. 乾燥海帶芽 [FOOD000881] — products were returned but none passed ingredient/state matching
+003. 乾燥迷迭香 [FOOD000882] — NO_PRICE_DATA
+004. 乾辣椒 [FOOD000880] — NO_PRICE_DATA
+005. 五印醋 [FOOD000079] — NO_PRICE_DATA
+006. 五味粉 [FOOD000080] — NO_PRICE_DATA
+007. 五香粉 [FOOD000086] — NO_PRICE_DATA
+008. 低脂牛奶 [FOOD000375] — products were returned but none passed ingredient/state matching
+009. 傳統豆干 [FOOD001115] — products were returned but none passed ingredient/state matching
+010. 全蛋 [FOOD000315] — products were returned but none passed ingredient/state matching
+011. 全麥麵包 [FOOD000316] — products were returned but none passed ingredient/state matching
+012. 八角 [FOOD000007] — NO_PRICE_DATA
+013. 冰糖 [FOOD000320] — NO_PRICE_DATA
+014. 凱撒沙拉醬 [FOOD000982] — NO_PRICE_DATA
+015. 即溶酵母 [FOOD000383] — products were returned but none passed ingredient/state matching
+016. 可樂 [FOOD000232] — products were returned but none passed ingredient/state matching
+017. 台式醬油 [FOOD000233] — NO_PRICE_DATA
+018. 吉利丁片 [FOOD000322] — products were returned but none passed ingredient/state matching
+019. 吳郭魚 [FOOD000384] — products were returned but none passed ingredient/state matching
+020. 味噌 [FOOD000444] — NO_PRICE_DATA
+021. 味醂 [FOOD000445] — NO_PRICE_DATA
+022. 咖喱塊 [FOOD000450] — products were returned but none passed ingredient/state matching
+023. 啤酒 [FOOD000885] — matching priced products have unparseable package quantity/unit
+024. 四季豆 [FOOD000240] — products were returned but none passed ingredient/state matching
+025. 地瓜粉 [FOOD000326] — NO_PRICE_DATA
+026. 多利魚 [FOOD000328] — products were returned but none passed ingredient/state matching
+027. 大白粉 [FOOD000025] — NO_PRICE_DATA
+028. 大白菜 [FOOD000026] — all matching candidates are out of stock or availability is unknown
+029. 大蒜 [FOOD000039] — PRODUCT_IDENTITY_CONFLICT
+030. 太白粉 [FOOD000090] — NO_PRICE_DATA
+031. 太白粉水 [FOOD000091] — NO_PRICE_DATA
+032. 寬麵條 [FOOD001273] — products were returned but none passed ingredient/state matching
+033. 小白菇 [FOOD000045] — products were returned but none passed ingredient/state matching
+034. 小茴香 [FOOD000053] — NO_PRICE_DATA
+035. 山葵胡椒粉 [FOOD000069] — NO_PRICE_DATA
+036. 巴西里 [FOOD000094] — products were returned but none passed ingredient/state matching
+037. 帶皮帶骨雞肉 [FOOD000889] — source returned no products
+038. 帶皮雞腿 [FOOD000890] — products were returned but none passed ingredient/state matching
+039. 干貝醬 [FOOD000075] — NO_PRICE_DATA
+040. 料理酒 [FOOD000718] — NO_PRICE_DATA
+041. 料酒 [FOOD000717] — NO_PRICE_DATA
+042. 新鮮檸檬 [FOOD001126] — products were returned but none passed ingredient/state matching
+043. 新鮮藍莓 [FOOD001127] — products were returned but none passed ingredient/state matching
+044. 日式炒麵醬 [FOOD000107] — NO_PRICE_DATA
+045. 普羅旺斯風味香料 [FOOD000998] — NO_PRICE_DATA
+046. 月桂葉 [FOOD000109] — NO_PRICE_DATA
+047. 有機素蠔油 [FOOD000335] — NO_PRICE_DATA
+048. 柴魚粉 [FOOD000722] — NO_PRICE_DATA
+049. 柴魚高湯 [FOOD000723] — products were returned but none passed ingredient/state matching
+050. 桂皮 [FOOD000727] — NO_PRICE_DATA
+051. 梅子粉 [FOOD000898] — products were returned but none passed ingredient/state matching
+052. 椰子油 [FOOD001129] — NO_PRICE_DATA
+053. 椰菜 [FOOD001130] — products were returned but none passed ingredient/state matching
+054. 橄欖油 [FOOD001407] — NO_PRICE_DATA
+055. 橄欖油檸檬沙拉醬 [FOOD001408] — source returned no products
+056. 檸檬 [FOOD001526] — PACKAGE_NOT_PURCHASABLE
+057. 水 [FOOD000119] — NO_PRICE_DATA
+058. 水 各 [FOOD000120] — NO_PRICE_DATA
+059. 水煮蛋 [FOOD000147] — products were returned but none passed ingredient/state matching
+060. 水煮鮪魚罐頭 [FOOD000153] — products were returned but none passed ingredient/state matching
+061. 水蓮菜 [FOOD000168] — estimated alternative only; not a verified price: candidate is usable only as an estimate because an automatic-adoption gate failed; selected score 74; policy pxmart-selection-v3
+062. 水餃皮 [FOOD000167] — products were returned but none passed ingredient/state matching
+063. 沙拉油 [FOOD000396] — NO_PRICE_DATA
+064. 沙拉醬 [FOOD000398] — NO_PRICE_DATA
+065. 沙茶 [FOOD000400] — NO_PRICE_DATA
+066. 沙茶醬 [FOOD000402] — NO_PRICE_DATA
+067. 沙茶醬的油 [FOOD000403] — NO_PRICE_DATA
+068. 油花生 [FOOD000474] — products were returned but none passed ingredient/state matching
+069. 油蒜酥 [FOOD000488] — products were returned but none passed ingredient/state matching
+070. 法式香料 [FOOD000493] — NO_PRICE_DATA
+071. 泡香菇的水 [FOOD000494] — products were returned but none passed ingredient/state matching
+072. 海苔粉 [FOOD000733] — products were returned but none passed ingredient/state matching
+073. 海鹽 [FOOD000742] — NO_PRICE_DATA
+074. 淡醬油 [FOOD000902] — NO_PRICE_DATA
+075. 清酒 [FOOD000906] — NO_PRICE_DATA
+076. 清雞高湯 [FOOD000910] — products were returned but none passed ingredient/state matching
+077. 滾水 [FOOD001208] — NO_PRICE_DATA
+078. 澄粉 [FOOD001280] — matching priced products have unparseable package quantity/unit
+079. 烏醋 [FOOD000752] — NO_PRICE_DATA
+080. 烹大師 [FOOD000911] — NO_PRICE_DATA
+081. 焗烤起司 [FOOD000912] — products were returned but none passed ingredient/state matching
+082. 無塩奶油 [FOOD001010] — products were returned but none passed ingredient/state matching
+083. 無水乳脂（本版AMF模型） [FOOD001993] — source returned no products
+084. 無糖豆漿 [FOOD001011] — products were returned but none passed ingredient/state matching
+085. 無骨雞腿肉 [FOOD001008] — products were returned but none passed ingredient/state matching
+086. 熟蛤蜊 [FOOD001288] — products were returned but none passed ingredient/state matching
+087. 牛腩 [FOOD000208] — all matching candidates are out of stock or availability is unknown
+088. 玉米澱粉 [FOOD000264] — NO_PRICE_DATA
+089. 甘草 [FOOD000267] — NO_PRICE_DATA
+090. 甜豆 [FOOD000917] — products were returned but none passed ingredient/state matching
+091. 甜麵醬 [FOOD000924] — NO_PRICE_DATA
+092. 生米 [FOOD000272] — products were returned but none passed ingredient/state matching
+093. 番茄糊 [FOOD001017] — NO_PRICE_DATA
+094. 番茄醬 [FOOD001018] — NO_PRICE_DATA
+095. 當歸 [FOOD001145] — products were returned but none passed ingredient/state matching
+096. 白米醋 [FOOD000282] — NO_PRICE_DATA
+097. 白米飯 [FOOD000281] — no current candidate passed the minimum identity/price/package gates
+098. 白胡椒粉 [FOOD000289] — NO_PRICE_DATA
+099. 白蘑菇 [FOOD000305] — products were returned but none passed ingredient/state matching
+100. 白醋 [FOOD000301] — NO_PRICE_DATA
+101. 白飯 [FOOD000296] — estimated alternative only; not a verified price: candidate is usable only as an estimate because an automatic-adoption gate failed; selected score 74; policy pxmart-selection-v3
+102. 百里香 [FOOD000338] — NO_PRICE_DATA
+103. 石頭火鍋粉 [FOOD000312] — products were returned but none passed ingredient/state matching
+104. 砂糖 [FOOD000628] — NO_PRICE_DATA
+105. 破布子 [FOOD000808] — products were returned but none passed ingredient/state matching
+106. 米 [FOOD000345] — products were returned but none passed ingredient/state matching
+107. 米油 [FOOD000347] — NO_PRICE_DATA
+108. 米粕 [FOOD000353] — products were returned but none passed ingredient/state matching
+109. 米酒 [FOOD000352] — NO_PRICE_DATA
+110. 粗黑胡椒粉 [FOOD000928] — NO_PRICE_DATA
+111. 粟米 [FOOD001027] — products were returned but none passed ingredient/state matching
+112. 糖 [FOOD001437] — NO_PRICE_DATA
+113. 糖粉 [FOOD001439] — NO_PRICE_DATA
+114. 糯米辣椒醬 [FOOD001623] — NO_PRICE_DATA
+115. 紅冰糖 [FOOD000635] — NO_PRICE_DATA
+116. 紅彩椒 [FOOD000651] — products were returned but none passed ingredient/state matching
+117. 紅標料理米酒 [FOOD000659] — NO_PRICE_DATA
+118. 紅糖 [FOOD000663] — NO_PRICE_DATA
+119. 紅茶葉 [FOOD000649] — products were returned but none passed ingredient/state matching
+120. 紅酒 [FOOD000650] — matching priced products have unparseable package quantity/unit
+121. 素蠔油 [FOOD000818] — NO_PRICE_DATA
+122. 紫薯粉 [FOOD001034] — products were returned but none passed ingredient/state matching
+123. 細糖 [FOOD000930] — NO_PRICE_DATA
+124. 紹興酒 [FOOD000931] — NO_PRICE_DATA
+125. 綜合香料 [FOOD001214] — NO_PRICE_DATA
+126. 罐頭花瓜醬汁 [FOOD001676] — products were returned but none passed ingredient/state matching
+127. 罐頭鮪魚 [FOOD001677] — products were returned but none passed ingredient/state matching
+128. 美乃滋 [FOOD000671] — NO_PRICE_DATA
+129. 美極鮮味露 [FOOD000672] — NO_PRICE_DATA
+130. 義大利麵醬 [FOOD001148] — NO_PRICE_DATA
+131. 義式香料 [FOOD001149] — NO_PRICE_DATA
+132. 義式香腸 [FOOD001150] — products were returned but none passed ingredient/state matching
+133. 老抽 [FOOD000358] — NO_PRICE_DATA
+134. 肉桂 [FOOD000360] — NO_PRICE_DATA
+135. 肉絲 [FOOD000361] — estimated alternative only; not a verified price: candidate is usable only as an estimate because an automatic-adoption gate failed; selected score 82; policy pxmart-selection-v3
+136. 胡椒 [FOOD000675] — NO_PRICE_DATA
+137. 胡椒粉 [FOOD000676] — NO_PRICE_DATA
+138. 胡椒鹽 [FOOD000677] — NO_PRICE_DATA
+139. 脆瓜罐頭 [FOOD000821] — products were returned but none passed ingredient/state matching
+140. 芋頭餡 [FOOD000415] — products were returned but none passed ingredient/state matching
+141. 芝麻油 [FOOD000512] — NO_PRICE_DATA
+142. 花椒 [FOOD000548] — NO_PRICE_DATA
+143. 花椒粉 [FOOD000549] — NO_PRICE_DATA
+144. 花椒粒 [FOOD000550] — NO_PRICE_DATA
+145. 花生醬 [FOOD000533] — NO_PRICE_DATA
+146. 草果 [FOOD000827] — NO_PRICE_DATA
+147. 荷包蛋 [FOOD000933] — matching priced products have unparseable package quantity/unit
+148. 葱花 [FOOD001162] — products were returned but none passed ingredient/state matching
+149. 葵花油 [FOOD001164] — NO_PRICE_DATA
+150. 蒜末 [FOOD001232] — products were returned but none passed ingredient/state matching
+151. 蒟蒻烏龍麵 [FOOD001238] — products were returned but none passed ingredient/state matching
+152. 蓮藕粉 [FOOD001302] — NO_PRICE_DATA
+153. 蔥花 [FOOD001307] — products were returned but none passed ingredient/state matching
+154. 蔬菜雞高湯 [FOOD001308] — products were returned but none passed ingredient/state matching
+155. 蔭油 [FOOD001309] — NO_PRICE_DATA
+156. 蕃茄膏 [FOOD001445] — NO_PRICE_DATA
+157. 薑 [FOOD001496] — products were returned but none passed ingredient/state matching
+158. 薑油 [FOOD001498] — NO_PRICE_DATA
+159. 蛋黃 [FOOD000945] — products were returned but none passed ingredient/state matching
+160. 蛤蜊汁 [FOOD001058] — products were returned but none passed ingredient/state matching
+161. 蝦 [FOOD001310] — products were returned but none passed ingredient/state matching
+162. 蟹肉棒 [FOOD001602] — products were returned but none passed ingredient/state matching
+163. 蠔油 [FOOD001636] — NO_PRICE_DATA
+164. 袖珍菇 [FOOD000952] — products were returned but none passed ingredient/state matching
+165. 豆瓣醬 [FOOD000433] — NO_PRICE_DATA
+166. 豆腐乳 [FOOD000430] — NO_PRICE_DATA
+167. 豆芽菜 [FOOD000426] — products were returned but none passed ingredient/state matching
+168. 豆豉 [FOOD000427] — NO_PRICE_DATA
+169. 豬排肉 [FOOD001381] — products were returned but none passed ingredient/state matching
+170. 豬梅花排骨 [FOOD001383] — products were returned but none passed ingredient/state matching
+171. 豬油 [FOOD001367] — NO_PRICE_DATA
+172. 豬油蔥 [FOOD001369] — products were returned but none passed ingredient/state matching
+173. 豬肩肉 [FOOD001371] — products were returned but none passed ingredient/state matching
+174. 辣椒粉 [FOOD001251] — NO_PRICE_DATA
+175. 辣椒醬 [FOOD001252] — NO_PRICE_DATA
+176. 辣豆瓣 [FOOD001248] — NO_PRICE_DATA
+177. 辣豆瓣醬 [FOOD001249] — NO_PRICE_DATA
+178. 迷迭香 [FOOD000844] — NO_PRICE_DATA
+179. 酒 [FOOD000845] — NO_PRICE_DATA
+180. 酪梨油 [FOOD001173] — NO_PRICE_DATA
+181. 酸黃瓜醬 [FOOD001254] — NO_PRICE_DATA
+182. 醃豬肉 [FOOD001395] — products were returned but none passed ingredient/state matching
+183. 醋 [FOOD001396] — NO_PRICE_DATA
+184. 醬油 [FOOD001541] — NO_PRICE_DATA
+185. 醬油膏 [FOOD001542] — NO_PRICE_DATA
+186. 金瓜 [FOOD000560] — products were returned but none passed ingredient/state matching
+187. 雞柳條 [FOOD001560] — all matching candidates are out of stock or availability is unknown
+188. 雞粉 [FOOD001562] — NO_PRICE_DATA
+189. 雞腿肉 [FOOD001578] — estimated alternative only; not a verified price: candidate is usable only as an estimate because an automatic-adoption gate failed; selected score 74; policy pxmart-selection-v3
+190. 雞腿骨 [FOOD001579] — products were returned but none passed ingredient/state matching
+191. 青蘿蔔 [FOOD000599] — products were returned but none passed ingredient/state matching
+192. 韓式烤肉醬 [FOOD001505] — NO_PRICE_DATA
+193. 韓式芝麻油 [FOOD001504] — NO_PRICE_DATA
+194. 韓式辣椒粉 [FOOD001506] — NO_PRICE_DATA
+195. 韓式辣椒醬 [FOOD001507] — NO_PRICE_DATA
+196. 韓式辣醬 [FOOD001508] — NO_PRICE_DATA
+197. 韭菜花 [FOOD000688] — products were returned but none passed ingredient/state matching
+198. 食鹽 [FOOD000691] — NO_PRICE_DATA
+199. 養樂多 [FOOD001398] — products were returned but none passed ingredient/state matching
+200. 餛飩皮 [FOOD001453] — products were returned but none passed ingredient/state matching
+201. 香油 [FOOD000693] — NO_PRICE_DATA
+202. 香菇水 [FOOD000701] — products were returned but none passed ingredient/state matching
+203. 香葉 [FOOD000707] — NO_PRICE_DATA
+204. 香蒜胡椒鹽 [FOOD000708] — NO_PRICE_DATA
+205. 高湯 [FOOD000859] — estimated alternative only; not a verified price: candidate is usable only as an estimate because an automatic-adoption gate failed; selected score 79; policy pxmart-selection-v3
+206. 高湯水 [FOOD000860] — products were returned but none passed ingredient/state matching
+207. 高粱酒 [FOOD000862] — NO_PRICE_DATA
+208. 高粱醋 [FOOD000863] — NO_PRICE_DATA
+209. 高鮮味精 [FOOD000865] — NO_PRICE_DATA
+210. 魚 [FOOD000965] — products were returned but none passed ingredient/state matching
+211. 魚露 [FOOD000975] — NO_PRICE_DATA
+212. 鮪魚罐頭 [FOOD001515] — products were returned but none passed ingredient/state matching
+213. 鮮味炒手 [FOOD001521] — NO_PRICE_DATA
+214. 鮮雞粉 [FOOD001522] — NO_PRICE_DATA
+215. 鰹魚粉 [FOOD001660] — NO_PRICE_DATA
+216. 鳳梨罐頭 [FOOD001270] — products were returned but none passed ingredient/state matching
+217. 鹹蛋黃 [FOOD001642] — all matching candidates are out of stock or availability is unknown
+218. 鹽 [FOOD001680] — NO_PRICE_DATA
+219. 鹽巴 [FOOD001681] — NO_PRICE_DATA
+220. 鹽麴 [FOOD001682] — NO_PRICE_DATA
+221. 麥芽糖 [FOOD000978] — NO_PRICE_DATA
+222. 麵包丁 [FOOD001646] — products were returned but none passed ingredient/state matching
+223. 麵粉 [FOOD001649] — NO_PRICE_DATA
+224. 麻油 [FOOD000981] — NO_PRICE_DATA
+225. 黃冰糖 [FOOD001067] — NO_PRICE_DATA
+226. 黃椒 [FOOD001082] — products were returned but none passed ingredient/state matching
+227. 黃芥末醬 [FOOD001075] — NO_PRICE_DATA
+228. 黃豆油 [FOOD001071] — NO_PRICE_DATA
+229. 黑啤酒 [FOOD001101] — products were returned but none passed ingredient/state matching
+230. 黑白芝麻 [FOOD001088] — products were returned but none passed ingredient/state matching
+231. 黑糖 [FOOD001111] — NO_PRICE_DATA
+232. 黑胡椒粉 [FOOD001099] — NO_PRICE_DATA
+233. 黑醋 [FOOD001109] — NO_PRICE_DATA
+
+二、有報價但缺商品圖片
+01. 土雞腿 [FOOD000018] — 【元榆牧場】生鮮公土雞腿全腿切塊400g
+02. 大頭菜 [FOOD000040] — UNIDESIGN傳統韓式大頭菜 600g
+03. 小卷 [FOOD000049] — 【愛上新鮮】東北角野生海捕鮮凍小卷 300g
+04. 小番茄 [FOOD000058] — 履歷小番茄300克/盒
+05. 五花肉 [FOOD000081] — 嚴選冷藏台灣豬五花肉條附皮330g-貼體※因配送關係實際到貨效期約2-3天
+06. 五花肉片 [FOOD000082] — 台灣豬五花肉片330g-貼體包裝※因配送關係實際到貨效期約2-3天
+07. 牛肉 [FOOD000183] — 雅方牛肉片180g
+08. 牛排 [FOOD000205] — 冷藏澳洲榖飼嫩肩牛排200g(貼體)※因配送關係實際到貨效期約4-6天
+09. 牛腱肉 [FOOD000210] — 【有心肉舖子】純血黃牛 牛腱肉切塊 300g
+10. 史雲生清雞湯 [FOOD000238] — 史雲生清雞湯1L
+11. 白蘿蔔 [FOOD000307] — 履歷白蘿蔔600g
+12. 皮蛋 [FOOD000309] — 浤良松花皮蛋220g
+13. 冷凍烏龍麵 [FOOD000380] — 讚岐 冷凍烏龍麵 600g
+14. 松阪豬 [FOOD000463] — 【大成食品】鹽烤松阪豬(150g/包)
+15. 花椰菜 [FOOD000551] — 【愛上新鮮】鮮凍白花椰菜米(家庭號) 1000g
+16. 秋葵 [FOOD000631] — 有機秋葵300g
+17. 紅椒 [FOOD000655] — 統一阿Q紅椒牛肉(碗)101g
+18. 茉莉香米 [FOOD000686] — 泰國茉莉香米 4Kg
+19. 韭菜 [FOOD000687] — [KAWA巧活]鮮肉韭菜盒子(300g)
+20. 柴魚片花 [FOOD000721] — 雅媽吉柴魚片(花)100g克
+21. 草莓 [FOOD000828] — [限量]盛香珍濃厚草莓法國酥168g
+22. 草蝦仁 [FOOD000836] — 草蝦仁(每包約450克)因各地區供貨商不同，實際出貨包裝以出貨店庫存為準。
+23. 起司粉 [FOOD000841] — 卡夫帕瑪森起司粉-80g
+24. 透抽 [FOOD000954] — 台灣船釣燈捕大透抽 (每盒500g/約2~3隻)
+25. 魚高湯 [FOOD000971] — 台灣好漁-黃金鱸魚高湯 300ml
+26. 菠菜 [FOOD001043] — 有機山菠菜300g/袋
+27. 蛤蜊 [FOOD001057] — 汪喵星球-無膠點心罐80g-鰹魚蛤蜊小雙拼
+28. 蛤蠣 [FOOD001059] — 汪喵星球-無膠點心罐80g-鰹魚蛤蜊小雙拼
+29. 腰內肉 [FOOD001151] — 【一起買】無刺虱目魚柳(腰內肉) / 300g
+30. 蜂蜜 [FOOD001167] — 御蜜園優選皇家蜂蜜1200g
+31. 酪梨 [FOOD001172] — 西班牙Torres酪梨油洋芋片 125g
+32. 蒜苗 [FOOD001235] — 【方便菜】立大-冷藏鹹豬肉蒜苗(每盒約300克)※因配送關係實際到貨效期約2-3天
+33. 蒜酥 [FOOD001236] — 灶市 油封香蒜酥-芝麻【Mia C'bon 限定】 110g
+34. 蒜頭 [FOOD001237] — 履歷蒜頭600g/袋
+35. 蝦子 [FOOD001312] — 【老王賣肉】石狩割背蝦仁 蝦仁 蝦子 海鮮 海產 600g
+36. 豬五花肉片 [FOOD001336] — 台灣豬五花肉片330g-貼體包裝※因配送關係實際到貨效期約2-3天
+37. 豬肉片 [FOOD001344] — 【一起買】梅花豬肉片 / 300g ※買一送一，請以偶數下單
+38. 豬肉絲 [FOOD001353] — 成記香辣豬肉絲 115g
+39. 豬里肌肉 [FOOD001366] — 嚴選冷藏台灣豬里肌肉排330g-貼體包裝※因配送關係實際到貨效期約2-3天
+40. 豬後腿肉 [FOOD001378] — 冷藏台灣豬後腿肉片200g※因配送關係實際到貨效期約1天
+41. 豬排骨 [FOOD001382] — 【一起買】亞麻籽豬排骨(切塊) / 300g
+42. 豬絞肉 [FOOD001385] — 【天和鮮物】厚呷豬-絞肉10包(300g/包)(免運費)
+43. 鮮奶 [FOOD001518] — 義美全脂鮮奶1000ml※實際到貨效期約4天以上
+44. 檸檬汁 [FOOD001527] — 崇德發白麥檸檬汁Can 330ml
+45. 雞胸肉 [FOOD001564] — 台畜鹹水雞胸肉 90g
+46. 雞湯 [FOOD001571] — 史雲生清雞湯1L
+47. 鯛魚片 [FOOD001612] — 小川漁屋 外銷用台灣鯛魚片1片(100~150g/片)_任選
+48. 鹹蛋 [FOOD001641] — 卡賀鹹蛋黃蕎麥酥 210g
+49. 鱈魚 [FOOD001663] — Banga 鱈魚肝 115g
+
+三、額外程式問題
+鴻喜菇 FOOD001523 有 100g / 27 元商品及圖片；Sim exactQuantity 的小數 regex 最多 16 位，拒絕 25.00000000000000000000000000，誤報單位無法換算。本次只診斷，尚未修正。
+缺報價不代表食譜或營養資料也缺少；報價仍受來源匹配、包裝、庫存及有效期限限制。

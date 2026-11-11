@@ -59,7 +59,7 @@ export default function SimMarketPage({ page }: { page: Page }) {
 }
 
 function MarketStore({ storageKey, page, catalog, plan, order }: {
-  storageKey: string; page: Page; catalog: MarketCatalog; plan?: MarketPlan; order?: { order_id: string; lines: { food_id: string; quantity: number }[] } | null
+  storageKey: string; page: Page; catalog: MarketCatalog; plan?: MarketPlan; order?: { order_id: string; lines: (MarketProduct & { quantity: number })[] } | null
 }) {
   const { quantities, shortages, unavailable, releaseIssue } = prepareCart(plan, catalog)
   const [cart, setCart] = useState<MarketCart>(() => {
@@ -78,7 +78,8 @@ function MarketStore({ storageKey, page, catalog, plan, order }: {
   useEffect(() => { saveCart(storageKey, cart) }, [storageKey, cart])
 
   // A new release can invalidate a plan after its cart was opened. Keep its saved edits private and block checkout.
-  const lines: CartLine[] = releaseIssue ? [] : catalog.products.flatMap((product) => {
+  // Completed orders retain receipt prices while the browsing catalogue remains complete.
+  const lines: CartLine[] = order ? order.lines : releaseIssue ? [] : catalog.products.flatMap((product) => {
     const quantity = cart.quantities[product.food_id]
     return quantity > 0 ? [{ ...product, quantity }] : []
   })
@@ -115,8 +116,11 @@ function MarketStore({ storageKey, page, catalog, plan, order }: {
 
   const products = catalog.products.filter((product) =>
     (!category || product.category === category) && product.name.toLowerCase().includes(search.trim().toLowerCase()))
+  const missingProducts = (catalog.unavailable_ingredients ?? []).filter((product) =>
+    (!category || product.category === category) && product.name.toLowerCase().includes(search.trim().toLowerCase()))
+  const totalProducts = catalog.products.length + (catalog.unavailable_ingredients?.length ?? 0)
   const categoryCounts = new Map<string, number>()
-  for (const product of catalog.products) {
+  for (const product of [...catalog.products, ...(catalog.unavailable_ingredients ?? [])]) {
     categoryCounts.set(product.category, (categoryCounts.get(product.category) ?? 0) + 1)
   }
   const chooseCategory = (value: string | null) => {
@@ -144,7 +148,7 @@ function MarketStore({ storageKey, page, catalog, plan, order }: {
         {orderError && <Alert severity="error">{orderError}</Alert>}
         {catalog.recipe_release_id === null
           ? <Alert severity="info">目前沒有可用的 T01 商品目錄。</Alert>
-          : catalog.products.length === 0 && <Alert severity="info">此 T01 版本目前沒有可展示的商品。</Alert>}
+          : totalProducts === 0 && <Alert severity="info">此 T01 版本目前沒有可展示的商品。</Alert>}
         {releaseIssue && (
           <Alert severity="warning" action={<Button component={Link} to="/" size="small">瀏覽目前目錄</Button>}>
             {releaseIssue}。此餐單的食材無法自動加入購物車。
@@ -162,7 +166,7 @@ function MarketStore({ storageKey, page, catalog, plan, order }: {
             <Box component="nav" id="market-filters" aria-label="商品分類"
               sx={{ display: { xs: filtersOpen ? 'block' : 'none', md: 'block' }, borderTop: `1px solid ${marketLine}` }}>
               <Typography component="h2" variant="subtitle2" sx={{ py: 1.75, px: 1.5, fontWeight: 700 }}>商品分類</Typography>
-              {[[null, catalog.products.length] as const, ...categoryCounts].map(([item, count]) => (
+              {[[null, totalProducts] as const, ...categoryCounts].map(([item, count]) => (
                 <Button key={item ?? 'all'} fullWidth onClick={() => chooseCategory(item)} aria-pressed={category === item}
                   sx={{ color: marketInk, borderRadius: 0, minHeight: 44, px: 1.5, justifyContent: 'space-between',
                     borderTop: `1px solid ${marketLine}`, bgcolor: category === item ? marketPaper : 'transparent',
@@ -176,21 +180,33 @@ function MarketStore({ storageKey, page, catalog, plan, order }: {
                 justifyContent: 'space-between', pb: 1.5, borderBottom: `1px solid ${marketLine}` }}>
                 <Box>
                   <Typography id="market-products-heading" component="h2" variant="h5">{category ?? '食材目錄'}</Typography>
-                  <Typography variant="caption" aria-live="polite">{products.length} 項商品 · 圖片為類別示意</Typography>
+                  <Typography variant="caption" aria-live="polite">{products.length + missingProducts.length} 種食材 · {products.length} 種有可購報價 · {missingProducts.length} 種待補資料</Typography>
                 </Box>
                 <TextField fullWidth size="small" label="搜尋食材" type="search" value={search}
                   onChange={(event) => setSearch(event.target.value)}
                   slotProps={{ input: { startAdornment: <InputAdornment position="start"><SearchOutlined fontSize="small" /></InputAdornment> } }}
                   sx={{ maxWidth: { sm: 290 }, '& .MuiOutlinedInput-root': { bgcolor: '#fff', borderRadius: 0 } }} />
               </Stack>
-              {products.length > 0 ? (
+              {products.length + missingProducts.length > 0 ? (
                 <Box sx={{ display: 'grid', gridTemplateColumns: { xs: 'repeat(2, minmax(0, 1fr))', md: 'repeat(3, minmax(0, 1fr))' }, gap: { xs: 2, md: 3 } }}>
                   {products.map((product) => (
                     <ProductCard key={product.food_id} product={product} quantity={cart.quantities[product.food_id] ?? 0}
                       disabled={Boolean(releaseIssue || cart.orderId)} onAdd={() => change(product.food_id, 1)} />
                   ))}
+                  {missingProducts.map((product) => (
+                    <Stack component="article" key={product.food_id} spacing={1} sx={{ pb: 2, borderBottom: `1px solid ${marketLine}` }}>
+                      <Box sx={{ aspectRatio: '1', bgcolor: marketPaper, display: 'grid', placeItems: 'center' }}>
+                        <Typography variant="caption" color="text.secondary">尚無來源商品圖片</Typography>
+                      </Box>
+                      <Typography variant="caption">{product.category}</Typography>
+                      <Typography component="h3" sx={{ fontWeight: 700 }}>{product.name}</Typography>
+                      <Typography variant="body2">價格待確認</Typography>
+                      <Typography variant="caption" color="text.secondary">尚無符合條件的有效報價或包裝資料，暫不可加入購物車。</Typography>
+                      <Button variant="outlined" disabled>待補商品資料</Button>
+                    </Stack>
+                  ))}
                 </Box>
-              ) : catalog.products.length > 0 && (
+              ) : totalProducts > 0 && (
                 <Paper square variant="outlined" sx={{ p: 3, textAlign: 'center', bgcolor: '#fff', borderColor: marketLine }}>
                   <Typography color="text.secondary">找不到符合條件的商品。</Typography>
                   <Button onClick={() => { setSearch(''); chooseCategory(null) }}>清除篩選</Button>
@@ -360,17 +376,22 @@ function ProductCard({ product, quantity, disabled, onAdd }: {
   product: MarketProduct; quantity: number; disabled: boolean; onAdd: () => void
 }) {
   const imagePosition = categoryImagePositions.get(product.category)
+  const [imageFailed, setImageFailed] = useState(false)
   return (
     <Stack component="article" sx={{ minWidth: 0, pb: 2, borderBottom: `1px solid ${marketLine}` }}>
-      <Box aria-hidden="true" sx={{ display: 'grid', placeItems: 'center', aspectRatio: '1',
+      <Box sx={{ display: 'grid', placeItems: 'center', aspectRatio: '1',
         bgcolor: '#fff', color: '#77746D',
-        ...(imagePosition && { backgroundImage: `url(${categoryImage})`, backgroundSize: '200% 200%', backgroundPosition: imagePosition }) }}>
-        {!imagePosition && <Inventory2Outlined sx={{ fontSize: 46 }} />}
+        ...(!product.image_url && imagePosition && { backgroundImage: `url(${categoryImage})`, backgroundSize: '200% 200%', backgroundPosition: imagePosition }) }}>
+        {product.image_url && !imageFailed
+          ? <Box component="img" src={product.image_url} alt={product.product_name ?? product.name} loading="lazy"
+              referrerPolicy="no-referrer" onError={() => setImageFailed(true)} sx={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+          : (!imagePosition || imageFailed) && <Inventory2Outlined sx={{ fontSize: 46 }} /> }
       </Box>
       <Stack sx={{ gap: 0.5, flex: 1 }}>
-        <Typography variant="caption">{product.category} · {packageLabel(product)}／包</Typography>
+        <Typography variant="caption">{product.image_url && !imageFailed ? '來源商品圖片' : '類別示意／圖片待補'} · {product.category} · {packageLabel(product)}／包</Typography>
         <Typography component="h3" variant="body1" sx={{ fontWeight: 700, overflowWrap: 'anywhere', lineHeight: 1.45 }}>{product.name}</Typography>
-        {product.source_url && <Typography component="a" href={product.source_url} target="_blank" rel="noreferrer" variant="caption">{product.source} · {product.queried_at}</Typography>}
+        {product.product_name && <Typography variant="caption">{product.product_name}</Typography>}
+        {product.source_url && <Typography component="a" href={product.product_url ?? product.source_url} target="_blank" rel="noreferrer" variant="caption">{product.source} · {product.queried_at}</Typography>}
         {[product.region_condition, product.store_condition, product.promotion_description].filter(Boolean).map((condition, index) => <Typography key={index} variant="caption">{condition}</Typography>)}
         <Typography variant="body2" sx={{ mt: 'auto', pt: 0.5, fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>
           {money(product.price_cents)}

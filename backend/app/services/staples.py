@@ -20,6 +20,7 @@ from app.services.recipe_import import normalize_name
 STAPLES_PATH = PROJECT_ROOT / "config" / "v3_staples.json"
 STAPLE_DISH_ID = "staple"
 STAPLE_CONFIG = "staple_config"
+AUTO_VALUE = "不指定"
 NEGATIONS = ("不", "無", "免", "沒")
 
 
@@ -65,6 +66,18 @@ def is_none_value(text: str | None) -> bool:
     if not key or key in {normalize_name(v) for v in table().get("none_values", [])}:
         return True
     return "主食" in key and any(n in key for n in NEGATIONS)
+
+
+def is_auto_value(text: str | None) -> bool:
+    return (text or '').strip() == AUTO_VALUE
+
+
+def automatic_options(excluded_food_ids=()) -> list[Staple]:
+    """Only reviewed, computable staple choices may enter constrained selection."""
+    excluded = set(excluded_food_ids)
+    return [s for option in staple_options()
+            if (s := resolve(option['label'])) is not None
+            and s.line.food_id not in excluded and s.line.grams_per_n is not None]
 
 
 def staple_options() -> list[dict]:

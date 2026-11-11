@@ -19,7 +19,7 @@ import { DishIngredients, DishSteps, HighSodiumTag } from './DishDetail'
 import { Section, Stat, StatRow } from './ui'
 import { tokens } from '../theme'
 
-type Props = { requestId: string; mealDate?: string | null; onChanged: () => void }
+type Props = { requestId: string; mealDate?: string | null; onChanged: () => void; onRegenerate?: () => void; regenerateDisabled?: boolean }
 
 /** 顯示用取整：金額到 1 元、克到 1 g、營養到 0.1；計算與判定一律由後端以精確值完成。 */
 const money = (v: string | null) => (v === null ? '未知' : `${Math.round(Number(v))} 元`)
@@ -53,6 +53,7 @@ const MISSING_PRICE_REASONS: Record<string, string> = {
   PRICE_NOT_YET_VALID: '報價尚未生效',
   PRICE_REVALIDATION_REQUIRED: '僅有歷史價格，需重新查價',
   INVALID_PACKAGE: '包裝資訊不完整',
+  PRODUCT_IDENTITY_CONFLICT: '來源商品與食材不相符，待重新查價',
 }
 const missingReason = (code: string | null) => (code && MISSING_PRICE_REASONS[code]) ?? '賣場找不到相符的商品'
 const shortTime = (iso: string) =>
@@ -69,7 +70,7 @@ const DECISION_LABELS: Record<DecisionKind, string> = {
 }
 
 /** T15 生成結果：全家配方、缺料雙價格、數值營養、知識說明、昨日比對與後端判定的採用資格。 */
-export default function MealResultView({ requestId, mealDate, onChanged }: Props) {
+export default function MealResultView({ requestId, mealDate, onChanged, onRegenerate, regenerateDisabled }: Props) {
   const queryClient = useQueryClient()
   // 每個（結果版本、命令）固定一把冪等鍵：重複點擊或網路重送只產生一筆決定
   const keys = useRef(new Map<string, string>())
@@ -237,12 +238,7 @@ export default function MealResultView({ requestId, mealDate, onChanged }: Props
                   ? `符合採用條件${el.price_exception_accepted ? '（部分價格未知，成本只計已知部分）' : ''}。`
                   : '目前還不能採用，原因見下方。'}
               </Typography>
-              {el.adoptable && (
-                <Button variant="contained" size="large" disabled={adopt.isPending || dayConflict}
-                  onClick={() => adopt.mutate(r)}>
-                  {adopt.isPending ? '採用中…' : '採用這份菜單'}
-                </Button>
-              )}
+
             </>
           )}
         </Box>
@@ -315,7 +311,7 @@ export default function MealResultView({ requestId, mealDate, onChanged }: Props
       )}
       {adopt.isError && <Alert severity="error">{errorMessage(adopt.error)}</Alert>}
 
-      <ResultSections key={r.result_version}
+      <ResultSections key={r.result_version} showShopping={confirmed}
         recipes={<>
       <Section title="全家配方" aside="整餐用量">
         <Stack spacing={3} divider={<Box sx={{ borderTop: `1px solid ${tokens.line}` }} />}>
@@ -547,6 +543,20 @@ export default function MealResultView({ requestId, mealDate, onChanged }: Props
         </>}
         portions={<GeneratedPortions result={r} />}
       />
+      {!confirmed && (
+        <Box sx={{ position: 'sticky', bottom: 0, zIndex: 10, bgcolor: '#FFFDF9', border: `1px solid ${tokens.line}`,
+          borderRadius: 1, p: 2, display: 'flex', gap: 2, alignItems: 'center', flexWrap: 'wrap' }}>
+          <Typography variant="body2" sx={{ flexGrow: 1 }}>
+            第 {r.result_version} 版・{energy === null ? '熱量未知' : `${Math.round(energy)} kcal`}・蛋白質 {protein === null ? '未知' : `${protein.toFixed(1)} g`}
+            {!el.adoptable && '・目前不可採用，請查看上方原因'}
+          </Typography>
+          {onRegenerate && <Button variant="outlined" disabled={regenerateDisabled || adopt.isPending}
+            onClick={onRegenerate}>重新生成</Button>}
+          <Button variant="contained" size="large" disabled={!el.adoptable || adopt.isPending || dayConflict}
+            onClick={() => adopt.mutate(r)}>{adopt.isPending ? '採用中…' : '採用這份菜單'}</Button>
+          {adopt.isError && <Alert severity="error" sx={{ width: '100%' }}>{errorMessage(adopt.error)}</Alert>}
+        </Box>
+      )}
     </Stack>
   )
 }

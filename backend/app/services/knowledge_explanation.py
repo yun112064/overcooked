@@ -1,4 +1,4 @@
-"""T11 最後營養小知識文字改由雲端 OpenAI 生成（資料仍為團隊電腦的審核知識）。
+"""T11 營養小知識：預設 OpenAI，明確設定後可用本機 Ollama。
 
 流程：T12 最終食材（後端自行重算，不信任前端）→ T11 retrieve_knowledge（地端 pgvector 檢索 Excel 匯入的審核知識）
 → 每個有知識的食材呼叫一次 OpenAI Responses API＋Structured Outputs（提示詞與驗證見 knowledge_rag.explain，
@@ -6,6 +6,8 @@
 
 - 每次付費呼叫經 T10 預留／結算：paid_call 與 JobContext.paid_call 同介面（name=...）；同步 API 以
   request_paid_call 包成同介面，呼叫鍵含本次請求的隨機 ID，重送不會撞鍵。
+- 本機 Ollama 只在 knowledge_explain_provider=ollama 且有 URL 時啟用，不經付費呼叫或備援雲端；
+  序列生成並保留相同引用、數值與敘述驗證，輸出標記實際 provider/model。
 - 多個食材並行生成（MAX_PARALLEL），總時間約等於最慢的一個。
 - 驗證不通過不顯示，記在 dropped；缺知識的食材在 not_found，不阻擋採用。
 - 知識服務不可用、額度不足、計費不明或模型失敗：回 unavailable／dropped 並附原因，菜單照常，可稍後重試。
@@ -18,6 +20,8 @@ from concurrent.futures import ThreadPoolExecutor
 import httpx
 
 from app.services import spend
+from app.services.local_knowledge_explanation import (LocalExplanationUnavailable,
+    configured_local_responder)
 from knowledge_rag.explain import INSTRUCTIONS, PROMPT_VERSION, SCHEMA, build_input, parse_output, validate
 
 DEFAULT_MODEL = 'gpt-5.4-mini-2026-03-17'
@@ -53,8 +57,22 @@ class OpenAIExplainer:
         return ''.join(c.get('text') or '' for c in content if c.get('type') == 'output_text'), usage
 
 
+class OllamaExplainer:
+    provider = 'ollama'
+
+    def __init__(self, responder):
+        self.responder, self.model = responder, responder.model
+
+    def respond(self, input_text):
+        return self.responder.respond(instructions=INSTRUCTIONS, input_text=input_text,
+            schema=SCHEMA, max_output_tokens=MAX_OUTPUT_TOKENS).output_text
+
+
 def default_explainer():
     from app.core.config import settings
+    if settings.knowledge_explain_provider == 'ollama':
+        responder = configured_local_responder()
+        return OllamaExplainer(responder) if responder else None
     if not settings.openai_api_key:
         return None
     return OpenAIExplainer(settings.openai_api_key, model=settings.knowledge_explain_model)
@@ -75,9 +93,14 @@ def _explain_one(paid_call, explainer, food_id, name, records, call_prefix):
     input_text = build_input(name or food_id, records)
     started = time.monotonic()
     try:
-        text = paid_call(name=f'{call_prefix}:{food_id}', purpose='knowledge_explanation', provider='openai',
-                         model=explainer.model, max_input_tokens=len((INSTRUCTIONS + input_text).encode()) + 400,
-                         max_output_tokens=MAX_OUTPUT_TOKENS, call=lambda: explainer.respond(input_text))
+        if isinstance(explainer, OllamaExplainer):
+            text = explainer.respond(input_text)
+        else:
+            text = paid_call(name=f'{call_prefix}:{food_id}', purpose='knowledge_explanation', provider='openai',
+                             model=explainer.model, max_input_tokens=len((INSTRUCTIONS + input_text).encode()) + 400,
+                             max_output_tokens=MAX_OUTPUT_TOKENS, call=lambda: explainer.respond(input_text))
+    except LocalExplanationUnavailable:
+        return None, {'ingredient_id': food_id, 'reason': 'EXPLANATION_UNAVAILABLE'}
     except spend.CallNotBilled:
         return None, {'ingredient_id': food_id, 'reason': 'EXPLANATION_UNAVAILABLE'}
     except tuple(BILLING_STOPS) as exc:
@@ -89,8 +112,12 @@ def _explain_one(paid_call, explainer, food_id, name, records, call_prefix):
     if result['status'] != 'accepted':
         return None, {'ingredient_id': food_id, 'reason': ','.join(result['failures'])}
     cited = {r['knowledge_id']: r for r in records}
+    from app.services.knowledge import grounded_in_nutrition
+    if not grounded_in_nutrition(result['tip_zh'], [cited[c] for c in result['citations']]):
+        return None, {'ingredient_id': food_id, 'reason': 'NOT_GROUNDED_IN_NUTRITION_FACT'}
     return {'ingredient_id': food_id, 'ingredient_name': name, 'tip_zh': result['tip_zh'],
             'prompt_version': PROMPT_VERSION, 'model': explainer.model,
+            'provider': 'ollama' if isinstance(explainer, OllamaExplainer) else 'openai',
             'latency_ms': int((time.monotonic() - started) * 1000),
             'citations': [{k: cited[c].get(k) for k in ('knowledge_id', 'source_version', 'ingredient_id',
                                                         'source_url', 'source_label', 'conditions')}
@@ -109,9 +136,17 @@ def explain_snapshot(paid_call, explainer, snapshot: dict, names: dict | None = 
                 'not_found': not_found}
     by_food = {}
     for r in snapshot.get('records') or []:
-        by_food.setdefault(r['ingredient_id'], []).append(r)
+        # Use the same evidence-backed sentence as formal generation, never the
+        # broader historical fact_zh/excerpt or inferred effects from conditions.
+        if not r.get('nutrition_fact') or not r.get('evidence_quote'):
+            continue
+        approved = {**r, 'fact_zh': r['nutrition_fact'], 'excerpt': r['evidence_quote']}
+        by_food.setdefault(r['ingredient_id'], []).append(approved)
         names.setdefault(r['ingredient_id'], r.get('ingredient_name'))
+    not_found = sorted(set(not_found) | (set(snapshot.get('by_ingredient') or {}) - set(by_food)))
     jobs = sorted(by_food.items())
+    if isinstance(explainer, OllamaExplainer):
+        max_parallel = 1  # One local model slot; do not queue four competing generations.
     with ThreadPoolExecutor(max_workers=max(1, min(max_parallel, len(jobs) or 1))) as pool:
         results = list(pool.map(lambda job: _explain_one(paid_call, explainer, job[0], names.get(job[0]), job[1],
                                                          call_prefix), jobs))

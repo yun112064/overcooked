@@ -4,7 +4,6 @@ import { useEffect, useRef, useState } from 'react'
 import { api, errorMessage } from '../api/client'
 import type { Job, MealRequest } from '../api/types'
 import MealResultView from './MealResultView'
-import T04DataPanel from './T04DataPanel'
 
 const STAGE_LABELS: Record<string, string> = {
   queued: '排隊中',
@@ -125,15 +124,17 @@ export default function GenerationPanel({ row, onChanged }: Props) {
     if (wasActive.current && !active) {
       // 失敗後重新送出是新的請求，要換一把冪等鍵；否則只會拿回同一個失敗工作
       if (job?.status === 'failed' && job.input_version !== null) keys.current.delete(job.input_version)
+      void queryClient.invalidateQueries({ queryKey: ['meal-results', row.id] })
+      void queryClient.invalidateQueries({ queryKey: ['meal-result', row.id] })
       onChanged()
     }
     wasActive.current = !!active
-  }, [active, job, onChanged])
+  }, [active, job, onChanged, queryClient, row.id])
   const lastJobForThisVersion = job && job.input_version === row.version
   // 已採用（confirmed）：仍可查看結果，但不再生成或修改（後端同樣拒絕）
   const confirmed = row.status === 'confirmed'
   const hasResult = row.status === 'result_ready' || row.status === 'awaiting_decision' || confirmed
-  const canSubmit = row.complete && !active && !confirmed && !(lastJobForThisVersion && job.status === 'succeeded')
+  const canSubmit = !latest.isPending && !latest.isError && row.complete && !active && !confirmed && !(lastJobForThisVersion && job.status === 'succeeded')
 
   return (
     <Stack spacing={1.5}>
@@ -159,27 +160,23 @@ export default function GenerationPanel({ row, onChanged }: Props) {
           )}
         </Box>
       )}
-      <T04DataPanel row={row} />
       {submit.isError && <Alert severity="error">{errorMessage(submit.error)}</Alert>}
       {cancel.isError && <Alert severity="error">{errorMessage(cancel.error)}</Alert>}
-      {hasResult && !active && <MealResultView requestId={row.id} mealDate={row.draft.meal_date} onChanged={onChanged} />}
+      {latest.isError && <Alert severity="error">無法確認生成狀態：{errorMessage(latest.error)}</Alert>}
+      {hasResult && !active && !submit.isPending && <MealResultView requestId={row.id} mealDate={row.draft.meal_date} onChanged={onChanged}
+        onRegenerate={() => submit.mutate(true)} regenerateDisabled={!row.complete || submit.isPending} /> }
       <Box>
         <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-          <Button variant="contained" size="large" disabled={!canSubmit || submit.isPending} onClick={() => submit.mutate(false)}>
-            {job && lastJobForThisVersion && job.status === 'failed' ? '重新送出生成' : '送出生成'}
-          </Button>
+          {!hasResult && <Button variant="contained" size="large" disabled={!canSubmit || submit.isPending} onClick={() => submit.mutate(false)}>
+            {job && lastJobForThisVersion && job.status === 'failed' ? '重新送出生成' : '生成菜單'}
+          </Button>}
           {active && (
             <Button variant="outlined" color="inherit" size="large" disabled={cancel.isPending}
               onClick={() => cancel.mutate()}>
               取消生成
             </Button>
           )}
-          {hasResult && !confirmed && (
-            <Button variant="outlined" size="large" disabled={!row.complete || !!active || submit.isPending}
-              onClick={() => submit.mutate(true)}>
-              重新生成
-            </Button>
-          )}
+
         </Box>
         {!row.complete && (
           <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>補齊上方項目後才能送出。</Typography>

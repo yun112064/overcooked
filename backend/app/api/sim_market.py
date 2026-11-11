@@ -62,9 +62,6 @@ def checkout(body: CheckoutBody, request: Request, response: Response, db: Sessi
         from app.db.models import SimMarketOrder
         order = db.scalar(select(SimMarketOrder).where(SimMarketOrder.handoff_id == result['handoff_id']))
         result['order'] = order.receipt if order else None
-        if order:
-            result['catalog'] = {'recipe_release_id': order.receipt['recipe_release_id'],
-                                 'real_checkout': True, 'products': order.receipt['lines']}
     return result
 
 # Store-defined demonstration packs and TWD cents. These values do not come from T01 or T02.
@@ -112,10 +109,9 @@ def get_catalog(db: Session = Depends(get_db)):
     )
     products = {}
     if settings.sim_market_real_checkout_enabled:
-        from app.services.sim_checkout import real_products
+        from app.services.sim_checkout import real_catalog
         names = {food_id: name for food_id, name, ingredient in used}
-        return {'recipe_release_id': release_id, 'real_checkout': True,
-                'products': real_products(db, release_id, names)}
+        return real_catalog(db, release_id, names)
     for food_id, name, ingredient in used:
         capacity = source_volume_ml(ingredient) is not None
         if food_id not in products or capacity:

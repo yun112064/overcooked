@@ -91,10 +91,12 @@ class UniProsperityAdapterTests(unittest.TestCase):
         self.assertEqual((quote.price, quote.package_quantity, quote.package_unit),
                          (Decimal("99.0"), Decimal("800"), "g"))
         self.assertEqual(quote.product_id, "2200300400101")
+        selected = next(c for c in quote.candidates if c.product_id == quote.product_id)
+        self.assertEqual(selected.raw["image"], "https://example.invalid/2200300400101.jpg")
         self.assertEqual(quote.product_url, "https://online.uni-prosperity.com.tw/zh/2200300400101.html")
         self.assertTrue(client.urls[0].startswith("https://online.uni-prosperity.com.tw/zh/search/?q="))
-        # 只存事實資料：不保留圖片網址
-        self.assertNotIn("example.invalid", quote.model_dump_json())
+        # Retain source image URLs only; no inline/downloaded image content.
+        self.assertNotIn("data:image", quote.model_dump_json())
 
     def test_package_falls_back_to_variant_weight(self):
         source, _ = uni_adapter(search_page(tile("有機高麗菜", "99.0", variant="800g克 x 1 x 1Bag包")))

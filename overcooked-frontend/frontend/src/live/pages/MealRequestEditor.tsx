@@ -1,11 +1,11 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import ArrowBackOutlined from '@mui/icons-material/ArrowBackOutlined'
 import {
-  Alert, Autocomplete, Box, Button, Checkbox, Chip, CircularProgress, Divider, FormControlLabel, ListSubheader, MenuItem,
+  Alert, Autocomplete, Box, Button, Checkbox, Chip, CircularProgress, Divider, FormControlLabel, MenuItem,
   Paper, Stack, Step, StepLabel, Stepper, TextField, Typography,
 } from '@mui/material'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { useRef, useState, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { Controller, useForm, useWatch, type FieldPath } from 'react-hook-form'
 import { Link, Navigate, useParams } from 'react-router'
 import { z } from 'zod'
@@ -15,7 +15,6 @@ import {
   type StapleOptions,
 } from '../api/types'
 import FormTextField from '../components/FormTextField'
-import MenuPreviewPanel from '../components/MenuPreviewPanel'
 import GenerationPanel from '../components/GenerationPanel'
 import IngredientPicker from '../components/IngredientPicker'
 import RecognitionCapture from '../components/RecognitionCapture'
@@ -129,11 +128,16 @@ function Editor({ initial, members: memberList }: { initial: MealRequest; member
   const [step, setStep] = useState(() =>
     ['result_ready', 'awaiting_decision', 'confirmed', 'queued', 'running'].includes(initial.status) ? STEPS.length - 1 : 0)
   const [server, setServer] = useState<MealRequest>(initial)
+  const [saveNotice, setSaveNotice] = useState('')
 
   const form = useForm<FormValues>({ mode: 'onTouched', resolver: zodResolver(schema), defaultValues: toForm(initial, memberList) })
   const { control, register, trigger, getValues, setError, formState: { errors } } = form
   // 上次儲存的草稿內容：切換步驟時內容沒變就不儲存（回看問卷不會讓已生成的結果退回草稿）
   const lastSaved = useRef(JSON.stringify(toDraft(toForm(initial, memberList))))
+  useEffect(() => {
+    const subscription = form.watch(() => setSaveNotice(''))
+    return () => subscription.unsubscribe()
+  }, [form])
 
   const save = useMutation({
     mutationFn: async () =>
@@ -165,15 +169,20 @@ function Editor({ initial, members: memberList }: { initial: MealRequest; member
   const adopted = server.status === 'confirmed'
   const readOnly = locked || adopted
 
-  const goTo = async (next: number) => {
+  const goTo = async (next: number, explicitSave = false) => {
+    setSaveNotice('')
     // 生成中或已採用只能瀏覽，不儲存
     if (readOnly) { setStep(next); return }
     // 只檢查格式；未填完也能前往下一步，草稿不會遺失
     if (!(await trigger(STEP_FIELDS[step]))) return
     // 內容沒變（例如按上一步回看）就不儲存
-    if (JSON.stringify(toDraft(getValues())) === lastSaved.current) { setStep(next); return }
+    if (JSON.stringify(toDraft(getValues())) === lastSaved.current) {
+      if (explicitSave) setSaveNotice('草稿已儲存，沒有尚未儲存的變更。')
+      setStep(next); return
+    }
     try {
       await save.mutateAsync()
+      if (explicitSave) setSaveNotice('草稿已儲存。')
       setStep(next)
     } catch {
       /* 錯誤訊息已顯示 */
@@ -264,7 +273,6 @@ function Editor({ initial, members: memberList }: { initial: MealRequest; member
                   <MenuItem value="">未選擇</MenuItem>
                   {stale !== null && <MenuItem value={stale} disabled>{stale}（不在清單，請改選）</MenuItem>}
                   {staples.data.options.map((o) => <MenuItem key={o.label} value={o.label}>{o.label}</MenuItem>)}
-                  <ListSubheader>不需要主食</ListSubheader>
                   <MenuItem value={staples.data.none_value}>{staples.data.none_value}</MenuItem>
                 </TextField>
               )
@@ -351,17 +359,20 @@ function Editor({ initial, members: memberList }: { initial: MealRequest; member
           <Stack spacing={3}>
             <Summary row={server} members={memberList} />
             <Divider />
-            <MenuPreviewPanel row={server} members={memberList} />
-            <Divider />
             <GenerationPanel row={server} onChanged={refresh} />
           </Stack>
         )}
       </Paper>
 
+      {saveNotice && <Alert severity="success" role="status">{saveNotice}</Alert>}
       <Box sx={{ display: 'flex', gap: 1, justifyContent: 'space-between', flexWrap: 'wrap' }}>
         <Button color="inherit" disabled={step === 0 || save.isPending} onClick={() => goTo(step - 1)}>上一步</Button>
         <Box sx={{ display: 'flex', gap: 1 }}>
-          <Button variant="outlined" disabled={save.isPending || readOnly} onClick={() => goTo(step)}>儲存草稿</Button>
+          {step < STEPS.length - 1 && !readOnly && (
+            <Button variant="outlined" disabled={save.isPending} onClick={() => goTo(step, true)}>
+              {save.isPending ? '儲存中…' : '儲存草稿'}
+            </Button>
+          )}
           {step < STEPS.length - 1 && (
             <Button variant="contained" disabled={save.isPending} onClick={() => goTo(step + 1)}>下一步</Button>
           )}
@@ -387,8 +398,8 @@ function Summary({ row, members }: { row: MealRequest; members: Member[] }) {
   const preview = row.targets_preview
   return (
     <Stack spacing={2}>
-      {row.status === 'confirmed' ? null : row.complete
-        ? <Alert severity="success">問卷已填寫完整，可以送出生成。</Alert>
+      {['confirmed', 'result_ready', 'awaiting_decision', 'queued', 'running'].includes(row.status) ? null : row.complete
+        ? <Alert severity="success">問卷已自動儲存。確認下方條件後，按「生成菜單」。</Alert>
         : (
           <Alert severity="warning">
             還有項目需要補充：

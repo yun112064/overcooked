@@ -1,0 +1,14 @@
+{
+  "approval_id": "1111-update-v2-garlic-water-explicit-user-approval",
+  "scope": "isolated_1111_update_v2_only",
+  "authority": "User explicitly approved these two proposed sentences, preserving sources and limitations",
+  "bundle_sha256": "f87fbcdb1bb8f9821c8261f6d2e5ded91225ef9ae0cd48e1b474ea24876436c9",
+  "approved": {
+    "WEB-048-001--HN-54202--evidence-v2": "大蒜有助提振食慾。",
+    "WEB-004-001--HY-water--evidence-v2": "水蓮含膳食纖維。"
+  },
+  "blocked": {
+    "WEB-021-001--HN-66393--evidence-v2": "third_party_unconfirmed; not approved"
+  },
+  "existing_123_records": "Unchanged; approval of these two sentences does not supply missing nutrition facts or evidence quotes for old records"
+}

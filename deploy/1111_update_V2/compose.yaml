@@ -1,0 +1,116 @@
+name: overcooked-1111_update_v2
+
+x-runtime: &runtime
+  image: overcooked-1111_update_v2-backend:local
+  environment: &business-env
+    DATABASE_URL: ${APP_DATABASE_URL:?run install first}
+    PROJECT_DATA_ROOT: /data/1111_update_V2
+    ALLOWED_ORIGINS: http://localhost:8240,http://admin.localhost:8242,http://127.0.0.1:8242
+    SESSION_COOKIE_NAME: mp_1111_update_v2_session
+    COOKIE_SECURE: "false"
+    SIM_MARKET_REAL_CHECKOUT_ENABLED: "true"
+    SIM_MARKET_URL: http://127.0.0.1:8241
+    SIM_MARKET_HANDOFF_KEY: ${E2E_SIM_KEY:?}
+    MANAGEMENT_ENABLED: "true"
+    MANAGEMENT_RECIPE_CATALOG_ENABLED: "true"
+    MANAGEMENT_PRICE_POLICY_ENABLED: "true"
+    GENERATION_RECIPE_RELEASE_ID: recipe-1103-v3-dd4f75c13772
+    GENERATION_NUTRITION_IMPORT_ID: ca92a38b011998bf0e3b8163ce710c8b6228f8ecc0d71cf6e885ea25de6ba976
+    GENERATION_FOOD_MAPPING_VERSION: food1018-v3-fd0e3666f627f0a8d6a4
+    NUTRITION_POLICY_MANIFEST: /app/release_data/nutrition-v1/policy.json
+    NUTRITION_POLICY_MANIFEST_SHA256: c1bac3cfba03d78fb71ebf4c19b402d2eb692897cef058c6d4ad8210aef37674
+    OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+    GEMINI_API_KEY: ""
+    NUTRITION_LLM_PROVIDER: ""
+    KNOWLEDGE_SERVICE_URL: ""
+    ASSISTANT_SERVICE_URL: ""
+    RECOGNITION_SERVICE_URL: ""
+  networks: [private]
+  restart: unless-stopped
+  volumes: [business-files:/data]
+
+services:
+  db:
+    image: pgvector/pgvector:pg17
+    restart: unless-stopped
+    environment:
+      POSTGRES_PASSWORD: ${E2E_DB_PASSWORD:?}
+      POSTGRES_DB: postgres
+    labels:
+      overcooked.scope: isolated-1111_update_v2
+    volumes:
+      - business-db:/var/lib/postgresql/data
+    healthcheck:
+      test: [CMD, pg_isready, -h, 127.0.0.1, -U, postgres, -d, postgres]
+      interval: 2s
+      timeout: 3s
+      retries: 20
+    networks: [private]
+  backend:
+    <<: *runtime
+    build:
+      context: ../..
+      dockerfile: backend/Dockerfile
+    command: [sh, -c, 'python -m app.core.schema_gate && exec uvicorn app.main:app --host 0.0.0.0 --port 8000 --no-access-log']
+    healthcheck:
+      test: [CMD, python, -c, "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health/db', timeout=3)"]
+      interval: 3s
+      timeout: 4s
+      retries: 20
+    depends_on:
+      db:
+        condition: service_healthy
+  worker:
+    <<: *runtime
+    command: [sh, -c, 'python -m app.core.schema_gate && exec python -m app.jobs.worker']
+    depends_on:
+      backend:
+        condition: service_healthy
+  scheduler:
+    <<: *runtime
+    environment:
+      <<: *business-env
+      CRAWLER_DATABASE_URL: ${CRAWLER_DATABASE_URL:-${APP_DATABASE_URL}}
+      PRICE_SCHEDULER_ENABLED: "true"
+      PRICE_SCHEDULER_BATCH_SIZE: "30"
+      PRICE_SCHEDULER_DELAY_SECONDS: "2"
+    command: [python, -m, app.jobs.scheduler]
+    networks: [private, ingress]
+    depends_on:
+      backend: {condition: service_healthy}
+  price-collector:
+    <<: *runtime
+    environment:
+      DATABASE_URL: ${CRAWLER_DATABASE_URL:-${APP_DATABASE_URL}}
+      GENERATION_RECIPE_RELEASE_ID: recipe-1103-v3-dd4f75c13772
+    profiles: [maintenance]
+    command: [python, /acceptance/collect_prices.py]
+    volumes:
+      - ./collect_prices.py:/acceptance/collect_prices.py:ro
+    networks: [private, ingress]
+  frontend:
+    restart: unless-stopped
+    image: overcooked-1111_update_v2-frontend:local
+    build: ../../overcooked-frontend/frontend
+    ports: ['127.0.0.1:8240:80']
+    networks: [private, ingress]
+  sim-supermarket:
+    restart: unless-stopped
+    image: overcooked-1111_update_v2-sim:local
+    build: ../../sim-supermarket
+    ports: ['127.0.0.1:8241:80']
+    networks: [private, ingress]
+  admin-dashboard:
+    restart: unless-stopped
+    image: overcooked-1111_update_v2-admin:local
+    build: ../../admin-dashboard
+    ports: ['127.0.0.1:8242:80']
+    networks: [private, ingress]
+
+volumes:
+  business-files:
+  business-db:
+networks:
+  private:
+    internal: true
+  ingress:

@@ -9,6 +9,7 @@ import {
   Bar, CartesianGrid, ComposedChart, Line, ResponsiveContainer, Tooltip, XAxis, YAxis,
 } from 'recharts'
 import { api, errorMessage } from '../api/client'
+import { withinTarget } from '../api/nutrition'
 import { MEAL_LABELS, type GenerationPlanDetail } from '../api/types'
 import { DishIngredients, DishSteps, HighSodiumTag } from '../components/DishDetail'
 import PersonNutrition, { MacroBar } from '../components/ResultPersonNutrition'
@@ -180,8 +181,8 @@ function Trends({ selected, onPick }: { selected: string; onPick: (date: string)
           <StatRow>
             <Stat label="採用餐數" value={items.length} unit="餐" note={`近 ${days} 天`} />
             <Stat label="熱量達成" value={reach === null ? '—' : Math.round(reach * 100)} unit={reach === null ? undefined : '%'}
-              tone={reach === null ? 'default' : Math.abs(reach - 1) <= 0.1 ? 'good' : 'warn'}
-              note={reach === null ? '沒有可比較的紀錄' : Math.abs(reach - 1) <= 0.1 ? '平均落在目標 ±10% 內' : '平均偏離目標超過 10%'} />
+              tone={reach === null ? 'default' : withinTarget('energy_kcal', reach) ? 'good' : 'warn'}
+              note={reach === null ? '沒有可比較的紀錄' : withinTarget('energy_kcal', reach) ? '平均未超過目標 10%' : '平均超過目標 10%'} />
             <Stat label="平均每餐成本" value={costs.length ? Math.round(totalCost / costs.length) : '—'} unit={costs.length ? '元' : undefined}
               note={costs.length < items.length ? `${items.length - costs.length} 餐價格未知` : undefined} />
             <Stat label="預算內" value={costs.length ? `${underBudget}/${costs.length}` : '—'} unit={costs.length ? '餐' : undefined}

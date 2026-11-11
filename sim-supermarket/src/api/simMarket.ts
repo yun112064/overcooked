@@ -5,6 +5,9 @@ export type MarketProduct = {
   package_grams: number | null
   package_ml?: number | null
   price_cents: number
+  image_url?: string | null
+  product_name?: string | null
+  product_url?: string | null
   quote_snapshot_id?: number
   source_url?: string
   source?: string
@@ -18,6 +21,8 @@ export type MarketCatalog = {
   real_checkout?: boolean
   recipe_release_id: string | null
   products: MarketProduct[]
+  unavailable_ingredients?: { food_id: string; name: string; category: string; reason: string }[]
+  ingredient_count?: number
 }
 
 type MarketShortages = {

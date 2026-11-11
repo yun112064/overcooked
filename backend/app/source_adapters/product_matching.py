@@ -19,7 +19,7 @@ from .price_models import (
 )
 
 
-POLICY_VERSION = "pxmart-selection-v3"
+POLICY_VERSION = "pxmart-selection-v4"
 
 GENERIC_ALIASES = {"蔬菜", "肉類", "海鮮", "澱粉", "香料", "調味料", "食材"}
 CURATED_ALIASES: dict[str, tuple[str, ...]] = {
@@ -89,7 +89,7 @@ SPECIFIC_CONFLICTS: dict[str, tuple[str, ...]] = {
     "蛤蜊": ("蛤蠣雞", "蛤蜊雞", "蛤蜊絲瓜"),
     "紅椒": ("紅椒粉",),
     "迷迭香": ("迷迭香薯條",),
-    "大蒜": ("大蒜花生", "大蒜條", "蒜頭雞", "蒜頭酥", "蒜頭粉"),
+    "大蒜": ("大蒜花生", "大蒜條", "蒜頭雞", "蒜頭酥", "蒜頭粉", "蒜苗", "蒜苔", "蒜薹", "青蒜"),
     "小卷": ("海苔小卷",),
     "花椒": ("豬", "牛", "雞", "魚", "蝦", "翅", "腿"),
     "胡椒": ("毛豆", "豬", "牛", "雞", "魚", "蝦", "胡椒餅", "胡椒鹽", "肉排"),
@@ -130,7 +130,7 @@ SPECIFIC_CONFLICTS: dict[str, tuple[str, ...]] = {
     "巧克力": ("熱巧克力", "繽紛樂"),
     "蛋白": ("蛋白牛奶", "奶蛋白", "蛋白飲", "蛋白粉", "蛋白棒", "蛋白杯", "高蛋白", "優蛋白", "乳清", "補體素", "燕麥"),
     "草莓": ("咖啡", "拿鐵", "果醬", "優格", "優酪", "威化", "百奇", "pocky", "kitkat", "草莓棒", "甜心草莓"),
-    "蒜頭": ("蒜頭雞", "蒜頭酥", "蒜頭粉", "大蒜條"),
+    "蒜頭": ("蒜頭雞", "蒜頭酥", "蒜頭粉", "大蒜條", "蒜苗", "蒜苔", "蒜薹", "青蒜"),
     "沙茶": ("蜜汁", "豆干", "肉乾"),
     "椰菜": ("青花椰菜", "花椰菜"),
     "蘿蔔": ("香辣蘿蔔", "醃蘿蔔", "蘿蔔乾"),
@@ -155,6 +155,12 @@ SHORT_NAME_IDENTITY_TERMS: dict[str, tuple[str, ...]] = {
 def normalize(value: str) -> str:
     value = unicodedata.normalize("NFKC", value).lower()
     return re.sub(r"[\s\-_()（）/]+", "", value)
+
+
+def identity_conflicts(canonical_name: str, product_name: str) -> list[str]:
+    """Apply known identity exclusions to new matches and existing observations."""
+    name = normalize(product_name)
+    return [term for term in SPECIFIC_CONFLICTS.get(canonical_name, ()) if normalize(term) in name]
 
 
 def build_search_terms(query: IngredientQuery, max_terms: int = 3) -> list[str]:
@@ -396,7 +402,7 @@ def evaluate_match(
             "non-food product: " + ", ".join(non_food)
         ]
 
-    conflicts = [term for term in SPECIFIC_CONFLICTS.get(query.canonical_name, ()) if normalize(term) in normalized_name]
+    conflicts = identity_conflicts(query.canonical_name, product_name)
     if conflicts:
         return MatchDecision.REJECT, ingredient_type, 0, ConfidenceLevel.LOW, reasons, [
             "ingredient-variety conflict: " + ", ".join(conflicts)

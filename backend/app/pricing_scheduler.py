@@ -15,6 +15,7 @@ from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from apscheduler.schedulers.blocking import BlockingScheduler
 from apscheduler.triggers.cron import CronTrigger
+from sqlalchemy import create_engine
 
 from app.source_adapters.price_collection import PriceCollectionService
 from app.source_adapters.pricing_repository import PricingRepository
@@ -90,10 +91,29 @@ class SchedulerSettings:
         return settings
 
 
+def create_repository(*, price_database_url: str | None = None,
+                      expected_recipe_release_id: str | None = None) -> PricingRepository:
+    """Use the crawler credential only for T02; leave the jobs engine untouched.
+
+    Omitting both the argument and CRAWLER_DATABASE_URL preserves the legacy
+    application-engine default. An explicitly empty URL is rejected rather
+    than silently falling back to a differently privileged credential.
+    """
+    url = price_database_url if price_database_url is not None else os.getenv("CRAWLER_DATABASE_URL")
+    if url is None:
+        return PricingRepository(expected_recipe_release_id=expected_recipe_release_id)
+    if not url.strip():
+        raise ValueError("CRAWLER_DATABASE_URL must not be empty when configured")
+    return PricingRepository(create_engine(url, pool_pre_ping=True),
+                             expected_recipe_release_id=expected_recipe_release_id)
+
+
 def create_service(settings: SchedulerSettings, *,
-                   expected_recipe_release_id: str | None = None) -> PriceCollectionService:
+                   expected_recipe_release_id: str | None = None,
+                   price_database_url: str | None = None) -> PriceCollectionService:
     return PriceCollectionService(
-        repository=PricingRepository(expected_recipe_release_id=expected_recipe_release_id),
+        repository=create_repository(price_database_url=price_database_url,
+                                     expected_recipe_release_id=expected_recipe_release_id),
         adapter_factory=lambda: PxMartAdapter(
             timeout=settings.timeout_seconds,
             retries=settings.retries,
@@ -179,7 +199,7 @@ def main() -> int:
         raise SystemExit("--batch-size must be at least 1")
     settings = SchedulerSettings.from_env()
     if args.show_runs is not None:
-        runs = PricingRepository().list_recent_runs(args.show_runs)
+        runs = create_repository().list_recent_runs(args.show_runs)
         print(json.dumps(runs, ensure_ascii=False, default=str, indent=2))
         return 0
 

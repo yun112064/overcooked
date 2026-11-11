@@ -1,7 +1,8 @@
 /** 全家配方：每道菜的食材依「主食材／佐料／調味」分組成兩欄表格（食材名靠左、用量靠右），下接步驟。
  *  結果頁與已採用紀錄共用。分組由後端依調味料清單與佐料清單判定。 */
 import { Box, Chip, Stack, Typography } from '@mui/material'
-import { GRAMS_PER_BOWL, ingredientAmount, rice } from '../api/nutrition'
+import { GRAMS_PER_BOWL, rice } from '../api/nutrition'
+import CookingQuantity from './CookingQuantity'
 import type { NutritionPreview, RecipeSummary } from '../api/types'
 import { tokens } from '../theme'
 
@@ -30,7 +31,7 @@ function IngredientTable({ ingredients }: { ingredients: Ingredient[] }) {
               <Box key={`${i.name}-${k}`} sx={{ display: 'flex', justifyContent: 'space-between', gap: 2, py: 0.75,
                 borderBottom: `1px dashed ${tokens.line}` }}>
                 <Typography variant="body2">{i.name}</Typography>
-                <Typography variant="body2" sx={{ color: tokens.inkSoft, whiteSpace: 'nowrap' }}>{ingredientAmount(i)}</Typography>
+                <Typography variant="body2" component="div" sx={{ color: tokens.inkSoft, whiteSpace: 'nowrap' }}><CookingQuantity ingredient={i} name={i.name} /></Typography>
               </Box>
             ))}
           </Box>
