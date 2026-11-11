@@ -334,6 +334,15 @@ class MealConfirmationEvent(Base):
     occurred_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
 
 
+class SimMarketOrder(Base):
+    __tablename__ = 'sim_market_orders'
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    plan_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey('adopted_meal_plans.id'), nullable=False, index=True)
+    handoff_id: Mapped[str] = mapped_column(String(22), nullable=False, unique=True)
+    request_hash: Mapped[str] = mapped_column(String(64), nullable=False)
+    receipt: Mapped[dict] = mapped_column(JSONB, nullable=False)
+
+
 class GenerationResult(Base):
     """T14 生成結果（GenerationResult 契約）：每個成功的生成工作恰好一筆，不覆寫、不刪改。
 

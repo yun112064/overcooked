@@ -25,5 +25,7 @@ COPY config/ingredient_synonyms.json /app/config/ingredient_synonyms.json
 ENV PYTHONPATH=/app
 COPY alembic.ini /app/alembic.ini
 COPY migrations /app/migrations
+COPY release_data/nutrition-v1 /app/release_data/nutrition-v1
+COPY scripts/install_real_nutrition.py scripts/verify_portable_nutrition.py /app/scripts/
 
 CMD ["sh", "-c", "python -m app.core.schema_gate && exec uvicorn app.main:app --host 0.0.0.0 --port 8000 --no-access-log"]

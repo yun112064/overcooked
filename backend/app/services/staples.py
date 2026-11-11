@@ -42,6 +42,9 @@ class Staple:
 
 @lru_cache(maxsize=1)
 def table() -> dict:
+    from app.services import reconciled_policy
+    if reconciled_policy.enabled():
+        return reconciled_policy.staple_table()
     return json.loads(STAPLES_PATH.read_text(encoding="utf-8"))
 
 

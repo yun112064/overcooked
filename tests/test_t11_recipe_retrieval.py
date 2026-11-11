@@ -471,7 +471,9 @@ def truncate_history():
     from sqlalchemy import text
     verify_disposable(_engine)
     with _engine.begin() as conn:
-        conn.execute(text("TRUNCATE meal_confirmation_events, adopted_meal_plans"))
+        # Both journals reference adopted plans; truncate the explicit fixture
+        # tables together without weakening the production foreign keys.
+        conn.execute(text("TRUNCATE sim_market_orders, meal_confirmation_events, adopted_meal_plans"))
 
 
 if __name__ == "__main__":

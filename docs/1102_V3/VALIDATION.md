@@ -336,3 +336,18 @@ Python 3.12；Node 24.21.0／npm 11.19.0。專案 `.venv` 使用既有 Python �
 - OpenAI 版小幫手（使用者：另外複製一份，輸出用 OpenAI API key 生成）：assistant_rag 新增 `CloudOpenAIChat`（`RAG_LLM_PROVIDER=openai`），生成改呼叫雲端 `POST /internal/assistant/chat`（`backend/app/api/internal_assistant.py`：INTERNAL_API_TOKEN 驗證；`spend.paid_call` 以 purpose `assistant_answer`、模型 `ASSISTANT_OPENAI_MODEL`（預設已列價的 gpt-5.4-mini-2026-03-17）預留——輸入上限每字 2 token＋每則 20＋50、輸出上限 2000——再依 usage 結算；額度不足 503、未計費 502、結果不明標 uncertain；拒答或截斷不回傳內容）。`OpenAIResponder.chat_text` 用 Responses API、`store: false`。雲端 `/assistant/chat` 新增 `engine`（local／openai），`ASSISTANT_OPENAI_SERVICE_URL` 指向 OpenAI 版服務；`/health/team` 多回 `assistant_openai`；前端只在 OpenAI 版在線時顯示「地端 qwen／OpenAI」切換、記住選擇、每則回答標出生成模型；額度用完顯示專屬訊息。`start-dev.ps1` 設 `ASSISTANT_OPENAI_PORT` 時另啟動 `assistant-openai`；compose 與 `.env.example` 補上 `ASSISTANT_OPENAI_SERVICE_URL`、`ASSISTANT_OPENAI_MODEL`、`INTERNAL_API_TOKEN`（原本 compose 沒有把 INTERNAL_API_TOKEN 傳給 backend）。
 - 測試：`tests/test_assistant_openai.py` 12 passed（內部 API 經 paid_call 的呼叫鍵／用途／模型／預留上限、權杖錯誤與未設定、額度不足、未設定金鑰、截斷與拒答不回傳、輸入驗證、Responses API 請求內容、engine 轉送、team status、團隊端認證標頭與每次不同 call_id、錯誤碼對應、provider 切換）。全部 641 passed、279 skipped；前端 build、lint 通過；`docker compose config`（假密碼）通過。
 - 本機端對端（假 OpenAI，不用金鑰、不花錢；本機沒有 V3 額度資料庫，測試程式以直接呼叫代替 T10 預留／結算）：8093 地端版與 8094 OpenAI 版同時在線，`/health/team` 兩者皆 online；浮動視窗切到 OpenAI 問「吃地瓜有什麼好處」，請求經 8094 → `/internal/assistant/chat`（200），回答經逐句引用過濾、附參考資料與食譜建議並標「由 OpenAI 生成」；切回地端 qwen 追問「那南瓜呢」由 qwen 正常回答並標「由 地端 qwen 生成」。真的 OpenAI 呼叫與 T10 額度帳本未在本機驗證。
+
+
+## 2026-11-11 selected upload verification (local only; excluded from push)
+
+Selected items 01,02,05,06,07,10 only; 17 production source files. The policy manifest (03), deployment, T11, assistant changes, new tests, credentials, DB contents and reports are excluded. Nutrition continuation remains disabled without an externally supplied matching policy manifest; Sim real checkout remains opt-in and needs m1111simorder1 plus restricted application grants.
+
+Executed on the clean selected worktree: 130 passed, 3 skipped, 40 subtests passed (synthetic SQLite; disposable PostgreSQL not configured). Admin and Sim TypeScript/Vite Docker builds passed. Admin proxy test passed after supplying its required sibling frontend config in the isolated test container; initial missing-file failure was environmental. Sim npm test discovered zero tests and is not counted as test coverage; Sim backend order tests are included in the Python run. No database migrations or runtime deployments were performed for this upload. New tests were run from ignored local storage and are not staged, as requested.
+
+## 2026-11-11 portable nutrition release（codex/1111-selected，本輪執行）
+
+真實17表資料包在兩個全新不同名稱的隔離PostgreSQL完成遷移、匯入與受限帳號驗證。293道／2477列中2473列預覽及正式營養與來源一致，4列維持recipe-derived-only阻擋；18張活動表為空。實測既有庫拒絕覆蓋。Python 152 passed、3 skipped、40 subtests passed；交付映像建置與映像內dotenv驗證通過。正式庫／main／原始Excel未變更，驗證時尚未推送新增成果。詳細命令、資料hash、真實與合成測試界線、同名Excel來源限制見 ../portable-nutrition-validation.md。
+
+## 2026-11-11 PR #37 CI fixture correction
+
+GitHub Actions run 42977436133 failed only the 23 T11 fixed-scenario subtests: fixture history cleanup omitted sim_market_orders after the new foreign key to adopted_meal_plans. Added that table to the explicit TRUNCATE list; retained verify_disposable and production constraints. Re-ran test_t11_recipe_retrieval via unittest against a newly created, marker-verified meal_planner_1102_v3_pr37_ci_test in the isolated container: 32 tests passed, including all fixed-scenario subtests. These fixtures are synthetic; no imported or production database was used. Frontend, Sim, Admin and inference jobs in the initial run had passed. Full CI will rerun on the fix commit.

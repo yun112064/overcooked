@@ -13,6 +13,7 @@ from app.services.recipe_volume import attach_preview_volumes
 from app.models import RecipeDataRelease, Recipe, RecipeIngredient, NutritionImport
 from app.models.nutrition import NutritionFoodMapping
 from app.services.nutrition_release import recipe_import_matches
+from app.services import reconciled_policy
 from nutrition_planning import (NutritionPolicy, NutritionDataUnavailable,
                                 RecipeDataUnavailable, validate_database_menu)
 
@@ -28,7 +29,12 @@ def preview(db: Session, *, draft: meal_request.MealRequestDraft, members: dict,
             recipe_ids: list[str]) -> dict:
     """Calculate with only server-side questionnaire, recipe and nutrition data."""
     try:
+        continued_policy = reconciled_policy.load_policy() if reconciled_policy.enabled() else None
+        if continued_policy:
+            reconciled_policy.validate_database(db, continued_policy)
         catalog = active_catalog(db)
+    except reconciled_policy.PolicyUnavailable as exc:
+        raise T12PlanningUnavailable('NUTRITION_POLICY_UNAVAILABLE', str(exc)) from None
     except SQLAlchemyError:
         raise T12PlanningUnavailable('RECIPE_DATA_UNAVAILABLE', '目前食譜發布無法讀取，請稍後重試。') from None
     managed_ids = {rid for rid in recipe_ids if rid.startswith(RECIPE_PREFIX)}
@@ -65,17 +71,22 @@ def preview(db: Session, *, draft: meal_request.MealRequestDraft, members: dict,
             target_service=household.target_service(),
             # Imported Food_ID records replace the catalog path; this placeholder
             # is never read in imported mode.
-            policy=NutritionPolicy(Path(settings.nutrition_rules_path), {}, ('energy_kcal', 'protein_g')),
+            policy=NutritionPolicy(Path(settings.nutrition_rules_path), {}, ('energy_kcal', 'protein_g'),
+                                   approved_for_adoption=bool(continued_policy)),
             profiles=None, staple=draft.staple, nutrition_source='imported',
             nutrition_import_id=settings.generation_nutrition_import_id, nutrition_selections=None,
-            conversion=settings.t12_preview_conversion)
+            conversion='factor_one' if continued_policy else settings.t12_preview_conversion,
+            nutrition_resolver=(lambda connection, recipe_rows: reconciled_policy.resolve_rows(
+                connection, recipe_rows, continued_policy)) if continued_policy else None)
+    except reconciled_policy.PolicyUnavailable as exc:
+        raise T12PlanningUnavailable('NUTRITION_POLICY_UNAVAILABLE', str(exc)) from None
     except (RecipeDataUnavailable, NutritionDataUnavailable) as exc:
         raise T12PlanningUnavailable(exc.code, '營養或食譜資料暫時無法讀取，請稍後重試。') from None
     except SQLAlchemyError:
         raise T12PlanningUnavailable('NUTRITION_DATA_UNAVAILABLE', '營養或食譜資料暫時無法讀取，請稍後重試。') from None
     payload = dict(result.to_dict())
     attach_preview_volumes(db, result, payload)
-    if recipe_release_id:
+    if recipe_release_id and not continued_policy:
         # Main's unversioned preview policies never approve a V3 mapping.
         approved = set(db.scalars(select(NutritionFoodMapping.food_id).where(
             NutritionFoodMapping.recipe_release_id == recipe_release_id,

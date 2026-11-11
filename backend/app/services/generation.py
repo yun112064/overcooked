@@ -621,13 +621,15 @@ def make_generation_handler(*, responder=_DEFAULT, knowledge_client=_DEFAULT, em
             # 正式 T12 必須明確固定食譜與營養版本；缺少版本或核准映射時
             # 由 calculator 回傳阻擋原因，絕不回退舊 JSON/係數快取。
             from app.services.meal_calculation import versioned_sql_calculator
-            job_calculator = versioned_sql_calculator(
+            from app.services import reconciled_policy
+            job_calculator = (reconciled_policy.make_calculator(ctx.factory) if reconciled_policy.enabled()
+                              else versioned_sql_calculator(
                 ctx.factory,
                 recipe_release_id=settings.generation_recipe_release_id,
                 nutrition_import_id=settings.generation_nutrition_import_id,
                 mapping_version=settings.generation_food_mapping_version,
                 cooking_receipts=(cooking_receipt_provider(ctx) if cooking_receipt_provider else None),
-            )
+            ))
         return _generate(
             ctx,
             responder=default_responder() if responder is _DEFAULT else responder,
