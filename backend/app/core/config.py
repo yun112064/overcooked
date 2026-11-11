@@ -37,7 +37,7 @@ class Settings(BaseSettings):
     generation_recipe_release_id: str | None = None
     generation_nutrition_import_id: str | None = None
     generation_food_mapping_version: str | None = None
-    # Opt-in isolated, hash-pinned continuation of reviewed T12 source policy.
+    # Hash-pinned reviewed T12 policy; portable installer writes the shared runtime settings.
     nutrition_policy_manifest: Path | None = None
     nutrition_policy_manifest_sha256: str | None = None
     # Source versions must be selected after the 1102_V3 source inventory is reviewed.

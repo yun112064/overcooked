@@ -1,4 +1,4 @@
-"""Hash-bound, opt-in continuation of reviewed T12 data in an isolated database.
+"""Hash-bound, opt-in continuation of reviewed T12 data in a verified release.
 
 This publishes a separate calculation policy. It never changes old SQL reviews,
 uses recipe-derived nutrient aggregates, or contacts an external model.
@@ -11,6 +11,7 @@ import json
 from pathlib import Path
 
 from sqlalchemy import select, text
+from sqlalchemy.exc import SQLAlchemyError
 
 from app.core.config import PROJECT_ROOT, settings
 from app.models import RecipeDataRelease, NutritionImport, Recipe
@@ -26,6 +27,7 @@ from nutrition_planning.reconciled_nutrition import resolve_reconciled_nutrition
 REQUIRED_FILES = ('config/t12_nutrition_mappings.json', 'config/t12_nutrition_supplements.json',
                   'config/staples.json', 'config/t12_nutrient_fills.json',
                   'config/nutrition_as_is_categories.json')
+RELEASE_SCHEMA_HEAD = 'm1111simorder1'
 
 
 class PolicyUnavailable(ValueError):
@@ -43,11 +45,22 @@ def load_policy():
         if not settings.nutrition_policy_manifest_sha256 or digest != settings.nutrition_policy_manifest_sha256:
             raise PolicyUnavailable('nutrition_policy_manifest_hash_mismatch')
         policy = json.loads(raw.decode('utf-8-sig'))
-        if (policy.get('status') != 'approved_for_isolated_acceptance'
+        portable = policy.get('status') == 'approved_for_release'
+        isolated = (policy.get('status') == 'approved_for_isolated_acceptance'
+                    and policy.get('business_database') == 'meal_planner_1102_v3_1111_update')
+        if (not (portable or isolated)
                 or policy.get('calculation_policy') != 'factor_one'
-                or not policy.get('nutrition_policy_version')
-                or policy.get('business_database') != 'meal_planner_1102_v3_1111_update'):
+                or not policy.get('nutrition_policy_version')):
             raise PolicyUnavailable('nutrition_policy_not_approved')
+        if portable:
+            sources = policy.get('nutrition_import_source_files')
+            if (policy.get('expected_schema_head') != RELEASE_SCHEMA_HEAD
+                    or not isinstance(sources, dict) or not sources
+                    or any(not isinstance(v, dict) or not v.get('name')
+                           or not _is_sha256(v.get('sha256')) for v in sources.values())
+                    or not _is_sha256(policy.get('nutrition_mapping_rows_sha256'))
+                    or not _is_sha256(policy.get('recipe_source_sha256'))):
+                raise PolicyUnavailable('nutrition_policy_release_identity_missing')
         for field, configured in [('recipe_release_id', settings.generation_recipe_release_id),
                                   ('nutrition_import_id', settings.generation_nutrition_import_id),
                                   ('existing_food_mapping_version', settings.generation_food_mapping_version)]:
@@ -70,8 +83,37 @@ def load_policy():
         raise PolicyUnavailable('nutrition_policy_unavailable') from exc
 
 
+def _is_sha256(value):
+    return isinstance(value, str) and len(value) == 64 and all(c in '0123456789abcdef' for c in value)
+
+
+def mapping_rows_digest(db, policy):
+    """Hash every stored mapping tuple, status, cooking field and review evidence.
+
+    The portable package producer uses the same helper; runtime never updates
+    the manifest or treats changed rejected rows as newly approved.
+    """
+    table = NutritionFoodMapping.__table__
+    rows = db.execute(select(table).where(
+        table.c.recipe_release_id == policy['recipe_release_id'],
+        table.c.import_id == policy['nutrition_import_id'],
+        table.c.mapping_version == policy['existing_food_mapping_version']
+    ).order_by(table.c.mapping_id)).mappings().all()
+    raw = json.dumps([dict(row) for row in rows], ensure_ascii=True,
+                     sort_keys=True, separators=(',', ':')).encode('utf-8')
+    return hashlib.sha256(raw).hexdigest()
+
+
 def validate_database(db, policy):
-    if db.bind.dialect.name == 'postgresql' and db.scalar(text('select current_database()')) != policy['business_database']:
+    portable = policy.get('status') == 'approved_for_release'
+    if portable:
+        try:
+            heads = set(db.scalars(text('SELECT version_num FROM alembic_version')))
+        except SQLAlchemyError as exc:
+            raise PolicyUnavailable('nutrition_policy_schema_mismatch') from exc
+        if policy.get('expected_schema_head') != RELEASE_SCHEMA_HEAD or heads != {RELEASE_SCHEMA_HEAD}:
+            raise PolicyUnavailable('nutrition_policy_schema_mismatch')
+    elif db.bind.dialect.name == 'postgresql' and db.scalar(text('select current_database()')) != policy['business_database']:
         raise PolicyUnavailable('nutrition_policy_database_mismatch')
     release = db.get(RecipeDataRelease, policy['recipe_release_id'])
     imported = db.get(NutritionImport, policy['nutrition_import_id'])
@@ -79,6 +121,18 @@ def validate_database(db, policy):
             or not imported or not recipe_import_matches(db, release, imported,
                 mapping_version=policy['existing_food_mapping_version'])):
         raise PolicyUnavailable('nutrition_policy_release_mismatch')
+    if portable:
+        if imported.source_files != policy.get('nutrition_import_source_files'):
+            raise PolicyUnavailable('nutrition_policy_import_sources_changed')
+        if mapping_rows_digest(db, policy) != policy.get('nutrition_mapping_rows_sha256'):
+            raise PolicyUnavailable('nutrition_policy_mapping_rows_changed')
+        ids = list(db.scalars(select(Recipe.recipe_id).where(
+            Recipe.recipe_release_id == policy['recipe_release_id'])))
+        rows = load_database_recipe_rows(db.connection(), ids)
+        if (set(ids) != set(policy['recipe_bindings'])
+                or {r['recipe_ingredient_id'] for r in rows.ingredients} != set(policy['recipe_line_bindings'])):
+            raise PolicyUnavailable('nutrition_policy_recipe_bindings_incomplete')
+        _bound_rows(rows, policy)
 
 
 def _same_number(left, right):
