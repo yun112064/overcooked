@@ -28,7 +28,7 @@ function Login({ signedIn }: { signedIn: (identity: Identity) => void }) {
           <Typography color="text.secondary" sx={{ mt: 1 }}>使用已獲授權的帳號進入資料管理。</Typography>
         </Box>
         {login.isError && <Alert severity="error">{errorMessage(login.error, '登入失敗，請稍後重試。')}</Alert>}
-        <TextField label="Email" type="email" autoComplete="username" required value={email}
+        <TextField label="帳號或 Email" type="text" autoComplete="username" required value={email}
           onChange={(event) => setEmail(event.target.value)} slotProps={{ htmlInput: { maxLength: 254 } }} />
         <TextField label="密碼" type="password" autoComplete="current-password" required value={password}
           onChange={(event) => setPassword(event.target.value)} slotProps={{ htmlInput: { maxLength: 128 } }} />

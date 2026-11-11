@@ -14,7 +14,7 @@ import {
 import { useQuery } from '@tanstack/react-query'
 import { useEffect, useState } from 'react'
 import { Link, useLocation } from 'react-router'
-import { loadCheckout, checkoutToken } from '../api/handoff'
+import { loadCheckout, checkoutToken, submitOrder } from '../api/handoff'
 import { cartStorageKey, marketPath, MAX_PACKS, packageSpec, prepareCart, readCart, saveCart } from '../api/simMarket'
 import type { MarketCart, MarketCatalog, MarketPlan, MarketProduct } from '../api/simMarket'
 import heroImage from '../assets/sim-market-hero.webp'
@@ -53,19 +53,25 @@ export default function SimMarketPage({ page }: { page: Page }) {
   if (!token) return <Alert severity="info" sx={{ m: 3 }}>請從今天吃啥的已採用餐單點選「一鍵購入」，開啟這次購物清單。</Alert>
   if (checkout.isError) return <Alert severity="error" sx={{ m: 3 }}>{checkout.error.message}</Alert>
   if (!checkout.data) return <CircularProgress aria-label="載入模擬超市" sx={{ m: 3 }} />
-  const { catalog, plan, handoff_id } = checkout.data
-  const key = cartStorageKey([handoff_id, plan.id], catalog)
-  return <MarketStore key={key} storageKey={key} page={page} catalog={catalog} plan={plan} />
+  const { catalog, plan, handoff_id, order } = checkout.data
+  const key = cartStorageKey([handoff_id, plan.id, order?.order_id], catalog)
+  return <MarketStore key={key} storageKey={key} page={page} catalog={catalog} plan={plan} order={order} />
 }
 
-function MarketStore({ storageKey, page, catalog, plan }: {
-  storageKey: string; page: Page; catalog: MarketCatalog; plan?: MarketPlan
+function MarketStore({ storageKey, page, catalog, plan, order }: {
+  storageKey: string; page: Page; catalog: MarketCatalog; plan?: MarketPlan; order?: { order_id: string; lines: { food_id: string; quantity: number }[] } | null
 }) {
   const { quantities, shortages, unavailable, releaseIssue } = prepareCart(plan, catalog)
-  const [cart, setCart] = useState<MarketCart>(() => readCart(storageKey, catalog.products, quantities))
+  const [cart, setCart] = useState<MarketCart>(() => {
+    const saved = readCart(storageKey, catalog.products, quantities)
+    if (order) return { quantities: Object.fromEntries(order.lines.map(line => [line.food_id, line.quantity])), orderId: order.order_id }
+    return catalog.real_checkout ? { ...saved, orderId: null } : saved
+  })
   const [search, setSearch] = useState('')
   const [category, setCategory] = useState<string | null>(null)
   const [filtersOpen, setFiltersOpen] = useState(false)
+  const [submitting, setSubmitting] = useState(false)
+  const [orderError, setOrderError] = useState<string | null>(null)
   const checkoutPath = marketPath('checkout')
   const catalogPath = marketPath('catalog')
 
@@ -91,8 +97,18 @@ function MarketStore({ storageKey, page, catalog, plan }: {
     })
   }
 
-  function confirmOrder() {
-    if (!count) return
+  async function confirmOrder() {
+    if (!count || submitting) return
+    if (catalog.real_checkout) {
+      setSubmitting(true)
+      setOrderError(null)
+      try {
+        const receipt = await submitOrder(cart.quantities, Object.fromEntries(lines.map(line => [line.food_id, line.quote_snapshot_id!])))
+        setCart(previous => ({ ...previous, orderId: receipt.order_id }))
+      } catch (error) { setOrderError(error instanceof Error ? error.message : '結帳失敗') }
+      finally { setSubmitting(false) }
+      return
+    }
     const orderId = `SIM-${crypto.randomUUID().slice(0, 8).toUpperCase()}`
     setCart((previous) => previous.orderId ? previous : { ...previous, orderId })
   }
@@ -125,6 +141,7 @@ function MarketStore({ storageKey, page, catalog, plan }: {
           </Box>
         )}
 
+        {orderError && <Alert severity="error">{orderError}</Alert>}
         {catalog.recipe_release_id === null
           ? <Alert severity="info">目前沒有可用的 T01 商品目錄。</Alert>
           : catalog.products.length === 0 && <Alert severity="info">此 T01 版本目前沒有可展示的商品。</Alert>}
@@ -233,8 +250,8 @@ function MarketStore({ storageKey, page, catalog, plan }: {
                     <Typography variant="body2">模擬商品總額 · {count} 包</Typography>
                     <Typography sx={{ color: marketInk, fontWeight: 700, fontSize: '1.3rem' }}>{money(totalCents)}</Typography>
                   </Stack>
-                  <Typography variant="caption" color="text.secondary">商品採用示範包裝與價格，結帳金額依整包計算；食譜的用量成本另列於餐單。此頁僅供模擬，不會付款或配送。</Typography>
-                  {!cart.orderId && <Button variant="contained" size="large" sx={marketButton} onClick={confirmOrder} disabled={count === 0}>確認模擬訂單</Button>}
+                  <Typography variant="caption" color="text.secondary">{catalog.real_checkout ? '商品採用有效 T02 來源報價，結帳會保存訂單與確認事件。' : '商品採用示範包裝與價格。'}結帳金額依整包計算；食譜用量成本另列於餐單。僅供模擬，不會付款或配送。</Typography>
+                  {!cart.orderId && <Button variant="contained" size="large" sx={marketButton} onClick={confirmOrder} disabled={count === 0 || submitting}>確認模擬訂單</Button>}
                   {cart.orderId && !plan && <Button onClick={() => setCart({ quantities: {}, orderId: null })}>開始新購物車</Button>}
                 </Stack>
               </Paper>
@@ -353,6 +370,8 @@ function ProductCard({ product, quantity, disabled, onAdd }: {
       <Stack sx={{ gap: 0.5, flex: 1 }}>
         <Typography variant="caption">{product.category} · {packageLabel(product)}／包</Typography>
         <Typography component="h3" variant="body1" sx={{ fontWeight: 700, overflowWrap: 'anywhere', lineHeight: 1.45 }}>{product.name}</Typography>
+        {product.source_url && <Typography component="a" href={product.source_url} target="_blank" rel="noreferrer" variant="caption">{product.source} · {product.queried_at}</Typography>}
+        {[product.region_condition, product.store_condition, product.promotion_description].filter(Boolean).map((condition, index) => <Typography key={index} variant="caption">{condition}</Typography>)}
         <Typography variant="body2" sx={{ mt: 'auto', pt: 0.5, fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>
           {money(product.price_cents)}
           {quantity > 0 && <Typography component="span" variant="caption" sx={{ ml: 1 }}>已選 {quantity} 包</Typography>}

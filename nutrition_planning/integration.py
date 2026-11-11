@@ -773,7 +773,7 @@ def _validate_database_menu(db: Connection, recipe_ids: Sequence[str], *, rows: 
                            cooking_estimator=None, variant_resolver=None,
                            conversion: Literal['t04', 'factor_one'] = 't04',
                            nutrition_mappings: Mapping | None = None,
-                           nutrition_supplements=None) -> DatabaseMenuResult:
+                           nutrition_supplements=None, nutrition_resolver=None) -> DatabaseMenuResult:
     """Backend participations → exact T03 targets → all DB lines → T12.
 
     Caller retains household authorization, T11 selection/fallback and T14 flow.
@@ -876,60 +876,67 @@ def _validate_database_menu(db: Connection, recipe_ids: Sequence[str], *, rows: 
         if nutrition_import_id is None:
             return DatabaseMenuResult(targets, PreparedRecipe(None, (
                 InputIssue('nutrition_data_current_batch_missing', '', field='import_id'),)), None)
-        if nutrition_mappings is None and conversion == 'factor_one':
-            from .nutrition_mapping import NutritionMappingInvalid, load_nutrition_mappings
-            try:
-                nutrition_mappings = load_nutrition_mappings()
-            except NutritionMappingInvalid:
-                return DatabaseMenuResult(targets, PreparedRecipe(None, (
-                    InputIssue('nutrition_mapping_invalid', '', field='nutrition_mapping'),)), None)
-        resolve_rows = rows if staple_record is None else RecipeRows(
-            rows.recipe_ids, rows.recipes,
-            tuple(row for row in rows.ingredients if row['recipe_ingredient_id'] != staple_line_id), rows.steps)
-        resolved_selections, selection_issues = resolve_imported_selections(
-            db, resolve_rows, import_id=nutrition_import_id, selections=nutrition_selections,
-            profiles=profiles, variant_resolver=variant_resolver, conversion=conversion,
-            mappings=nutrition_mappings)
-        supplement_lines: dict[str, Mapping] = {}
-        if staple_record is not None and staple_line_id is not None:
-            supplement_lines[staple_line_id] = staple_record
-        if conversion == 'factor_one':
-            if nutrition_supplements is None:
-                from .nutrition_supplement import NutritionSupplementInvalid, load_nutrition_supplements
+        if nutrition_resolver is not None:
+            if conversion != 'factor_one':
+                raise PlanningInputError('Reconciled nutrition requires its pinned factor_one policy.')
+            imported = nutrition_resolver(db, rows)
+            if imported.issues:
+                return DatabaseMenuResult(targets, PreparedRecipe(None, imported.issues), None)
+        else:
+            if nutrition_mappings is None and conversion == 'factor_one':
+                from .nutrition_mapping import NutritionMappingInvalid, load_nutrition_mappings
                 try:
-                    nutrition_supplements = load_nutrition_supplements()
-                except NutritionSupplementInvalid:
+                    nutrition_mappings = load_nutrition_mappings()
+                except NutritionMappingInvalid:
                     return DatabaseMenuResult(targets, PreparedRecipe(None, (
-                        InputIssue('nutrition_supplement_invalid', '', field='nutrition_supplement'),)), None)
-            # A line whose Food_ID has no usable record may take approved
-            # supplement values; everything else keeps its reported reason.
-            remaining = []
-            for issue in selection_issues:
-                line = next((row for row in rows.ingredients
-                             if row['recipe_ingredient_id'] == issue.line_id), None)
-                supplement = (nutrition_supplements.values.get(line['food_id'])
-                              if line is not None and issue.code in SUPPLEMENTABLE_CODES else None)
-                if supplement is None or line is None or issue.line_id is None:
-                    remaining.append(issue)
-                else:
-                    supplement_lines[issue.line_id] = _supplement_record(line, supplement)
-            selection_issues = tuple(remaining)
-        if selection_issues:
-            return DatabaseMenuResult(targets, PreparedRecipe(None, selection_issues), None)
-        loaded_rows = rows if not supplement_lines else RecipeRows(
-            rows.recipe_ids, rows.recipes,
-            tuple(row for row in rows.ingredients if row['recipe_ingredient_id'] not in supplement_lines),
-            rows.steps)
-        imported = load_imported_nutrition(db, loaded_rows, import_id=nutrition_import_id,
-                                            selections=resolved_selections,
-                                            allow_usda=conversion == 'factor_one')
-        if imported.issues:
-            return DatabaseMenuResult(targets, PreparedRecipe(None, imported.issues), None)
-        if conversion == 'factor_one' and nutrition_supplements is not None:
-            records = {lid: _apply_fill(record, nutrition_supplements.fills)
-                       for lid, record in imported.line_records.items()}
-            records.update(supplement_lines)
-            imported = replace(imported, line_records=records)
+                        InputIssue('nutrition_mapping_invalid', '', field='nutrition_mapping'),)), None)
+            resolve_rows = rows if staple_record is None else RecipeRows(
+                rows.recipe_ids, rows.recipes,
+                tuple(row for row in rows.ingredients if row['recipe_ingredient_id'] != staple_line_id), rows.steps)
+            resolved_selections, selection_issues = resolve_imported_selections(
+                db, resolve_rows, import_id=nutrition_import_id, selections=nutrition_selections,
+                profiles=profiles, variant_resolver=variant_resolver, conversion=conversion,
+                mappings=nutrition_mappings)
+            supplement_lines: dict[str, Mapping] = {}
+            if staple_record is not None and staple_line_id is not None:
+                supplement_lines[staple_line_id] = staple_record
+            if conversion == 'factor_one':
+                if nutrition_supplements is None:
+                    from .nutrition_supplement import NutritionSupplementInvalid, load_nutrition_supplements
+                    try:
+                        nutrition_supplements = load_nutrition_supplements()
+                    except NutritionSupplementInvalid:
+                        return DatabaseMenuResult(targets, PreparedRecipe(None, (
+                            InputIssue('nutrition_supplement_invalid', '', field='nutrition_supplement'),)), None)
+                # A line whose Food_ID has no usable record may take approved
+                # supplement values; everything else keeps its reported reason.
+                remaining = []
+                for issue in selection_issues:
+                    line = next((row for row in rows.ingredients
+                                 if row['recipe_ingredient_id'] == issue.line_id), None)
+                    supplement = (nutrition_supplements.values.get(line['food_id'])
+                                  if line is not None and issue.code in SUPPLEMENTABLE_CODES else None)
+                    if supplement is None or line is None or issue.line_id is None:
+                        remaining.append(issue)
+                    else:
+                        supplement_lines[issue.line_id] = _supplement_record(line, supplement)
+                selection_issues = tuple(remaining)
+            if selection_issues:
+                return DatabaseMenuResult(targets, PreparedRecipe(None, selection_issues), None)
+            loaded_rows = rows if not supplement_lines else RecipeRows(
+                rows.recipe_ids, rows.recipes,
+                tuple(row for row in rows.ingredients if row['recipe_ingredient_id'] not in supplement_lines),
+                rows.steps)
+            imported = load_imported_nutrition(db, loaded_rows, import_id=nutrition_import_id,
+                                                selections=resolved_selections,
+                                                allow_usda=conversion == 'factor_one')
+            if imported.issues:
+                return DatabaseMenuResult(targets, PreparedRecipe(None, imported.issues), None)
+            if conversion == 'factor_one' and nutrition_supplements is not None:
+                records = {lid: _apply_fill(record, nutrition_supplements.fills)
+                           for lid, record in imported.line_records.items()}
+                records.update(supplement_lines)
+                imported = replace(imported, line_records=records)
         policy = replace(policy, sample_mappings={}, line_nutrition_records=imported.line_records)
         # Selection uses the recipe-level method.  A matching cooked sample is
         # already food after the recipe process, so its reviewed recipe grams

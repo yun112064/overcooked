@@ -1,7 +1,17 @@
 import type { MarketCatalog, MarketPlan } from './simMarket'
 
-type Checkout = { handoff_id: string; expires_at: number; catalog: MarketCatalog; plan: MarketPlan }
+type Checkout = { handoff_id: string; expires_at: number; catalog: MarketCatalog; plan: MarketPlan; order?: { order_id: string; lines: { food_id: string; quantity: number }[] } | null }
 let token: string | null | undefined
+
+export async function submitOrder(quantities: Record<string, number>, quote_ids: Record<string, number>) {
+  const response = await fetch('/market-api/orders', {
+    method: 'POST', credentials: 'omit', cache: 'no-store',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ token: checkoutToken(), quantities, quote_ids }),
+  })
+  if (!response.ok) throw new Error('結帳未完成，請確認購物連結與報價有效後重試。')
+  return response.json() as Promise<{ order_id: string }>
+}
 
 export function checkoutToken() {
   const fragment = new URLSearchParams(window.location.hash.slice(1))

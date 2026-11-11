@@ -5,9 +5,17 @@ export type MarketProduct = {
   package_grams: number | null
   package_ml?: number | null
   price_cents: number
+  quote_snapshot_id?: number
+  source_url?: string
+  source?: string
+  queried_at?: string
+  region_condition?: string | null
+  store_condition?: string | null
+  promotion_description?: string | null
 }
 
 export type MarketCatalog = {
+  real_checkout?: boolean
   recipe_release_id: string | null
   products: MarketProduct[]
 }

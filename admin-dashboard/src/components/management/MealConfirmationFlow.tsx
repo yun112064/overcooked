@@ -14,6 +14,7 @@ const branches = [
 const stageLabels: Record<string, string> = {
   confirmed: '使用者確認菜單',
   snapshot_saved: '已保存菜單快照',
+  sim_checkout_confirmed: 'Sim 模擬結帳已保存',
   ...Object.fromEntries(branches.map(({ stage, event }) => [stage, event])),
 }
 

@@ -1,6 +1,7 @@
 """Read-only T01 catalogue for the simulated supermarket."""
 
 import uuid
+from typing import Annotated
 from fastapi import APIRouter, Depends, Request, Response
 from pydantic import BaseModel, Field
 from sqlalchemy import select
@@ -26,6 +27,23 @@ class CheckoutBody(BaseModel):
     token: str = Field(min_length=1, max_length=2048)
 
 
+class OrderBody(CheckoutBody):
+    quantities: dict[str, Annotated[int, Field(strict=True, ge=1, le=1_000_000)]] = Field(max_length=1000)
+    quote_ids: dict[str, Annotated[int, Field(strict=True, ge=1)]] = Field(max_length=1000)
+
+
+@router.post('/orders')
+def confirm_order(body: OrderBody, request: Request, response: Response, db: Session = Depends(get_db)):
+    if request.headers.get('origin') != market_handoff.market_origin():
+        raise ApiError(403, 'FORBIDDEN', '請求來源未被允許。')
+    if not settings.sim_market_real_checkout_enabled:
+        raise ApiError(503, 'MARKET_UNAVAILABLE', '持久化模擬結帳尚未啟用。')
+    response.headers['Cache-Control'] = 'no-store'
+    grant = market_handoff.redeem(db, body.token)
+    from app.services.sim_checkout import persist_order
+    return persist_order(db, grant, body.quantities, body.quote_ids, get_catalog)
+
+
 @router.post('/handoffs', dependencies=[Depends(verify_origin)])
 def create_handoff(body: HandoffBody, response: Response, auth: AuthContext = Depends(current_auth),
                    household_id=Depends(current_household_id), db: Session = Depends(get_db)):
@@ -40,6 +58,13 @@ def checkout(body: CheckoutBody, request: Request, response: Response, db: Sessi
     response.headers['Cache-Control'] = 'no-store'
     result = market_handoff.redeem(db, body.token)
     result['catalog'] = get_catalog(db)
+    if settings.sim_market_real_checkout_enabled:
+        from app.db.models import SimMarketOrder
+        order = db.scalar(select(SimMarketOrder).where(SimMarketOrder.handoff_id == result['handoff_id']))
+        result['order'] = order.receipt if order else None
+        if order:
+            result['catalog'] = {'recipe_release_id': order.receipt['recipe_release_id'],
+                                 'real_checkout': True, 'products': order.receipt['lines']}
     return result
 
 # Store-defined demonstration packs and TWD cents. These values do not come from T01 or T02.
@@ -86,6 +111,11 @@ def get_catalog(db: Session = Depends(get_db)):
         .order_by(IngredientAlias.canonical_name, IngredientAlias.food_id)
     )
     products = {}
+    if settings.sim_market_real_checkout_enabled:
+        from app.services.sim_checkout import real_products
+        names = {food_id: name for food_id, name, ingredient in used}
+        return {'recipe_release_id': release_id, 'real_checkout': True,
+                'products': real_products(db, release_id, names)}
     for food_id, name, ingredient in used:
         capacity = source_volume_ml(ingredient) is not None
         if food_id not in products or capacity:

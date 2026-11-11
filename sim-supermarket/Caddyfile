@@ -1,5 +1,13 @@
 :80 {
     header Referrer-Policy "no-referrer"
+    handle /market-api/orders {
+        rewrite * /sim-market/orders
+        reverse_proxy backend:8000 {
+            header_up -Cookie
+            header_up -Authorization
+            header_down -Set-Cookie
+        }
+    }
     handle /market-api/checkout {
         rewrite * /sim-market/checkout
         reverse_proxy backend:8000 {
