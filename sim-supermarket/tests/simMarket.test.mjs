@@ -12,6 +12,16 @@ const catalog = { recipe_release_id: 'test-release', products: [product] }
 const line = (grams, ml) => ({ food_id: 'milk', name: '牛奶', shortage_grams: grams, shortage_ml: ml })
 const plan = items => ({ snapshot: { market_shortages: { recipe_release_id: 'test-release', items } } })
 
+test('backend long decimal shortages remain exact and enter the cart', () => {
+  const mushroom = { food_id: 'mushroom', name: '鴻喜菇', package_grams: 100, price_cents: 2700 }
+  const source = plan([{ food_id: 'mushroom', name: '鴻喜菇', shortage_grams: '25.00000000000000000000000000' }])
+  const cart = prepareCart(source, { recipe_release_id: 'test-release', products: [mushroom] })
+  assert.deepEqual(cart.quantities, { mushroom: 1 })
+  assert.deepEqual(cart.unavailable, [])
+  assert.equal(packCount('100.00000000000000000000000001', 100), 2)
+  assert.equal(packCount('0.' + '0'.repeat(128) + '1', 100), null)
+})
+
 test('volume requirements sum exactly before whole-package rounding', () => {
   const cart = prepareCart(plan([line(null, '100'), line(null, '400')]), catalog)
   assert.deepEqual(cart.quantities, { milk: 1 })

@@ -55,7 +55,9 @@ function exactQuantity(value: string | null | undefined): ExactQuantity | null {
   if (value == null) return null
   const ratio = /^(\d{1,128})\/([1-9]\d{0,127})$/.exec(value)
   if (ratio) return { numerator: BigInt(ratio[1]), denominator: BigInt(ratio[2]) }
-  const match = /^(\d{1,16})(?:\.(\d{1,16}))?(?:[eE]([+-]?\d{1,2}))?$/.exec(value)
+  // Backend Decimal quantities can contain 28+ decimal places. Keep every
+  // digit for package rounding, bounded like the existing rational parser.
+  const match = /^(\d{1,16})(?:\.(\d{1,128}))?(?:[eE]([+-]?\d{1,2}))?$/.exec(value)
   if (!match) return null
   const fraction = match[2] ?? ''
   const scale = fraction.length - Number(match[3] ?? 0)

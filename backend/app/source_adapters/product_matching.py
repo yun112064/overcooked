@@ -19,7 +19,7 @@ from .price_models import (
 )
 
 
-POLICY_VERSION = "pxmart-selection-v4"
+POLICY_VERSION = "pxmart-selection-v10"
 
 GENERIC_ALIASES = {"蔬菜", "肉類", "海鮮", "澱粉", "香料", "調味料", "食材"}
 CURATED_ALIASES: dict[str, tuple[str, ...]] = {
@@ -35,9 +35,13 @@ CURATED_ALIASES: dict[str, tuple[str, ...]] = {
     "牛絞肉": ("牛肉餡",),
     "蛤蠣": ("蛤蜊",),
     "蛤蜊": ("蛤蠣",),
-    "大蒜": ("蒜頭",),
-    "蒜頭": ("大蒜",),
+    # Retail source 417413-115341-2611534114316 explicitly describes peeled,
+    # unseasoned garlic cloves. This does not include sprouts or supplements.
+    "大蒜": ("蒜頭", "蒜仁"),
+    "蒜頭": ("大蒜", "蒜仁"),
     "蔥花": ("葱花",),
+    "生米": ("蓬萊米", "白米"),
+    "新鮮藍莓": ("藍莓",),
 }
 
 SEARCH_REFINEMENTS: dict[str, tuple[str, ...]] = {
@@ -60,6 +64,7 @@ NON_FOOD_MARKERS = (
     "寶路", "葛莉思cat", "沛比兒", "狗食", "貓食", "寵食",
     "偉嘉", "西莎", "希爾思", "whiskas", "冰桶", "保冰桶", "紅酒桶", "紅酒杯", "啤酒壺",
     "啤酒杯", "啤酒機", "蛋杯", "蛋托", "蛋架", "蔬菜種子", "豆類種子",
+    "染髮", "液體皂", "酒杯", "酒壺", "玻璃器皿",
 )
 
 PROCESSED_MARKERS = (
@@ -160,7 +165,30 @@ def normalize(value: str) -> str:
 def identity_conflicts(canonical_name: str, product_name: str) -> list[str]:
     """Apply known identity exclusions to new matches and existing observations."""
     name = normalize(product_name)
-    return [term for term in SPECIFIC_CONFLICTS.get(canonical_name, ()) if normalize(term) in name]
+    conflicts = [term for term in SPECIFIC_CONFLICTS.get(canonical_name, ()) if normalize(term) in name]
+    # Catalog-wide checks also protect old successful snapshots at read time.
+    conflicts.extend(term for term in NON_FOOD_MARKERS if normalize(term) in name)
+    catalog_conflicts = {
+        "甘草": ("橄欖", "梅子", "零嘴"),
+        "肉桂": ("穀脆", "核桃", "餅乾"),
+        "沙茶": ("豆乾", "豆干", "方干", "魚片"),
+        "新鮮藍莓": ("貝果", "果醬", "乾燥", "凍乾", "冷凍", "果汁"),
+        "黃芥末醬": ("蜂蜜",),
+        "豆豉": ("香菇", "魚", "蝦", "鳳梨"),
+        "豆腐乳": ("梅子",),
+        "味醂": ("嫩薑", "漬物"),
+        "生米": ("米漢堡", "米餅"),
+        "檸檬": ("檸檬糖", "軟糖", "硬糖"),
+        "鹹蛋黃": ("蕎麥酥", "餅乾", "蛋捲"),
+        "蔭油": ("蔭油膏",),
+        "雞柳條": ("香酥", "酥炸", "裹粉"),
+        "蠔油": ("素蠔油", "香菇素"),
+        "麵粉": ("全麥", "全粒", "杏仁", "椰子"),
+    }
+    conflicts.extend(term for term in catalog_conflicts.get(canonical_name, ()) if term in name)
+    if canonical_name in {"大蒜", "蒜頭"}:
+        conflicts.extend(term for term in ("膠囊", "精素", "蒜精", "黑蒜", "蒜仁酥") if term in name)
+    return conflicts
 
 
 def build_search_terms(query: IngredientQuery, max_terms: int = 3) -> list[str]:
@@ -204,7 +232,7 @@ def classify_ingredient(canonical_name: str) -> str:
         return "seafood"
     if any(term in name for term in ("奶", "乳", "起司", "優格")):
         return "dairy"
-    if any(term in name for term in ("油", "醋", "醬油", "酒", "汁")):
+    if any(term in name for term in ("油", "醋", "醬油", "酒", "汁", "味醂")):
         return "liquid_seasoning"
     if any(term in name for term in ("粉", "米", "麵", "豆", "麥", "糖", "鹽")):
         return "dry_grocery"

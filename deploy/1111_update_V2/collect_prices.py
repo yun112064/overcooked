@@ -15,6 +15,7 @@ from app.db.session import engine
 from app.core.config import settings
 from app.pricing_scheduler import SchedulerSettings, create_service
 from app.source_adapters.pxmart import PxMartAdapter
+from app.source_adapters.uni_prosperity import UniProsperityAdapter
 
 USER_AGENT = 'overcooked-t02-price-research/1.0 (+academic project; low-rate)'
 
@@ -61,10 +62,18 @@ with engine.connect() as db:
 parser = argparse.ArgumentParser()
 parser.add_argument('--food-id', action='append')
 parser.add_argument('--run-key', default='1111-update-real-price-sample-v1')
+parser.add_argument('--include-catalog-seasonings', action='store_true',
+                    help='Collect shop catalog prices without changing meal seasoning exemptions')
 args = parser.parse_args()
 food_ids = set(args.food_id or ['FOOD000867', 'FOOD000039'])
 service = create_service(SchedulerSettings.from_env(), expected_recipe_release_id=settings.generation_recipe_release_id)
+with service.repository.engine.connect() as crawler_db:
+    if crawler_db.scalar(text('SELECT current_database()')) != 'meal_planner_1102_v3_1111_update_v2':
+        raise RuntimeError('Crawler connection is outside the V2 isolated database')
 service.adapter_factory = lambda: PxMartAdapter(client=RobotsClient(), retries=0)
+service.fallback_adapter_factory = lambda: UniProsperityAdapter(client=RobotsClient(), retries=0)
+if args.include_catalog_seasonings:
+    service.seasoning_food_ids = set()
 result = service.run(trigger_type='manual', scheduled_for=datetime.now(timezone.utc),
                      run_key=args.run_key, food_ids=food_ids, limit=len(food_ids))
 print(json.dumps(asdict(result), ensure_ascii=False, indent=2))
