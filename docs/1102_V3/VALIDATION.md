@@ -125,7 +125,7 @@ T11 測試所需的 fake responder／knowledge client 與基底 fixture 已從�
 
 Python 3.12；Node 24.21.0／npm 11.19.0。專案 `.venv` 使用既有 Python 套件及額外安裝的 argon2-cffi，完整 requirements 從零重建尚未驗證。前端依 lockfile 安裝。
 
-測試使用 `DATABASE_URL=postgresql+psycopg://v3_disabled:v3_disabled@127.0.0.1:1/v3_no_database`，`TEST_DATABASE_URL`、模型 key／provider 清空，`PROJECT_DATA_ROOT` 指向 Git ignored `.test-runtime`。測試資料只放暫存檔及 SQLite 記憶體；沒有把真實來源匯入 PostgreSQL。
+測試使用 `DATABASE_URL` 指向 `127.0.0.1:1/v3_no_database`（刻意不可連線的測試位置），`TEST_DATABASE_URL`、模型 key／provider 清空，`PROJECT_DATA_ROOT` 指向 Git ignored `.test-runtime`。測試資料只放暫存檔及 SQLite 記憶體；沒有把真實來源匯入 PostgreSQL。
 
 一般 sandbox 初次執行遇到 Windows TemporaryDirectory 權限／npm DNS 限制；取得工具執行權限後重跑，上表只將成功重跑結果算入。這些環境錯誤沒有被當成程式已通過的證據。
 
