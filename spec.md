@@ -290,6 +290,7 @@ P_reference = P_target / N
 - 後端 FastAPI、Pydantic、OpenAPI、Argon2、Pillow、Python 版本化規則、Decimal；PostgreSQL、SQLAlchemy、Alembic、pgvector。
 - 部署模型固定為 YOLO26s（2026-10-29 規格變更，取代原「YOLOv8n 先建基準，再以同一資料比較 v8m」；理由見 `tickets/05-yolo-model-evaluation.md` 規格變更紀錄）。權重、類別、前後處理與模型指標一同固定，不混用不同版本結果。
 - 菜單生成仍由 T14 的雲端 OpenAI Responses API＋Structured Outputs 負責；知識向量化採團隊電腦的 `embeddinggemma:latest` 768 維，依模型 digest 與接入測試固定版本。地端 `qwen3.5:9b-q4_K_M` 的營養說明生成原列為 T14 交接；2026-11-03 使用者決定改由雲端 OpenAI（`KNOWLEDGE_EXPLAIN_MODEL`，經 T10 額度控制）生成最後的營養小知識，資料仍只來自 T11 審核知識與地端檢索，且不取代雲端選菜。
+- 2026-11-12 使用者決議：不租雲端主機，整套系統（`compose.prod.yaml`＋`deploy/team/compose.yaml`＋原生 YOLO／知識／小幫手）跑在團隊電腦一台機器上，對外經 Cloudflare named tunnel＋免費或自有網域；團隊電腦關機時整站離線，AC24 中「團隊電腦離線時一般雲端功能及歷史仍可用」不列入驗收。正式環境與開發環境分開（專案 meal-prod、資料庫 volume meal-prod-pgdata），不沿用 V3 開發資料庫；三份資料庫每日備份並複製到另一顆磁碟。以下原雲端／團隊分離的描述保留作為日後改租主機時的設計。
 - Docker Compose 提供雲端網站、業務 API、結構化食譜與家庭歷史；團隊電腦提供 YOLO、營養知識 RAG 及飲食小幫手檢索。對外 HTTPS 一律由 Cloudflare named tunnel＋自有網域處理，Caddy 只在內部網路提供 HTTP 靜態檔與 API 轉送、不簽發或管理憑證（2026-10-20 決議以 Cloudflare Tunnel 取代 Caddy 對外 HTTPS，2026-11-11 使用者決議確認不用 Caddy 憑證）；主機不開連入埠。trycloudflare.com 快速通道只作展示備援（網址會變、不支援 SSE、單機離線即全站中斷），不作 T17 正式部署。兩端服務連線需驗證及加密，不公開資料庫。負載含兩端與跨網路延遲；雲端與本機資料分別備份，知識索引可由來源快照重建。
 - Code Root：開發機 `D:/AIPE04期末專題`，雲端 `/opt/meal-planner/code`。
 - Data Root：開發機 `D:/AIPE04期末專題_data`，雲端 `/var/lib/meal-planner/data`。
@@ -354,7 +355,7 @@ P_reference = P_target / N
 | AC21 | 同時 5 人測試時，一般 API p95 ≤1 秒；暖機後辨識端到端 p95 ≤10 秒；正常外部來源下生成含排隊 p95 ≤90 秒。報告記錄樣本量、機型、輸入及來源狀態。 |
 | AC22 | YOLO 獨立測試集主要類別 macro precision／recall 各 ≥80%，採 IoU≥0.5 一對一配對，另報 mAP50、mAP50–95、類別樣本數及延遲；不計人工修正。 |
 | AC23 | 至少 10 位測試者在已建家庭、有指定輸入素材的條件下測試，至少 8 位從開始問卷至成功採用不超過 5 分鐘；另報首次設定及例外恢復。 |
-| AC24 | 網站可從外網 HTTPS 使用；團隊電腦在線時支援 YOLO 及 RAG，關機／斷線時相關服務明確顯示不可用、保留輸入供恢復重試，一般雲端功能及歷史仍可用；連線有驗證與加密，資料庫不直接暴露外網。 |
+| AC24 | 網站可從外網 HTTPS 使用；團隊電腦在線時支援 YOLO 及 RAG，關機／斷線時相關服務明確顯示不可用、保留輸入供恢復重試，一般雲端功能及歷史仍可用；連線有驗證與加密，資料庫不直接暴露外網。（2026-11-12 使用者決議：改為單機部署，本條不列入驗收。） |
 | AC25 | 月費試算含全部服務且不超 NT$2,000；並行生成與重試不能繞過預留，額度不足時停止新增付費生成但保留既有紀錄查詢。 |
 | AC26 | Log 格式、分檔、輪替及清理符合政策，敏感資料不出現在 Log；執行中的檔案與調查保留檔不被清除。 |
 | AC27 | 從獨立備份還原後，家庭、已採用餐食與來源／規則快照可讀；保留至少一次實際還原證據。 |
