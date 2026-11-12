@@ -1,0 +1,76 @@
+# T17 雲端正式環境覆寫檔：Cloudflare named tunnel＋自己的網域（2026-10-20 決議以 Cloudflare Tunnel 取代 Caddy 對外 HTTPS；
+# 2026-11-11 使用者確認 Caddy 不再處理憑證）
+#
+#   python -m ops.preflight cloud --env-file .env.prod                                 # 設定檢查（不印秘密值）
+#   docker compose --env-file .env.prod -f compose.yaml -f compose.prod.yaml config    # 檢查合併結果
+#   python -m ops.deploy --env-file .env.prod                                          # 正式部署（含部署前備份）
+#
+# - 主機不開任何連入埠：所有容器的 ports 清空；cloudflared 主動連出到 Cloudflare，HTTPS 憑證由 Cloudflare 處理。
+# - Cloudflare 後台 tunnel 的 Public Hostname：
+#     ${PUBLIC_HOSTNAME}        → http://frontend:80（frontend 的 Caddy 只在內部網路提供靜態檔、把 /api/* 轉給 backend；
+#                                  /api/internal/*、/api/admin/* 一律 404）
+#     cloud-internal.<網域>     → http://backend:8000（只供團隊電腦：前面有只允許團隊電腦服務權杖的 Cloudflare Access
+#                                  應用程式，後端再核對 INTERNAL_API_TOKEN；飲食小幫手的雲端模型生成也走這裡）
+# - db 只在 Compose 內部網路可達；DATABASE_URL 用 install_real_nutrition 產生的受限角色連線（host 為 db）。
+# - 排程程序（逾時工作回收、Log 清理、每日查價）在正式環境一定啟動。
+# - 秘密只放主機上的 .env.prod（不進 Git），變數名稱見 .env.prod.example。
+
+x-prod-database: &prod-database
+  DATABASE_URL: ${DATABASE_URL:?Set DATABASE_URL in .env.prod (install_real_nutrition output)}
+  NUTRITION_POLICY_MANIFEST: /app/release_data/nutrition-v1/policy.json
+  NUTRITION_POLICY_MANIFEST_SHA256: ${NUTRITION_POLICY_MANIFEST_SHA256:?Set NUTRITION_POLICY_MANIFEST_SHA256 in .env.prod}
+
+services:
+  db:
+    ports: !reset []
+    restart: unless-stopped
+
+  backend:
+    ports: !reset []
+    environment:
+      <<: *prod-database
+      ALLOWED_ORIGINS: https://${PUBLIC_HOSTNAME:?Set PUBLIC_HOSTNAME in .env.prod}
+      COOKIE_SECURE: "true"
+      # 正式環境不在啟動時升級 schema；只由 ops.deploy 在部署前備份後升級，啟動時 schema 閘門確認在 head
+      AUTO_MIGRATE: "false"
+    volumes: !override
+      - ${PROJECT_DATA_ROOT:?Set PROJECT_DATA_ROOT}:/app/data
+      - ${PROJECT_RUNTIME_ROOT:?Set PROJECT_RUNTIME_ROOT}:/app/runtime
+      - ${PROJECT_BACKUP_ROOT:?Set PROJECT_BACKUP_ROOT}:/app/backups
+    restart: unless-stopped
+
+  worker:
+    environment:
+      <<: *prod-database
+      TEAM_ACCESS_CLIENT_ID: ${TEAM_ACCESS_CLIENT_ID:-}
+      TEAM_ACCESS_CLIENT_SECRET: ${TEAM_ACCESS_CLIENT_SECRET:-}
+      RECOGNITION_SERVICE_URL: ${RECOGNITION_SERVICE_URL:-}
+      RECOGNITION_SERVICE_TOKEN: ${RECOGNITION_SERVICE_TOKEN:-}
+    volumes: !override
+      - ${PROJECT_DATA_ROOT:?Set PROJECT_DATA_ROOT}:/app/data
+    restart: unless-stopped
+
+  scheduler:
+    profiles: !reset []
+    environment:
+      <<: *prod-database
+    volumes: !override
+      - ${PROJECT_DATA_ROOT:?Set PROJECT_DATA_ROOT}:/app/data
+
+  frontend:
+    ports: !reset []
+    restart: unless-stopped
+
+  cloudflared:
+    image: cloudflare/cloudflared:2026.9.0
+    container_name: meal-planner-cloudflared
+    command: ["tunnel", "--no-autoupdate", "run"]
+    environment:
+      # 遠端管理的 named tunnel 權杖（Cloudflare Zero Trust → Networks → Tunnels）；只放 .env.prod
+      TUNNEL_TOKEN: ${CLOUDFLARE_TUNNEL_TOKEN:?Set CLOUDFLARE_TUNNEL_TOKEN in .env.prod}
+    depends_on:
+      frontend:
+        condition: service_started
+      backend:
+        condition: service_healthy
+    restart: unless-stopped

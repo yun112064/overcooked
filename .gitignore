@@ -8,6 +8,8 @@ env/
 .env.*
 !.env.example
 !.env.dev.example
+!.env.prod.example
+!deploy/team/.env.team.example
 # API 金鑰與憑證檔：只放本機，不進 Git（OPENAI_API_KEY 請寫在 .env／.env.dev）
 *.key
 *.pem

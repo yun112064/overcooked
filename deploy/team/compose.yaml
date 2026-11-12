@@ -1,0 +1,80 @@
+# T17 團隊電腦：T11 營養知識庫、飲食小幫手庫（PostgreSQL＋pgvector）與重排服務
+#
+#   docker compose --env-file deploy/team/.env.team -f deploy/team/compose.yaml up -d
+#   .\scripts\team-up.ps1        # 再以主機原生程序啟動 YOLO、T11 知識服務、飲食小幫手（GPU／Ollama）
+#
+# - 所有埠只綁 127.0.0.1；對外只經本機的 cloudflared（Windows 服務，`cloudflared service install <TEAM_TUNNEL_TOKEN>`）
+#   以 Cloudflare named tunnel 連出，不開任何連入埠。tunnel 的 Public Hostname：
+#     yolo.<網域>       → http://127.0.0.1:8765（YOLO）
+#     knowledge.<網域>  → http://127.0.0.1:8091（T11 知識 RAG）
+#     assistant.<網域>  → http://127.0.0.1:8094（飲食小幫手檢索；回答經雲端模型生成）
+#   三個 hostname 都要建立 Cloudflare Access 應用程式，只允許雲端的服務權杖（Service Auth）。
+# - 名稱與既有開發環境相同（overcooked-assistant-db／overcooked-assistant-reranker），已在跑的容器可直接沿用。
+# - 知識庫 schema 由 knowledge_rag.bootstrap 依嵌入模型建立（本機 embeddinggemma 為 768 維），不在這裡初始化。
+# - 每日備份（Windows 工作排程器，03:40）：
+#     python -m ops.backup knowledge --env-file deploy/team/.env.team
+#     python -m ops.backup assistant --env-file deploy/team/.env.team
+
+name: meal-team
+
+services:
+  knowledge-db:
+    image: pgvector/pgvector:0.8.6-pg17
+    container_name: meal-knowledge-db
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${KNOWLEDGE_DB_PASSWORD:?Set KNOWLEDGE_DB_PASSWORD in deploy/team/.env.team}
+      POSTGRES_DB: meal_knowledge
+    ports:
+      - "127.0.0.1:55437:5432"
+    volumes:
+      - knowledge_pg:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d meal_knowledge"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+  assistant-db:
+    image: pgvector/pgvector:0.8.6-pg17
+    container_name: overcooked-assistant-db
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${ASSISTANT_DB_PASSWORD:?Set ASSISTANT_DB_PASSWORD in deploy/team/.env.team}
+      POSTGRES_DB: overcooked_assistant
+    ports:
+      - "127.0.0.1:55436:5432"
+    volumes:
+      - assistant_pg:/var/lib/postgresql/data
+      - ../../assistant_rag/schema.sql:/docker-entrypoint-initdb.d/10-assistant-schema.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d overcooked_assistant"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+  assistant-reranker:
+    image: ghcr.io/huggingface/text-embeddings-inference:120-1.9.4
+    container_name: overcooked-assistant-reranker
+    command: ["--model-id", "/model"]
+    ports:
+      - "127.0.0.1:8092:80"
+    volumes:
+      # 權重預先放在 Data Root，唯讀掛載，不在容器內下載（見 assistant_rag/README.md）
+      - ${ASSISTANT_RERANKER_MODEL_DIR:?Set ASSISTANT_RERANKER_MODEL_DIR in deploy/team/.env.team}:/model:ro
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    restart: unless-stopped
+
+volumes:
+  knowledge_pg:
+  # 與開發環境同名：已有的飲食小幫手語料與索引直接沿用，新電腦則自動建立
+  assistant_pg:
+    name: overcooked-assistant-pgdata
