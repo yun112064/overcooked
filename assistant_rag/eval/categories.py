@@ -95,7 +95,7 @@ def run(threshold: float = 0.5, log=print) -> dict:
     rows = []
     with store.connect() as conn:
         retriever = Retriever(conn)
-        bot = Assistant(retriever, settings=Settings(method="hybrid_rerank", embedder="bge-m3", threshold=threshold))
+        bot = Assistant(retriever, settings=Settings(method="hybrid_rerank", embedder="embeddinggemma", threshold=threshold))
         for i, item in enumerate(items, 1):
             out = bot.answer(item["question"])
             ids = [r["chunk_id"] for r in out["references"]]

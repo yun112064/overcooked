@@ -5,7 +5,7 @@
 .DESCRIPTION
   每次執行都可重複（已完成的步驟會略過）：
     - 沒有 .env.prod → 產生（隨機 DB 密碼與內部權杖；OPENAI_API_KEY 由 .env.dev 帶入；不顯示任何秘密）
-    - 確認 Ollama 與模型（bge-m3、embeddinggemma、qwen3.5:9b）→ 建置映像 → 啟動三個資料庫
+    - 確認 Ollama 與模型（embeddinggemma、qwen3.5:9b）→ 建置映像 → 啟動三個資料庫
     - 第一次以 install_real_nutrition 安裝經雜湊核對的真實食譜／營養資料包
     - python -m ops.deploy：部署前備份（含獨立位置副本）→ alembic upgrade head
     - T11 知識：knowledge_rag.bootstrap（本機 embeddinggemma，不呼叫付費 API）
@@ -81,9 +81,9 @@ if (-not $models) {
     Warn 'Ollama 沒有在執行：T11 知識與飲食小幫手會顯示不可用（開啟 Ollama 後重跑）。'
 } else {
     $llm = Val $Prod 'ASSISTANT_LLM_MODEL' 'qwen3.5:9b-q4_K_M'
-    $missing = @('bge-m3:latest', 'embeddinggemma:latest', $llm) | Where-Object { $_ -notin $models }
+    $missing = @('embeddinggemma:latest', $llm) | Where-Object { $_ -notin $models }
     if ($missing) { Warn "Ollama 缺少模型：$($missing -join '、')（ollama pull <名稱>）；相關功能會顯示不可用。" }
-    else { Info "bge-m3、embeddinggemma、$llm 已就緒" }
+    else { Info "embeddinggemma、$llm 已就緒" }
 }
 if (-not (Test-Path (Join-Path (Val $Prod 'ASSISTANT_RERANKER_MODEL_DIR') 'model.safetensors'))) {
     Warn '找不到重排模型權重（ASSISTANT_RERANKER_MODEL_DIR）；飲食小幫手會顯示不可用。'

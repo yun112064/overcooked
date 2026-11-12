@@ -1,7 +1,7 @@
 """命令列試查：同一題比較六種檢索方法（11 組）。
 
   python -m assistant_rag.search "吃地瓜有什麼好處"                       # 11 組全部
-  python -m assistant_rag.search "痛風可以吃豆腐嗎" --method entity_boost --embedder bge-m3
+  python -m assistant_rag.search "痛風可以吃豆腐嗎" --method entity_boost --embedder embeddinggemma
   python -m assistant_rag.search "…" --json                                 # 完整結果（含片段原文）
   python -m assistant_rag.search --interactive                              # 連續輸入問題
 

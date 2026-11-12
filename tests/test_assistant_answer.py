@@ -45,7 +45,7 @@ class FakeChat:
 
 def bot(chat=None, retriever=None, threshold=0.5):
     return Assistant(retriever or FakeRetriever(), chat or FakeChat(),
-                     Settings(method="hybrid_rerank", embedder="bge-m3", threshold=threshold), converter=lambda s: s)
+                     Settings(method="hybrid_rerank", embedder="embeddinggemma", threshold=threshold), converter=lambda s: s)
 
 
 @pytest.mark.parametrize("text,kind", [("你好", "hello"), ("謝謝你！", "thanks"), ("你是誰？", "who"),
@@ -157,7 +157,7 @@ def test_bad_input_and_llm_failure():
 def test_non_rerank_method_requires_explicit_threshold(monkeypatch):
     monkeypatch.delenv("RAG_REFUSAL_THRESHOLD", raising=False)
     with pytest.raises(ValueError):
-        Settings(method="hybrid", embedder="bge-m3")
+        Settings(method="hybrid", embedder="embeddinggemma")
     assert Settings(method="multi_query").threshold == 0.5
 
 
@@ -199,7 +199,7 @@ def test_bullets_on_own_lines_and_simplified_only_conversion():
     assert to_traditional("膳食纤维与蛋白质") == "膳食纖維與蛋白質"
     assert to_traditional("干擾、里面、便秘、后來") == "干擾、里面、便秘、后來"  # 繁體文字不被改壞
     a = Assistant(FakeRetriever(), FakeChat(["・地瓜含纤维[1]。", "・地瓜葉含鈣[2]。"]),
-                  Settings(method="hybrid_rerank", embedder="bge-m3", threshold=0.5))
+                  Settings(method="hybrid_rerank", embedder="embeddinggemma", threshold=0.5))
     text = a.answer("地瓜好處")["text"]
     assert text.startswith("・地瓜含纖維[1]。\n・地瓜葉含鈣[2]。")
 
@@ -235,7 +235,7 @@ def test_category_lookup_prefers_longest_name_and_skips_unknown_category():
 def test_category_answer_when_food_itself_below_threshold():
     chat = FakeChat(["醬料通常含鈉，建議適量沾取[1]。"])
     retriever = ScriptedRetriever(first=0.2, category=0.9)
-    a = Assistant(retriever, chat, Settings(method="hybrid_rerank", embedder="bge-m3", threshold=0.5),
+    a = Assistant(retriever, chat, Settings(method="hybrid_rerank", embedder="embeddinggemma", threshold=0.5),
                   converter=lambda s: s, categories=CATS)
     out = a.answer("辣豆瓣醬吃多了會怎樣")
     assert retriever.queries == ["辣豆瓣醬吃多了會怎樣", "醬料和沾醬怎麼吃比較健康"]
@@ -249,12 +249,12 @@ def test_category_answer_when_food_itself_below_threshold():
 def test_category_also_below_threshold_refuses_and_known_food_not_rerouted():
     chat = FakeChat(["不該出現。"])
     retriever = ScriptedRetriever(first=0.2, category=0.3)
-    a = Assistant(retriever, chat, Settings(method="hybrid_rerank", embedder="bge-m3", threshold=0.5),
+    a = Assistant(retriever, chat, Settings(method="hybrid_rerank", embedder="embeddinggemma", threshold=0.5),
                   converter=lambda s: s, categories=CATS)
     assert a.answer("豆瓣醬健康嗎")["type"] == "out_of_scope" and chat.streamed == []
     # 本身就查得到（過門檻且文章有提到）時不改查類別
     ok = ScriptedRetriever(first=0.8, category=0.9, text="豆瓣醬的鈉含量偏高。")
-    b = Assistant(ok, FakeChat(["可以[1]。"]), Settings(method="hybrid_rerank", embedder="bge-m3", threshold=0.5),
+    b = Assistant(ok, FakeChat(["可以[1]。"]), Settings(method="hybrid_rerank", embedder="embeddinggemma", threshold=0.5),
                   converter=lambda s: s, categories=CATS)
     assert b.answer("豆瓣醬健康嗎")["type"] == "answer" and ok.queries == ["豆瓣醬健康嗎"]
 
@@ -269,7 +269,7 @@ def test_refuse_food_not_answered_with_category_or_similar_food(first, text):
     assert REFUSE_CATS.lookup("皮蛋有什麼營養").refuse and not REFUSE_CATS.lookup("雞蛋有什麼營養").refuse
     chat = FakeChat(["不該出現。"])
     retriever = ScriptedRetriever(first=first, category=0.9, text=text)
-    a = Assistant(retriever, chat, Settings(method="hybrid_rerank", embedder="bge-m3", threshold=0.5),
+    a = Assistant(retriever, chat, Settings(method="hybrid_rerank", embedder="embeddinggemma", threshold=0.5),
                   converter=lambda s: s, categories=REFUSE_CATS)
     out = a.answer("皮蛋有什麼營養")
     assert out["type"] == "out_of_scope" and chat.streamed == [] and retriever.queries == ["皮蛋有什麼營養"]
@@ -278,7 +278,7 @@ def test_refuse_food_not_answered_with_category_or_similar_food(first, text):
 
 def test_refuse_food_answered_when_articles_mention_it():
     retriever = ScriptedRetriever(first=0.8, category=0.9, text="皮蛋是鹼性加工蛋品。")
-    a = Assistant(retriever, FakeChat(["皮蛋是加工蛋品[1]。"]), Settings(method="hybrid_rerank", embedder="bge-m3", threshold=0.5),
+    a = Assistant(retriever, FakeChat(["皮蛋是加工蛋品[1]。"]), Settings(method="hybrid_rerank", embedder="embeddinggemma", threshold=0.5),
                   converter=lambda s: s, categories=REFUSE_CATS)
     assert a.answer("皮蛋有什麼營養")["type"] == "answer"
 
@@ -390,14 +390,14 @@ def test_off_topic_article_above_threshold_reroutes_to_category():
     # 過門檻但文章沒提到豆瓣醬（例如只談醬油）→ 類別回答，原因標 not_mentioned
     chat = FakeChat(["醬料通常含鈉[1]。"])
     retriever = ScriptedRetriever(first=0.9, category=0.9, text="醬油的鈉含量偏高。")
-    a = Assistant(retriever, chat, Settings(method="hybrid_rerank", embedder="bge-m3", threshold=0.5),
+    a = Assistant(retriever, chat, Settings(method="hybrid_rerank", embedder="embeddinggemma", threshold=0.5),
                   converter=lambda s: s, categories=CATS)
     out = a.answer("豆瓣醬健康嗎")
     assert out["type"] == "category_answer" and out["done"]["fallback"]["reason"] == "not_mentioned"
     assert retriever.queries == ["豆瓣醬健康嗎", "醬料和沾醬怎麼吃比較健康"]
     # 類別也低於門檻 → 拒答，不拿無關文章回答
     low = ScriptedRetriever(first=0.9, category=0.2, text="醬油的鈉含量偏高。")
-    b = Assistant(low, FakeChat(["不該出現。"]), Settings(method="hybrid_rerank", embedder="bge-m3", threshold=0.5),
+    b = Assistant(low, FakeChat(["不該出現。"]), Settings(method="hybrid_rerank", embedder="embeddinggemma", threshold=0.5),
                   converter=lambda s: s, categories=CATS)
     assert b.answer("豆瓣醬健康嗎")["type"] == "out_of_scope"
 
@@ -434,7 +434,7 @@ ALIAS_CATS = FoodCategories({"categories": {"veg": {"label": "蔬菜", "query": 
 def test_alias_requery_answers_directly_with_notice():
     chat = FakeChat(["南瓜富含β-胡蘿蔔素[1]。"])
     retriever = AliasRetriever()
-    a = Assistant(retriever, chat, Settings(method="hybrid_rerank", embedder="bge-m3", threshold=0.5),
+    a = Assistant(retriever, chat, Settings(method="hybrid_rerank", embedder="embeddinggemma", threshold=0.5),
                   converter=lambda s: s, categories=ALIAS_CATS)
     out = a.answer("金瓜有什麼好處")
     assert retriever.queries == ["金瓜有什麼好處", "南瓜有什麼好處"]
@@ -444,7 +444,7 @@ def test_alias_requery_answers_directly_with_notice():
 
 def test_food_without_alias_goes_straight_to_category():
     retriever = AliasRetriever()
-    a = Assistant(retriever, FakeChat(["蔬菜好[1]。"]), Settings(method="hybrid_rerank", embedder="bge-m3", threshold=0.5),
+    a = Assistant(retriever, FakeChat(["蔬菜好[1]。"]), Settings(method="hybrid_rerank", embedder="embeddinggemma", threshold=0.5),
                   converter=lambda s: s, categories=ALIAS_CATS)
     assert a.answer("冬菇有什麼好處")["type"] == "category_answer"
     assert retriever.queries == ["冬菇有什麼好處", "多吃蔬菜有什麼好處"]

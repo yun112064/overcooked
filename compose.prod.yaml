@@ -13,7 +13,7 @@
 #   （Caddy 只在內部提供 HTTP，不處理憑證；/api/internal/* 一律 404）。
 # - 快速通道限制：網址每次重開都會變；同時最多 200 個進行中的請求；Cloudflare 文件寫不支援 SSE，
 #   實測 POST 串流（飲食小幫手用的方式）會即時送達，GET 會被緩衝到最後（2026-11-12）。
-# - YOLO 需要 GPU，以主機原生程序執行（綁 127.0.0.1）；嵌入（bge-m3、embeddinggemma）與回答（qwen3.5:9b）
+# - YOLO 需要 GPU，以主機原生程序執行（綁 127.0.0.1）；嵌入（embeddinggemma）與回答（qwen3.5:9b）
 #   用主機的 Ollama；容器都經 host.docker.internal 連線。重排 bge-reranker-v2-m3 用 TEI 容器（GPU）。
 # - 秘密只放 .env.prod（不進 Git），由 prod-up 產生。
 

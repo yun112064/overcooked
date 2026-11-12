@@ -1,6 +1,6 @@
 """步驟 2：分段、斷詞、建向量索引（可中斷，重跑會接續）。
 
-  python -m assistant_rag.index build [--embedders bge-m3,embeddinggemma] [--no-activate]
+  python -m assistant_rag.index build [--embedders embeddinggemma] [--no-activate]
   python -m assistant_rag.index status
   python -m assistant_rag.index probe "吃地瓜有什麼好處"      # 健全性檢查：BM25 與各向量索引前 5 名
 
