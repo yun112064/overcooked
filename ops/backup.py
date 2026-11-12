@@ -41,8 +41,8 @@ SNAPSHOT_PATHS = {
 # 知識庫與小幫手庫為 deploy/team/compose.yaml。V3 開發庫 overcooked-1102-v3-db 只能以 --container 明確指定
 DEFAULTS = {
     "cloud": ("meal-prod-db", "meal_planner_prod"),
-    "knowledge": ("meal-knowledge-db", "meal_knowledge"),
-    "assistant": ("overcooked-assistant-db", "overcooked_assistant"),
+    "knowledge": ("meal-prod-knowledge-db", "meal_knowledge"),
+    "assistant": ("meal-prod-assistant-db", "overcooked_assistant"),
 }
 CLOUD_COUNT_TABLES = ("users", "households", "household_members", "meal_requests", "generation_results",
                       "adopted_meal_plans", "recipes")
@@ -50,6 +50,8 @@ KNOWLEDGE_SOURCES_SQL = "SELECT row_to_json(r) FROM knowledge_records r ORDER BY
 SKIP_PARTS = {"__pycache__", "tests", ".pytest_cache"}
 # 不放進備份的 Data Root 項目：Log 另有保留政策；db.env 只是本機連線密碼，還原時重新產生
 DATA_ROOT_EXCLUDE = {"logs", "db.env"}
+# 只在 Data Root 最上層略過：模型權重（約 2.3 GB）可依 models/*/REVISION 從官方重新下載
+DATA_ROOT_TOP_EXCLUDE = DATA_ROOT_EXCLUDE | {"models"}
 
 
 class BackupError(RuntimeError):
@@ -150,7 +152,7 @@ def create_backup(side: str, *, pg: PgTools, database: str, backup_root: Path, c
     pg.dump(database, work / "database.dump")
     if data_root is not None:
         data_root = Path(data_root)
-        entries = sorted(p.name for p in data_root.iterdir() if p.name not in DATA_ROOT_EXCLUDE)
+        entries = sorted(p.name for p in data_root.iterdir() if p.name not in DATA_ROOT_TOP_EXCLUDE)
         _tar(work / "data_root.tar.gz", data_root, entries)
         manifest["data_root_entries"] = entries
     if side == "knowledge":

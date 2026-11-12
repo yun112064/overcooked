@@ -1,28 +1,42 @@
-# T17 正式環境（單機）：整套系統跑在團隊電腦，對外只經 Cloudflare named tunnel＋自己的網域
-# （2026-11-12 使用者決議：不租雲端主機；團隊電腦關機時整站離線，AC24 不列入驗收）
+# T17 正式環境：與 t11-t20-demo 相同的部署方式——整套系統在團隊電腦的 Docker，
+# 對外只經 Cloudflare 快速通道（trycloudflare.com 臨時網址，免帳號、免網域、免費）。
+# （2026-11-12 使用者決議；AC24 不列入驗收：電腦關機或斷網時整站離線）
 #
-#   python -m ops.preflight --env-file .env.prod                                       # 設定檢查（不印秘密值）
-#   docker compose --env-file .env.prod -f compose.yaml -f compose.prod.yaml config    # 檢查合併結果
-#   python -m ops.deploy --env-file .env.prod                                          # 部署／更新（含部署前備份）
-#   .\scripts\prod-up.ps1                                                              # 平日啟動（含 YOLO、知識、小幫手）
+#   .\scripts\prod-up.ps1          啟動（產生 .env.prod、安裝資料包、部署前備份＋migration、YOLO、通道）
+#   .\scripts\prod-down.ps1        關閉（資料保留）
+#   .\scripts\assistant-data.ps1   飲食小幫手：爬取語料並建索引（第一次約 1–2 小時，可中斷接續）
+#   docker compose --env-file .env.prod -f compose.yaml -f compose.prod.yaml config   檢查合併結果
 #
-# - 與開發環境分開：專案 meal-prod、容器 meal-prod-*、資料庫 volume meal-prod-pgdata；
-#   絕不沿用 compose.yaml 的 overcooked-1102-v3-db／overcooked-1102-v3-pgdata（V3 開發資料庫）。
-# - 不開任何對外連入埠：cloudflared 主動連出，HTTPS 憑證由 Cloudflare 處理；Cloudflare 後台 tunnel 只設一個
-#   Public Hostname：${PUBLIC_HOSTNAME} → http://frontend:80（Caddy 只在內部提供 HTTP，/api/internal/* 一律 404）。
-# - backend 只綁 127.0.0.1:${PROD_BACKEND_PORT}：同一台電腦的飲食小幫手回呼 /internal/assistant/chat（Bearer 核對
-#   INTERNAL_API_TOKEN）由雲端模型生成回答；其他電腦連不到。
-# - YOLO、T11 知識、飲食小幫手檢索以主機原生程序執行（GPU／Ollama，見 scripts/prod-up.ps1），容器經
-#   host.docker.internal 連線；未啟動時該功能顯示不可用，其餘功能照常。
-# - 排程程序（逾時工作回收、Log 清理、每日查價）在正式環境一定啟動。
-# - 秘密只放 .env.prod（不進 Git），變數名稱見 .env.prod.example。
+# - 與開發環境、demo 分支的展示站分開：專案 meal-prod、容器 meal-prod-*、資料庫 volume meal-prod-*；
+#   絕不沿用 compose.yaml 的 overcooked-1102-v3-db（V3 開發資料庫），也不用 overcooked-demo 的名稱。
+# - 主機不開任何連入埠：所有容器都沒有 ports；只有 cloudflared 主動連出，公開網址只轉到 frontend:80
+#   （Caddy 只在內部提供 HTTP，不處理憑證；/api/internal/* 一律 404）。
+# - 快速通道限制：網址每次重開都會變；同時最多 200 個進行中的請求；Cloudflare 文件寫不支援 SSE，
+#   實測 POST 串流（飲食小幫手用的方式）會即時送達，GET 會被緩衝到最後（2026-11-12）。
+# - YOLO 需要 GPU，以主機原生程序執行（綁 127.0.0.1）；嵌入（bge-m3、embeddinggemma）與回答（qwen3.5:9b）
+#   用主機的 Ollama；容器都經 host.docker.internal 連線。重排 bge-reranker-v2-m3 用 TEI 容器（GPU）。
+# - 秘密只放 .env.prod（不進 Git），由 prod-up 產生。
 
 name: meal-prod
 
 x-prod-database: &prod-database
-  DATABASE_URL: ${DATABASE_URL:?Set DATABASE_URL in .env.prod (install_real_nutrition output)}
+  # prod-up 安裝資料包後寫入 .env.prod；尚未安裝時為空，後端的 schema 閘門會拒絕啟動
+  DATABASE_URL: ${DATABASE_URL:-}
   NUTRITION_POLICY_MANIFEST: /app/release_data/nutrition-v1/policy.json
-  NUTRITION_POLICY_MANIFEST_SHA256: ${NUTRITION_POLICY_MANIFEST_SHA256:?Set NUTRITION_POLICY_MANIFEST_SHA256 in .env.prod}
+  NUTRITION_POLICY_MANIFEST_SHA256: ${NUTRITION_POLICY_MANIFEST_SHA256:-}
+
+x-knowledge-database: &knowledge-database
+  KNOWLEDGE_DATABASE_URL: postgresql://postgres:${KNOWLEDGE_DB_PASSWORD:?Set KNOWLEDGE_DB_PASSWORD in .env.prod}@knowledge-db:5432/meal_knowledge
+  OLLAMA_URL: http://host.docker.internal:11434
+
+x-assistant-environment: &assistant-environment
+  ASSISTANT_DATABASE_URL: postgresql://postgres:${ASSISTANT_DB_PASSWORD:?Set ASSISTANT_DB_PASSWORD in .env.prod}@assistant-db:5432/overcooked_assistant
+  ASSISTANT_DATA_DIR: /assistant-data
+  RAG_OLLAMA_URL: http://host.docker.internal:11434
+  RAG_RERANK_URL: http://assistant-reranker:80
+  # 回答在本機以 Ollama 生成（2026-11-12 使用者決議改回地端），不呼叫付費 API
+  RAG_LLM_PROVIDER: ollama
+  RAG_LLM_MODEL: ${ASSISTANT_LLM_MODEL:-qwen3.5:9b-q4_K_M}
 
 services:
   db:
@@ -35,16 +49,24 @@ services:
   backend:
     image: meal-prod-backend
     container_name: meal-prod-backend
-    ports: !override
-      - "127.0.0.1:${PROD_BACKEND_PORT:-18000}:8000"
+    ports: !reset []
     extra_hosts:
       - "host.docker.internal:host-gateway"
     environment:
       <<: *prod-database
-      ALLOWED_ORIGINS: https://${PUBLIC_HOSTNAME:?Set PUBLIC_HOSTNAME in .env.prod}
+      ALLOWED_ORIGINS: https://${PUBLIC_HOSTNAME:-prod.invalid}
       COOKIE_SECURE: "true"
-      # 正式環境不在啟動時升級 schema；只由 ops.deploy 在部署前備份後升級，啟動時 schema 閘門確認在 head
+      # 不在啟動時升級 schema；由 prod-up 經 ops.deploy 先做部署前備份再 alembic upgrade head
       AUTO_MIGRATE: "false"
+      RECOGNITION_SERVICE_URL: http://host.docker.internal:${PROD_YOLO_PORT:-8776}
+      RECOGNITION_SERVICE_TOKEN: ${INFERENCE_TOKEN:?Set INFERENCE_TOKEN in .env.prod}
+      KNOWLEDGE_SERVICE_URL: http://knowledge-rag:8091
+      KNOWLEDGE_SERVICE_TOKEN: ${KNOWLEDGE_SERVICE_TOKEN:?Set KNOWLEDGE_SERVICE_TOKEN in .env.prod}
+      # 飲食小幫手（本機模型版）；OpenAI 版不啟用
+      ASSISTANT_SERVICE_URL: http://assistant-rag:8093
+      ASSISTANT_SERVICE_TOKEN: ${ASSISTANT_SERVICE_TOKEN:?Set ASSISTANT_SERVICE_TOKEN in .env.prod}
+      ASSISTANT_OPENAI_SERVICE_URL: ""
+      INTERNAL_API_TOKEN: ${INTERNAL_API_TOKEN:?Set INTERNAL_API_TOKEN in .env.prod}
     volumes: !override
       - ${PROJECT_DATA_ROOT:?Set PROJECT_DATA_ROOT}:/app/data
       - ${PROJECT_RUNTIME_ROOT:?Set PROJECT_RUNTIME_ROOT}:/app/runtime
@@ -57,8 +79,10 @@ services:
       - "host.docker.internal:host-gateway"
     environment:
       <<: *prod-database
-      RECOGNITION_SERVICE_URL: ${RECOGNITION_SERVICE_URL:-}
-      RECOGNITION_SERVICE_TOKEN: ${RECOGNITION_SERVICE_TOKEN:-}
+      RECOGNITION_SERVICE_URL: http://host.docker.internal:${PROD_YOLO_PORT:-8776}
+      RECOGNITION_SERVICE_TOKEN: ${INFERENCE_TOKEN:?Set INFERENCE_TOKEN in .env.prod}
+      KNOWLEDGE_SERVICE_URL: http://knowledge-rag:8091
+      KNOWLEDGE_SERVICE_TOKEN: ${KNOWLEDGE_SERVICE_TOKEN:?Set KNOWLEDGE_SERVICE_TOKEN in .env.prod}
     volumes: !override
       - ${PROJECT_DATA_ROOT:?Set PROJECT_DATA_ROOT}:/app/data
     restart: unless-stopped
@@ -76,20 +100,126 @@ services:
     ports: !reset []
     restart: unless-stopped
 
+  # ---- T11 營養知識 RAG（索引由 knowledge_rag.bootstrap 以本機 embeddinggemma 建立，不呼叫付費 API） ----
+  knowledge-db:
+    image: pgvector/pgvector:0.8.6-pg17
+    container_name: meal-prod-knowledge-db
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${KNOWLEDGE_DB_PASSWORD:?Set KNOWLEDGE_DB_PASSWORD in .env.prod}
+      POSTGRES_DB: meal_knowledge
+    volumes:
+      - prod_knowledge_pg:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d meal_knowledge"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+  knowledge-rag:
+    build:
+      context: .
+      dockerfile: deploy/prod/rag.Dockerfile
+    image: meal-prod-rag
+    container_name: meal-prod-knowledge-rag
+    command: ["uvicorn", "knowledge_rag.server:create_app", "--factory", "--host", "0.0.0.0", "--port", "8091",
+              "--no-access-log"]
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    environment:
+      <<: *knowledge-database
+      KNOWLEDGE_SERVICE_TOKEN: ${KNOWLEDGE_SERVICE_TOKEN:?Set KNOWLEDGE_SERVICE_TOKEN in .env.prod}
+    depends_on:
+      knowledge-db:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # ---- R14 飲食小幫手：語料／索引在 assistant-db，原文在 ASSISTANT_DATA_DIR（Git 之外） ----
+  assistant-db:
+    image: pgvector/pgvector:0.8.6-pg17
+    container_name: meal-prod-assistant-db
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${ASSISTANT_DB_PASSWORD:?Set ASSISTANT_DB_PASSWORD in .env.prod}
+      POSTGRES_DB: overcooked_assistant
+    volumes:
+      - prod_assistant_pg:/var/lib/postgresql/data
+      - ./assistant_rag/schema.sql:/docker-entrypoint-initdb.d/10-assistant-schema.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d overcooked_assistant"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+  assistant-reranker:
+    # RTX 40 系列（Ada）用 89-*；RTX 50 系列改 TEI_IMAGE_TAG=120-1.9.4
+    image: ghcr.io/huggingface/text-embeddings-inference:${TEI_IMAGE_TAG:-89-1.9.4}
+    container_name: meal-prod-assistant-reranker
+    command: ["--model-id", "/model"]
+    volumes:
+      # 官方 BAAI/bge-reranker-v2-m3 權重預先放在 Data Root（REVISION 記錄版本），唯讀掛載，不在容器內下載
+      - ${ASSISTANT_RERANKER_MODEL_DIR:?Set ASSISTANT_RERANKER_MODEL_DIR in .env.prod}:/model:ro
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    restart: unless-stopped
+
+  assistant-rag:
+    image: meal-prod-rag
+    container_name: meal-prod-assistant-rag
+    command: ["python", "-m", "assistant_rag.server", "--host", "0.0.0.0", "--port", "8093"]
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    environment:
+      <<: *assistant-environment
+      ASSISTANT_SERVICE_TOKEN: ${ASSISTANT_SERVICE_TOKEN:?Set ASSISTANT_SERVICE_TOKEN in .env.prod}
+    volumes:
+      - ${ASSISTANT_DATA_DIR:?Set ASSISTANT_DATA_DIR in .env.prod}:/assistant-data:ro
+    depends_on:
+      assistant-db:
+        condition: service_healthy
+      knowledge-rag:
+        condition: service_started
+    restart: unless-stopped
+
+  # 一次性工具（知識 bootstrap、小幫手爬取與建索引）：docker compose ... run --rm rag-tools <指令>
+  rag-tools:
+    image: meal-prod-rag
+    profiles: ["tools"]
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    environment:
+      <<: [*knowledge-database, *assistant-environment]
+    volumes:
+      - ${ASSISTANT_DATA_DIR:?Set ASSISTANT_DATA_DIR in .env.prod}:/assistant-data
+    depends_on:
+      knowledge-db:
+        condition: service_healthy
+      assistant-db:
+        condition: service_healthy
+
   cloudflared:
     image: cloudflare/cloudflared:2026.9.0
     container_name: meal-prod-cloudflared
-    command: ["tunnel", "--no-autoupdate", "run"]
-    environment:
-      # 遠端管理的 named tunnel 權杖（Cloudflare Zero Trust → Networks → Tunnels）；只放 .env.prod
-      TUNNEL_TOKEN: ${CLOUDFLARE_TUNNEL_TOKEN:?Set CLOUDFLARE_TUNNEL_TOKEN in .env.prod}
+    profiles: ["tunnel"]
+    # 快速通道：不需 Cloudflare 帳號或 token，每次重建容器網址都會變
+    command: ["tunnel", "--no-autoupdate", "--url", "http://frontend:80"]
     depends_on:
       frontend:
         condition: service_started
-      backend:
-        condition: service_healthy
-    restart: unless-stopped
+    # 不自動重啟：電腦重開後不會帶著舊網址（與 ALLOWED_ORIGINS 不符）自行上線，要重新執行 prod-up
+    restart: "no"
 
 volumes:
   prod_pg:
     name: meal-prod-pgdata
+  prod_knowledge_pg:
+    name: meal-prod-knowledge-pgdata
+  prod_assistant_pg:
+    name: meal-prod-assistant-pgdata

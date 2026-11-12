@@ -1,11 +1,9 @@
-"""T17 正式部署（單機，整套跑在團隊電腦）：python -m ops.deploy --env-file .env.prod
+"""T17 部署前備份與 schema 升級：python -m ops.deploy --env-file .env.prod（scripts/prod-up.ps1 呼叫）
 
-固定順序：正式設定檢查 → 部署前備份（label=predeploy，並複製到獨立位置）→ 建置映像 →
-alembic upgrade head（只在這裡升級；正式後端 AUTO_MIGRATE=false，啟動時由 schema 閘門確認）→ 啟動。
+固定順序：設定檢查 → 部署前備份（label=predeploy，並複製到獨立位置）→ alembic upgrade head。
 任何一步失敗就停止；遷移失敗不自動 downgrade，改以部署前備份還原到新資料庫（ops.restore）。
-
-首次部署：先以 scripts/install_real_nutrition.py 把真實食譜／營養資料包裝進新資料庫，
-把它輸出的 DATABASE_URL 等設定寫進 .env.prod，再執行本指令（見 .env.prod.example）。
+建置映像、啟動服務與快速通道由 prod-up 負責；正式後端 AUTO_MIGRATE=false，只在這裡升級，
+啟動時由 schema 閘門確認在 head。
 """
 import argparse
 import os
@@ -45,7 +43,7 @@ def deploy(*, preflight, backup, run, out=print, env_file: str = ".env.prod", mi
     """migrate_env：只給 alembic 那一步的環境變數（管理連線；應用程式的受限角色沒有 DDL 權限）。"""
     problems = preflight()
     if problems:
-        out("部署中止：正式設定檢查未通過")
+        out("中止：設定檢查未通過")
         for p in problems:
             out(f"  - {p}")
         return 2
@@ -53,23 +51,15 @@ def deploy(*, preflight, backup, run, out=print, env_file: str = ".env.prod", mi
         backup_path = backup()
     except Exception as exc:  # noqa: BLE001
         from ops.env import safe_error
-        out(f"部署中止：部署前備份失敗（{safe_error(exc)}），未做任何變更")
+        out(f"中止：部署前備份失敗（{safe_error(exc)}），未做任何變更")
         return 3
     out(f"部署前備份：{backup_path}" if backup_path else "部署前備份：資料庫尚無資料表，不需備份")
-    compose = compose_cmd(env_file)
-    if run([*compose, "build"]) != 0:
-        out("部署中止：建置失敗，資料庫未變更")
-        return 4
-    if run([*compose, "run", "--rm", "--no-deps", "-e", "DATABASE_URL", "backend", "alembic", "-c",
+    if run([*compose_cmd(env_file), "run", "--rm", "--no-deps", "-e", "DATABASE_URL", "backend", "alembic", "-c",
             "/app/alembic.ini", "upgrade", "head"], env=migrate_env) != 0:
-        out("部署中止：Alembic 升級失敗。不要執行 downgrade；舊版服務仍可繼續使用（若 schema 未變）。")
-        out("若資料庫已部分變更，以部署前備份還原到新資料庫後再切換 DATABASE_URL：")
+        out("中止：Alembic 升級失敗。不要執行 downgrade；若資料庫已部分變更，以部署前備份還原到新資料庫後再切換 DATABASE_URL：")
         out(f"  python -m ops.restore {backup_path} --target-database <新資料庫名稱> --data-target <新 Data Root>")
         return 5
-    if run([*compose, "up", "-d", "--remove-orphans"]) != 0:
-        out("啟動失敗：schema 已升級，請檢查 docker compose logs；必要時以部署前備份還原")
-        return 6
-    out("部署完成（不代表五人容量已驗證）")
+    out("schema 已在 head（不代表五人容量已驗證）")
     return 0
 
 
@@ -79,15 +69,12 @@ def main(argv=None) -> int:
     from ops.pg import PgTools
     from ops.preflight import check
 
-    parser = argparse.ArgumentParser(description="T17 雲端部署（含部署前備份與 Alembic 閘門）")
+    parser = argparse.ArgumentParser(description="T17 部署前備份與 Alembic 升級")
     parser.add_argument("--env-file", default=".env.prod")
     args = parser.parse_args(argv)
     env = load_env(REPO_ROOT / args.env_file)
 
     def do_backup():
-        # 先確保資料庫容器在執行
-        if subprocess.run([*compose_cmd(args.env_file), "up", "-d", "--wait", "db"], cwd=REPO_ROOT).returncode:
-            raise RuntimeError("資料庫容器無法啟動")
         pg = PgTools(container=env.get("BACKUP_CLOUD_CONTAINER") or DEFAULTS["cloud"][0])
         return predeploy_backup(pg=pg, database=database_name(env), backup_root=Path(env["PROJECT_BACKUP_ROOT"]),
                                 data_root=Path(env["PROJECT_DATA_ROOT"]),
