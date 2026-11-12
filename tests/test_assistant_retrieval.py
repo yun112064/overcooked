@@ -63,7 +63,7 @@ def make(rerank=None, chat=None, vector_rank=None):
 
 def test_eleven_combinations():
     pairs = combos()
-    assert len(pairs) == 11 and pairs[0] == ("bm25", None)
+    assert len(pairs) == 6 and pairs[0] == ("bm25", None)  # bm25＋5 種方法×embeddinggemma
     assert {m for m, _ in pairs} == set(METHODS)
 
 
@@ -84,19 +84,19 @@ def test_method_requires_embedder():
     with pytest.raises(ValueError):
         make().search("地瓜", "hybrid")
     with pytest.raises(ValueError):
-        make().search("地瓜", "unknown", "bge-m3")
+        make().search("地瓜", "unknown", "embeddinggemma")
 
 
 def test_hybrid_fuses_bm25_and_vector():
     r = make(vector_rank={"雞蛋蛋白質": ["d:0", "c:0"]})
-    result = r.search("雞蛋蛋白質", "hybrid", "bge-m3")
+    result = r.search("雞蛋蛋白質", "hybrid", "embeddinggemma")
     assert result.hits[0].chunk_id == "d:0"
     assert result.hits[0].score == pytest.approx(2 / 61, abs=1e-4)
 
 
 def test_rerank_pool_caps_chunks_per_article():
     r = make(rerank={"地瓜葉含鈣與維生素K。": 0.9})
-    result = r.search("地瓜好處", "hybrid_rerank", "bge-m3")
+    result = r.search("地瓜好處", "hybrid_rerank", "embeddinggemma")
     sent = r.reranker().calls[0]
     assert sum(t.startswith("地瓜好處多") for t in sent) == PER_ARTICLE
     assert result.hits[0].article_key == "hy:2" and result.hits[0].score == 0.9
@@ -105,7 +105,7 @@ def test_rerank_pool_caps_chunks_per_article():
 def test_entity_boost_uses_food_itself_not_longer_food_names():
     # 重排把「地瓜葉」文章排第一；問「地瓜」時，標題只有「地瓜葉」的文章不加標題分
     r = make(rerank={"地瓜葉含鈣與維生素K。": 0.80, "地瓜富含膳食纖維，有助腸道健康。": 0.70})
-    result = r.search("吃地瓜有什麼好處", "entity_boost", "bge-m3")
+    result = r.search("吃地瓜有什麼好處", "entity_boost", "embeddinggemma")
     assert result.extras["entities"] == ["地瓜"]
     assert [h.article_key for h in result.hits[:2]] == ["hy:1", "hy:2"]
     assert result.hits[0].score == pytest.approx(0.85) and result.hits[1].score == pytest.approx(0.80)
@@ -123,7 +123,7 @@ def test_multi_query_rewrites_cached_and_reranked_with_original():
     chat = FakeChat(json.dumps({"queries": ["痛風患者能吃豆腐嗎", "痛風患者能吃豆腐嗎", " 高尿酸 豆製品 ", 3]},
                                ensure_ascii=False))
     r = make(rerank={"痛風患者可適量吃豆腐。": 0.95}, chat=chat)
-    first = r.search("痛風可以吃豆腐嗎", "multi_query", "bge-m3")
+    first = r.search("痛風可以吃豆腐嗎", "multi_query", "embeddinggemma")
     r.search("痛風可以吃豆腐嗎", "multi_query", "embeddinggemma")
     assert first.extras["rewrites"] == ["痛風患者能吃豆腐嗎", "高尿酸 豆製品"]  # 去重、去空白、忽略非字串
     assert chat.calls == 1  # 兩個嵌入模型共用同一組改寫，比較才公平
@@ -132,14 +132,14 @@ def test_multi_query_rewrites_cached_and_reranked_with_original():
 
 def test_multi_query_falls_back_when_llm_unavailable_or_bad_json():
     r = make(chat=FakeChat(ProviderUnavailable("LLM_FAILED")))
-    result = r.search("地瓜", "multi_query", "bge-m3")
+    result = r.search("地瓜", "multi_query", "embeddinggemma")
     assert result.extras["rewrite_error"] == "LLM_FAILED" and result.extras["rewrites"] == [] and result.hits
-    assert make(chat=FakeChat("不是 JSON")).search("地瓜", "multi_query", "bge-m3").extras["rewrites"] == []
+    assert make(chat=FakeChat("不是 JSON")).search("地瓜", "multi_query", "embeddinggemma").extras["rewrites"] == []
 
 
 def test_result_dict_has_label_timings_and_hits():
-    data = make().search("地瓜", "vector", "bge-m3").to_dict()
-    assert data["method"] == "vector@bge-m3" and "total" in data["timings"]
+    data = make().search("地瓜", "vector", "embeddinggemma").to_dict()
+    assert data["method"] == "vector@embeddinggemma" and "total" in data["timings"]
     assert {"title", "url", "source_name", "text", "rank"} <= set(data["hits"][0])
 
 

@@ -2,7 +2,7 @@
 
   python -m assistant_rag.eval.evaluate retrieval [--split dev]       # 11 組：Hit@1、Hit@5、MRR@5、延遲；存每題前 5 篇與最高分
   python -m assistant_rag.eval.evaluate threshold                     # 用開發題庫的結果選門檻（不碰驗證集）
-  python -m assistant_rag.eval.evaluate holdout --method hybrid_rerank --embedder bge-m3 --threshold 0.5   # 驗證集只報告一次
+  python -m assistant_rag.eval.evaluate holdout --method hybrid_rerank --embedder embeddinggemma --threshold 0.5   # 驗證集只報告一次
 
 - 檢索指標只算飲食題（expected_behavior=answer、非追問）；relevant_articles 任一篇出現在前 k 篇就算命中（文章層級）。
 - 門檻只用重排分數（0–1）的方法；應回答＝飲食題，應拒答＝非飲食健康與無關題。醫療越界與寒暄由規則處理，不參與門檻。
@@ -53,7 +53,7 @@ def latency(values: list[float]) -> dict:
 def run_retrieval(conn, split: str, pairs, log=print) -> dict:
     questions = load(split)
     retriever = Retriever(conn)
-    retriever.search("暖身", "hybrid_rerank", "bge-m3")  # 先載入模型，避免第一題延遲失真
+    retriever.search("暖身", "hybrid_rerank", "embeddinggemma")  # 先載入模型，避免第一題延遲失真
     rows = []
     for q in questions:
         text = q.get("standalone") or q["question"]
@@ -127,7 +127,7 @@ def main(argv=None) -> int:
     parser.add_argument("command", choices=["retrieval", "threshold", "holdout"])
     parser.add_argument("--split", default="dev")
     parser.add_argument("--method", default="hybrid_rerank")
-    parser.add_argument("--embedder", default="bge-m3")
+    parser.add_argument("--embedder", default="embeddinggemma")
     parser.add_argument("--threshold", type=float)
     args = parser.parse_args(argv)
     sys.stdout.reconfigure(encoding="utf-8", line_buffering=True)
