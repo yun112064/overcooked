@@ -1,19 +1,12 @@
-# T17 團隊電腦：T11 營養知識庫、飲食小幫手庫（PostgreSQL＋pgvector）與重排服務
+# T17 正式環境（單機）的附屬服務：T11 營養知識庫、飲食小幫手庫（PostgreSQL＋pgvector）與重排服務
 #
-#   docker compose --env-file deploy/team/.env.team -f deploy/team/compose.yaml up -d
-#   .\scripts\team-up.ps1        # 再以主機原生程序啟動 YOLO、T11 知識服務、飲食小幫手（GPU／Ollama）
+#   docker compose --env-file .env.prod -f deploy/team/compose.yaml up -d --wait
+#   .\scripts\prod-up.ps1        # 會一併啟動這裡的容器，再以主機原生程序啟動 YOLO、T11 知識服務、飲食小幫手
 #
-# - 所有埠只綁 127.0.0.1；對外只經本機的 cloudflared（Windows 服務，`cloudflared service install <TEAM_TUNNEL_TOKEN>`）
-#   以 Cloudflare named tunnel 連出，不開任何連入埠。tunnel 的 Public Hostname：
-#     yolo.<網域>       → http://127.0.0.1:8765（YOLO）
-#     knowledge.<網域>  → http://127.0.0.1:8091（T11 知識 RAG）
-#     assistant.<網域>  → http://127.0.0.1:8094（飲食小幫手檢索；回答經雲端模型生成）
-#   三個 hostname 都要建立 Cloudflare Access 應用程式，只允許雲端的服務權杖（Service Auth）。
+# - 所有埠只綁 127.0.0.1，不對外；對外只有 compose.prod.yaml 的 cloudflared（只轉到 frontend）。
 # - 名稱與既有開發環境相同（overcooked-assistant-db／overcooked-assistant-reranker），已在跑的容器可直接沿用。
 # - 知識庫 schema 由 knowledge_rag.bootstrap 依嵌入模型建立（本機 embeddinggemma 為 768 維），不在這裡初始化。
-# - 每日備份（Windows 工作排程器，03:40）：
-#     python -m ops.backup knowledge --env-file deploy/team/.env.team
-#     python -m ops.backup assistant --env-file deploy/team/.env.team
+# - 每日備份由 scripts/backup-daily.ps1 一併執行（knowledge、assistant）。
 
 name: meal-team
 
@@ -23,7 +16,7 @@ services:
     container_name: meal-knowledge-db
     environment:
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: ${KNOWLEDGE_DB_PASSWORD:?Set KNOWLEDGE_DB_PASSWORD in deploy/team/.env.team}
+      POSTGRES_PASSWORD: ${KNOWLEDGE_DB_PASSWORD:?Set KNOWLEDGE_DB_PASSWORD in .env.prod}
       POSTGRES_DB: meal_knowledge
     ports:
       - "127.0.0.1:55437:5432"
@@ -41,7 +34,7 @@ services:
     container_name: overcooked-assistant-db
     environment:
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: ${ASSISTANT_DB_PASSWORD:?Set ASSISTANT_DB_PASSWORD in deploy/team/.env.team}
+      POSTGRES_PASSWORD: ${ASSISTANT_DB_PASSWORD:?Set ASSISTANT_DB_PASSWORD in .env.prod}
       POSTGRES_DB: overcooked_assistant
     ports:
       - "127.0.0.1:55436:5432"
@@ -63,7 +56,7 @@ services:
       - "127.0.0.1:8092:80"
     volumes:
       # 權重預先放在 Data Root，唯讀掛載，不在容器內下載（見 assistant_rag/README.md）
-      - ${ASSISTANT_RERANKER_MODEL_DIR:?Set ASSISTANT_RERANKER_MODEL_DIR in deploy/team/.env.team}:/model:ro
+      - ${ASSISTANT_RERANKER_MODEL_DIR:?Set ASSISTANT_RERANKER_MODEL_DIR in .env.prod}:/model:ro
     deploy:
       resources:
         reservations:

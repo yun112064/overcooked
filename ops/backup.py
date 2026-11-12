@@ -1,8 +1,9 @@
 """T17 每日備份：python -m ops.backup {cloud|knowledge|assistant} [選項]
 
-雲端（cloud）：業務資料庫 pg_dump、Data Root（不含 logs/）、來源／規則快照。
-團隊電腦（knowledge）：T11 營養知識庫 pg_dump、知識來源 JSONL（可據以重建）、來源／規則快照。
-團隊電腦（assistant）：飲食小幫手資料庫 pg_dump（語料、分段、向量）、選用的原始語料目錄、來源／規則快照。
+三份都在同一台團隊電腦上（scripts/backup-daily.ps1 每日依序執行）：
+業務（cloud）：業務資料庫 pg_dump、Data Root（不含 logs/）、來源／規則快照。
+知識（knowledge）：T11 營養知識庫 pg_dump、知識來源 JSONL（可據以重建）、來源／規則快照。
+小幫手（assistant）：飲食小幫手資料庫 pg_dump（語料、分段、向量）、選用的原始語料目錄、來源／規則快照。
 
 每份備份寫在 <備份根>/<side>/<UTC 時間戳>/，先寫 .partial 目錄、全部完成並寫入 manifest.json 後才改名，
 因此未完成的備份不會被當成可用備份，也不會影響保留期判斷。--mirror 另複製一份到獨立位置
@@ -17,6 +18,7 @@ import sys
 import tarfile
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
+from urllib.parse import urlsplit
 
 from ops.env import load_env, safe_error
 from ops.pg import PgTools
@@ -35,9 +37,10 @@ SNAPSHOT_PATHS = {
     "assistant": ["assistant_rag/schema.sql", "assistant_rag/exclusions.json", "assistant_rag/food_categories.json",
                   "assistant_rag/eval", "config/model_pricing.json"],
 }
-# 預設容器與資料庫名稱：雲端沿用 compose.yaml；團隊電腦沿用 deploy/team/compose.yaml
+# 預設容器與資料庫名稱：業務庫為 compose.prod.yaml 的 meal-prod-db（資料庫名稱優先取 DATABASE_URL）；
+# 知識庫與小幫手庫為 deploy/team/compose.yaml。V3 開發庫 overcooked-1102-v3-db 只能以 --container 明確指定
 DEFAULTS = {
-    "cloud": ("overcooked-1102-v3-db", "meal_planner_1102_v3"),
+    "cloud": ("meal-prod-db", "meal_planner_prod"),
     "knowledge": ("meal-knowledge-db", "meal_knowledge"),
     "assistant": ("overcooked-assistant-db", "overcooked_assistant"),
 }
@@ -239,8 +242,9 @@ def main(argv=None) -> int:
     prefix = side.upper()
     default_container, default_db = DEFAULTS[side]
     container = args.container or env.get(f"BACKUP_{prefix}_CONTAINER") or default_container
-    database = args.database or env.get(f"BACKUP_{prefix}_DATABASE") or default_db
-    backup_root = args.backup_root or Path(env.get("PROJECT_BACKUP_ROOT") or env.get("TEAM_BACKUP_ROOT") or "")
+    url_db = urlsplit(env.get("DATABASE_URL") or "").path.lstrip("/") if side == "cloud" else ""
+    database = args.database or env.get(f"BACKUP_{prefix}_DATABASE") or url_db or default_db
+    backup_root = args.backup_root or Path(env.get("PROJECT_BACKUP_ROOT") or "")
     mirror = args.mirror or (Path(env["BACKUP_MIRROR_ROOT"]) if env.get("BACKUP_MIRROR_ROOT") else None)
     keep_days = args.keep_days or int(env.get("BACKUP_RETENTION_DAYS") or 7)
     data_root = args.data_root
@@ -249,7 +253,7 @@ def main(argv=None) -> int:
     if data_root is None and side == "assistant" and env.get("ASSISTANT_DATA_DIR"):
         data_root = Path(env["ASSISTANT_DATA_DIR"])
     if not str(backup_root):
-        parser.error("需要 --backup-root 或 PROJECT_BACKUP_ROOT／TEAM_BACKUP_ROOT")
+        parser.error("需要 --backup-root 或 PROJECT_BACKUP_ROOT")
     try:
         path = create_backup(side, pg=PgTools(container=container), database=database, backup_root=backup_root,
                              data_root=data_root, label=args.label)

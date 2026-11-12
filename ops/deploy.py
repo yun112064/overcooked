@@ -1,4 +1,4 @@
-"""T17 雲端部署：python -m ops.deploy --env-file .env.prod
+"""T17 正式部署（單機，整套跑在團隊電腦）：python -m ops.deploy --env-file .env.prod
 
 固定順序：正式設定檢查 → 部署前備份（label=predeploy，並複製到獨立位置）→ 建置映像 →
 alembic upgrade head（只在這裡升級；正式後端 AUTO_MIGRATE=false，啟動時由 schema 閘門確認）→ 啟動。
@@ -101,7 +101,7 @@ def main(argv=None) -> int:
     migrate_env = {"DATABASE_URL": f"postgresql+psycopg://postgres:{env.get('POSTGRES_PASSWORD', '')}@db:5432/"
                                    f"{database_name(env)}"}
 
-    return deploy(preflight=lambda: check(env, side="cloud")[0], backup=do_backup, run=do_run,
+    return deploy(preflight=lambda: check(env)[0], backup=do_backup, run=do_run,
                   env_file=args.env_file, migrate_env=migrate_env)
 
 

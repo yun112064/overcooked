@@ -1,19 +1,23 @@
-# T17 雲端正式環境覆寫檔：Cloudflare named tunnel＋自己的網域（2026-10-20 決議以 Cloudflare Tunnel 取代 Caddy 對外 HTTPS；
-# 2026-11-11 使用者確認 Caddy 不再處理憑證）
+# T17 正式環境（單機）：整套系統跑在團隊電腦，對外只經 Cloudflare named tunnel＋自己的網域
+# （2026-11-12 使用者決議：不租雲端主機；團隊電腦關機時整站離線，AC24 不列入驗收）
 #
-#   python -m ops.preflight cloud --env-file .env.prod                                 # 設定檢查（不印秘密值）
+#   python -m ops.preflight --env-file .env.prod                                       # 設定檢查（不印秘密值）
 #   docker compose --env-file .env.prod -f compose.yaml -f compose.prod.yaml config    # 檢查合併結果
-#   python -m ops.deploy --env-file .env.prod                                          # 正式部署（含部署前備份）
+#   python -m ops.deploy --env-file .env.prod                                          # 部署／更新（含部署前備份）
+#   .\scripts\prod-up.ps1                                                              # 平日啟動（含 YOLO、知識、小幫手）
 #
-# - 主機不開任何連入埠：所有容器的 ports 清空；cloudflared 主動連出到 Cloudflare，HTTPS 憑證由 Cloudflare 處理。
-# - Cloudflare 後台 tunnel 的 Public Hostname：
-#     ${PUBLIC_HOSTNAME}        → http://frontend:80（frontend 的 Caddy 只在內部網路提供靜態檔、把 /api/* 轉給 backend；
-#                                  /api/internal/*、/api/admin/* 一律 404）
-#     cloud-internal.<網域>     → http://backend:8000（只供團隊電腦：前面有只允許團隊電腦服務權杖的 Cloudflare Access
-#                                  應用程式，後端再核對 INTERNAL_API_TOKEN；飲食小幫手的雲端模型生成也走這裡）
-# - db 只在 Compose 內部網路可達；DATABASE_URL 用 install_real_nutrition 產生的受限角色連線（host 為 db）。
+# - 與開發環境分開：專案 meal-prod、容器 meal-prod-*、資料庫 volume meal-prod-pgdata；
+#   絕不沿用 compose.yaml 的 overcooked-1102-v3-db／overcooked-1102-v3-pgdata（V3 開發資料庫）。
+# - 不開任何對外連入埠：cloudflared 主動連出，HTTPS 憑證由 Cloudflare 處理；Cloudflare 後台 tunnel 只設一個
+#   Public Hostname：${PUBLIC_HOSTNAME} → http://frontend:80（Caddy 只在內部提供 HTTP，/api/internal/* 一律 404）。
+# - backend 只綁 127.0.0.1:${PROD_BACKEND_PORT}：同一台電腦的飲食小幫手回呼 /internal/assistant/chat（Bearer 核對
+#   INTERNAL_API_TOKEN）由雲端模型生成回答；其他電腦連不到。
+# - YOLO、T11 知識、飲食小幫手檢索以主機原生程序執行（GPU／Ollama，見 scripts/prod-up.ps1），容器經
+#   host.docker.internal 連線；未啟動時該功能顯示不可用，其餘功能照常。
 # - 排程程序（逾時工作回收、Log 清理、每日查價）在正式環境一定啟動。
-# - 秘密只放主機上的 .env.prod（不進 Git），變數名稱見 .env.prod.example。
+# - 秘密只放 .env.prod（不進 Git），變數名稱見 .env.prod.example。
+
+name: meal-prod
 
 x-prod-database: &prod-database
   DATABASE_URL: ${DATABASE_URL:?Set DATABASE_URL in .env.prod (install_real_nutrition output)}
@@ -22,11 +26,19 @@ x-prod-database: &prod-database
 
 services:
   db:
+    container_name: meal-prod-db
     ports: !reset []
+    volumes: !override
+      - prod_pg:/var/lib/postgresql/data
     restart: unless-stopped
 
   backend:
-    ports: !reset []
+    image: meal-prod-backend
+    container_name: meal-prod-backend
+    ports: !override
+      - "127.0.0.1:${PROD_BACKEND_PORT:-18000}:8000"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     environment:
       <<: *prod-database
       ALLOWED_ORIGINS: https://${PUBLIC_HOSTNAME:?Set PUBLIC_HOSTNAME in .env.prod}
@@ -40,10 +52,11 @@ services:
     restart: unless-stopped
 
   worker:
+    image: meal-prod-backend
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     environment:
       <<: *prod-database
-      TEAM_ACCESS_CLIENT_ID: ${TEAM_ACCESS_CLIENT_ID:-}
-      TEAM_ACCESS_CLIENT_SECRET: ${TEAM_ACCESS_CLIENT_SECRET:-}
       RECOGNITION_SERVICE_URL: ${RECOGNITION_SERVICE_URL:-}
       RECOGNITION_SERVICE_TOKEN: ${RECOGNITION_SERVICE_TOKEN:-}
     volumes: !override
@@ -51,6 +64,7 @@ services:
     restart: unless-stopped
 
   scheduler:
+    image: meal-prod-backend
     profiles: !reset []
     environment:
       <<: *prod-database
@@ -58,12 +72,13 @@ services:
       - ${PROJECT_DATA_ROOT:?Set PROJECT_DATA_ROOT}:/app/data
 
   frontend:
+    container_name: meal-prod-frontend
     ports: !reset []
     restart: unless-stopped
 
   cloudflared:
     image: cloudflare/cloudflared:2026.9.0
-    container_name: meal-planner-cloudflared
+    container_name: meal-prod-cloudflared
     command: ["tunnel", "--no-autoupdate", "run"]
     environment:
       # 遠端管理的 named tunnel 權杖（Cloudflare Zero Trust → Networks → Tunnels）；只放 .env.prod
@@ -74,3 +89,7 @@ services:
       backend:
         condition: service_healthy
     restart: unless-stopped
+
+volumes:
+  prod_pg:
+    name: meal-prod-pgdata

@@ -11,40 +11,34 @@ NOW = datetime(2026, 11, 11, 2, 30, tzinfo=timezone.utc)
 TOKEN = "t" * 40
 
 
-def cloud_env(**overrides):
+def prod_env(**overrides):
     env = {"CLOUDFLARE_TUNNEL_TOKEN": "c" * 64, "PUBLIC_HOSTNAME": "meal.team-domain.tw",
            "ALLOWED_ORIGINS": "https://meal.team-domain.tw", "COOKIE_SECURE": "true",
            "POSTGRES_PASSWORD": "p" * 24, "DATABASE_URL": "postgresql+psycopg://app:secret@db:5432/meal_prod",
-           "PROJECT_DATA_ROOT": "/srv/meal/data", "PROJECT_RUNTIME_ROOT": "/srv/meal/runtime",
-           "PROJECT_BACKUP_ROOT": "/srv/meal/backups", "BACKUP_MIRROR_ROOT": "/mnt/offsite/meal",
+           "KNOWLEDGE_DB_PASSWORD": "k" * 24, "ASSISTANT_DB_PASSWORD": "a" * 24,
+           "PROJECT_DATA_ROOT": "D:/meal-prod/data", "PROJECT_RUNTIME_ROOT": "D:/meal-prod/runtime",
+           "PROJECT_BACKUP_ROOT": "D:/meal-prod/backups", "BACKUP_MIRROR_ROOT": "E:/meal-prod-offsite",
            "OPENAI_API_KEY": "sk-" + "k" * 40, "INTERNAL_API_TOKEN": TOKEN,
-           "RECOGNITION_SERVICE_URL": "https://yolo.team-domain.tw", "RECOGNITION_SERVICE_TOKEN": TOKEN,
-           "KNOWLEDGE_SERVICE_URL": "https://knowledge.team-domain.tw", "KNOWLEDGE_SERVICE_TOKEN": TOKEN,
-           "ASSISTANT_OPENAI_SERVICE_URL": "https://assistant.team-domain.tw", "ASSISTANT_SERVICE_TOKEN": TOKEN,
-           "TEAM_ACCESS_CLIENT_ID": "id-12345678", "TEAM_ACCESS_CLIENT_SECRET": "s" * 40}
+           "RECOGNITION_SERVICE_URL": "http://host.docker.internal:8765", "RECOGNITION_SERVICE_TOKEN": TOKEN,
+           "KNOWLEDGE_SERVICE_URL": "http://host.docker.internal:8091", "KNOWLEDGE_SERVICE_TOKEN": TOKEN,
+           "ASSISTANT_OPENAI_SERVICE_URL": "http://host.docker.internal:8094", "ASSISTANT_SERVICE_TOKEN": TOKEN}
     env.update(overrides)
     return {k: v for k, v in env.items() if v is not None}
 
 
-def team_env(**overrides):
-    env = {"TEAM_TUNNEL_TOKEN": "c" * 64, "KNOWLEDGE_SERVICE_TOKEN": TOKEN, "INFERENCE_TOKEN": TOKEN,
-           "ASSISTANT_SERVICE_TOKEN": TOKEN, "KNOWLEDGE_DB_PASSWORD": "k" * 24, "ASSISTANT_DB_PASSWORD": "a" * 24,
-           "TEAM_BACKUP_ROOT": "D:/meal_backups", "BACKUP_MIRROR_ROOT": "E:/meal_offsite",
-           "CLOUD_INTERNAL_URL": "https://cloud-internal.team-domain.tw", "CLOUD_INTERNAL_TOKEN": TOKEN,
-           "CLOUD_ACCESS_CLIENT_ID": "id-12345678", "CLOUD_ACCESS_CLIENT_SECRET": "s" * 40}
-    env.update(overrides)
-    return {k: v for k, v in env.items() if v is not None}
-
-
-class CloudPreflightTests(unittest.TestCase):
+class ProdPreflightTests(unittest.TestCase):
     def check(self, **overrides):
         from ops.preflight import check
-        return check(cloud_env(**overrides), side="cloud")
+        return check(prod_env(**overrides))
 
-    def test_complete_production_settings_pass(self):
-        errors, warnings = self.check()
-        self.assertEqual(errors, [])
-        self.assertEqual(warnings, [])
+    def test_complete_single_machine_settings_pass(self):
+        self.assertEqual(self.check(), ([], []))
+
+    def test_example_file_is_rejected_until_filled_in(self):
+        from ops.env import load_env
+        from ops.preflight import check
+        errors, _ = check(load_env(Path(__file__).resolve().parents[1] / ".env.prod.example"))
+        self.assertTrue(any("範例值" in e for e in errors))
 
     def test_public_hostname_and_origin_must_match_https(self):
         errors, _ = self.check(ALLOWED_ORIGINS="http://meal.team-domain.tw")
@@ -58,10 +52,11 @@ class CloudPreflightTests(unittest.TestCase):
         self.assertTrue(any("trycloudflare" in e for e in errors))
 
     def test_secrets_must_be_set_long_and_not_examples(self):
-        errors, _ = self.check(POSTGRES_PASSWORD="short", CLOUDFLARE_TUNNEL_TOKEN=None,
+        errors, _ = self.check(POSTGRES_PASSWORD="short", CLOUDFLARE_TUNNEL_TOKEN=None, ASSISTANT_DB_PASSWORD=None,
                                INTERNAL_API_TOKEN="replace_with_random_token_please_1234567")
         self.assertIn("POSTGRES_PASSWORD 太短（至少 16 字元）", errors)
         self.assertIn("CLOUDFLARE_TUNNEL_TOKEN 未設定", errors)
+        self.assertIn("ASSISTANT_DB_PASSWORD 未設定", errors)
         self.assertIn("INTERNAL_API_TOKEN 仍是範例值", errors)
 
     def test_cookie_must_stay_secure(self):
@@ -71,23 +66,26 @@ class CloudPreflightTests(unittest.TestCase):
     def test_backups_need_an_independent_location_outside_data_root(self):
         errors, _ = self.check(BACKUP_MIRROR_ROOT=None)
         self.assertTrue(any(e.startswith("BACKUP_MIRROR_ROOT 未設定") for e in errors))
-        errors, _ = self.check(PROJECT_BACKUP_ROOT="/srv/meal/data/backups")
+        errors, _ = self.check(PROJECT_BACKUP_ROOT="D:/meal-prod/data/backups")
         self.assertIn("PROJECT_BACKUP_ROOT 不可位於 Data Root 之內", errors)
-        errors, _ = self.check(BACKUP_MIRROR_ROOT="/srv/meal/backups/offsite")
+        errors, _ = self.check(BACKUP_MIRROR_ROOT="d:\\Meal-Prod\\backups\\offsite")
         self.assertIn("BACKUP_MIRROR_ROOT 不可位於 PROJECT_BACKUP_ROOT 之內", errors)
         errors, _ = self.check(PROJECT_DATA_ROOT="data")
         self.assertIn("PROJECT_DATA_ROOT 必須是絕對路徑", errors)
 
-    def test_team_services_must_use_https_tunnel_and_access_token(self):
-        errors, _ = self.check(KNOWLEDGE_SERVICE_URL="http://192.168.1.20:8091")
-        self.assertIn("KNOWLEDGE_SERVICE_URL 必須是 https（經 Cloudflare Tunnel）", errors)
-        errors, _ = self.check(TEAM_ACCESS_CLIENT_SECRET=None)
-        self.assertIn("TEAM_ACCESS_CLIENT_SECRET 未設定", errors)
+    def test_local_services_must_be_reached_through_host_docker_internal(self):
+        errors, _ = self.check(KNOWLEDGE_SERVICE_URL="http://127.0.0.1:8091")
+        self.assertIn("KNOWLEDGE_SERVICE_URL 在容器內連不到主機的 localhost；請用 http://host.docker.internal:<埠>",
+                      errors)
+        errors, _ = self.check(RECOGNITION_SERVICE_TOKEN=None)
+        self.assertIn("RECOGNITION_SERVICE_TOKEN 未設定", errors)
 
-    def test_missing_team_services_only_warn_because_cloud_features_still_work(self):
+    def test_no_cloudflare_access_tokens_are_needed_on_one_machine(self):
+        self.assertEqual(self.check(TEAM_ACCESS_CLIENT_ID=None, TEAM_ACCESS_CLIENT_SECRET=None)[0], [])
+
+    def test_missing_local_services_only_warn(self):
         errors, warnings = self.check(RECOGNITION_SERVICE_URL=None, KNOWLEDGE_SERVICE_URL=None,
-                                      ASSISTANT_OPENAI_SERVICE_URL=None, TEAM_ACCESS_CLIENT_ID=None,
-                                      TEAM_ACCESS_CLIENT_SECRET=None)
+                                      ASSISTANT_OPENAI_SERVICE_URL=None)
         self.assertEqual(errors, [])
         self.assertEqual(len(warnings), 3)
 
@@ -95,7 +93,7 @@ class CloudPreflightTests(unittest.TestCase):
         errors, _ = self.check(OPENAI_API_KEY=None)
         self.assertIn("OPENAI_API_KEY 未設定：飲食小幫手改用雲端模型生成，必須設定", errors)
         errors, _ = self.check(INTERNAL_API_TOKEN=None)
-        self.assertIn("INTERNAL_API_TOKEN 未設定：團隊電腦呼叫雲端模型與內部 API 需要", errors)
+        self.assertIn("INTERNAL_API_TOKEN 未設定：飲食小幫手呼叫雲端模型與內部 API 需要", errors)
 
     def test_errors_never_echo_secret_values(self):
         errors, warnings = self.check(POSTGRES_PASSWORD="tooshort-secret")
@@ -104,29 +102,8 @@ class CloudPreflightTests(unittest.TestCase):
     def test_database_url_must_point_to_the_internal_db_service(self):
         errors, _ = self.check(DATABASE_URL=None)
         self.assertIn("DATABASE_URL 未設定（填 install_real_nutrition 產生的連線）", errors)
-        errors, _ = self.check(DATABASE_URL="postgresql+psycopg://app:x@203.0.113.5:5432/meal_prod")
+        errors, _ = self.check(DATABASE_URL="postgresql+psycopg://app:x@127.0.0.1:55435/meal_prod")
         self.assertIn("DATABASE_URL 必須連到 Compose 內部的 db 服務", errors)
-
-
-class TeamPreflightTests(unittest.TestCase):
-    def check(self, **overrides):
-        from ops.preflight import check
-        return check(team_env(**overrides), side="team")
-
-    def test_complete_team_settings_pass(self):
-        self.assertEqual(self.check(), ([], []))
-
-    def test_team_computer_must_not_hold_the_cloud_database_url(self):
-        errors, _ = self.check(DATABASE_URL="postgresql://postgres:x@cloud/meal")
-        self.assertTrue(any(e.startswith("DATABASE_URL 不應設定在團隊電腦") for e in errors))
-
-    def test_cloud_internal_url_must_be_https(self):
-        errors, _ = self.check(CLOUD_INTERNAL_URL="http://cloud-internal.team-domain.tw")
-        self.assertIn("CLOUD_INTERNAL_URL 必須是 https（經 Cloudflare Tunnel 的內部 hostname）", errors)
-
-    def test_cloud_model_assistant_needs_cloud_internal_url(self):
-        errors, _ = self.check(CLOUD_INTERNAL_URL=None)
-        self.assertIn("CLOUD_INTERNAL_URL 未設定：飲食小幫手經雲端模型生成回答需要", errors)
 
 
 class DeployOrderTests(unittest.TestCase):
@@ -277,15 +254,36 @@ class ComposeFilesTests(unittest.TestCase):
         self.assertIsNotNone(match, name)
         return match.group(1)
 
-    def test_production_publishes_no_ports_and_runs_tunnel_and_scheduler(self):
+    def test_production_publishes_nothing_outside_and_runs_tunnel_and_scheduler(self):
         text = self.text("compose.prod.yaml")
-        for name in ("db", "backend", "frontend"):
+        for name in ("db", "frontend"):
             self.assertIn("    ports: !reset []", self.service(text, name), name)
+        # backend 只給同一台電腦的飲食小幫手回呼，只綁 loopback
+        self.assertIn('      - "127.0.0.1:${PROD_BACKEND_PORT:-18000}:8000"', self.service(text, "backend"))
         self.assertIn("TUNNEL_TOKEN: ${CLOUDFLARE_TUNNEL_TOKEN:?", text)
         self.assertIn('command: ["tunnel", "--no-autoupdate", "run"]', text)
         self.assertIn("    profiles: !reset []", self.service(text, "scheduler"))
         self.assertIn('AUTO_MIGRATE: "false"', text)
         self.assertNotIn("--url", text)
+
+    def test_production_never_reuses_the_v3_development_database(self):
+        # compose.yaml 的 db 是 V3 開發庫（overcooked-1102-v3-db／overcooked-1102-v3-pgdata），同一台電腦不可共用
+        import re
+        text = self.text("compose.prod.yaml")
+        self.assertRegex(text, r"(?m)^name: meal-prod$")
+        self.assertIn("container_name: meal-prod-db", self.service(text, "db"))
+        self.assertIn("volumes: !override\n      - prod_pg:/var/lib/postgresql/data", self.service(text, "db"))
+        self.assertIn("name: meal-prod-pgdata", text)
+        for container in re.findall(r"container_name: (\S+)", text):
+            self.assertTrue(container.startswith("meal-prod-"), container)
+        self.assertNotIn("overcooked-1102-v3", text.split("\nname:")[1])
+        from ops.backup import DEFAULTS
+        self.assertEqual(DEFAULTS["cloud"][0], "meal-prod-db")
+
+    def test_services_reach_host_processes_on_linux_docker_too(self):
+        text = self.text("compose.prod.yaml")
+        for name in ("backend", "worker"):
+            self.assertIn('"host.docker.internal:host-gateway"', self.service(text, name), name)
 
     def test_demo_uses_quick_tunnel_without_ports(self):
         text = self.text("compose.standby.yaml")
