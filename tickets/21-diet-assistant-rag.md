@@ -17,7 +17,7 @@
 |---|---|---|
 | 0 | 規格與授權紀錄 | spec R14／G08／AC33–AC36、AGENTS.md 授權、本 Ticket |
 | 1 | 兩來源資料蒐集 | 健康醫療網（`/sitemap.xml`→營養飲食頻道）、Hello醫師（sitemap→`/healthy-eating/`）JSONL；篇數、日期範圍、平均字數、失敗清單 |
-| 2 | 切塊與索引 | 依小標、約 400 字、重疊約 80 字、開頭加「標題／小標」；bge-m3 與 embeddinggemma 兩份 pgvector 索引、jieba BM25 快取 |
+| 2 | 切塊與索引 | 依小標、約 400 字、重疊約 80 字、開頭加「標題／小標」；bge-m3 與 embeddinggemma 兩份 pgvector 索引（2026-11-12 使用者決議移除 bge-m3，只保留 embeddinggemma）、jieba BM25 快取 |
 | 3 | 六種檢索方法 | BM25、向量、混合 RRF（各取 50、1/(60+名次)）、混合＋重排（前 30）、食材辨識加權、多問句改寫；每篇留一段取前 5 篇；命令列試查工具 |
 | 4 | 客服回答服務 | 寒暄規則、追問改寫、拒答門檻、qwen3.5:9b 依資料作答與引用、OpenCC；`/v1/chat`（SSE）、`/v1/health` |
 | 5 | 題庫與驗證集 | 約 100 題開發題庫＋至少 50 題驗證集，由使用者審核 |

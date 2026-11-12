@@ -12,7 +12,7 @@
 ## 2026-11-12 使用者決議：與 demo 分支相同的部署方式
 
 - 不租雲端主機、不申請網域：整套系統在團隊電腦的 Docker（`compose.prod.yaml`，專案 meal-prod），對外只經 Cloudflare 快速通道（trycloudflare.com，網址每次重開都會變），費用為 0。`scripts/prod-up.ps1` 啟動、`prod-down.ps1` 關閉。
-- 飲食小幫手接入且回答改回地端：Ollama 的 `bge-m3`、`embeddinggemma`、`qwen3.5:9b`，重排 `bge-reranker-v2-m3` 用 TEI 容器（Ollama 沒有重排介面）。語料與索引由 `scripts/assistant-data.ps1` 建立。快速通道官方不支援 SSE；實測 POST 串流可即時送達。
+- 飲食小幫手接入且回答改回地端：Ollama 的 `embeddinggemma`（同日決議移除 `bge-m3`）、`qwen3.5:9b`，重排 `bge-reranker-v2-m3` 用 TEI 容器（Ollama 沒有重排介面）。語料與索引由 `scripts/assistant-data.ps1` 建立。快速通道官方不支援 SSE；實測 POST 串流可即時送達。
 - AC24 不列入驗收：團隊電腦關機、睡眠或斷網時整站離線。下方第 1、2 條中「兩端」「一般雲端功能及歷史仍可用」改以單機理解；本機服務未啟動時仍須顯示不可用並保留輸入。
 - 備份：`scripts/backup-daily.ps1` 每日備份業務庫、知識庫、小幫手庫並複製到獨立位置（`install-prod-tasks.ps1` 註冊工作排程器）；重排權重不備份，依 `REVISION` 重新下載。
 
