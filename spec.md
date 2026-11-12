@@ -201,7 +201,7 @@ P_reference = P_target / N
 - 爬取遵守 robots.txt、每次請求間隔至少 2 秒、單一連線、可識別 User-Agent、可中斷接續。
 - 向量資料庫沿用 PostgreSQL＋pgvector，但使用獨立資料庫（不寫入 T11 知識庫、V1 或 V3 業務庫）。嵌入模型 `bge-m3` 與 `embeddinggemma` 各建一份索引並比較；換模型或維度須重建索引，不混用。
 - 檢索方法實作六種並以同一題庫比較：BM25（jieba＋食材詞典）、向量、混合 RRF、混合＋cross-encoder 重排、食材辨識加權、多問句改寫；向量相關方法對兩種嵌入模型各評估一次。
-- 模型以可替換介面接入（對話／改寫／評審、嵌入、重排）。先全部以團隊電腦本機模型完成（回答用 `qwen3.5:9b`）；正式部署改由雲端模型生成回答（2026-11-11 使用者決議）：團隊電腦只做檢索、嵌入與重排，回答經雲端內部 API 由雲端呼叫 OpenAI；雲端付費呼叫必須經 T10 預留與結算，本機模型不得在故障時自動改走付費 API。
+- 模型以可替換介面接入（對話／改寫／評審、嵌入、重排）。先全部以團隊電腦本機模型完成（回答用 `qwen3.5:9b`）；2026-11-11 曾決議正式部署改由雲端模型生成回答，2026-11-12 使用者決議改回地端：嵌入 `bge-m3`／`embeddinggemma` 與回答 `qwen3.5:9b` 都用本機 Ollama，重排 `bge-reranker-v2-m3` 用本機 TEI 容器（Ollama 沒有重排介面），不呼叫付費 API。日後若改用 OpenAI，付費呼叫必須經 T10 預留與結算，本機模型不得在故障時自動改走付費 API。
 - 客服完全獨立：不修改 T11 既有知識資料、食材小知識 API、生成流程的知識說明或採用快照；不參與選菜、不改配方、份量、TFDA 數值或採用資格。
 - 服務在團隊電腦執行，雲端經既有驗證及加密通道轉送；團隊電腦離線時顯示客服不可用，不捏造回答。不記錄使用者問題原文、模型完整輸入／輸出於正式 Log。
 
@@ -290,7 +290,7 @@ P_reference = P_target / N
 - 後端 FastAPI、Pydantic、OpenAPI、Argon2、Pillow、Python 版本化規則、Decimal；PostgreSQL、SQLAlchemy、Alembic、pgvector。
 - 部署模型固定為 YOLO26s（2026-10-29 規格變更，取代原「YOLOv8n 先建基準，再以同一資料比較 v8m」；理由見 `tickets/05-yolo-model-evaluation.md` 規格變更紀錄）。權重、類別、前後處理與模型指標一同固定，不混用不同版本結果。
 - 菜單生成仍由 T14 的雲端 OpenAI Responses API＋Structured Outputs 負責；知識向量化採團隊電腦的 `embeddinggemma:latest` 768 維，依模型 digest 與接入測試固定版本。地端 `qwen3.5:9b-q4_K_M` 的營養說明生成原列為 T14 交接；2026-11-03 使用者決定改由雲端 OpenAI（`KNOWLEDGE_EXPLAIN_MODEL`，經 T10 額度控制）生成最後的營養小知識，資料仍只來自 T11 審核知識與地端檢索，且不取代雲端選菜。
-- 2026-11-12 使用者決議：不租雲端主機，整套系統（`compose.prod.yaml`＋`deploy/team/compose.yaml`＋原生 YOLO／知識／小幫手）跑在團隊電腦一台機器上，對外經 Cloudflare named tunnel＋免費或自有網域；團隊電腦關機時整站離線，AC24 中「團隊電腦離線時一般雲端功能及歷史仍可用」不列入驗收。正式環境與開發環境分開（專案 meal-prod、資料庫 volume meal-prod-pgdata），不沿用 V3 開發資料庫；三份資料庫每日備份並複製到另一顆磁碟。以下原雲端／團隊分離的描述保留作為日後改租主機時的設計。
+- 2026-11-12 使用者決議：不租雲端主機，部署方式與 t11-t20-demo 相同——整套系統（`compose.prod.yaml`：業務、T11 知識、飲食小幫手、重排都是容器；YOLO 與 Ollama 在主機）跑在團隊電腦，對外只經 Cloudflare 快速通道（trycloudflare.com，免帳號、免網域、網址每次重開都會變）；團隊電腦關機時整站離線，AC24 不列入驗收。快速通道官方文件寫不支援 SSE，2026-11-12 實測 POST 串流（飲食小幫手）可即時送達、GET 會被緩衝，屬非保證行為。正式環境與開發環境、demo 展示站分開（專案 meal-prod、容器與 volume meal-prod-*），不沿用 V3 開發資料庫；業務庫、知識庫、小幫手庫每日備份並複製到獨立位置。以下原雲端／團隊分離與 named tunnel 的描述保留作為日後改租主機時的設計。
 - Docker Compose 提供雲端網站、業務 API、結構化食譜與家庭歷史；團隊電腦提供 YOLO、營養知識 RAG 及飲食小幫手檢索。對外 HTTPS 一律由 Cloudflare named tunnel＋自有網域處理，Caddy 只在內部網路提供 HTTP 靜態檔與 API 轉送、不簽發或管理憑證（2026-10-20 決議以 Cloudflare Tunnel 取代 Caddy 對外 HTTPS，2026-11-11 使用者決議確認不用 Caddy 憑證）；主機不開連入埠。trycloudflare.com 快速通道只作展示備援（網址會變、不支援 SSE、單機離線即全站中斷），不作 T17 正式部署。兩端服務連線需驗證及加密，不公開資料庫。負載含兩端與跨網路延遲；雲端與本機資料分別備份，知識索引可由來源快照重建。
 - Code Root：開發機 `D:/AIPE04期末專題`，雲端 `/opt/meal-planner/code`。
 - Data Root：開發機 `D:/AIPE04期末專題_data`，雲端 `/var/lib/meal-planner/data`。

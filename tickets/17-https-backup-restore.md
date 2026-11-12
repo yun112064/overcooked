@@ -3,17 +3,18 @@
 - Spec：`../spec.md`
 - Blocked by：06 — 可啟動系統骨架與正式日誌；16 — 採用交易與日期歷史查詢
 - 覆蓋：R11、G06 部署部分；AC27（AC24 依 2026-11-12 使用者決議不列入驗收）
-- 狀態：程式與本機還原演練已完成（2026-11-12）；待實機部署（網域、named tunnel）及正式環境上的實際還原。
+- 狀態：改為 demo 分支方式（2026-11-12）；程式、本機還原演練與實機啟動驗證見 VALIDATION 紀錄。
 
 ## 交付成果
 
 交付雲端常駐 HTTPS 網站、依賴團隊電腦的 YOLO／營養知識 RAG 接入及可恢復備份流程。
 
-## 2026-11-12 使用者決議：單機部署
+## 2026-11-12 使用者決議：與 demo 分支相同的部署方式
 
-- 不租雲端主機：整套系統跑在團隊電腦（`compose.prod.yaml` 專案 meal-prod、`deploy/team/compose.yaml`、`scripts/prod-up.ps1` 啟動原生 YOLO／知識／小幫手），對外只經 Cloudflare named tunnel＋免費或自有網域，費用為 0（OpenAI 用量另計，經 T10 額度控制）。
+- 不租雲端主機、不申請網域：整套系統在團隊電腦的 Docker（`compose.prod.yaml`，專案 meal-prod），對外只經 Cloudflare 快速通道（trycloudflare.com，網址每次重開都會變），費用為 0。`scripts/prod-up.ps1` 啟動、`prod-down.ps1` 關閉。
+- 飲食小幫手接入且回答改回地端：Ollama 的 `bge-m3`、`embeddinggemma`、`qwen3.5:9b`，重排 `bge-reranker-v2-m3` 用 TEI 容器（Ollama 沒有重排介面）。語料與索引由 `scripts/assistant-data.ps1` 建立。快速通道官方不支援 SSE；實測 POST 串流可即時送達。
 - AC24 不列入驗收：團隊電腦關機、睡眠或斷網時整站離線。下方第 1、2 條中「兩端」「一般雲端功能及歷史仍可用」改以單機理解；本機服務未啟動時仍須顯示不可用並保留輸入。
-- 備份：`scripts/backup-daily.ps1` 每日備份業務庫、知識庫、小幫手庫並複製到另一顆磁碟（`install-prod-tasks.ps1` 註冊工作排程器）。
+- 備份：`scripts/backup-daily.ps1` 每日備份業務庫、知識庫、小幫手庫並複製到獨立位置（`install-prod-tasks.ps1` 註冊工作排程器）；重排權重不備份，依 `REVISION` 重新下載。
 
 ## 驗收條件
 
