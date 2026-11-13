@@ -9,7 +9,7 @@
 | entity_boost | hybrid_rerank 後，問題中辨識出的食材出現在文章標題 +0.15、只出現在片段內文 +0.05（「地瓜葉」不算提到「地瓜」） |
 | multi_query | qwen3.5 把問題改寫成 3 句；原句＋改寫各跑 hybrid，再以 RRF 合併，前 30 用原句重排 |
 
-最後每篇文章只留分數最高的一段，回傳前 5 篇。vector 以後的方法都要指定嵌入模型（bge-m3／embeddinggemma），
+最後每篇文章只留分數最高的一段，回傳前 5 篇。vector 以後的方法都要指定嵌入模型（embeddinggemma），
 加上 bm25 共 11 組比較。分數意義：bm25 為 BM25 分、vector 為 cosine、hybrid／multi_query 的 RRF 分、
 rerank 系列為重排機率（0–1；entity_boost 可略高於 1）。
 """

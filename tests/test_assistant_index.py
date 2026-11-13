@@ -91,8 +91,7 @@ def test_bm25_ranks_matching_documents():
 def ollama_transport(dims, seen):
     def handler(request):
         if request.url.path == "/api/tags":
-            return httpx.Response(200, json={"models": [{"name": "embeddinggemma:latest", "digest": "d" * 64},
-                                                        {"name": "bge-m3:latest", "digest": "b" * 64}]})
+            return httpx.Response(200, json={"models": [{"name": "embeddinggemma:latest", "digest": "d" * 64}]})
         body = json.loads(request.content)
         seen.append(body)
         return httpx.Response(200, json={"embeddings": [[0.1] * dims for _ in body["input"]]})
@@ -107,14 +106,14 @@ def test_embedder_templates_and_dimension_check():
     gemma.query("地瓜")
     assert seen[0]["input"] == ["title: 標題 | text: 內文"]
     assert seen[1]["input"] == ["task: search result | query: 地瓜"]
-    bge = OllamaEmbedder(EMBEDDERS["bge-m3"], "http://o", transport=ollama_transport(768, seen))
+    wrong = OllamaEmbedder(EMBEDDERS["embeddinggemma"], "http://o", transport=ollama_transport(1024, seen))
     with pytest.raises(ProviderUnavailable) as err:
-        bge.query("地瓜")  # 回傳 768 維但 bge-m3 應為 1024
+        wrong.query("地瓜")  # 回傳 1024 維但 embeddinggemma 應為 768
     assert err.value.code == "EMBED_BAD_RESPONSE"
 
 
 def test_embedder_not_installed_and_service_down():
-    missing = OllamaEmbedder(EMBEDDERS["bge-m3"], "http://o", transport=httpx.MockTransport(
+    missing = OllamaEmbedder(EMBEDDERS["embeddinggemma"], "http://o", transport=httpx.MockTransport(
         lambda r: httpx.Response(200, json={"models": []})))
     with pytest.raises(ProviderUnavailable) as err:
         missing.fingerprint()
@@ -123,7 +122,7 @@ def test_embedder_not_installed_and_service_down():
     def down(request):
         raise httpx.ConnectError("refused")
     with pytest.raises(ProviderUnavailable) as err:
-        OllamaEmbedder(EMBEDDERS["bge-m3"], "http://o", transport=httpx.MockTransport(down)).fingerprint()
+        OllamaEmbedder(EMBEDDERS["embeddinggemma"], "http://o", transport=httpx.MockTransport(down)).fingerprint()
     assert err.value.code == "EMBED_SERVICE_DOWN"
 
 
@@ -190,3 +189,14 @@ def test_repository_exclusion_list_well_formed():
     assert data["status"] in {"pending_review", "approved"} and len(keys) == len(set(keys))
     assert all(k.startswith(("healthnews:", "helloyishi:")) and a["reason"] and a["title"]
                for k, a in zip(keys, data["articles"]))
+
+
+def test_only_embeddinggemma_is_used(monkeypatch):
+    # 2026-11-12 使用者決議：飲食小幫手移除 bge-m3，嵌入只保留 embeddinggemma
+    from assistant_rag.answer import Settings
+    from assistant_rag.retrieval import combos
+    monkeypatch.delenv("RAG_ANSWER_EMBEDDER", raising=False)
+    assert list(EMBEDDERS) == ["embeddinggemma"] and list(store.EMBED_TABLES) == ["embeddinggemma"]
+    assert {e for _, e in combos() if e} == {"embeddinggemma"}
+    assert Settings().embedder == "embeddinggemma"
+    assert "emb_bge_m3 (" not in store.SCHEMA.read_text(encoding="utf-8")

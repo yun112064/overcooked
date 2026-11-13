@@ -13,7 +13,7 @@ from assistant_rag.config import data_dir
 
 SCHEMA = Path(__file__).with_name("schema.sql")
 DB_PREFIX = "overcooked_assistant"
-EMBED_TABLES = {"bge-m3": "emb_bge_m3", "embeddinggemma": "emb_embeddinggemma"}
+EMBED_TABLES = {"embeddinggemma": "emb_embeddinggemma"}
 
 
 def database_url(explicit: str | None = None) -> str:

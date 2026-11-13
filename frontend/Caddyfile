@@ -1,4 +1,7 @@
 {
+    # 對外 HTTPS 由 Cloudflare Tunnel 處理；Caddy 只在內部網路提供 HTTP，不簽發或管理憑證（2026-11-11）
+    auto_https off
+
     log default {
         exclude http.log.error
     }

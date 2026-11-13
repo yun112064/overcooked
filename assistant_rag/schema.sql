@@ -71,14 +71,7 @@ CREATE TABLE IF NOT EXISTS embedding_runs (
     PRIMARY KEY (version, embedder)
 );
 
-CREATE TABLE IF NOT EXISTS emb_bge_m3 (
-    version   text NOT NULL,
-    chunk_id  text NOT NULL,
-    embedding vector(1024) NOT NULL,
-    PRIMARY KEY (version, chunk_id),
-    FOREIGN KEY (version, chunk_id) REFERENCES chunks ON DELETE CASCADE
-);
-
+-- 2026-11-12 使用者決議只保留 embeddinggemma；舊資料庫的 emb_bge_m3 不再使用（不自動刪除）
 CREATE TABLE IF NOT EXISTS emb_embeddinggemma (
     version   text NOT NULL,
     chunk_id  text NOT NULL,

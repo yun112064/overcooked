@@ -52,7 +52,7 @@ FOLLOWUP_SYSTEM = """你是對話整理器。根據對話紀錄，把使用者�
 @dataclass
 class Settings:
     method: str = field(default_factory=lambda: os.getenv("RAG_ANSWER_METHOD", "hybrid_rerank"))
-    embedder: str | None = field(default_factory=lambda: os.getenv("RAG_ANSWER_EMBEDDER", "bge-m3"))
+    embedder: str | None = field(default_factory=lambda: os.getenv("RAG_ANSWER_EMBEDDER", "embeddinggemma"))
     threshold: float = field(default_factory=lambda: float(os.getenv("RAG_REFUSAL_THRESHOLD", "0.5")))
     threshold_status: str = field(default_factory=lambda: os.getenv("RAG_THRESHOLD_STATUS", "provisional"))
     temperature: float = 0.2

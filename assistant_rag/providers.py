@@ -1,6 +1,6 @@
 """可替換的模型介面：Embedder（向量）、Reranker（重排序）。回答用的 ChatModel 在步驟 4 加入。
 
-- 地端優先：Ollama 嵌入（bge-m3、embeddinggemma）、Text Embeddings Inference 容器的 bge-reranker-v2-m3。
+- 地端優先：Ollama 嵌入（embeddinggemma；2026-11-12 使用者決議移除 bge-m3）、Text Embeddings Inference 容器的 bge-reranker-v2-m3。
 - 以環境變數切換：RAG_OLLAMA_URL、RAG_RERANK_URL；RAG_LLM_PROVIDER=openai 時回答改由雲端內部 API 呼叫 OpenAI
   （CloudOpenAIChat，經 T10 額度控制 spend.paid_call），不得自動從地端失敗改走付費。
 - 嵌入模型綁定 Ollama 回報的 digest；模型換版會讓索引失效，需重建（index_runs 記錄 digest）。
@@ -22,7 +22,7 @@ class ProviderUnavailable(Exception):
 
 
 class Embedder(Protocol):
-    name: str          # 索引代號：bge-m3／embeddinggemma
+    name: str          # 索引代號：embeddinggemma
     model: str         # 服務端模型名
     dimensions: int
     template: str      # 文件／查詢前綴的版本
@@ -49,8 +49,6 @@ class EmbedSpec:
 
 
 EMBEDDERS = {
-    # bge-m3：不需要指令前綴
-    "bge-m3": EmbedSpec("bge-m3", "bge-m3:latest", 1024, "bge-m3-plain-v1"),
     # embeddinggemma：官方建議的檢索提示格式
     "embeddinggemma": EmbedSpec("embeddinggemma", "embeddinggemma:latest", 768, "embeddinggemma-retrieval-v1",
                                 query_prefix="task: search result | query: ",
