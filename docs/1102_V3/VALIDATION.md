@@ -539,3 +539,9 @@ Scope: nested checkout `1111_update_V2`, Docker project `overcooked-1111_update_
 
 - User owns code and validation that does not require the target machine; a teammate owns Windows, GPU, external tunnel, task scheduling and deployment-machine restore acceptance. Machine-specific paths, hardware and schedule configuration are for that teammate to supply, not prerequisites for the user's completed local fixes.
 - Added `docs/t17-machine-handoff.md` with executed evidence, pending remote CI, machine-owner inputs and an unexecuted acceptance checklist. Linked it from the recovery guide and T17 ticket. Documentation-only change; checked diff whitespace and relative links, with no repeat of already-passing code tests. No messages sent to others, no deployment, push or merge performed.
+
+## 2026-11-13 — PR #39 non-machine delivery
+
+- User instructed completion of the non-machine work after assigning target-machine acceptance to a teammate. This includes publishing the reviewed fixes to the existing PR branch and checking the new CI; main remains the target for a later merge decision.
+- Consolidated the handoff with the exact assets outside Git: Ollama/reranker downloads, assistant raw corpus and supplemental-source records, optional existing database/uploads migration, and local secrets/paths. Recorded which initial datasets and YOLO weights already exist in Git.
+- Application code is unchanged from the successful **1307 passed / 12 skipped / 154 subtests** run. Documentation links and diff whitespace rechecked. New remote CI must be assessed on the actual published commit; its final result is reported on the PR rather than inferred from older runs. Windows/GPU/tunnel/scheduling/capacity remain explicitly pending with the teammate.
