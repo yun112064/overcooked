@@ -114,6 +114,31 @@ def _assistant_counts(pg: PgTools, database: str) -> dict:
     return counts
 
 
+def _access(pg: PgTools, database: str) -> dict:
+    """Record required identities and database grants, never role passwords.
+
+    Object/column/sequence ACLs are kept by pg_dump. Database ACLs need an
+    explicit record because the restored database has a different name.
+    """
+    roles = pg.query(database, """
+        SELECT DISTINCT r.rolname FROM pg_shdepend d JOIN pg_roles r ON r.oid = d.refobjid
+        WHERE d.refclassid = 'pg_authid'::regclass AND d.deptype IN ('a', 'i')
+          AND (d.dbid = (SELECT oid FROM pg_database WHERE datname = current_database())
+               OR (d.classid = 'pg_database'::regclass
+                   AND d.objid = (SELECT oid FROM pg_database WHERE datname = current_database())))
+        ORDER BY r.rolname
+    """)
+    grants = pg.query(database, """
+        SELECT CASE WHEN a.grantee = 0 THEN 'PUBLIC' ELSE pg_get_userbyid(a.grantee) END,
+               a.privilege_type, a.is_grantable
+        FROM pg_database d, LATERAL aclexplode(COALESCE(d.datacl, acldefault('d', d.datdba))) a
+        WHERE d.datname = current_database() ORDER BY 1, 2, 3
+    """)
+    return {"acl_preserved": True, "required_roles": [r[0] for r in roles],
+            "database_acl": [{"role": role, "privilege": privilege, "grant_option": grant == "t"}
+                             for role, privilege, grant in grants]}
+
+
 def create_backup(side: str, *, pg: PgTools, database: str, backup_root: Path, code_root: Path = REPO_ROOT,
                   data_root: Path | None = None, now: datetime | None = None, label: str | None = None) -> Path:
     if side not in SIDES:
@@ -140,23 +165,24 @@ def create_backup(side: str, *, pg: PgTools, database: str, backup_root: Path, c
     manifest = {"format": FORMAT, "side": side, "label": label, "created_at": now.isoformat(),
                 "database": database, "git_commit": _git_commit(code_root),
                 "snapshot_paths": SNAPSHOT_PATHS[side]}
-    if side == "cloud":
-        manifest["alembic_revision"] = pg.query(database, "SELECT version_num FROM alembic_version")[0][0]
-        manifest["counts"] = _counts(pg, database, CLOUD_COUNT_TABLES)
-    elif side == "knowledge":
-        manifest["counts"] = _knowledge_counts(pg, database)
-        manifest["vector_dimensions"] = _vector_dimensions(pg, database)
-    else:
-        manifest["counts"] = _assistant_counts(pg, database)
-
-    pg.dump(database, work / "database.dump")
+    with pg.snapshot(database) as consistent:
+        manifest["access"] = _access(consistent, database)
+        if side == "cloud":
+            manifest["alembic_revision"] = consistent.query(database, "SELECT version_num FROM alembic_version")[0][0]
+            manifest["counts"] = _counts(consistent, database, CLOUD_COUNT_TABLES)
+        elif side == "knowledge":
+            manifest["counts"] = _knowledge_counts(consistent, database)
+            manifest["vector_dimensions"] = _vector_dimensions(consistent, database)
+        else:
+            manifest["counts"] = _assistant_counts(consistent, database)
+        consistent.dump(database, work / "database.dump")
+        if side == "knowledge":
+            consistent.copy_out(database, KNOWLEDGE_SOURCES_SQL, work / "knowledge_sources.jsonl")
     if data_root is not None:
         data_root = Path(data_root)
         entries = sorted(p.name for p in data_root.iterdir() if p.name not in DATA_ROOT_TOP_EXCLUDE)
         _tar(work / "data_root.tar.gz", data_root, entries)
         manifest["data_root_entries"] = entries
-    if side == "knowledge":
-        pg.copy_out(database, KNOWLEDGE_SOURCES_SQL, work / "knowledge_sources.jsonl")
     _tar(work / "snapshot.tar.gz", code_root, SNAPSHOT_PATHS[side])
 
     manifest["files"] = {f.name: {"sha256": _sha256(f), "size": f.stat().st_size}

@@ -2,9 +2,14 @@
 
 正式環境資料庫不對外開埠，因此預設在容器內以 Unix socket 連線（容器內本機信任），不需在主機保存密碼。
 """
+from contextlib import contextmanager
+from copy import copy
 import os
+from queue import Empty, Queue
 import re
 import subprocess
+import tempfile
+from threading import Thread
 from pathlib import Path
 
 _NAME = re.compile(r"^[a-z0-9_]{1,63}$")
@@ -34,6 +39,58 @@ class PgTools:
     def __init__(self, container: str | None = None, user: str = "postgres", host: str | None = None,
                  port: int | None = None, password: str | None = None):
         self.container, self.user, self.host, self.port, self.password = container, user, host, port, password
+        self._snapshot = None
+        self._snapshot_database = None
+
+    def _env(self) -> dict:
+        env = dict(os.environ)
+        if self.password and not self.container:
+            env["PGPASSWORD"] = self.password
+        return env
+
+    @contextmanager
+    def snapshot(self, database: str):
+        """Keep an exported read-only snapshot alive for psql queries and pg_dump.
+
+        The owner connection stays inside the database container, so the host
+        needs neither a published database port nor a Python database driver.
+        """
+        database = _check_name(database)
+        if self._snapshot:
+            raise PgError("不能在既有快照內建立另一份快照")
+        cmd = self._cmd("psql", "-X", "-qAt", "-v", "ON_ERROR_STOP=1", "-d", database)
+        with tempfile.TemporaryFile() as errors:
+            proc = subprocess.Popen(cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=errors,
+                                    text=True, env=self._env())
+            try:
+                proc.stdin.write("BEGIN ISOLATION LEVEL REPEATABLE READ READ ONLY;\nSELECT pg_export_snapshot();\n")
+                proc.stdin.flush()
+                lines = Queue()
+                Thread(target=lambda: lines.put(proc.stdout.readline()), daemon=True).start()
+                try:
+                    snapshot = lines.get(timeout=30).strip()
+                except Empty:
+                    raise PgError("建立 PostgreSQL 備份快照逾時") from None
+                if not re.fullmatch(r"[0-9A-Fa-f]+-[0-9A-Fa-f]+-[0-9]+", snapshot):
+                    errors.seek(0)
+                    raise PgError("無法建立 PostgreSQL 備份快照：" + errors.read().decode(errors="replace")[:500])
+                reader = copy(self)
+                reader._snapshot, reader._snapshot_database = snapshot, database
+                yield reader
+            finally:
+                try:
+                    proc.communicate("ROLLBACK;\n", timeout=10)
+                except (subprocess.TimeoutExpired, BrokenPipeError):
+                    proc.kill()
+                    proc.communicate()
+
+    def _sql(self, database: str, sql: str) -> str:
+        if not self._snapshot:
+            return sql
+        if database != self._snapshot_database:
+            raise PgError("備份快照只能用於原資料庫")
+        return ("BEGIN ISOLATION LEVEL REPEATABLE READ READ ONLY; "
+                f"SET TRANSACTION SNAPSHOT '{self._snapshot}'; {sql.rstrip().rstrip(';')}; COMMIT;")
 
     def _cmd(self, tool: str, *args: str) -> list[str]:
         if self.container:
@@ -46,12 +103,9 @@ class PgTools:
         return [tool, *conn, "-U", self.user, *args]
 
     def _run(self, cmd: list[str], *, stdin=None, stdout=None, input_text: str | None = None) -> str:
-        env = dict(os.environ)
-        if self.password and not self.container:
-            env["PGPASSWORD"] = self.password
         proc = subprocess.run(cmd, stdin=stdin, stdout=stdout if stdout is not None else subprocess.PIPE,
                               stderr=subprocess.PIPE, input=input_text.encode() if input_text is not None else None,
-                              env=env, timeout=3600)
+                              env=self._env(), timeout=3600)
         if proc.returncode != 0:
             tool = next((c for c in cmd if c in ("psql", "pg_dump", "pg_restore")), cmd[0])
             raise PgError(f"{tool} 失敗：{proc.stderr.decode(errors='replace').strip()[:500]}")
@@ -61,13 +115,13 @@ class PgTools:
 
     def query(self, database: str, sql: str) -> list[list[str]]:
         out = self._run(self._cmd("psql", "-X", "-q", "-At", "-F", "\t", "-v", "ON_ERROR_STOP=1",
-                                  "-d", _check_name(database), "-c", sql))
+                                  "-d", _check_name(database), "-c", self._sql(database, sql)))
         return [line.split("\t") for line in out.splitlines() if line != ""]
 
     def run_sql(self, database: str, sql: str) -> None:
         """以 stdin 執行多句 SQL（可含 COPY ... FROM STDIN 資料）。"""
         self._run(self._cmd("psql", "-X", "-q", "-v", "ON_ERROR_STOP=1", "-d", _check_name(database)),
-                  input_text=sql)
+                  input_text=self._sql(database, sql))
 
     def database_exists(self, database: str) -> bool:
         return bool(self.query("postgres", f"SELECT 1 FROM pg_database WHERE datname = '{_check_name(database)}'"))
@@ -81,16 +135,19 @@ class PgTools:
     # --- 傾印與還原 ---
 
     def dump(self, database: str, out_path: Path) -> None:
+        snapshot_args = ["--snapshot", self._snapshot] if self._snapshot else []
+        if self._snapshot and database != self._snapshot_database:
+            raise PgError("備份快照只能用於原資料庫")
         with open(out_path, "wb") as fh:
-            self._run(self._cmd("pg_dump", "-Fc", "--no-owner", "--no-privileges", "-d", _check_name(database)),
+            self._run(self._cmd("pg_dump", "-Fc", "--no-owner", *snapshot_args, "-d", _check_name(database)),
                       stdout=fh)
 
     def restore(self, database: str, in_path: Path) -> None:
         with open(in_path, "rb") as fh:
-            self._run(self._cmd("pg_restore", "--no-owner", "--no-privileges", "--exit-on-error",
+            self._run(self._cmd("pg_restore", "--no-owner", "--exit-on-error",
                                 "-d", _check_name(database)), stdin=fh)
 
     def copy_out(self, database: str, sql: str, out_path: Path) -> None:
         with open(out_path, "wb") as fh:
             self._run(self._cmd("psql", "-X", "-q", "-v", "ON_ERROR_STOP=1", "-d", _check_name(database),
-                                "-c", f"COPY ({sql}) TO STDOUT"), stdout=fh)
+                                "-c", self._sql(database, f"COPY ({sql}) TO STDOUT")), stdout=fh)

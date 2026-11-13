@@ -8,6 +8,8 @@ import os
 import shutil
 import tempfile
 import unittest
+from unittest.mock import patch
+from uuid import uuid4
 from datetime import date, datetime, timezone
 from pathlib import Path
 from urllib.parse import urlsplit
@@ -77,6 +79,123 @@ class BackupRestoreTestCase(unittest.TestCase):
 
 
 class CloudBackupTests(BackupRestoreTestCase):
+    def restricted_role(self):
+        role = "t17_restore_" + uuid4().hex[:12]
+        self.pg.run_sql("postgres", f"CREATE ROLE {role} LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE "
+                        "PASSWORD 'synthetic-t17-password'")
+
+        def cleanup():
+            self.pg.drop_db(self.scratch)
+            self.pg.run_sql(self.db, f"DROP OWNED BY {role}")
+            self.pg.run_sql("postgres", f"DROP ROLE {role}")
+        self.addCleanup(cleanup)
+        return role
+
+    def test_restore_preserves_restricted_app_access_and_forbidden_writes(self):
+        import psycopg
+        from sqlalchemy import create_engine
+        from sqlalchemy.orm import sessionmaker
+        from app.db.session import get_db
+        from app.main import app
+        from scripts.install_real_nutrition import grant_application_access
+        from ops.restore import check_cloud_restore, restore_backup
+
+        self.seed_history()
+        role = self.restricted_role()
+        with session_factory()().get_bind().begin() as conn:
+            grant_application_access(conn, role, self.db)
+        self.pg.run_sql(self.db, f'REVOKE CONNECT ON DATABASE "{self.db}" FROM PUBLIC')
+        self.addCleanup(self.pg.run_sql, self.db, f'GRANT CONNECT ON DATABASE "{self.db}" TO PUBLIC')
+        manifest = restore_backup(self.cloud_backup(), pg=self.pg, target_database=self.scratch)
+        self.assertIn(role, manifest["access"]["required_roles"])
+        self.assertTrue(check_cloud_restore(self.pg, self.scratch, manifest)["ok"])
+        with psycopg.connect(_scratch_url(self.scratch), user=role, password="synthetic-t17-password") as conn:
+            self.assertEqual(conn.execute("SELECT count(*) FROM households").fetchone()[0], 1)
+            self.assertIsNotNone(conn.execute("SELECT version_num FROM alembic_version").fetchone())
+            permissions = conn.execute("""
+                SELECT has_table_privilege(current_user, 'recipes', 'UPDATE'),
+                       has_column_privilege(current_user, 'adopted_meal_plans', 'meal_date', 'UPDATE'),
+                       has_column_privilege(current_user, 'adopted_meal_plans', 'snapshot', 'UPDATE'),
+                       has_sequence_privilege(current_user, 'price_quote_snapshots_id_seq', 'USAGE'),
+                       (SELECT rolsuper OR rolcreatedb OR rolcreaterole FROM pg_roles WHERE rolname = current_user)
+            """).fetchone()
+            self.assertEqual(permissions, (False, False, True, True, False))
+        public_connect = self.pg.query(self.scratch, """
+            SELECT count(*) FROM pg_database d, LATERAL aclexplode(d.datacl) a
+            WHERE d.datname = current_database() AND a.grantee = 0 AND a.privilege_type = 'CONNECT'
+        """)
+        self.assertEqual(public_connect, [["0"]])
+
+        # Exercise actual auth/family writes through the restored restricted role.
+        from sqlalchemy.engine import make_url
+        engine = create_engine(make_url(TEST_DATABASE_URL).set(database=self.scratch, username=role,
+                                                               password="synthetic-t17-password"))
+        self.addCleanup(engine.dispose)
+        sessions = sessionmaker(bind=engine)
+        client = make_client()
+        old_override = app.dependency_overrides[get_db]
+        self.addCleanup(app.dependency_overrides.__setitem__, get_db, old_override)
+
+        def restored_session():
+            with sessions() as db:
+                yield db
+        app.dependency_overrides[get_db] = restored_session
+        response = client.post("/auth/register", json={"email": "restored@example.test", "password": "correct-horse-42"})
+        self.assertEqual(response.status_code, 201, response.text)
+        response = client.post("/household", json={"name": "Restored app family"})
+        self.assertEqual(response.status_code, 201, response.text)
+
+    def test_missing_role_is_rejected_before_creating_restore_target(self):
+        from ops.restore import RestoreError, restore_backup
+        role = "t17_missing_" + uuid4().hex[:12]
+        self.pg.run_sql("postgres", f"CREATE ROLE {role} NOLOGIN")
+        try:
+            self.pg.run_sql(self.db, f"GRANT SELECT ON users TO {role}")
+            path = self.cloud_backup()
+        finally:
+            self.pg.run_sql(self.db, f"DROP OWNED BY {role}")
+            self.pg.run_sql("postgres", f"DROP ROLE {role}")
+        with self.assertRaises(RestoreError) as ctx:
+            restore_backup(path, pg=self.pg, target_database=self.scratch)
+        self.assertEqual(ctx.exception.code, "MISSING_ROLES")
+        self.assertFalse(self.pg.database_exists(self.scratch))
+
+    def test_registration_during_backup_does_not_change_dump_snapshot(self):
+        from ops.pg import PgTools
+        from ops.restore import check_cloud_restore, restore_backup
+        original_dump = PgTools.dump
+
+        def register_then_dump(pg, database, out_path):
+            response = make_client().post("/auth/register", json={"email": "during-backup@example.test",
+                                                                 "password": "correct-horse-42"})
+            self.assertEqual(response.status_code, 201, response.text)
+            return original_dump(pg, database, out_path)
+        with patch.object(PgTools, "dump", register_then_dump):
+            path = self.cloud_backup()
+        self.assertEqual(self.pg.query(self.db, "SELECT count(*) FROM users"), [["1"]])
+        manifest = restore_backup(path, pg=self.pg, target_database=self.scratch)
+        self.assertEqual(manifest["counts"]["users"], 0)
+        self.assertTrue(check_cloud_restore(self.pg, self.scratch, manifest)["ok"])
+
+    def test_snapshot_owner_is_closed_after_a_dump_failure(self):
+        from ops.pg import PgError
+        snapshot_id = None
+        with self.assertRaisesRegex(RuntimeError, "synthetic dump failure"):
+            with self.pg.snapshot(self.db) as consistent:
+                snapshot_id = consistent._snapshot
+                raise RuntimeError("synthetic dump failure")
+        with self.assertRaises(PgError):
+            self.pg.run_sql(self.db, "BEGIN ISOLATION LEVEL REPEATABLE READ; "
+                            f"SET TRANSACTION SNAPSHOT '{snapshot_id}'; COMMIT;")
+
+    def test_legacy_backup_does_not_claim_app_permissions_are_restored(self):
+        from ops.restore import check_cloud_restore, restore_backup
+        manifest = restore_backup(self.cloud_backup(), pg=self.pg, target_database=self.scratch)
+        manifest.pop("access")  # Existing v1 archives had no role/ACL metadata.
+        report = check_cloud_restore(self.pg, self.scratch, manifest)
+        self.assertFalse(report["ok"])
+        self.assertIn("舊備份", " ".join(report["problems"]))
+
     def test_backup_records_schema_revision_counts_and_checksums(self):
         from ops.backup import verify_backup
         self.seed_history()
@@ -185,6 +304,22 @@ class KnowledgeBackupTests(BackupRestoreTestCase):
         from ops.backup import create_backup
         return create_backup("knowledge", pg=self.pg, database=self.knowledge_db, backup_root=self.backup_root,
                              code_root=ROOT, now=NOW)
+
+    def test_sources_and_dump_share_the_snapshot_during_a_new_import(self):
+        from knowledge_support import record
+        from ops.pg import PgTools
+        from ops.restore import rebuild_knowledge_from_sources
+        original_copy = PgTools.copy_out
+
+        def import_then_copy(pg, database, sql, out_path):
+            self.store.import_record(record("K4", "FOOD000678", "備份進行時新增的合成知識"))
+            return original_copy(pg, database, sql, out_path)
+        with patch.object(PgTools, "copy_out", import_then_copy):
+            path = self.knowledge_backup()
+        self.assertEqual(self.pg.query(self.knowledge_db, "SELECT count(*) FROM knowledge_records"), [["4"]])
+        report = rebuild_knowledge_from_sources(path, pg=self.pg, target_database=self.rebuilt)
+        self.assertTrue(report["ok"], report["problems"])
+        self.assertEqual(report["counts"]["knowledge_records"], 3)
 
     def test_knowledge_backup_contains_dump_sources_and_counts(self):
         from ops.backup import verify_backup

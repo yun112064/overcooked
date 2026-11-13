@@ -26,6 +26,35 @@ class RestoreError(RuntimeError):
         self.code = code
 
 
+def _identifier(name: str) -> str:
+    return '"' + name.replace('"', '""') + '"'
+
+
+def _check_roles(pg: PgTools, access: dict) -> None:
+    required = set(access.get("required_roles", []))
+    required.update(g["role"] for g in access.get("database_acl", []) if g["role"] != "PUBLIC")
+    existing = {r[0] for r in pg.query("postgres", "SELECT rolname FROM pg_roles")}
+    missing = sorted(required - existing)
+    if missing:
+        raise RestoreError("MISSING_ROLES", "還原需要先建立受限角色：" + ", ".join(missing)
+                           + "。請在目標 PostgreSQL 本機設定登入密碼後重試；不會自動建立或修改角色。")
+
+
+def _restore_database_acl(pg: PgTools, database: str, access: dict) -> None:
+    if not access.get("acl_preserved"):
+        return  # Legacy dumps remain readable; cloud verification flags missing ACLs.
+    target = _identifier(database)
+    statements = [f"REVOKE ALL ON DATABASE {target} FROM PUBLIC;"]
+    for grant in access["database_acl"]:
+        privilege = grant["privilege"]
+        if privilege not in ("CONNECT", "CREATE", "TEMPORARY"):
+            raise RestoreError("INVALID_ACL", "備份含不支援的資料庫權限")
+        role = "PUBLIC" if grant["role"] == "PUBLIC" else _identifier(grant["role"])
+        option = " WITH GRANT OPTION" if grant["grant_option"] else ""
+        statements.append(f"GRANT {privilege} ON DATABASE {target} TO {role}{option};")
+    pg.run_sql(database, "\n".join(statements))
+
+
 def _prepare_target(pg: PgTools, database: str) -> None:
     if pg.database_exists(database):
         tables = pg.query(database, "SELECT count(*) FROM pg_tables WHERE schemaname = 'public'")
@@ -47,8 +76,11 @@ def _extract(archive: Path, target: Path) -> None:
 def restore_backup(path: Path, *, pg: PgTools, target_database: str, data_target: Path | None = None) -> dict:
     path = Path(path)
     manifest = verify_backup(path)  # 校驗碼不符時在動到任何資料庫之前就失敗
+    access = manifest.get("access", {})
+    _check_roles(pg, access)  # A missing cluster identity must fail before creating a target.
     _prepare_target(pg, target_database)
     pg.restore(target_database, path / "database.dump")
+    _restore_database_acl(pg, target_database, access)
     if data_target is not None:
         if "data_root.tar.gz" not in manifest["files"]:
             raise RestoreError("NO_DATA_ROOT", "此備份沒有 Data Root")
@@ -58,6 +90,8 @@ def restore_backup(path: Path, *, pg: PgTools, target_database: str, data_target
 
 def check_cloud_restore(pg: PgTools, database: str, manifest: dict) -> dict:
     problems = []
+    if not manifest.get("access", {}).get("acl_preserved"):
+        problems.append("舊備份未保存應用程式權限：資料已還原，需依原版本的權限政策補齊 ACL 並用應用帳號驗證後才能切換")
     revision = pg.query(database, "SELECT version_num FROM alembic_version")[0][0]
     if revision != manifest["alembic_revision"]:
         problems.append(f"Alembic 版本 {revision} ≠ 備份 {manifest['alembic_revision']}")

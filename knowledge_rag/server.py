@@ -1,5 +1,6 @@
 """Team computer service. No provider credentials or paid calls on this machine."""
 import hmac
+import logging
 import os
 import uuid
 
@@ -8,6 +9,8 @@ import httpx
 from fastapi import Depends, FastAPI, Header, HTTPException
 
 from knowledge_rag.store import KnowledgeStore, KnowledgeStoreError
+
+log = logging.getLogger('knowledge_rag')
 
 def make_app(store,token,embedder=None):
     if not token:
@@ -63,8 +66,7 @@ def make_app(store,token,embedder=None):
             return dict(result,provider='ollama',provider_cost_usd='0',embedding_dimensions=768)
         except (httpx.HTTPError,LocalEmbeddingUnavailable,KnowledgeStoreError,KeyError,ValueError,TypeError):
             # Never log the query, token, source payload or exception text.
-            from backend.app.core.logging_config import process_logger
-            process_logger.warning('local_knowledge_unavailable',extra={
+            log.warning('local_knowledge_unavailable',extra={
                 'event':'local_knowledge_unavailable','trace_id':uuid.uuid4().hex})
             raise HTTPException(503,'KNOWLEDGE_UNAVAILABLE') from None
     return app
