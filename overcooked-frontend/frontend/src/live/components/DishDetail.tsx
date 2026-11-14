@@ -1,6 +1,7 @@
 import { Box, Chip, Tooltip, Typography } from '@mui/material'
 import type { ResultIngredient } from '../api/types'
 import CookingQuantity from './CookingQuantity'
+import { cleanSteps } from './recipeSteps'
 
 type Ingredient = Pick<ResultIngredient, 'name' | 'group' | 'display_amount' | 'display_unit' | 'display_text' | 'display_grams'> & Partial<Pick<ResultIngredient, 'whole_meal_grams'>>
 
@@ -40,9 +41,9 @@ export function DishIngredients({ ingredients }: { ingredients: Ingredient[] }) 
   )
 }
 
-/** 步驟：顯示分組代稱已展開的文字（steps_display）；舊資料沒有時用原文。 */
+/** 步驟：顯示分組代稱已展開的文字（steps_display）；舊資料沒有時用原文。版本說明與重複的步驟標籤不顯示。 */
 export function DishSteps({ steps, display }: { steps: string[]; display?: string[] }) {
-  const lines = display && display.length === steps.length ? display : steps
+  const lines = cleanSteps(display && display.length === steps.length ? display : steps)
   if (lines.length === 0) return null
   return (
     <Box component="ol" sx={{ my: 0.5, pl: 3 }}>
