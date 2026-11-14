@@ -178,7 +178,7 @@ export default function FloatingAssistant() {
 
       <Box sx={{
         position: 'fixed', zIndex: 1250, bottom, left: 0, width: SIZE, height: SIZE,
-        transform: `translateX(${shownX}px)`, transition: `transform ${shownDuration}s linear`, pointerEvents: 'none',
+        transform: `translateX(${shownX}px)`, transition: `transform ${shownDuration}s ease-in-out`, pointerEvents: 'none',
       }}>
         {bubbleText && (
           <Box sx={{
@@ -197,7 +197,7 @@ export default function FloatingAssistant() {
             '&:hover': { transform: 'scale(1.08)' },
             '&:focus-visible': { outline: `2px solid ${tokens.indigo}`, outlineOffset: 2 },
           }}>
-          <AssistantMascot size={SIZE} mood={moving || chat.busy ? 'thinking' : 'idle'}
+          <AssistantMascot size={SIZE} mood={moving ? 'walking' : chat.busy ? 'thinking' : 'idle'}
             sx={{ transform: `scaleX(${facing})`, transition: 'transform 0.2s' }} />
           {unread && (
             <Box component="span" sx={{ position: 'absolute', top: 6, right: 6, width: 14, height: 14, borderRadius: '50%',

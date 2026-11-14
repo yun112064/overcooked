@@ -13,8 +13,8 @@ const TRIM = '#FFF4E8'
 
 type Props = {
   size?: number
-  /** thinking：查資料時上下晃動 */
-  mood?: 'idle' | 'thinking'
+  /** thinking：查資料時上下晃動；walking：左右搖擺走路、兩腳交替 */
+  mood?: 'idle' | 'thinking' | 'walking'
   sx?: SxProps<Theme>
 }
 
@@ -28,16 +28,27 @@ export default function AssistantMascot({ size = 96, mood = 'idle', sx }: Props)
       display: 'inline-block', width: size, height: size, flexShrink: 0, lineHeight: 0,
       '& .mascot-all': {
         transformOrigin: '60px 110px',
-        animation: mood === 'thinking' ? 'mascotHop 0.9s ease-in-out infinite' : 'mascotBreathe 3.2s ease-in-out infinite',
+        animation: mood === 'walking' ? 'mascotWaddle 0.6s ease-in-out infinite'
+          : mood === 'thinking' ? 'mascotHop 0.9s ease-in-out infinite' : 'mascotBreathe 3.2s ease-in-out infinite',
       },
+      '& .mascot-foot-l, & .mascot-foot-r': { transformBox: 'fill-box', transformOrigin: 'center' },
+      ...(mood === 'walking' && {
+        '& .mascot-foot-l': { animation: 'mascotStep 0.6s ease-in-out infinite' },
+        '& .mascot-foot-r': { animation: 'mascotStep 0.6s ease-in-out -0.3s infinite' },
+      }),
       '& .mascot-eyes': { transformOrigin: '60px 49px', animation: 'mascotBlink 4.5s infinite' },
       '& .mascot-sprout': { transformOrigin: '60px 20px', animation: 'mascotSway 2.6s ease-in-out infinite' },
       '@keyframes mascotBreathe': { '0%,100%': { transform: 'scale(1,1)' }, '50%': { transform: 'scale(1.02,0.98)' } },
       '@keyframes mascotHop': { '0%,100%': { transform: 'translateY(0)' }, '50%': { transform: 'translateY(-6px)' } },
       '@keyframes mascotBlink': { '0%,92%,100%': { transform: 'scaleY(1)' }, '95%': { transform: 'scaleY(0.1)' } },
+      '@keyframes mascotWaddle': {
+        '0%,100%': { transform: 'translateY(0) rotate(-5deg)' }, '25%': { transform: 'translateY(-4px) rotate(0deg)' },
+        '50%': { transform: 'translateY(0) rotate(5deg)' }, '75%': { transform: 'translateY(-4px) rotate(0deg)' },
+      },
+      '@keyframes mascotStep': { '0%,100%': { transform: 'translateY(0)' }, '50%': { transform: 'translateY(-4px)' } },
       '@keyframes mascotSway': { '0%,100%': { transform: 'rotate(-8deg)' }, '50%': { transform: 'rotate(8deg)' } },
       '@media (prefers-reduced-motion: reduce)': {
-        '& .mascot-all, & .mascot-eyes, & .mascot-sprout': { animation: 'none' },
+        '& .mascot-all, & .mascot-eyes, & .mascot-sprout, & .mascot-foot-l, & .mascot-foot-r': { animation: 'none' },
       },
     }, ...(Array.isArray(sx) ? sx : [sx])]}>
       <svg viewBox="0 0 120 120" width={size} height={size} aria-hidden="true">
@@ -58,8 +69,8 @@ export default function AssistantMascot({ size = 96, mood = 'idle', sx }: Props)
             <path d="M60 11C56 5 48 5 45 8C49 13 56 14 60 11Z" fill={ORANGE_LIGHT} />
           </g>
           {/* 小腳 */}
-          <ellipse cx="45" cy="107" rx="9" ry="5.5" fill={PURPLE_DARK} />
-          <ellipse cx="75" cy="107" rx="9" ry="5.5" fill={PURPLE_DARK} />
+          <ellipse className="mascot-foot-l" cx="45" cy="107" rx="9" ry="5.5" fill={PURPLE_DARK} />
+          <ellipse className="mascot-foot-r" cx="75" cy="107" rx="9" ry="5.5" fill={PURPLE_DARK} />
           {/* 身體 */}
           <path d={bodyPath} fill={`url(#${shine})`} />
           {/* 圍裙：胸片＋肩帶＋腰帶＋荷葉邊裙片，兩側露出身體，才看得出是穿上去的 */}

@@ -7,8 +7,8 @@ import {
   Alert, Box, Chip, CircularProgress, IconButton, Link, Paper, Stack, TextField, ToggleButton, ToggleButtonGroup,
   Tooltip, Typography,
 } from '@mui/material'
-import { Fragment, useState, type ReactNode } from 'react'
-import type { AssistantEngine, AssistantReference, AssistantType } from '../api/assistant'
+import { useState } from 'react'
+import type { AssistantEngine, AssistantType } from '../api/assistant'
 import AssistantMascot from '../components/AssistantMascot'
 import { tokens } from '../theme'
 import { ENGINE_LABEL, MAX_LENGTH, useAssistantChat, type Message } from './chatStore'
@@ -26,27 +26,9 @@ function formatDate(value?: string | null) {
   return Number.isNaN(d.getTime()) ? null : `${d.getFullYear()}/${d.getMonth() + 1}/${d.getDate()}`
 }
 
-/** 把回答中的 [n] 換成可點的上標，連到下方參考資料。 */
-function withCitations(text: string, anchor: string, refs: AssistantReference[] = []): ReactNode[] {
-  const parts = text.split(/(\[\d{1,2}\])/g)
-  let lastCite = false
-  return parts.map((part, i) => {
-    const m = /^\[(\d{1,2})\]$/.exec(part)
-    if (!m) {
-      if (part) lastCite = false
-      return <Fragment key={i}>{part}</Fragment>
-    }
-    const n = Number(m[1])
-    if (!refs.some((r) => r.n === n)) return <Fragment key={i}>{part}</Fragment>
-    const comma = lastCite  // 連續的 [1][3] 顯示成 1,3
-    lastCite = true
-    return (
-      <Box key={i} component="a" href={`#${anchor}-${n}`} aria-label={`參考資料 ${n}`} sx={{
-        fontSize: '0.72em', verticalAlign: 'super', lineHeight: 0, color: tokens.indigo, textDecoration: 'none',
-        px: 0.25, fontWeight: 500, '&:hover': { textDecoration: 'underline' },
-      }}>{comma ? `,${n}` : n}</Box>
-    )
-  })
+/** 回答中的 [n] 引用標記不顯示（出處統一列在下方參考資料）；串流中斷在半個標記時也一併去掉。 */
+function withoutCitations(text: string): string {
+  return text.replace(/[ \t]*\[\d{1,2}\]/g, '').replace(/\[\d{0,2}$/, '')
 }
 
 function References({ message, anchor }: { message: Message; anchor: string }) {
@@ -65,7 +47,6 @@ function References({ message, anchor }: { message: Message; anchor: string }) {
             formatDate(r.published_at)].filter(Boolean).join('　')
           return (
             <Box component="li" key={r.n} id={`${anchor}-${r.n}`} sx={{ display: 'flex', gap: 1 }}>
-              <Typography variant="body2" sx={{ color: tokens.indigo, fontWeight: 500, minWidth: 18 }}>{r.n}</Typography>
               <Box sx={{ minWidth: 0 }}>
                 <Link href={r.url} target="_blank" rel="noopener noreferrer" variant="body2" underline="hover"
                   sx={{ color: tokens.ink, display: 'inline-flex', alignItems: 'center', gap: 0.5, overflowWrap: 'anywhere' }}>
@@ -175,7 +156,7 @@ function AssistantBubble({ message, scope, compact }: { message: Message; scope:
         {message.text ? (
           <Typography component="div" sx={{ whiteSpace: 'pre-wrap', lineHeight: compact ? 1.75 : 1.85,
             overflowWrap: 'anywhere', fontSize: compact ? '0.92rem' : undefined }}>
-            {withCitations(message.text, anchor, message.references)}
+            {withoutCitations(message.text)}
             {message.status === 'streaming' && <Box component="span" sx={{ display: 'inline-block', width: 8, height: '1em',
               ml: 0.5, verticalAlign: 'text-bottom', bgcolor: tokens.inkMuted, animation: 'blink 1s step-end infinite',
               '@keyframes blink': { '50%': { opacity: 0 } } }} />}

@@ -10,6 +10,7 @@
 （例如缺價例外需在新版本重新接受）。問卷狀態只在新版本是最新版本、且問卷仍停在結果狀態時更新。
 """
 import copy
+import re
 import uuid
 from datetime import datetime, timezone
 from decimal import Decimal
@@ -17,6 +18,7 @@ from fractions import Fraction
 
 from sqlalchemy import select
 
+from app.core.logging_config import process_logger
 from app.db.models import GenerationResult, MealRequest, MealResultDecision
 from app.meal_calc.types import IngredientRequirement
 from app.services import jobs, meal_validation
@@ -85,14 +87,14 @@ def make_knowledge_retry_handler(*, responder=_DEFAULT, knowledge_client=_DEFAUL
 def default_price_lookup(food_ids: list[str]) -> dict:
     """以 T02 PriceCollectionService 只查指定 FOOD 編號（全聯；查無時萬家福；低頻率），結果寫入價格快照。"""
     from app.core.config import settings
-    from app.pricing_scheduler import SchedulerSettings, create_service
+    from app.pricing_scheduler import SchedulerSettings, create_repository, create_service
     from app.source_adapters.price_collection import PriceCollectionService
-    from app.source_adapters.pricing_repository import PricingRepository
     from app.source_adapters.pxmart import PxMartAdapter
 
     config = SchedulerSettings.from_env()
     service = PriceCollectionService(
-        repository=PricingRepository(),
+        # 寫入價格要用 crawler 帳號（CRAWLER_DATABASE_URL）；應用程式帳號對價格表只有讀取權
+        repository=create_repository(),
         adapter_factory=lambda: PxMartAdapter(timeout=config.timeout_seconds, retries=config.retries),
         delay_seconds=max(settings.price_retry_delay_seconds, config.delay_seconds),
         fallback_adapter_factory=create_service(config).fallback_adapter_factory)
@@ -121,7 +123,11 @@ def make_price_retry_handler(*, price_lookup=None, now=None):
         except PriceLookupBusy:
             raise jobs.RetryableJobError("PRICE_LOOKUP_BUSY", code="PRICE_LOOKUP_BUSY",
                                          user_message="價格來源正在進行其他查價，稍後會自動再試一次。") from None
-        except Exception:  # noqa: BLE001 — 外部來源失敗：可辨識的失敗狀態，原結果不變
+        except Exception as exc:  # noqa: BLE001 — 外部來源失敗：可辨識的失敗狀態，原結果不變
+            process_logger.warning("price lookup failed", extra={
+                "event": "price_lookup_failed", "job_id": str(ctx.job.id),
+                # 只記例外類別（ProgrammingError → PROGRAMMING_ERROR），不記可能含連線資訊的訊息內容
+                "error_code": re.sub(r"(?<!^)(?=[A-Z])", "_", type(exc).__name__).upper()[:50]})
             raise jobs.JobFailure("PRICE_LOOKUP_FAILED", "缺價食材的定向查價失敗；原結果不變，可稍後再試或接受缺價例外。")
         ctx.stage("calculating")
         draft = meal_request_service.load(ctx.input_payload())

@@ -4,6 +4,7 @@ import { Box, Chip, Stack, Typography } from '@mui/material'
 import { GRAMS_PER_BOWL, ingredientAmount, rice } from '../api/nutrition'
 import type { NutritionPreview, RecipeSummary } from '../api/types'
 import { tokens } from '../theme'
+import { DishSteps } from './DishDetail'
 
 type Dish = NonNullable<NutritionPreview['dishes']>[number]
 type Ingredient = Dish['ingredients'][number]
@@ -62,11 +63,7 @@ export default function DishList({ selected, dishes, staple, stapleName }: {
                 <Typography variant="caption" component="p">原食譜用量（營養計算未通過，未依目標調整）</Typography>
               )}
               {dish && dish.ingredients.length > 0 && <IngredientTable ingredients={dish.ingredients} />}
-              {(dish?.steps.length ?? 0) > 0 && (
-                <Box component="ol" sx={{ my: 0.5, pl: 3 }}>
-                  {dish?.steps.map((s, k) => <li key={k}><Typography variant="body2">{s}</Typography></li>)}
-                </Box>
-              )}
+              {dish && <DishSteps steps={dish.steps} />}
             </Box>
           </Box>
         )

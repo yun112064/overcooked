@@ -562,3 +562,11 @@ Scope: nested checkout `1111_update_V2`, Docker project `overcooked-1111_update_
 - Docker Engine 29.8.2 啟動後，容器連線至 registry.npmjs.org 遭拒。加入選用的 NPM_CONFIG_REGISTRY，使用 https://registry.npmjs.com 及原 package-lock.json，透過正式 Compose 的 frontend 建置成功。
 - 使用同一份前端映像、原始 app.main API 和全新合成 PostgreSQL 測試庫。Caddy 設定、容器內首頁及 /api/health、SPA 路由及登入 Cookie 契約通過。Chrome 實測登入並重新整理，Secure / HttpOnly Cookie 仍維持有效登入。
 - 整套正式服務與對外 Cloudflare 通道仍未實跑。
+
+## 2026-11-14 — Production price lookup fix
+
+- Cause: `meal_planner_prod` had no price runs/snapshots, and targeted 重新查價 used the application role, which is SELECT-only on price tables (job failed with `PRICE_LOOKUP_FAILED` before any network request). No crawler role or `CRAWLER_DATABASE_URL` existed for prod.
+- User-approved fix: `result_retry.default_price_lookup` now uses `create_repository()` (crawler credential); failures log `price_lookup_failed` with the exception class only. `compose.prod.yaml` passes `CRAWLER_DATABASE_URL` to worker and scheduler, and `ops.prodenv` now merges the installer's `CRAWLER_DATABASE_URL` into `.env.prod` (previously dropped). Created `meal_planner_prod_crawler` with the existing `grant_service_access(kind='crawler')` grants; verified it can insert runs and cannot modify `recipes`. The app role stays read-only on price tables.
+- Executed: one full collection `pxmart-prod-initial-20261114` — PX Mart 301 targets: 165 success, 9 review, 127 not found; Uni-Prosperity fallback 139 targets: 42 success, 5 review, 92 not found (~21 min). One targeted lookup from the worker (FOOD000077) completed as `meal_planner_prod_crawler`.
+- Executed: formatter output check of the new log event in an offline container. Not executed: pytest (host Python and the image lack the test dependencies); UI retest of 重新查價.
+- Limitation: these quotes have no source expiry and become stale 48 h after query. On user request `PRICE_SCHEDULER_ENABLED=true` was added to `.env.prod` (03:00 Asia/Taipei); scheduler restarted with it and logged `scheduler_started`. The first scheduled run has not happened yet.
