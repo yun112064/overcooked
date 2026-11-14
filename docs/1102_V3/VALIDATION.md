@@ -553,3 +553,12 @@ Scope: nested checkout `1111_update_V2`, Docker project `overcooked-1111_update_
 - Updated recovery/handoff/ticket ownership and explicitly separated existing Codex/CI results from user-machine tests that have not been executed. Local OS/RAM/GPU details were requested to tailor the next stage; generic platform-labelled steps do not assume that hardware. Documentation-only change; application code and prior test results are unchanged.
 - Verified the new local-data path using the tracked bundle in a newly created task-owned `overcooked-pr39-check-db` container: bundle hashes passed; installer created only `meal_planner_1102_v3_local_bundle_test` and its new restricted roles; **293 recipes / 1996 food_nutrition** imported; `verify_portable_nutrition.py --require-empty-runtime` returned **ok=true**, retained the four existing unresolved source lines and confirmed empty user/runtime data. No pre-existing database or original/private user data was used. Equivalent Linux commands were executed; the guide's Windows execution remains pending. Logs: `/workspace/pr39-evidence/user-local-bundle-install.log`, `/workspace/pr39-evidence/user-local-bundle-verify.log`.
 - Verified the tracked production YOLO checkpoint is 20,407,407 bytes and its SHA-256 matches `inference/model_manifest.json`. This verifies asset availability/integrity, not actual YOLO inference or GPU performance.
+
+## 2026-11-14 — 新版前端正式啟動接線
+
+- 以範例環境檔執行 Compose 合併驗證，正式 frontend 指向新版 Dockerfile、無主機發佈埠，Cloudflare 仍連到 frontend:80。開發 Compose 仍使用原本的前端路徑及 8080 埠。
+- T17 維運測試 29 項通過，Windows PowerShell 5.1 語法檢查通過。使用替身模擬容器與通道的探測重試、失敗，以及 PUBLIC_HOSTNAME 寫入失敗，共 5 個情境通過。
+- 本次驗證使用暫存副本，未啟動正式資料庫、部署服務或開啟外部通道。
+- Docker Engine 29.8.2 啟動後，容器連線至 registry.npmjs.org 遭拒。加入選用的 NPM_CONFIG_REGISTRY，使用 https://registry.npmjs.com 及原 package-lock.json，透過正式 Compose 的 frontend 建置成功。
+- 使用同一份前端映像、原始 app.main API 和全新合成 PostgreSQL 測試庫。Caddy 設定、容器內首頁及 /api/health、SPA 路由及登入 Cookie 契約通過。Chrome 實測登入並重新整理，Secure / HttpOnly Cookie 仍維持有效登入。
+- 整套正式服務與對外 Cloudflare 通道仍未實跑。
