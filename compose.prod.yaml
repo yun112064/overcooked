@@ -83,6 +83,8 @@ services:
       RECOGNITION_SERVICE_TOKEN: ${INFERENCE_TOKEN:?Set INFERENCE_TOKEN in .env.prod}
       KNOWLEDGE_SERVICE_URL: http://knowledge-rag:8091
       KNOWLEDGE_SERVICE_TOKEN: ${KNOWLEDGE_SERVICE_TOKEN:?Set KNOWLEDGE_SERVICE_TOKEN in .env.prod}
+      # 查價寫入價格表用 crawler 帳號（應用程式帳號對價格表唯讀）；prod-up 安裝資料包後寫入 .env.prod，空值時查價會失敗並記錄
+      CRAWLER_DATABASE_URL: ${CRAWLER_DATABASE_URL:-}
     volumes: !override
       - ${PROJECT_DATA_ROOT:?Set PROJECT_DATA_ROOT}:/app/data
     restart: unless-stopped
@@ -92,6 +94,7 @@ services:
     profiles: !reset []
     environment:
       <<: *prod-database
+      CRAWLER_DATABASE_URL: ${CRAWLER_DATABASE_URL:-}
     volumes: !override
       - ${PROJECT_DATA_ROOT:?Set PROJECT_DATA_ROOT}:/app/data
 
