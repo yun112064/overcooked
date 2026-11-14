@@ -96,6 +96,11 @@ services:
       - ${PROJECT_DATA_ROOT:?Set PROJECT_DATA_ROOT}:/app/data
 
   frontend:
+    build:
+      context: ./overcooked-frontend/frontend
+      dockerfile: Dockerfile
+      args:
+        NPM_CONFIG_REGISTRY: ${NPM_CONFIG_REGISTRY:-https://registry.npmjs.org}
     container_name: meal-prod-frontend
     ports: !reset []
     restart: unless-stopped

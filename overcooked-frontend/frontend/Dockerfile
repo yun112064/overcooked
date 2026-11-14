@@ -5,6 +5,7 @@ FROM node:24-alpine AS build
 WORKDIR /app
 
 COPY package*.json ./
+ARG NPM_CONFIG_REGISTRY=https://registry.npmjs.org
 RUN npm ci
 
 COPY . .

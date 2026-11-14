@@ -10,7 +10,8 @@
     - python -m ops.deploy：部署前備份（含獨立位置副本）→ alembic upgrade head
     - T11 知識：knowledge_rag.bootstrap（本機 embeddinggemma，不呼叫付費 API）
     - YOLO 以主機原生 .venv-yolo 執行（GPU），只綁 127.0.0.1；容器經 host.docker.internal 連線
-    - 啟動其餘服務與 cloudflared，從日誌取得 https://*.trycloudflare.com，寫入 PUBLIC_HOSTNAME 後重建 backend
+    - 啟動其餘服務，確認新版首頁與 API 可用，再開啟 cloudflared
+    - 取得 https://*.trycloudflare.com，寫入 PUBLIC_HOSTNAME 後重建 backend，確認公開首頁與 API
   飲食小幫手的語料與索引另以 scripts\assistant-data.ps1 建立（第一次約 1–2 小時）；尚未建立時小幫手顯示暫時無法使用。
   主機不開任何連入埠。網址每次重開都會變；電腦關機或執行 scripts\prod-down.ps1 即離線。
 .PARAMETER SkipYolo
@@ -164,6 +165,20 @@ if ($active -eq '0' -or -not $active) {
     Warn '飲食小幫手還沒有索引：執行 .\scripts\assistant-data.ps1 爬取語料並建索引（建好後不必重啟，下一次提問即生效）。'
 }
 
+Step '確認新版前端首頁與 API'
+$FrontendReady = $false
+for ($i = 0; $i -lt 10; $i++) {
+    Dc exec -T frontend sh -c 'test -s /usr/share/caddy/index.html && wget -q -T 5 -O /dev/null http://127.0.0.1/ && wget -q -T 5 -O /dev/null http://127.0.0.1/api/health'
+    if ($LASTEXITCODE -eq 0) {
+        $FrontendReady = $true
+        break
+    }
+    Start-Sleep -Seconds 2
+}
+if (-not $FrontendReady) {
+    Fail '前端首頁或 API 檢查失敗。請執行 docker logs meal-prod-frontend 與 docker logs meal-prod-backend。'
+}
+
 $Url = $null
 if ($NoTunnel) {
     Warn '未開對外網址（-NoTunnel）；本機沒有發佈任何連入埠。'
@@ -178,13 +193,34 @@ if ($NoTunnel) {
     }
     if (-not $Url) { Fail '60 秒內沒有從 cloudflared 日誌取得網址：docker logs meal-prod-cloudflared' }
     & $Py -m ops.prodenv set --env-file .env.prod PUBLIC_HOSTNAME ($Url -replace '^https://', '')
+    if ($LASTEXITCODE -ne 0) { Fail '無法寫入 .env.prod 的 PUBLIC_HOSTNAME。' }
     Step '以新網址重建 backend（ALLOWED_ORIGINS）'
     Dc up -d --wait --no-deps backend
     if ($LASTEXITCODE -ne 0) { Fail 'backend 重建失敗。' }
+
+    Step '確認公開首頁與 API'
+    $PublicReady = $false
+    $PublicError = '未取得首頁或健康檢查的預期回應'
+    for ($i = 0; $i -lt 10; $i++) {
+        try {
+            $page = Invoke-WebRequest "$Url/" -UseBasicParsing -TimeoutSec 5 -ErrorAction Stop
+            $health = Invoke-RestMethod "$Url/api/health" -TimeoutSec 5 -ErrorAction Stop
+            if ($page.StatusCode -eq 200 -and $page.Headers['Content-Type'] -like 'text/html*' -and
+                $health.status -eq 'ok' -and $health.service -eq 'backend') {
+                $PublicReady = $true
+                break
+            }
+            $PublicError = '公開首頁或 API 的回應格式與預期不符'
+        } catch {
+            $PublicError = $_.Exception.Message
+        }
+        Start-Sleep -Seconds 2
+    }
+    if (-not $PublicReady) {
+        Fail "公開網址檢查失敗：$PublicError。請查看 docker logs meal-prod-cloudflared 與 docker logs meal-prod-frontend。"
+    }
 }
 
-$health = Dc exec -T frontend wget -qO- http://localhost/api/health
-if ($LASTEXITCODE -ne 0) { Warn "經 frontend 呼叫 /api/health 失敗：$health" }
 Write-Host ''
 if ($Url) {
     Write-Host "正式環境已上線：$Url" -ForegroundColor Green

@@ -236,6 +236,15 @@ class ComposeFilesTests(unittest.TestCase):
                      "cloudflared"):
             self.assertNotIn("ports:", self.service(text, name), name)
 
+    def test_production_builds_the_new_frontend(self):
+        frontend = self.service(self.text("compose.prod.yaml"), "frontend")
+        self.assertIn("context: ./overcooked-frontend/frontend", frontend)
+        self.assertIn("dockerfile: Dockerfile", frontend)
+        self.assertIn("NPM_CONFIG_REGISTRY: ${NPM_CONFIG_REGISTRY:-https://registry.npmjs.org}", frontend)
+        dockerfile = self.text("overcooked-frontend/frontend/Dockerfile")
+        self.assertIn("ARG NPM_CONFIG_REGISTRY=https://registry.npmjs.org\nRUN npm ci\n", dockerfile)
+        self.assertIn("RUN npm run build\n", dockerfile)
+
     def test_quick_tunnel_like_the_demo_branch(self):
         text = self.text("compose.prod.yaml")
         tunnel = self.service(text, "cloudflared")
@@ -277,7 +286,7 @@ class ComposeFilesTests(unittest.TestCase):
             self.assertIn('"host.docker.internal:host-gateway"', self.service(text, name), name)
 
     def test_caddy_only_serves_plain_http_inside_the_network(self):
-        for name in ("frontend/Caddyfile", "admin-dashboard/Caddyfile"):
+        for name in ("frontend/Caddyfile", "overcooked-frontend/frontend/Caddyfile", "admin-dashboard/Caddyfile"):
             caddy = self.text(name)
             self.assertIn(":80 {", caddy, name)
             self.assertNotRegex(caddy, r"(?m)^\s*tls\s", name)
