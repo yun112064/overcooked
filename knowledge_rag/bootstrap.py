@@ -1,4 +1,5 @@
-"""Local dev setup: apply the reviewed 123 records and publish an index if none matches.
+"""Local dev setup: apply the reviewed 123 records with their recorded classification,
+and publish an index if none matches.
 
 Run by scripts/start-dev.ps1 against the dev knowledge database.  Uses only the
 locally installed Ollama embeddinggemma; never downloads a model or calls a paid

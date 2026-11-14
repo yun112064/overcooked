@@ -570,3 +570,35 @@ Scope: nested checkout `1111_update_V2`, Docker project `overcooked-1111_update_
 - Executed: one full collection `pxmart-prod-initial-20261114` — PX Mart 301 targets: 165 success, 9 review, 127 not found; Uni-Prosperity fallback 139 targets: 42 success, 5 review, 92 not found (~21 min). One targeted lookup from the worker (FOOD000077) completed as `meal_planner_prod_crawler`.
 - Executed: formatter output check of the new log event in an offline container. Not executed: pytest (host Python and the image lack the test dependencies); UI retest of 重新查價.
 - Limitation: these quotes have no source expiry and become stale 48 h after query. On user request `PRICE_SCHEDULER_ENABLED=true` was added to `.env.prod` (03:00 Asia/Taipei); scheduler restarted with it and logged `scheduler_started`. The first scheduled run has not happened yet.
+
+## 2026-11-14 — Production knowledge classification (explanations empty)
+
+- Symptom: result 7f806ef3 had `explanation.status=not_found`. Every retrieved ingredient was dropped with `NO_NUTRITION_FACT`.
+- Cause: the 123 approved `web-paper-platform-2026-10-30-r3` records in the prod knowledge DB had never been through decision #29 classification. Their `nutrition_fact` and `evidence_quote` were empty, so `_explain` had nothing usable.
+- Action:
+  - Ran `python -m knowledge_rag.admin classify --run-id classify-prod-20261114` inside `meal-prod-backend`. The classifier was gpt-5.4-mini, called through the backend's own `/internal/knowledge/classify` endpoint under T10 spend control.
+  - Did not pass `--apply-rejections`, so no approval was revoked.
+  - Result:
+
+    | Classified | Nutrition | Not nutrition | Invalid | Failed batches |
+    |---|---|---|---|---|
+    | 123 | 114 | 2 | 7 | 0 |
+
+    9 approved records remain non-nutrition and are skipped by explanations.
+- Checks:
+  - Read-only queries: 114 records now carry the fact and quote in their payload.
+  - `HttpKnowledgeClient.retrieve` for FOOD000678 and FOOD001016 returned 6 records, all with a fact and a quote.
+- Limitations:
+  - Excerpts in this source are summaries (「整理摘要（非逐字原文）」), so each `evidence_quote` is a substring of the summary, not of the original article.
+  - No new explanation has been generated yet. It needs a 「重試知識說明」 retry or a new generation.
+- Same investigation, menu vegetables: all three owned vegetables were used. 高麗菜 appears in the soup as its confirmed synonym 椰菜 (SYN006) and is priced as owned. The other 高麗菜 dishes were excluded by the distinct-main-vegetable rule. No code change.
+- Follow-up (same day): made the classification reproducible on other machines.
+  - The 123 outcomes are exported to `knowledge_rag/reviews/web_paper_2026-10-30.classification.json`, pinned by SHA-256.
+  - `apply_reviewed.apply`, which `knowledge_rag.bootstrap` and therefore `prod-up` call, re-validates every nutrition outcome with `knowledge_rag.classify.validate`. It then writes outcomes only to records that have no classification yet, so no classifier call is needed.
+  - `import_records` and the approval check now ignore the payload keys classification adds. Without this, a re-import over a classified DB would raise "Immutable version changed" (read from code, not executed).
+  - Tests, run in a throwaway backend-image container with `TEST_DATABASE_URL` unset and SQLite `DATABASE_URL`: `tests/test_t11_knowledge_review.py`, `test_t11_knowledge_store.py`, `test_t11_knowledge_service.py`, `test_t11_knowledge_tips.py`, `test_local_knowledge_explanation.py` → 33 passed, 34 skipped (Postgres-only).
+  - Throwaway pgvector 0.8.6 container:
+    - first `apply` → 123 approved, 123 classified;
+    - second run → 0 written;
+    - 114 records usable for explanations.
+  - Prod knowledge DB, new `apply` → 0 approved, 0 classified, no error.

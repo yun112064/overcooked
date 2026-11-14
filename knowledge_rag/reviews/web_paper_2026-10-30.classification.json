@@ -1,0 +1,871 @@
+{
+ "source_version": "web-paper-platform-2026-10-30-r3",
+ "run_id": "classify-prod-20261114",
+ "classifier_model": "gpt-5.4-mini-2026-03-17",
+ "classifier_prompt_version": "kn-classify-prompt-v1",
+ "classified_on": "2026-11-14",
+ "note": "Decision #29 classification of the 123 reviewed records (prod run classify-prod-20261114). Excerpts are reviewed summaries, so evidence_quote is a substring of the summary, not of the original article.",
+ "records": [
+  {
+   "knowledge_id": "RAG-FOOD000687--P15",
+   "classification": "invalid",
+   "classification_reason": "FACT_WITHOUT_NUTRIENT_OR_BENEFIT：內容直接描述韭菜對身體不適的健康效益，屬營養/健康知識。",
+   "nutrition_fact": null,
+   "evidence_quote": null
+  },
+  {
+   "knowledge_id": "WEB-001-001--HN-68074",
+   "classification": "nutrition",
+   "classification_reason": "明確提到小白菜的鈣含量與骨鈣補充效益。",
+   "nutrition_fact": "小白菜屬高鈣蔬菜，能幫助骨鈣補充。",
+   "evidence_quote": "文章將小白菜列為草酸較低的高鈣蔬菜，指出經常攝取有助骨鈣補充"
+  },
+  {
+   "knowledge_id": "WEB-003-001--HN-33590",
+   "classification": "nutrition",
+   "classification_reason": "直接陳述地瓜葉的健康效益，符合營養知識。",
+   "nutrition_fact": "地瓜葉有助血糖穩定。",
+   "evidence_quote": "營養師把地瓜葉列為有助血糖穩定的食材"
+  },
+  {
+   "knowledge_id": "WEB-003-001--HY-leaves",
+   "classification": "invalid",
+   "classification_reason": "FACT_NOT_SUPPORTED_BY_EVIDENCE：內容描述地瓜葉可促進腸道蠕動與排便，屬健康效益。",
+   "nutrition_fact": null,
+   "evidence_quote": null
+  },
+  {
+   "knowledge_id": "WEB-003-001--P26",
+   "classification": "nutrition",
+   "classification_reason": "直接提到紫地瓜葉對免疫細胞活性的影響，屬健康知識。",
+   "nutrition_fact": "紫地瓜葉可能調節免疫細胞活性。",
+   "evidence_quote": "紫地瓜葉可能有助調節免疫細胞的活性"
+  },
+  {
+   "knowledge_id": "WEB-004-001--HY-water",
+   "classification": "nutrition",
+   "classification_reason": "明確指出水蓮菜的熱量、纖維與體重控制效益。",
+   "nutrition_fact": "水蓮菜低熱量且含纖維，可用於體重控制。",
+   "evidence_quote": "水蓮屬低熱量、含纖維的蔬菜，適量食用可用於體重控制"
+  },
+  {
+   "knowledge_id": "WEB-005-001--HN-11618",
+   "classification": "nutrition",
+   "classification_reason": "直接描述空心菜對腸胃排便的健康效益。",
+   "nutrition_fact": "空心菜可促進腸道蠕動、改善排便。",
+   "evidence_quote": "空心菜可促進腸道蠕動、改善排便"
+  },
+  {
+   "knowledge_id": "WEB-005-001--P27",
+   "classification": "nutrition",
+   "classification_reason": "內容明確提到空心菜對血糖上升的影響，屬健康知識。",
+   "nutrition_fact": "打碎的空心菜可能有助減緩血糖上升。",
+   "evidence_quote": "食用打碎的空心菜可能有助減緩血糖上升"
+  },
+  {
+   "knowledge_id": "WEB-006-001--HN-68074",
+   "classification": "nutrition",
+   "classification_reason": "明確提到芥藍菜的鈣含量與骨鈣補充效益。",
+   "nutrition_fact": "芥藍菜屬高鈣蔬菜，能幫助骨鈣補充。",
+   "evidence_quote": "文章將芥藍菜列為草酸較低的高鈣蔬菜，指出經常攝取有助骨鈣補充"
+  },
+  {
+   "knowledge_id": "WEB-007-001--HN-38933",
+   "classification": "nutrition",
+   "classification_reason": "內容直接描述花椰菜的纖維與腸道健康功效。",
+   "nutrition_fact": "花椰菜富含纖維，有助預防便秘並維持腸道健康。",
+   "evidence_quote": "文章指出花椰菜富含纖維，其高纖飲食有助預防便秘並維持腸道健康"
+  },
+  {
+   "knowledge_id": "WEB-008-001--HY-bokchoy",
+   "classification": "nutrition",
+   "classification_reason": "內容描述青江菜對排便與飽足感的健康效益，屬營養知識。",
+   "nutrition_fact": "青江菜有助排便，並可增加飽足感。",
+   "evidence_quote": "食用青江菜有助排便、避免便祕，並可增加飽足感"
+  },
+  {
+   "knowledge_id": "WEB-008-001--P12",
+   "classification": "nutrition",
+   "classification_reason": "內容直接敘述青江菜對飯後血糖的影響，屬健康效益。",
+   "nutrition_fact": "青江菜與米飯同吃，可能有助降低飯後血糖高峰。",
+   "evidence_quote": "與米飯同吃青江菜，可能有助降低飯後血糖的高峰"
+  },
+  {
+   "knowledge_id": "WEB-009-001--P33",
+   "classification": "nutrition",
+   "classification_reason": "內容提到青花菜對發炎反應的健康效益，屬營養知識。",
+   "nutrition_fact": "青花菜可能有助減少體內發炎反應。",
+   "evidence_quote": "吃青花菜可能有助減少體內發炎反應"
+  },
+  {
+   "knowledge_id": "WEB-010-001--HN-13547",
+   "classification": "nutrition",
+   "classification_reason": "內容明確提到高麗菜的維生素K及其相關健康效益，屬營養知識。",
+   "nutrition_fact": "高麗菜含維生素K，與骨骼鈣化和維持骨密度有關。",
+   "evidence_quote": "其維生素K攝取與骨骼鈣化、維持骨密度有關"
+  },
+  {
+   "knowledge_id": "WEB-010-001--HY-cabbage",
+   "classification": "nutrition",
+   "classification_reason": "內容描述高麗菜對腸胃蠕動、消化與便祕的效益，屬營養知識。",
+   "nutrition_fact": "高麗菜可幫助腸胃蠕動、消化，並改善便祕。",
+   "evidence_quote": "高麗菜可增加糞便體積、幫助腸胃蠕動與消化，改善便祕"
+  },
+  {
+   "knowledge_id": "WEB-012-001--HN-49706",
+   "classification": "nutrition",
+   "classification_reason": "內容提到菠菜的鐵質來源屬營養成分資訊，符合營養知識。",
+   "nutrition_fact": "菠菜可作為素食者或牙口不佳者的鐵質食物來源。",
+   "evidence_quote": "也可作為素食者或牙口不佳者的鐵質食物來源"
+  },
+  {
+   "knowledge_id": "WEB-012-001--P25",
+   "classification": "nutrition",
+   "classification_reason": "內容直接敘述菠菜對血壓的健康效益，屬營養知識。",
+   "nutrition_fact": "吃菠菜可能有助降低血壓。",
+   "evidence_quote": "吃菠菜可能有助降低血壓"
+  },
+  {
+   "knowledge_id": "WEB-014-001--HY-fushan",
+   "classification": "nutrition",
+   "classification_reason": "內容描述福山萵苣的健康效益，屬營養知識。",
+   "nutrition_fact": "福山萵苣有助抗氧化與眼睛保健。",
+   "evidence_quote": "其有助抗氧化與眼睛保健"
+  },
+  {
+   "knowledge_id": "WEB-015-001--HN-60979",
+   "classification": "nutrition",
+   "classification_reason": "內容明確提到萵苣的營養成分及其對腸道的效益，屬營養知識。",
+   "nutrition_fact": "萵苣的膳食纖維與水分有助腸道蠕動及改善便秘。",
+   "evidence_quote": "萵苣的膳食纖維與水分有助腸道蠕動及改善便秘"
+  },
+  {
+   "knowledge_id": "WEB-015-001--HY-lettuce",
+   "classification": "nutrition",
+   "classification_reason": "內容直接描述萵苣的健康效益，屬營養知識。",
+   "nutrition_fact": "萵苣可幫助腸道蠕動，改善便祕。",
+   "evidence_quote": "萵苣列為可幫助腸道蠕動、改善便祕的蔬菜"
+  },
+  {
+   "knowledge_id": "WEB-015-001--P22",
+   "classification": "nutrition",
+   "classification_reason": "內容描述萵苣對飯後血糖的健康效益，屬營養知識。",
+   "nutrition_fact": "萵苣可能有助減緩飯後血糖上升。",
+   "evidence_quote": "隨餐吃萵苣，可能有助減緩飯後血糖上升"
+  },
+  {
+   "knowledge_id": "WEB-017-001--HN-52573",
+   "classification": "nutrition",
+   "classification_reason": "內容直接說明胡蘿蔔對視覺的健康效益，屬營養知識。",
+   "nutrition_fact": "胡蘿蔔有益視覺健康，並有助暗處視覺。",
+   "evidence_quote": "胡蘿蔔有益視覺健康，並有助暗處視覺"
+  },
+  {
+   "knowledge_id": "WEB-017-001--HY-carrot",
+   "classification": "nutrition",
+   "classification_reason": "內容提到胡蘿蔔的營養成分吸收情形，屬營養知識。",
+   "nutrition_fact": "胡蘿蔔煮熟後較有助於類胡蘿蔔素吸收。",
+   "evidence_quote": "胡蘿蔔煮熟後較有助於類胡蘿蔔素吸收"
+  },
+  {
+   "knowledge_id": "WEB-017-001--P13",
+   "classification": "nutrition",
+   "classification_reason": "內容描述胡蘿蔔汁的健康效益，屬營養知識。",
+   "nutrition_fact": "胡蘿蔔汁可能提升身體抗氧化能力。",
+   "evidence_quote": "飲用胡蘿蔔汁可能提升身體的抗氧化能力"
+  },
+  {
+   "knowledge_id": "WEB-018-001--HN-55676",
+   "classification": "nutrition",
+   "classification_reason": "內容說明南瓜的多項健康效益，屬營養知識。",
+   "nutrition_fact": "南瓜有助正常視覺、皮膚與黏膜健康，並可促進腸道蠕動、增加飽足感。",
+   "evidence_quote": "文章指出南瓜有助正常視覺、皮膚與黏膜健康，並可促進腸道蠕動、增加飽足感"
+  },
+  {
+   "knowledge_id": "WEB-018-001--HY-pumpkin",
+   "classification": "nutrition",
+   "classification_reason": "內容提到南瓜的飽足感與含澱粉，屬營養知識。",
+   "nutrition_fact": "南瓜可提供飽足感，且含澱粉。",
+   "evidence_quote": "文章指出南瓜可提供飽足感，"
+  },
+  {
+   "knowledge_id": "WEB-018-001--P08",
+   "classification": "nutrition",
+   "classification_reason": "內容描述南瓜對血糖的影響，屬營養知識。",
+   "nutrition_fact": "南瓜會使飯後血糖上升。",
+   "evidence_quote": "南瓜會使飯後血糖上升"
+  },
+  {
+   "knowledge_id": "WEB-020-001--HN-45761",
+   "classification": "nutrition",
+   "classification_reason": "內容提到地瓜的飽足感與排便相關效益，屬營養知識。",
+   "nutrition_fact": "蒸熟後冰鎮的地瓜可延長飽足感，並有助排便。",
+   "evidence_quote": "蒸熟後冰鎮的地瓜可延長飽足感"
+  },
+  {
+   "knowledge_id": "WEB-020-001--HY-sweetpotato",
+   "classification": "nutrition",
+   "classification_reason": "內容直接說明地瓜對餐後血糖的健康效益，屬營養知識。",
+   "nutrition_fact": "地瓜有助減緩餐後血糖的劇烈波動。",
+   "evidence_quote": "地瓜有助減緩餐後血糖的劇烈波動"
+  },
+  {
+   "knowledge_id": "WEB-020-001--P30",
+   "classification": "nutrition",
+   "classification_reason": "內容描述地瓜對排便的健康效益，屬營養知識。",
+   "nutrition_fact": "地瓜可能改善便祕、幫助排便。",
+   "evidence_quote": "吃地瓜可能改善便祕、幫助排便"
+  },
+  {
+   "knowledge_id": "WEB-021-001--HN-66393",
+   "classification": "nutrition",
+   "classification_reason": "內容提到番茄與健康效益相關，屬營養知識。",
+   "nutrition_fact": "大番茄可能有攝護腺癌預防益處。",
+   "evidence_quote": "文章指出大番茄可能有攝護腺癌預防益處"
+  },
+  {
+   "knowledge_id": "WEB-021-001--HY-tomato",
+   "classification": "nutrition",
+   "classification_reason": "內容明確描述番茄的健康效益，屬營養知識。",
+   "nutrition_fact": "番茄能促進腸道蠕動，幫助排便順暢。",
+   "evidence_quote": "文章指出番茄能促進腸道蠕動，幫助維持排便順暢"
+  },
+  {
+   "knowledge_id": "WEB-021-001--P01",
+   "classification": "nutrition",
+   "classification_reason": "內容描述番茄汁對血壓與血脂的健康效益，屬營養知識。",
+   "nutrition_fact": "無鹽番茄汁可能有助降低血壓，並降低壞膽固醇。",
+   "evidence_quote": "飲用無鹽番茄汁可能有助降低血壓。對血脂異常者，也可能有助降低壞膽固醇"
+  },
+  {
+   "knowledge_id": "WEB-022-001--HN-13716",
+   "classification": "nutrition",
+   "classification_reason": "內容直接陳述小番茄的健康功效，屬營養知識。",
+   "nutrition_fact": "小番茄有眼睛保健及抗氧化用途。",
+   "evidence_quote": "小番茄有眼睛保健及抗氧化用途"
+  },
+  {
+   "knowledge_id": "WEB-026-001--HN-44809",
+   "classification": "nutrition",
+   "classification_reason": "內容提到青椒的營養成分及健康效益，屬營養知識。",
+   "nutrition_fact": "青椒富含鐵質，有助造血。",
+   "evidence_quote": "青椒富含鐵質，有助造血"
+  },
+  {
+   "knowledge_id": "WEB-026-001--HY-greenpepper",
+   "classification": "nutrition",
+   "classification_reason": "內容明確說明青椒的健康效益，屬營養知識。",
+   "nutrition_fact": "青椒可增加飽足感，並幫助腸道蠕動、改善便祕。",
+   "evidence_quote": "青椒可增加飽足感，並幫助腸道蠕動、改善便祕"
+  },
+  {
+   "knowledge_id": "WEB-027-001--HN-32552",
+   "classification": "nutrition",
+   "classification_reason": "內容描述玉米對血糖的影響，屬營養知識。",
+   "nutrition_fact": "玉米作為主食選擇，飯後血糖波動較小。",
+   "evidence_quote": "其飯後血糖波動較小"
+  },
+  {
+   "knowledge_id": "WEB-027-001--HY-corn",
+   "classification": "nutrition",
+   "classification_reason": "內容明確敘述玉米的健康效益，屬營養知識。",
+   "nutrition_fact": "玉米可延緩消化，增加飽足感，並減緩血糖上升。",
+   "evidence_quote": "玉米可延緩消化、增加飽足感，並減緩血糖上升"
+  },
+  {
+   "knowledge_id": "WEB-027-001--P17",
+   "classification": "nutrition",
+   "classification_reason": "內容直接描述甜玉米對血糖的影響，屬營養知識。",
+   "nutrition_fact": "甜玉米會使血糖上升，升糖反應屬低至中等。",
+   "evidence_quote": "吃甜玉米會使血糖上升，人體測試的升糖反應落在低至中等範圍"
+  },
+  {
+   "knowledge_id": "WEB-028-001--HY-babycorn",
+   "classification": "nutrition",
+   "classification_reason": "內容直接陳述玉米筍的健康效益，屬營養知識。",
+   "nutrition_fact": "玉米筍適量食用有利尿、消水腫的用途。",
+   "evidence_quote": "玉米筍適量食用有利尿、消水腫的用途"
+  },
+  {
+   "knowledge_id": "WEB-029-001--HN-69068",
+   "classification": "invalid",
+   "classification_reason": "FACT_WITHOUT_NUTRIENT_OR_BENEFIT：內容明確描述冬瓜的營養特性與健康效益，屬營養知識。",
+   "nutrition_fact": null,
+   "evidence_quote": null
+  },
+  {
+   "knowledge_id": "WEB-031-001--HY-radish",
+   "classification": "nutrition",
+   "classification_reason": "內容直接提到白蘿蔔的熱量與對飲食控制的效益，屬營養知識。",
+   "nutrition_fact": "白蘿蔔熱量低，可增加飽足感並幫助控制飲食。",
+   "evidence_quote": "文章將白蘿蔔列為低熱量、可用於增加飽足感與控制飲食的食材。"
+  },
+  {
+   "knowledge_id": "WEB-034-001--HN-52550",
+   "classification": "nutrition",
+   "classification_reason": "內容明確說明竹筍的營養成分與健康功效，符合營養知識。",
+   "nutrition_fact": "竹筍的膳食纖維有助腸胃蠕動，並可改善便秘。",
+   "evidence_quote": "營養師指出竹筍的膳食纖維有助腸胃蠕動、改善便秘，但腸道疾病患者應酌量食用。"
+  },
+  {
+   "knowledge_id": "WEB-036-001--HN-58443",
+   "classification": "nutrition",
+   "classification_reason": "內容陳述筊白筍對腸道與排便的健康效益，屬營養知識。",
+   "nutrition_fact": "筊白筍有助腸道健康與排便。",
+   "evidence_quote": "文章指出筊白筍有助腸道健康與排便，並說明與豆腐同食不等於會造成體內結石。"
+  },
+  {
+   "knowledge_id": "WEB-036-001--HY-waterbamboo",
+   "classification": "nutrition",
+   "classification_reason": "內容明確提到筊白筍的熱量與體重控制用途，屬營養知識。",
+   "nutrition_fact": "筊白筍熱量低，可作為體重控制時的蔬菜選擇。",
+   "evidence_quote": "文章指出筊白筍熱量低，可作為體重控制期間的蔬菜選擇。"
+  },
+  {
+   "knowledge_id": "WEB-038-001--HN-29287",
+   "classification": "nutrition",
+   "classification_reason": "內容直接描述秋葵的健康效益，屬營養知識。",
+   "nutrition_fact": "秋葵可增加飽足感，幫助控制食量。",
+   "evidence_quote": "營養師指出秋葵可增加飽足感、幫助控制食量；體重與血糖管理仍須配合整體飲食及運動。"
+  },
+  {
+   "knowledge_id": "WEB-038-001--HY-okra",
+   "classification": "nutrition",
+   "classification_reason": "內容明確描述秋葵對消化與血糖的效益，屬營養知識。",
+   "nutrition_fact": "秋葵有助延緩胃排空與血糖上升，也能增加糞便含水量及飽足感。",
+   "evidence_quote": "文章說明秋葵有助延緩胃排空與血糖上升，也能增加糞便含水量及飽足感。"
+  },
+  {
+   "knowledge_id": "WEB-039-001--HY-greenbean",
+   "classification": "nutrition",
+   "classification_reason": "內容直接說明四季豆的健康效益，屬營養知識。",
+   "nutrition_fact": "四季豆能幫助腸胃蠕動，促進排便。",
+   "evidence_quote": "文章指出四季豆能幫助腸胃蠕動、促進排便，改善便祕困擾。"
+  },
+  {
+   "knowledge_id": "WEB-039-001--P12",
+   "classification": "nutrition",
+   "classification_reason": "內容描述四季豆與血糖控制相關的健康效益，屬營養知識。",
+   "nutrition_fact": "四季豆與米飯同吃，可能有助減緩飯後血糖上升。",
+   "evidence_quote": "與米飯同吃四季豆，可能有助減緩飯後血糖上升。"
+  },
+  {
+   "knowledge_id": "WEB-041-001--HN-69068",
+   "classification": "nutrition",
+   "classification_reason": "內容直接提到苦瓜的熱量與飽足感，屬營養知識。",
+   "nutrition_fact": "苦瓜熱量低，且食用後有較好的飽足感。",
+   "evidence_quote": "營養師指出苦瓜熱量低，且食用後有較好的飽足感。"
+  },
+  {
+   "knowledge_id": "WEB-041-001--HY-bittergourd",
+   "classification": "nutrition",
+   "classification_reason": "excerpt 直接描述苦瓜的熱量與飽足感，屬於營養與健康效益。",
+   "nutrition_fact": "苦瓜熱量低，適量食用可增加飽足感。",
+   "evidence_quote": "文章指出苦瓜熱量低，適量食用能增加飽足感，可納入體重管理的飲食。"
+  },
+  {
+   "knowledge_id": "WEB-042-001--HN-52573",
+   "classification": "nutrition",
+   "classification_reason": "excerpt 直接陳述茄子的健康效益，屬營養知識。",
+   "nutrition_fact": "茄子有助抗氧化及維持血管彈性。",
+   "evidence_quote": "營養師指出茄子有助抗氧化及維持血管彈性。"
+  },
+  {
+   "knowledge_id": "WEB-042-001--HY-eggplant",
+   "classification": "nutrition",
+   "classification_reason": "excerpt 提到茄子的飽足感，屬於健康效益；後段為料理吸油描述，不影響判定。",
+   "nutrition_fact": "茄子可增加飽足感。",
+   "evidence_quote": "文章指出茄子能增加飽足感，但料理時容易吸油；油量過多反而會增加熱量攝取。"
+  },
+  {
+   "knowledge_id": "WEB-042-001--P12",
+   "classification": "nutrition",
+   "classification_reason": "excerpt 明確描述茄子對飯後血糖的影響，屬健康效益。",
+   "nutrition_fact": "茄子與米飯同吃，可能有助減緩飯後血糖上升。",
+   "evidence_quote": "與米飯同吃茄子，可能有助減緩飯後血糖上升。"
+  },
+  {
+   "knowledge_id": "WEB-043-001--HY-loofah",
+   "classification": "nutrition",
+   "classification_reason": "excerpt 直接說明絲瓜對消化與便祕的幫助，屬健康效益。",
+   "nutrition_fact": "絲瓜可幫助腸胃蠕動，改善便祕。",
+   "evidence_quote": "文章說明絲瓜可幫助腸胃蠕動、改善便祕；容易腹瀉者吃太多可能使腹瀉加重。"
+  },
+  {
+   "knowledge_id": "WEB-044-001--HY-zucchini",
+   "classification": "nutrition",
+   "classification_reason": "excerpt 直接提到櫛瓜對排便與腸道健康的效益，屬營養知識。",
+   "nutrition_fact": "櫛瓜有助促進排便與維持腸道健康。",
+   "evidence_quote": "文章指出櫛瓜有助促進排便與維持腸道健康，能協助避免便祕。"
+  },
+  {
+   "knowledge_id": "WEB-045-001--HN-52573",
+   "classification": "nutrition",
+   "classification_reason": "excerpt 直接陳述小黃瓜的營養特性與健康效益。",
+   "nutrition_fact": "小黃瓜水分多、熱量低，可補充水分並帶來飽足感。",
+   "evidence_quote": "營養師指出小黃瓜水分多、熱量低，可補充水分並帶來飽足感。"
+  },
+  {
+   "knowledge_id": "WEB-045-001--HY-cucumber",
+   "classification": "nutrition",
+   "classification_reason": "excerpt 直接描述小黃瓜的含水量、飽足感與排便效益，屬營養知識。",
+   "nutrition_fact": "小黃瓜含水量高，可增加飽足感並助腸道蠕動。",
+   "evidence_quote": "文章指出小黃瓜含水量高，食用後可增加飽足感，也有助腸道蠕動與規律排便。"
+  },
+  {
+   "knowledge_id": "WEB-045-001--P06",
+   "classification": "nutrition",
+   "classification_reason": "excerpt 直接說明小黃瓜汁的健康效益，屬營養知識。",
+   "nutrition_fact": "小黃瓜汁可能有助降低血壓。",
+   "evidence_quote": "對高血壓者，飲用小黃瓜汁可能有助降低血壓。"
+  },
+  {
+   "knowledge_id": "WEB-046-001--HN-52573",
+   "classification": "nutrition",
+   "classification_reason": "excerpt 直接描述芋頭對血糖穩定的效益，屬營養知識。",
+   "nutrition_fact": "芋頭消化較慢，有助維持血糖穩定。",
+   "evidence_quote": "營養師指出芋頭消化較慢，有助維持血糖穩定，並將其列為減重者可選的原型食物。"
+  },
+  {
+   "knowledge_id": "WEB-047-001--HN-65972",
+   "classification": "nutrition",
+   "classification_reason": "內容直接描述馬鈴薯製成的炸薯條與健康風險相關，屬健康效益資訊。",
+   "nutrition_fact": "炸薯條與第二型糖尿病風險較高有關",
+   "evidence_quote": "每週吃3次炸薯條與第二型糖尿病風險較高有關"
+  },
+  {
+   "knowledge_id": "WEB-047-001--P32",
+   "classification": "nutrition",
+   "classification_reason": "內容明確陳述馬鈴薯的飽足感效益，屬營養/健康知識。",
+   "nutrition_fact": "馬鈴薯有助增加飽足感",
+   "evidence_quote": "吃馬鈴薯有助增加飽足感"
+  },
+  {
+   "knowledge_id": "WEB-048-001--HN-54202",
+   "classification": "nutrition",
+   "classification_reason": "內容直接說明大蒜的健康效益，符合營養知識。",
+   "nutrition_fact": "大蒜有助提振食慾、代謝及減輕疲勞",
+   "evidence_quote": "食用大蒜有助提振食慾、代謝及減輕疲勞"
+  },
+  {
+   "knowledge_id": "WEB-048-001--HY-garlic",
+   "classification": "nutrition",
+   "classification_reason": "內容描述大蒜對身體的影響與不適反應，屬健康效益/風險資訊。",
+   "nutrition_fact": "大蒜對腸胃有刺激性，吃多可能腹脹腹瀉",
+   "evidence_quote": "大蒜對腸胃有刺激性，一次吃太多可能造成腹脹、腹瀉或其他腸胃不適"
+  },
+  {
+   "knowledge_id": "WEB-049-001--HN-54202",
+   "classification": "nutrition",
+   "classification_reason": "內容直接陳述蒜頭的健康效益，屬營養知識。",
+   "nutrition_fact": "蒜頭有助提振食慾、代謝及減輕疲勞",
+   "evidence_quote": "食用蒜頭有助提振食慾、代謝及減輕疲勞"
+  },
+  {
+   "knowledge_id": "WEB-049-001--HY-garlic",
+   "classification": "nutrition",
+   "classification_reason": "雖用詞為大蒜，但內容是在說明蒜頭/蒜類對腸胃的影響，屬健康風險資訊。",
+   "nutrition_fact": "蒜頭對腸胃有刺激性，吃多可能腹脹腹瀉",
+   "evidence_quote": "大蒜對腸胃有刺激性，一次吃太多可能造成腹脹、腹瀉或其他腸胃不適"
+  },
+  {
+   "knowledge_id": "WEB-052-001--HN-52573",
+   "classification": "nutrition",
+   "classification_reason": "內容直接描述洋蔥的健康效益，屬營養知識。",
+   "nutrition_fact": "洋蔥有抗氧化、抗發炎及維持心血管健康的用途",
+   "evidence_quote": "營養師指出洋蔥有抗氧化、抗發炎及維持心血管健康的用途"
+  },
+  {
+   "knowledge_id": "WEB-052-001--P07",
+   "classification": "nutrition",
+   "classification_reason": "內容直接陳述洋蔥對血脂的可能幫助，屬健康效益資訊。",
+   "nutrition_fact": "生紅洋蔥可能有助降低總膽固醇與壞膽固醇",
+   "evidence_quote": "吃生紅洋蔥可能有助降低總膽固醇與壞膽固醇"
+  },
+  {
+   "knowledge_id": "WEB-054-001--HN-52573",
+   "classification": "nutrition",
+   "classification_reason": "內容明確指出青蔥部位與免疫功能相關，屬營養知識。",
+   "nutrition_fact": "蔥綠有助免疫功能",
+   "evidence_quote": "指出蔥綠有助免疫功能"
+  },
+  {
+   "knowledge_id": "WEB-054-001--HY-scallion",
+   "classification": "nutrition",
+   "classification_reason": "內容直接說明青蔥對消化道與便祕的幫助，屬健康效益資訊。",
+   "nutrition_fact": "青蔥可幫助維持腸道蠕動及濕潤，改善便祕",
+   "evidence_quote": "文章指出青蔥可幫助維持腸道蠕動及濕潤，改善便祕困擾"
+  },
+  {
+   "knowledge_id": "WEB-055-001--HN-48201",
+   "classification": "nutrition",
+   "classification_reason": "內容描述薑對身體不適的健康效益，屬營養知識。",
+   "nutrition_fact": "薑片或薑茶可減輕噁心、嘔吐感。",
+   "evidence_quote": "少量薑片或薑茶可減輕噁心、嘔吐感。"
+  },
+  {
+   "knowledge_id": "WEB-055-001--P31",
+   "classification": "nutrition",
+   "classification_reason": "內容陳述薑飲對食慾的健康效益，屬營養知識。",
+   "nutrition_fact": "喝薑飲可能減少飢餓感。",
+   "evidence_quote": "喝薑飲可能減少飢餓感。"
+  },
+  {
+   "knowledge_id": "WEB-056-001--HN-31058",
+   "classification": "nutrition",
+   "classification_reason": "內容提及吃辣椒與健康結果相關，屬健康效益描述。",
+   "nutrition_fact": "較常吃辣椒者的整體死亡率較低。",
+   "evidence_quote": "較常吃辣椒者的整體死亡率較低"
+  },
+  {
+   "knowledge_id": "WEB-056-001--P05",
+   "classification": "nutrition",
+   "classification_reason": "內容描述辣椒對飯後胰島素反應的影響，屬營養知識。",
+   "nutrition_fact": "規律吃辣椒，可能減輕飯後胰島素升高程度。",
+   "evidence_quote": "規律吃辣椒，可能減輕飯後胰島素升高的程度。"
+  },
+  {
+   "knowledge_id": "WEB-057-001--HN-42827",
+   "classification": "nutrition",
+   "classification_reason": "內容直接描述毛豆的食用後生理感受，屬健康效益。",
+   "nutrition_fact": "毛豆可產生飽足感，但可能引起脹氣。",
+   "evidence_quote": "適量吃毛豆可產生飽足感，也提醒食用後可能脹氣。"
+  },
+  {
+   "knowledge_id": "WEB-057-001--HY-edamame",
+   "classification": "nutrition",
+   "classification_reason": "內容描述毛豆對飽足與飲食安排的幫助，屬營養知識。",
+   "nutrition_fact": "毛豆可增加飽足感，適合體重控制或健身飲食。",
+   "evidence_quote": "毛豆食用後具有飽足感，適合納入體重控制或健身者的飲食安排。"
+  },
+  {
+   "knowledge_id": "WEB-058-001--HN-66961",
+   "classification": "nutrition",
+   "classification_reason": "內容明確說明黃豆芽的飽足與體重控制效益，屬營養知識。",
+   "nutrition_fact": "黃豆芽可提高飽足感，適合控制體重。",
+   "evidence_quote": "營養師將黃豆芽列為希望提高飽足感、控制體重者可選的蔬菜。"
+  },
+  {
+   "knowledge_id": "WEB-058-001--HY-beansprout",
+   "classification": "nutrition",
+   "classification_reason": "內容直接提到黃豆芽熱量低且可增加飽足感，屬營養知識。",
+   "nutrition_fact": "黃豆芽與綠豆芽熱量低，可增加飽足感。",
+   "evidence_quote": "黃豆芽與綠豆芽熱量皆低，可搭配其他食物增加飽足感，作為控制飲食的選擇。"
+  },
+  {
+   "knowledge_id": "WEB-059-001--HY-beansprout",
+   "classification": "nutrition",
+   "classification_reason": "雖寫的是黃豆芽與綠豆芽，但同句含豆芽類熱量與飽足資訊，屬營養知識。",
+   "nutrition_fact": "豆芽熱量低，可增加飽足感。",
+   "evidence_quote": "黃豆芽與綠豆芽熱量皆低，可搭配其他食物增加飽足感，作為控制飲食的選擇。"
+  },
+  {
+   "knowledge_id": "WEB-060-001--HY-beansprout",
+   "classification": "nutrition",
+   "classification_reason": "內容提供豆芽類低熱量與增加飽足感資訊，屬營養知識。",
+   "nutrition_fact": "豆芽菜熱量低，可增加飽足感。",
+   "evidence_quote": "黃豆芽與綠豆芽熱量皆低，可搭配其他食物增加飽足感，作為控制飲食的選擇。"
+  },
+  {
+   "knowledge_id": "WEB-061-001--HN-44826",
+   "classification": "nutrition",
+   "classification_reason": "內容直接描述豆腐的健康效益，屬營養知識。",
+   "nutrition_fact": "豆腐攝取與較低的第二型糖尿病風險有關。",
+   "evidence_quote": "豆腐攝取與較低的第二型糖尿病風險有關"
+  },
+  {
+   "knowledge_id": "WEB-061-001--HY-tofu",
+   "classification": "nutrition",
+   "classification_reason": "內容明確提到豆腐的熱量與蛋白質屬性，屬營養知識。",
+   "nutrition_fact": "豆腐低熱量，且含蛋白質，適合體重控制。",
+   "evidence_quote": "其低熱量與蛋白質特性可用於飲食安排"
+  },
+  {
+   "knowledge_id": "WEB-067-001--HY-soymilk",
+   "classification": "nutrition",
+   "classification_reason": "內容提到無糖豆漿的含醣量及纖維攝取，屬營養知識。",
+   "nutrition_fact": "無糖豆漿含醣量不高，保留豆渣可增加纖維攝取。",
+   "evidence_quote": "無糖豆漿含醣量不高，糖尿病患者可依飲食安排選用；自製時若保留豆渣，能增加纖維攝取"
+  },
+  {
+   "knowledge_id": "WEB-068-001--HY-nuts",
+   "classification": "nutrition",
+   "classification_reason": "內容直接描述杏仁果的健康效益，屬營養知識。",
+   "nutrition_fact": "杏仁果有助降低壞膽固醇。",
+   "evidence_quote": "杏仁果有助降低壞膽固醇"
+  },
+  {
+   "knowledge_id": "WEB-069-001--HN-68037",
+   "classification": "invalid",
+   "classification_reason": "FACT_WITHOUT_NUTRIENT_OR_BENEFIT：內容提到奇亞籽與ALA濃度變化，屬營養知識。",
+   "nutrition_fact": null,
+   "evidence_quote": null
+  },
+  {
+   "knowledge_id": "WEB-069-001--HY-chia",
+   "classification": "nutrition",
+   "classification_reason": "內容直接說明奇亞籽的健康效益，屬營養知識。",
+   "nutrition_fact": "泡水後的奇亞籽有助排便與增加飽足感。",
+   "evidence_quote": "泡水後的奇亞籽有助排便與增加飽足感"
+  },
+  {
+   "knowledge_id": "WEB-070-001--HY-sesame",
+   "classification": "nutrition",
+   "classification_reason": "內容直接描述芝麻的健康效益，屬營養知識。",
+   "nutrition_fact": "芝麻有潤腸、改善便祕的作用。",
+   "evidence_quote": "芝麻有潤腸、改善便祕的作用"
+  },
+  {
+   "knowledge_id": "WEB-071-001--HY-whitesesame",
+   "classification": "nutrition",
+   "classification_reason": "內容直接描述白芝麻的健康效益，屬營養知識。",
+   "nutrition_fact": "白芝麻有潤腸、改善便祕的作用。",
+   "evidence_quote": "白芝麻有潤腸、改善便祕的作用"
+  },
+  {
+   "knowledge_id": "WEB-072-001--HN-16555",
+   "classification": "nutrition",
+   "classification_reason": "內容直接描述黑芝麻的健康效益，屬營養知識。",
+   "nutrition_fact": "黑芝麻有助降低壞膽固醇。",
+   "evidence_quote": "黑芝麻有助降低壞膽固醇"
+  },
+  {
+   "knowledge_id": "WEB-072-001--HY-sesame",
+   "classification": "nutrition",
+   "classification_reason": "內容明確提到黑芝麻與鈣需求相關，屬營養知識。",
+   "nutrition_fact": "黑芝麻可作為補充每日鈣需求的食物之一。",
+   "evidence_quote": "黑芝麻可納入飲食，作為不喝牛奶者補充每日鈣需求的食物之一"
+  },
+  {
+   "knowledge_id": "WEB-073-001--HY-sesame",
+   "classification": "nutrition",
+   "classification_reason": "摘要明確陳述芝麻的健康效益與熱量資訊，屬營養知識。",
+   "nutrition_fact": "芝麻有潤腸、改善便祕的作用，且熱量高需控制份量",
+   "evidence_quote": "文章說明芝麻有潤腸、改善便祕的作用，但黑芝麻與白芝麻熱量都高，份量需控制。"
+  },
+  {
+   "knowledge_id": "WEB-074-001--HN-44080",
+   "classification": "nutrition",
+   "classification_reason": "內容直接描述藍莓的健康效益，屬營養知識。",
+   "nutrition_fact": "藍莓有助腸胃蠕動及排便",
+   "evidence_quote": "文章指出藍莓有助腸胃蠕動及排便，並介紹新鮮藍莓的挑選方式。"
+  },
+  {
+   "knowledge_id": "WEB-075-001--HN-13776",
+   "classification": "nutrition",
+   "classification_reason": "摘要提到草莓攝取與健康結果相關，屬健康效益資訊。",
+   "nutrition_fact": "草莓攝取較多，與認知能力下降較慢有關",
+   "evidence_quote": "藍莓與草莓攝取較多，與認知能力下降較慢有關。"
+  },
+  {
+   "knowledge_id": "WEB-076-001--HN-32428",
+   "classification": "nutrition",
+   "classification_reason": "摘要直接敘述蘋果的飽足感與消化排便效益，屬營養知識。",
+   "nutrition_fact": "蘋果可增加飽足感，也有助腸道蠕動與排便",
+   "evidence_quote": "文章指出蘋果可增加飽足感，其食用也有助腸道蠕動與排便。"
+  },
+  {
+   "knowledge_id": "WEB-077-001--HN-69169",
+   "classification": "invalid",
+   "classification_reason": "FACT_WITHOUT_NUTRIENT_OR_BENEFIT：摘要明確描述酪梨攝取後的健康相關結果，屬營養知識。",
+   "nutrition_fact": null,
+   "evidence_quote": null
+  },
+  {
+   "knowledge_id": "WEB-077-001--HY-avocado",
+   "classification": "nutrition",
+   "classification_reason": "摘要直接說明酪梨可增加飽足感，屬營養知識。",
+   "nutrition_fact": "酪梨有助增加飽足感，較不容易感到飢餓",
+   "evidence_quote": "文章報導午餐食用半顆酪梨的人較不容易感到飢餓，並說明酪梨有助增加飽足感。"
+  },
+  {
+   "knowledge_id": "WEB-078-001--HN-67119",
+   "classification": "nutrition",
+   "classification_reason": "摘要直接描述百香果的消化與飽足效益，屬營養知識。",
+   "nutrition_fact": "百香果連籽食用有助腸道蠕動、改善便秘與增加飽足感",
+   "evidence_quote": "營養師指出百香果連籽食用有助腸道蠕動、改善便秘與增加飽足感。"
+  },
+  {
+   "knowledge_id": "WEB-078-001--HY-passion",
+   "classification": "nutrition",
+   "classification_reason": "摘要明確提到百香果對腸胃蠕動與便祕的影響，屬營養知識。",
+   "nutrition_fact": "百香果有助腸胃蠕動、避免便祕",
+   "evidence_quote": "文章指出食用百香果有助腸胃蠕動、避免便祕；睡前不宜大量食用，以免腸胃不適。"
+  },
+  {
+   "knowledge_id": "WEB-079-001--HN-64916",
+   "classification": "nutrition",
+   "classification_reason": "摘要直接陳述檸檬水的補水與消化效益，屬營養知識。",
+   "nutrition_fact": "檸檬水可補水及幫助消化",
+   "evidence_quote": "文章指出檸檬水可補水及幫助消化，但不會直接讓體重下降，仍須配合飲食與運動。"
+  },
+  {
+   "knowledge_id": "WEB-079-001--HY-lemon",
+   "classification": "invalid",
+   "classification_reason": "FACT_WITHOUT_NUTRIENT_OR_BENEFIT：摘要直接提到檸檬加入水中的飲水相關效益，屬營養知識。",
+   "nutrition_fact": null,
+   "evidence_quote": null
+  },
+  {
+   "knowledge_id": "WEB-080-001--HN-64916",
+   "classification": "nutrition",
+   "classification_reason": "內容直接提到新鮮檸檬的飲用方式帶來補水與幫助消化的健康效益。",
+   "nutrition_fact": "檸檬汁加水可補水，並有助消化。",
+   "evidence_quote": "文章指出以檸檬汁加水可補水及幫助消化"
+  },
+  {
+   "knowledge_id": "WEB-080-001--HY-lemon",
+   "classification": "nutrition",
+   "classification_reason": "內容描述檸檬入水後對飲水意願及腸胃刺激的健康影響，屬營養健康資訊。",
+   "nutrition_fact": "檸檬加入水中可提高飲水意願，但過量可能刺激腸胃。",
+   "evidence_quote": "把檸檬加入水中可提高部分人的飲水意願；濃度過高或喝太多則可能刺激腸胃"
+  },
+  {
+   "knowledge_id": "WEB-082-001--HN-66454",
+   "classification": "nutrition",
+   "classification_reason": "內容明確陳述黑木耳對膽固醇控制的健康效益。",
+   "nutrition_fact": "黑木耳有助膽固醇控制。",
+   "evidence_quote": "黑木耳有助膽固醇控制"
+  },
+  {
+   "knowledge_id": "WEB-082-001--HY-blackfungus",
+   "classification": "nutrition",
+   "classification_reason": "內容直接說明黑木耳對排便、腸道蠕動與飽足感的健康效益。",
+   "nutrition_fact": "黑木耳可幫助腸道蠕動與排便，並增加飽足感。",
+   "evidence_quote": "黑木耳可幫助腸道蠕動與排便，也能增加餐後飽足感"
+  },
+  {
+   "knowledge_id": "WEB-083-001--HN-56390",
+   "classification": "nutrition",
+   "classification_reason": "雖然是菇類概括描述，但明確包含香菇所屬食材的健康效益。",
+   "nutrition_fact": "香菇可增加飽足感，並促進腸胃蠕動。",
+   "evidence_quote": "指出這類食材可增加飽足感、促進腸胃蠕動"
+  },
+  {
+   "knowledge_id": "WEB-084-001--HN-25857",
+   "classification": "nutrition",
+   "classification_reason": "內容直接陳述乾香菇的營養成分與相關健康效益。",
+   "nutrition_fact": "乾香菇含維生素D，有助鈣質吸收。",
+   "evidence_quote": "經太陽曬乾的香菇含維生素D，有助體內鈣質吸收"
+  },
+  {
+   "knowledge_id": "WEB-085-001--HN-56390",
+   "classification": "nutrition",
+   "classification_reason": "雖然是菇類概括描述，但明確包含杏鮑菇所屬食材的健康效益。",
+   "nutrition_fact": "杏鮑菇可增加飽足感，並促進腸胃蠕動。",
+   "evidence_quote": "指出這類食材可增加飽足感、促進腸胃蠕動"
+  },
+  {
+   "knowledge_id": "WEB-089-001--HN-56390",
+   "classification": "nutrition",
+   "classification_reason": "雖然是菇類概括描述，但明確包含金針菇所屬食材的健康效益。",
+   "nutrition_fact": "金針菇可增加飽足感，並促進腸胃蠕動。",
+   "evidence_quote": "指出這類食材可增加飽足感、促進腸胃蠕動"
+  },
+  {
+   "knowledge_id": "WEB-095-001--HN-65815",
+   "classification": "nutrition",
+   "classification_reason": "內容直接提到昆布的成分及其與排便相關的健康效益。",
+   "nutrition_fact": "昆布含半纖維素，可作為排便飲食選擇。",
+   "evidence_quote": "昆布含半纖維素，列為有便意困難者可考慮的排便飲食選擇"
+  },
+  {
+   "knowledge_id": "WEB-096-001--HN-66914",
+   "classification": "nutrition",
+   "classification_reason": "內容描述鮭魚飲食研究帶來的睡眠與精神狀態改善，屬健康效益。",
+   "nutrition_fact": "鮭魚飲食研究顯示，受試者睡眠品質改善。",
+   "evidence_quote": "受試者較快入睡、睡眠品質改善，白天精神也較佳"
+  },
+  {
+   "knowledge_id": "WEB-097-001--HN-66967",
+   "classification": "nutrition",
+   "classification_reason": "明確描述鯖魚的健康效益，屬營養知識。",
+   "nutrition_fact": "鯖魚被列為有助預防乾眼的魚類食材。",
+   "evidence_quote": "受訪營養師將鯖魚列為有助乾眼預防的魚類食材。"
+  },
+  {
+   "knowledge_id": "WEB-099-001--HN-57251",
+   "classification": "nutrition",
+   "classification_reason": "內容直接陳述該食材的成分與健康效益，屬營養知識。",
+   "nutrition_fact": "虱目魚肚所含魚油可幫助調降血壓與膽固醇。",
+   "evidence_quote": "虱目魚肚所含魚油可幫助調降血壓與膽固醇。"
+  },
+  {
+   "knowledge_id": "WEB-103-001--HY-seabass",
+   "classification": "nutrition",
+   "classification_reason": "提到鱸魚可補充營養且容易消化吸收，屬健康效益描述。",
+   "nutrition_fact": "鱸魚被視為術後補充營養且較易消化吸收的食物。",
+   "evidence_quote": "文章將鱸魚列為術後補充營養的食物，魚湯對胃口不佳者較易入口，並說明其肉質細嫩、容易消化吸收。"
+  },
+  {
+   "knowledge_id": "WEB-113-001--HN-45394",
+   "classification": "not_nutrition",
+   "classification_reason": "內容是在描述研究對心血管風險的關聯，未直接陳述雞蛋的營養成分或明確健康效益。",
+   "nutrition_fact": null,
+   "evidence_quote": null
+  },
+  {
+   "knowledge_id": "WEB-113-001--HY-eggs",
+   "classification": "not_nutrition",
+   "classification_reason": "重點是攝取限制與族群建議，未明確提供雞蛋的營養成分或正向健康效益。",
+   "nutrition_fact": null,
+   "evidence_quote": null
+  },
+  {
+   "knowledge_id": "WEB-113-001--P18",
+   "classification": "nutrition",
+   "classification_reason": "明確描述雞蛋的健康效益飽足感，屬營養知識。",
+   "nutrition_fact": "吃雞蛋可能增加飽足感。",
+   "evidence_quote": "吃雞蛋可能增加飽足感，讓人比較不容易餓。"
+  },
+  {
+   "knowledge_id": "WEB-114-001--HN-62406",
+   "classification": "nutrition",
+   "classification_reason": "內容直接指出蛋白對營養吸收的影響，屬營養知識。",
+   "nutrition_fact": "長期大量食用生蛋白，可能妨礙生物素吸收。",
+   "evidence_quote": "長期大量食用生雞蛋蛋白，可能妨礙生物素吸收。"
+  },
+  {
+   "knowledge_id": "WEB-115-001--HN-69647",
+   "classification": "nutrition",
+   "classification_reason": "明確描述蛋黃的成分與營養作用，屬營養知識。",
+   "nutrition_fact": "蛋黃含脂質，有助脂溶性營養素吸收與利用。",
+   "evidence_quote": "蛋黃本身含脂質，有助脂溶性營養素的吸收與利用。"
+  },
+  {
+   "knowledge_id": "WEB-118-001--HN-69606",
+   "classification": "nutrition",
+   "classification_reason": "內容直接陳述優格對腸道保健的效益，屬營養知識。",
+   "nutrition_fact": "優格可作為腸道保健輔助。",
+   "evidence_quote": "醫師指出優格可作為腸道保健輔助，但效益須看菌種、活菌數及添加物，並建議飯後食用。"
+  },
+  {
+   "knowledge_id": "WEB-118-001--HY-yogurt",
+   "classification": "invalid",
+   "classification_reason": "FACT_WITHOUT_NUTRIENT_OR_BENEFIT：明確描述優格對飽足感與後續攝食量的影響，屬健康效益。",
+   "nutrition_fact": null,
+   "evidence_quote": null
+  },
+  {
+   "knowledge_id": "WEB-119-001--HN-49811",
+   "classification": "nutrition",
+   "classification_reason": "摘要明確描述雞胸肉的脂肪與蛋白質特性，以及其飽足感，屬營養知識。",
+   "nutrition_fact": "雞胸肉屬低脂、高蛋白食材，可較長時間維持飽足感。",
+   "evidence_quote": "文章將雞胸肉描述為可較長時間維持飽足感的低脂、高蛋白減重食材。"
+  },
+  {
+   "knowledge_id": "WEB-124-001--HN-41279",
+   "classification": "nutrition",
+   "classification_reason": "摘要直接提到燕麥片對飽足與排便的健康效益，符合營養知識定義。",
+   "nutrition_fact": "燕麥片有助提升飽足感並促進排便。",
+   "evidence_quote": "營養師指出燕麥片有助飽足感及排便，但應作主食代換，過量攝取仍可能變胖。"
+  },
+  {
+   "knowledge_id": "WEB-125-001--HN-66269",
+   "classification": "nutrition",
+   "classification_reason": "摘要描述全麥麵包的消化速度、飽足感與血糖穩定效果，屬營養知識。",
+   "nutrition_fact": "全麥麵包消化較慢，可延長飽足感並有助血糖穩定。",
+   "evidence_quote": "營養師建議選用含全麥粉的麵包，指出這類麵包消化較慢，可延長飽足感並有助血糖穩定。"
+  }
+ ]
+}

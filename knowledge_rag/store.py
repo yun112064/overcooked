@@ -41,6 +41,16 @@ def validate_record(record):
     payload = {k: v for k, v in record.items() if k not in ('status', 'reviewer', 'review_note', 'reviewed_at')}
     return json.loads(json.dumps(payload, ensure_ascii=False, default=_json_default))
 
+
+# save_classification merges these into payload after import (decision #29).
+CLASSIFICATION_KEYS = frozenset(('classification', 'classification_reason', 'nutrition_fact', 'evidence_quote',
+                                 'classifier_model', 'classifier_prompt_version'))
+
+
+def same_imported_content(stored, payload):
+    """True when a stored payload is the imported one, ignoring keys classification added later."""
+    return {k: v for k, v in stored.items() if k in payload or k not in CLASSIFICATION_KEYS} == payload
+
 def vector(value, dimensions=DIMENSIONS):
     if (not isinstance(value,list) or len(value)!=dimensions
             or any(isinstance(v,bool) or not isinstance(v,(float,int)) or not math.isfinite(v) for v in value)
@@ -287,7 +297,7 @@ class KnowledgeStore:
                     existing = conn.execute(
                         'SELECT payload FROM knowledge_records WHERE knowledge_id=%s AND source_version=%s',
                         (record['knowledge_id'], record['source_version'])).fetchone()
-                    if existing is None or existing['payload'] != payload:
+                    if existing is None or not same_imported_content(existing['payload'], payload):
                         raise ValueError('Immutable version changed; use a new source_version')
         return dict(imported=imported, unchanged=len(prepared)-imported, status='pending')
 
