@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react'
 import { api, errorMessage } from '../api/client'
 import type { Job, MealRequest } from '../api/types'
 import MealResultView from './MealResultView'
+import { CookingPot, RotateCw, Square } from 'lucide-react'
 
 const STAGE_LABELS: Record<string, string> = {
   queued: '排隊中',
@@ -60,7 +61,7 @@ function TeamStatus() {
   const { recognition, knowledge } = status.data
   const color = (s: ServiceState) => (s.status === 'online' ? 'success' : s.status === 'offline' ? 'warning' : 'default')
   return (
-    <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', alignItems: 'center' }}>
+    <Box className="live-generation-services" sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', alignItems: 'center' }}>
       <Typography variant="caption" color="text.secondary">服務狀態</Typography>
       <Chip size="small" variant="outlined" color={color(recognition)} label={`蔬菜辨識・${SERVICE_LABEL[recognition.status]}`} />
       <Chip size="small" variant="outlined" color={color(knowledge)} label={`營養知識・${SERVICE_LABEL[knowledge.status]}`} />
@@ -71,10 +72,10 @@ function TeamStatus() {
   )
 }
 
-type Props = { row: MealRequest; onChanged: () => void }
+type Props = { row: MealRequest; onChanged: () => void; onModify?: () => void }
 
 /** 送出生成並追蹤工作狀態；有結果時顯示結果頁（T15）。查無資料庫菜單會自動改由 AI 生成，不詢問同意。 */
-export default function GenerationPanel({ row, onChanged }: Props) {
+export default function GenerationPanel({ row, onChanged, onModify }: Props) {
   const queryClient = useQueryClient()
   // 同一問卷版本固定使用同一把冪等鍵：網路重送或重複點擊不會建立第二個工作
   const keys = useRef(new Map<number, string>())
@@ -137,15 +138,15 @@ export default function GenerationPanel({ row, onChanged }: Props) {
   const canSubmit = !latest.isPending && !latest.isError && row.complete && !active && !confirmed && !(lastJobForThisVersion && job.status === 'succeeded')
 
   return (
-    <Stack spacing={1.5}>
+    <Stack spacing={2.5} className="live-generation-panel">
       <TeamStatus />
       {job && lastJobForThisVersion && (
-        <Box>
+        <Box className="live-generation-status">
           <Typography variant="body2">
             生成狀態：<b>{STAGE_LABELS[job.stage ?? ''] ?? job.status}</b>
             <Typography component="span" variant="caption" sx={{ ml: 1 }}>第 {job.attempts}／{job.max_attempts} 次嘗試</Typography>
           </Typography>
-          {active && <LinearProgress sx={{ mt: 1 }} />}
+          {active && <LinearProgress color="secondary" aria-label="菜單生成進度" sx={{ mt: 1.5 }} />}
           {active && <Waited key={`${job.id}:${job.status}:${job.waited_seconds}`} job={job} />}
           {job.status === 'failed' && job.error && (
             <Alert severity={job.error.code === 'CANCELLED' ? 'info' : 'error'} sx={{ mt: 1 }}>
@@ -163,15 +164,17 @@ export default function GenerationPanel({ row, onChanged }: Props) {
       {submit.isError && <Alert severity="error">{errorMessage(submit.error)}</Alert>}
       {cancel.isError && <Alert severity="error">{errorMessage(cancel.error)}</Alert>}
       {latest.isError && <Alert severity="error">無法確認生成狀態：{errorMessage(latest.error)}</Alert>}
-      {hasResult && !active && !submit.isPending && <MealResultView requestId={row.id} mealDate={row.draft.meal_date} onChanged={onChanged}
+      {hasResult && !active && !submit.isPending && <MealResultView requestId={row.id} mealDate={row.draft.meal_date} mealType={row.draft.meal_type} onChanged={onChanged} onModify={onModify}
         onRegenerate={() => submit.mutate(true)} regenerateDisabled={!row.complete || submit.isPending} /> }
       <Box>
-        <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-          {!hasResult && <Button variant="contained" size="large" disabled={!canSubmit || submit.isPending} onClick={() => submit.mutate(false)}>
+        <Box className="live-generation-actions" sx={{ display: 'flex', gap: 1.5, flexWrap: 'wrap' }}>
+          {!hasResult && <Button variant="contained" size="large"
+            startIcon={job && lastJobForThisVersion && job.status === 'failed' ? <RotateCw size={18} /> : <CookingPot size={18} />}
+            disabled={!canSubmit || submit.isPending} onClick={() => submit.mutate(false)}>
             {job && lastJobForThisVersion && job.status === 'failed' ? '重新送出生成' : '生成菜單'}
           </Button>}
           {active && (
-            <Button variant="outlined" color="inherit" size="large" disabled={cancel.isPending}
+            <Button variant="outlined" color="inherit" size="large" startIcon={<Square size={16} />} disabled={cancel.isPending}
               onClick={() => cancel.mutate()}>
               取消生成
             </Button>

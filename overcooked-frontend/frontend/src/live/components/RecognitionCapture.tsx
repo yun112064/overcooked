@@ -1,10 +1,11 @@
 import {
-  Alert, Box, Button, Card, CardContent, Chip, CircularProgress, Stack, TextField, Typography,
+  Alert, Box, Button, Chip, CircularProgress, Stack, TextField, Typography,
 } from '@mui/material'
 import { useMutation, useQuery } from '@tanstack/react-query'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { api, errorMessage } from '../api/client'
 import type { IngredientRef } from '../api/types'
+import { ImagePlus, ScanLine, Upload } from 'lucide-react'
 
 type Suggestion = { name: string; ingredient_id: string | null }
 
@@ -25,6 +26,10 @@ type Props = {
 /** 拍照／上傳 → 每種辨識到的蔬菜各一個可編輯文字框 → 逐一選標準食材加入已有食材。 */
 export default function RecognitionCapture({ mealRequestId, onAdd }: Props) {
   const [result, setResult] = useState<RecognitionResult | null>(null)
+  const [photo, setPhoto] = useState<{ file: File; url: string } | null>(null)
+  const [photoError, setPhotoError] = useState('')
+  const input = useRef<HTMLInputElement>(null)
+  useEffect(() => () => { if (photo) URL.revokeObjectURL(photo.url) }, [photo])
 
   const upload = useMutation({
     mutationFn: async (file: File) => {
@@ -43,61 +48,68 @@ export default function RecognitionCapture({ mealRequestId, onAdd }: Props) {
   })
   const discard = useMutation({
     mutationFn: async () => api.delete(`/recognitions/${result!.id}`),
-    onSuccess: () => setResult(null),
+    onSuccess: () => { setResult(null); setPhoto(null) },
   })
 
   // 沒有辨識結果時仍給一個空白框讓使用者手動輸入
   const rows: Suggestion[] = result?.suggestions.length ? result.suggestions : [{ name: '', ingredient_id: null }]
 
-  return (
-    <Card variant="outlined">
-      <CardContent>
-        <Stack spacing={2}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flexWrap: 'wrap' }}>
-            <Button variant="outlined" component="label" disabled={upload.isPending}>
-              拍照或上傳蔬菜照片
-              <input hidden type="file" accept="image/jpeg,image/png,image/webp" capture="environment"
-                onChange={(e) => {
-                  const file = e.target.files?.[0]
-                  e.target.value = ''
-                  if (file) upload.mutate(file)
-                }} />
-            </Button>
-            {upload.isPending && <CircularProgress size={24} />}
-            <Typography variant="body2" color="text.secondary">只確認食材種類，不需要重量</Typography>
-          </Box>
-          {upload.isError && <Alert severity="error">{errorMessage(upload.error)}</Alert>}
-
-          {result && (
-            <Stack spacing={2}>
-              <Box sx={{ display: 'flex', gap: 2, alignItems: 'flex-start', flexWrap: 'wrap' }}>
-                <Box component="img" src={`/api${result.image_url}`} alt="上傳的照片"
-                  sx={{ width: 96, height: 96, objectFit: 'cover', borderRadius: 1, border: 1, borderColor: 'divider' }} />
-                <Alert severity={result.status === 'succeeded' ? 'info' : 'warning'} sx={{ flex: 1, minWidth: 200 }}
-                  action={result.retryable
-                    ? <Button color="inherit" size="small" disabled={retry.isPending} onClick={() => retry.mutate()}>重試</Button>
-                    : undefined}>
-                  {result.message}
-                  {result.suggestions.length > 1 && `（共 ${result.suggestions.length} 種）`}
-                </Alert>
-              </Box>
-              {retry.isError && <Alert severity="error">{errorMessage(retry.error)}</Alert>}
-              {rows.map((s, i) => (
-                // key 含辨識 ID：重試後換成新結果時重建各列狀態
-                <SuggestionRow key={`${result.id}-${result.status}-${i}`} recognitionId={result.id}
-                  initialName={s.name} onAdd={onAdd} />
-              ))}
-              <Box>
-                <Button size="small" color="inherit" disabled={discard.isPending} onClick={() => discard.mutate()}>
-                  刪除這張照片
-                </Button>
-              </Box>
-            </Stack>
-          )}
-        </Stack>
-      </CardContent>
-    </Card>
-  )
+  const busy = upload.isPending || retry.isPending || discard.isPending
+  return <Stack spacing={2}>
+    <input ref={input} hidden type="file" accept="image/jpeg,image/png,image/webp" capture="environment"
+      aria-label="選擇食材照片" disabled={busy}
+      onChange={e => {
+        const file = e.target.files?.[0]
+        e.target.value = ''
+        if (!file) return
+        if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
+          setPhotoError('請選擇 JPG、PNG 或 WebP 照片。')
+          return
+        }
+        setPhoto({ file, url: URL.createObjectURL(file) })
+        setResult(null)
+        setPhotoError('')
+        upload.reset()
+        retry.reset()
+        discard.reset()
+      }} />
+    {photo ? <Box className="live-photo-preview">
+      <Box component="img" src={photo.url} alt="食材照片預覽" />
+    </Box> : <Box className="live-upload-zone">
+      <Box className="live-upload-symbol"><ImagePlus size={32} aria-hidden="true" /></Box>
+      <Typography variant="subtitle1">拍下家裡的蔬菜</Typography>
+      <Typography variant="body2" color="text.secondary">上傳照片，再確認辨識出的食材。</Typography>
+      <Button variant="outlined" startIcon={<Upload size={18} />} disabled={busy} onClick={() => input.current?.click()}>
+        上傳照片
+      </Button>
+      <Typography variant="caption">JPG、PNG、WebP</Typography>
+    </Box>}
+    {photo && <Box className="live-photo-actions">
+      <Button variant="outlined" disabled={busy} onClick={() => input.current?.click()}>更換照片</Button>
+      <Button variant="contained" startIcon={upload.isPending ? <CircularProgress size={18} color="inherit" /> : <ScanLine size={18} />}
+        disabled={busy} onClick={() => upload.mutate(photo.file)}>{upload.isPending ? '辨識中…' : '開始辨識'}</Button>
+      <Button color="inherit" disabled={busy} onClick={() => {
+        if (result) discard.mutate()
+        else { setPhoto(null); upload.reset() }
+      }}>刪除照片</Button>
+    </Box>}
+    <Typography variant="caption">只確認食材種類，不需要重量；也可以直接手動搜尋。</Typography>
+    {photoError && <Alert severity="error">{photoError}</Alert>}
+    {upload.isError && <Alert severity="error">{errorMessage(upload.error)}</Alert>}
+    {discard.isError && <Alert severity="error">{errorMessage(discard.error)}</Alert>}
+    {result && <Box className="live-recognition-results">
+      <Typography component="h3" variant="subtitle1">辨識結果</Typography>
+      <Alert severity={result.status === 'succeeded' ? 'info' : 'warning'}
+        action={result.retryable
+          ? <Button color="inherit" size="small" disabled={busy} onClick={() => retry.mutate()}>重試</Button>
+          : undefined}>
+        {result.message}{result.suggestions.length > 1 && `（共 ${result.suggestions.length} 種）`}
+      </Alert>
+      {retry.isError && <Alert severity="error">{errorMessage(retry.error)}</Alert>}
+      {rows.map((s, i) => <SuggestionRow key={`${result.id}-${result.status}-${i}`} recognitionId={result.id}
+        initialName={s.name} onAdd={onAdd} />)}
+    </Box>}
+  </Stack>
 }
 
 function SuggestionRow({ recognitionId, initialName, onAdd }: {

@@ -157,6 +157,39 @@ jobs:
       - name: Build
         run: npm run build
 
+  redesigned-frontend-checks:
+    name: Redesigned frontend
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: overcooked-frontend/frontend
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: overcooked-frontend/frontend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run demo and live contract tests
+        run: npm test
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Build live frontend
+        run: npm run build
+
+      - name: Build preserved demo frontend
+        run: npm run build:demo
+
   admin-dashboard-build:
     runs-on: ubuntu-latest
     defaults:
