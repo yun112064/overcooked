@@ -209,3 +209,25 @@ def test_chat_model_switch(monkeypatch):
     assert isinstance(chat_model(), CloudOpenAIChat)
     monkeypatch.setenv("RAG_LLM_PROVIDER", "ollama")
     assert isinstance(chat_model(), OllamaChat)
+
+
+def test_expired_or_invalid_key_has_its_own_error(internal, monkeypatch):
+    # 2026-11-10 本機實測：OpenAI 回 401 expired_secret_key，原本只顯示「暫時無法使用」
+    def unauthorized(factory, **kwargs):
+        raise spend.CallNotBilled("HTTP 401")
+    monkeypatch.setattr(spend, "paid_call", unauthorized)
+    res = post(internal)
+    assert res.status_code == 503 and res.json()["error"]["code"] == "LLM_KEY_INVALID"
+
+    def rate_limited(factory, **kwargs):
+        raise spend.CallNotBilled("HTTP 429")
+    monkeypatch.setattr(spend, "paid_call", rate_limited)
+    assert post(internal).json()["error"]["code"] == "LLM_UNAVAILABLE"
+
+
+def test_cloud_chat_reports_invalid_key(monkeypatch):
+    from assistant_rag.providers import ProviderUnavailable
+    chat = cloud_chat(lambda r: httpx.Response(503, json={"error": {"code": "LLM_KEY_INVALID"}}), monkeypatch)
+    with pytest.raises(ProviderUnavailable) as exc:
+        chat.complete(MESSAGES)
+    assert exc.value.code == "LLM_KEY_INVALID"

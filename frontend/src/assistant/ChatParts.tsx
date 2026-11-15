@@ -39,7 +39,8 @@ function References({ message, anchor }: { message: Message; anchor: string }) {
   return (
     <Box sx={{ mt: 2, pt: 1.5, borderTop: `1px solid ${tokens.line}` }}>
       <Typography variant="caption" sx={{ color: tokens.inkMuted, letterSpacing: '0.1em' }}>參考資料</Typography>
-      <Stack component="ol" spacing={1} sx={{ m: 0, mt: 0.75, pl: 0, listStyle: 'none' }}>
+      {/* 回答裡已不顯示 [n]，清單也不編號（只列被引用的篇，原編號會跳號；2026-11-12 使用者決定拿掉） */}
+      <Stack component="ul" spacing={1} sx={{ m: 0, mt: 0.75, pl: 0, listStyle: 'none' }}>
         {shown.map((r) => {
           // Hello醫師的 reviewers 含撰文、資料查核、醫學審稿；只顯示醫學審稿，沒有時顯示作者
           const reviewer = r.reviewers?.['醫學審稿'] ?? r.reviewers?.['審稿'] ?? ''

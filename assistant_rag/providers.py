@@ -247,7 +247,9 @@ class CloudOpenAIChat:
             raise ProviderUnavailable("LLM_BAD_RESPONSE", f"HTTP {res.status_code}") from None
         if res.status_code != 200:
             code = ((body.get("error") or {}).get("code") if isinstance(body, dict) else None) or f"HTTP {res.status_code}"
-            raise ProviderUnavailable("LLM_BUDGET_EXHAUSTED" if code == "SERVICE_BUDGET_EXHAUSTED" else "LLM_FAILED", code)
+            mapped = {"SERVICE_BUDGET_EXHAUSTED": "LLM_BUDGET_EXHAUSTED", "LLM_KEY_INVALID": "LLM_KEY_INVALID",
+                      "LLM_NOT_CONFIGURED": "LLM_KEY_INVALID"}.get(code, "LLM_FAILED")
+            raise ProviderUnavailable(mapped, code)
         text = body.get("text") if isinstance(body, dict) else None
         if not isinstance(text, str) or not text.strip():
             raise ProviderUnavailable("LLM_BAD_RESPONSE", "沒有 text")

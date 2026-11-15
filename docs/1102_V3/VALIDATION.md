@@ -602,3 +602,104 @@ Scope: nested checkout `1111_update_V2`, Docker project `overcooked-1111_update_
     - second run → 0 written;
     - 114 records usable for explanations.
   - Prod knowledge DB, new `apply` → 0 approved, 0 classified, no error.
+
+## 2026-11-15 — Demo prod-up on latest main and 小幫手 地瓜／地瓜葉 fix
+
+- Environment: `prod-up` from worktree at `b9584d0` (latest `origin/main`) on the team laptop, new `meal_planner_prod` from `release_data/nutrition-v1` (293 recipes, 1996 food nutrition rows, `synthetic_data_used=false`). YOLO on CPU (borrowed `.venv-yolo` has `torch 2.15.0+cpu`). Reranker `TEI_IMAGE_TAG=120-1.9.4` (RTX 5070 Ti).
+- Found: `knowledge_rag.bootstrap` in `prod-up` failed with `FileNotFoundError: /app/config/nutrition_keywords.json`. `deploy/prod/rag.Dockerfile` does not copy `config/`, which b9584d0's classification apply now needs. Worked around by re-running bootstrap with `config/` mounted read-only (123 approved, 123 classified, index built, 114 records). Dockerfile not changed; a fresh `prod-up` will hit this again.
+- 小幫手 index built with `scripts/assistant-data.ps1 -SkipCrawl` from the existing corpus (1298 articles, 5858 chunks, embeddinggemma, status ready). No crawling.
+- Bug: 「地瓜的好處」 retrieved 2 地瓜葉 articles in the top 5 (`hybrid_rerank@embeddinggemma`, reranker 0.99) and the answer cited 地瓜葉's calcium/vitamin K as part of 地瓜's benefits. The off-topic check is a substring test, so 「地瓜葉」 counted as mentioning 地瓜.
+- Fix: `assistant_rag/foodfocus.py` + `Assistant.search`. After the main and alias retrievals, passages are filtered before references and the LLM prompt. The category-fallback retrieval is not filtered.
+  - Asked foods: food names in the question, longest first. Vocabulary is the TFDA names/aliases plus the category table. Names in one TFDA row are synonyms (地瓜＝甘藷＝番薯; 地瓜葉＝甘藷葉). Nutrient terms such as 胡蘿蔔素 are masked so they are not read as 胡蘿蔔.
+  - Keep a passage if its title/heading names an asked food or a synonym. A longer name that starts with it and is not in the question (地瓜葉 for 地瓜) does not count.
+  - Drop it if the title/heading names another food. This covers 茼蒿, 地瓜葉 for a 地瓜 question, and 地瓜 for a 地瓜葉 question, even when the body mentions the asked food in passing.
+  - If the title/heading names no food, keep it, unless its body only talks about a longer other name (地瓜葉) and never the asked food itself.
+  - A compound name made only of known foods counts as mentioned when all its parts are.
+  - If everything is dropped, the existing alias/category/refusal flow applies. `top_score` and the `not_mentioned` reason still use the pre-filter score, and `done.other_food_dropped` reports the count.
+- Tests: `tests/test_assistant_*.py` on host `.venv` (Python 3.12) → 214 passed, 1 skipped, including 10 new focus tests. Placeholder-passage tests that do not name a food run with `focus=None`. `pytest tests -k assistant` collection hit 2 unrelated pydantic settings errors (`test_1111_local_generation_knowledge.py`, `test_ai_ingredient_identity.py`) from the host environment; not investigated.
+- Retrieval-only comparison on `assistant_rag/eval/dev.jsonl` + `holdout.jsonl`, 103 `answer` questions, `hybrid_rerank@embeddinggemma` on the prod assistant DB, no LLM:
+  - The filter changed the passages for 34 questions.
+  - A relevant article was in the top 5 for 102 of 103 questions both before and after.
+  - 0 questions moved from above to below the 0.5 threshold.
+  - An earlier variant that required the body to mention the food lost D007 (鮪魚生魚片). It was replaced by the rule above.
+- Live check after rebuilding `meal-prod-rag` and recreating only `assistant-rag`:
+
+  | Question | References kept | Passages dropped | Answer |
+  |---|---|---|---|
+  | 地瓜葉的好處 | 2 地瓜葉 articles | 3 | only 地瓜葉; no 茼蒿 or 地瓜 |
+  | 地瓜的好處 | 3 地瓜 articles | 2 | no 地瓜葉 |
+  | 茼蒿的營養 | 1 茼蒿 article | 4 | |
+  | 常吃鮪魚生魚片會不會有重金屬問題 | 2 relevant articles | 3 | |
+
+- Not done: the full answer-level evaluation (`assistant_rag.eval.evaluate`) with the LLM.
+- Follow-up (same day): 「吃地瓜有甚麼好處」 showed the recipe suggestion 蜂蜜大蒜鮭魚.
+  - Cause: a retrieved 地瓜 article warns that store-bought roasted sweet potatoes may have syrup or 蜂蜜 added. When the answer repeats that clause without a negative word, `assistant_recipes.find_mentions` counts 蜂蜜 as a recommended food. `choose` then prefers a dish named after it (main ingredients 鮭魚 and 蜂蜜).
+  - Also found: 「玉米黃素」 was read as 玉米 and suggested 烤玉米.
+  - The user's actual answer text is not logged, so the cause was confirmed by replaying equivalent answer text against the prod recipe DB (→ 蜜糖番薯 + 蜂蜜大蒜鮭魚). Six fresh runs of the question did not reproduce the 蜂蜜 sentence.
+  - Fix in `backend/app/services/assistant_recipes.py`:
+    - Sweeteners are not suggested: 蜂蜜, 紅糖, 麥芽糖, 黃冰糖, plus 楓糖(漿), 糖漿, 果糖, (果)寡糖. 砂糖, 黑糖 and 冰糖 were already excluded.
+    - `NUTRIENT_FOLLOWERS` gains 黃素 and 異黃酮.
+    - The clause-level negative-context rule is unchanged.
+  - Tests: `tests/test_assistant_recipes.py` + `tests/test_assistant_answer.py` → 134 passed, 1 skipped, including 1 new recipe test.
+  - Live check: rebuilt `meal-prod-backend` and recreated only `backend`; public `/api/health` ok. `suggest` on the prod DB:
+
+    | Answer text | Suggested recipes |
+    |---|---|
+    | 蜂蜜 warning | 蜜糖番薯 only |
+    | 玉米黃素 | 蜜糖番薯 only |
+    | 玉米富含纖維 | 烤玉米 (still) |
+
+  - Not checked in the browser UI.
+- Superseded (same day): at the user's request, the `foodfocus.py` filter and the sweetener exclusions above were removed. They were replaced by the user's own earlier fixes, which had never been committed, from the `overcooked-rag-integration` worktree (`git diff cfdb0bf`, 2026-11-10–12).
+  - What was brought in:
+    - `assistant_rag/answer.py`: `article_min_score` 0.3 and `DISTINCT_FOODS` handling.
+    - `assistant_rag/categories.py`, `providers.py`.
+    - `backend/app/api/assistant.py`, `internal_assistant.py`, `services/assistant_recipes.py`: question-focused suggestions, 主菜/主食/湯 only, no repeats, `NUTRIENT_AFTER`.
+    - Old `frontend/` assistant files and the matching tests.
+  - Applied with `git apply --3way`. `answer.py` keeps main's `embeddinggemma` default. Two conflicts were resolved:
+    - `frontend/src/assistant/ChatParts.tsx`: kept main's fuller citation stripping.
+    - `tests/test_assistant_answer.py`: kept the user's text with `embedder="embeddinggemma"`.
+  - Ported to `overcooked-frontend`, used by prod: `/assistant/recipes` now sends `question` and `shown_recipe_ids`; added the `LLM_KEY_INVALID`/`LLM_FAILED` messages; the reference list is unnumbered.
+  - Tests: `tests/test_assistant_*.py` → 218 passed, 1 skipped. New frontend: `npm run build` (tsc + vite) passed inside the image build.
+  - Live: rebuilt `meal-prod-backend`, `meal-prod-frontend` and `meal-prod-rag`; recreated `backend`, `worker`, `assistant-rag` and `frontend`. Public `/api/health` ok.
+
+    | Check | Result |
+    |---|---|
+    | 「吃地瓜有甚麼好處」 | 4 地瓜 references; answer has no 地瓜葉 or 蜂蜜 |
+    | `suggest` with the 蜂蜜/玉米黃素 answer and the question | no recipes (蜜糖番薯 is 點心, excluded by design) |
+    | 「地瓜葉的好處」 | still receives 地瓜 and 茼蒿 references (茼蒿 reranker ≈0.42 ≥ 0.3); one answer sentence cited the 茼蒿 article |
+
+  - Not done: the browser UI was not rechecked.
+- Follow-up (same day, user request): example question and the reverse 地瓜葉 direction.
+  - Example chip changed from 「吃地瓜有什麼好處」 to 「吃番茄有什麼好處」. The only 地瓜 recipe is a 點心, which the user's 主菜/主食/湯 rule excludes. Changed in both `chatStore.ts` `EXAMPLES` and in the three `assistant_rag/safety.py` example sentences.
+  - Chosen after live end-to-end checks of 6 candidates. 番茄 cited only 番茄 articles and suggested 蕃茄炒蛋, 奶油蝦仁番茄飯 and 清燉蕃茄牛肉湯麵. 南瓜 and 高麗菜 cited a seeds article and the 地瓜葉 article.
+  - Rebuilt `meal-prod-frontend` and `meal-prod-rag`. The served bundle contains the 番茄 chip and no 地瓜 chip. The browser UI was not clicked through.
+  - New rule (user-approved): `assistant_rag/categories.py` `FoodNames` + `Assistant.food_names`. It runs after the user's `article_min_score` and `DISTINCT_FOODS` steps; those are unchanged.
+    - When the question names foods, a passage whose title/heading names another food and not the asked food (or its synonym) is not given to the model.
+    - Food names and synonyms come from the TFDA name/alias rows (`segment.FOOD_FILES`). Nutrient terms are masked. Longer names starting with the asked food (地瓜葉 for 地瓜) do not count as mentioning it.
+    - Titles that name no food are kept.
+    - Skipped for category and alias answers.
+    - If every passage would be removed, the original list is kept, the same pattern as `DISTINCT_FOODS`.
+  - Tests: `tests/test_assistant_*.py` → 227 passed, 1 skipped, including 9 new.
+  - Retrieval-only check on 103 `answer` eval questions (`hybrid_rerank@embeddinggemma`, after the user's 0.3 and DISTINCT steps), no LLM:
+    - The rule changed the passages for 15 questions.
+    - Questions with a relevant article in the passages: 102 before and 102 after.
+    - Most drops were list-article sections headed by another food.
+    - Trade-off on comparison questions: 豆漿 sections were dropped for 「植物奶可以取代牛奶嗎」 (植物奶 is not in the food list) and 「喝牛奶補鈣有效嗎」.
+  - Live check after recreating `assistant-rag`:
+
+    | Question | References | Answer |
+    |---|---|---|
+    | 地瓜葉的好處 | 2 地瓜葉 articles | no 茼蒿 or 地瓜 content |
+    | 吃地瓜有甚麼好處 | 4 地瓜 articles | |
+    | 吃番茄有什麼好處 | 番茄 articles and one general fruit article | |
+    | 植物奶可以取代牛奶嗎 | 3 植物奶 articles | sensible |
+
+## 2026-11-15 — PR #44 review: preserve the PR rules and fix question food focus
+
+- Base: PR #44 at `6588758cee45976db995a266abe360dd5b87a5b8`. User clarification: modifications follow the PR's existing rules. Article score threshold, distinct-food rules, all-passages-removed behavior, category/alias behavior, unnamed-food recipe fallback, allowed dish categories and conversation deduplication are unchanged.
+- Bug reproduced: `focus` reused the answer's positive-clause detector for questions. Questions containing 注意 / 不能 / 禁忌 / 不適合 lost their named food and allowed other foods from the answer to produce recipes.
+- Fix: question detection uses the same longest-name, alias and nutrient checks without the answer's positive-context filter. Answer-side negative-context filtering remains enabled.
+- Six new regression cases failed before the fix: four warning questions, a 地瓜葉/地瓜/玉米黃素 case, and the synthetic SQLite recipe API case. They pass after the fix.
+- Executed on an isolated Python 3.12 venv installed from `requirements-dev.txt`, with `TEST_DATABASE_URL` unset: `PROJECT_DATA_ROOT=/tmp/pr44-test-data PYTHONPATH=backend:tests /tmp/pr44-venv/bin/python -m pytest tests/test_assistant_*.py -q` → **233 passed, 1 skipped**, one Starlette/httpx deprecation warning. The skipped case requires disposable PostgreSQL.
+- Initial collection attempts lacked `PYTHONPATH`, then used the unwritable default `/app/data`; corrected using the environment above. No production databases, external models, crawlers or deployment commands were used. These checks do not validate live LLM answer quality or the production frontend.
