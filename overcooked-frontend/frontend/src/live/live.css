@@ -46,13 +46,55 @@ html, body, #root { min-height: 100%; }
 .live-result-tabs .MuiTab-root.Mui-selected { background: #fff; box-shadow: 0 2px 6px #413d4309; }
 .live-result-panel[hidden] { display: none; }
 
+.live-recipe-layout { display: grid; grid-template-columns: 190px minmax(0, 1fr); gap: 27px; }
+.live-recipe-list { display: flex; flex-direction: column; gap: 9px; align-self: start; }
+.live-recipe-list .MuiButton-root { display: flex; justify-content: flex-start; gap: 10px; padding: 13px; text-align: left; border: 1px solid #ebddd0; border-radius: 10px; background: #fffdfa; }
+.live-recipe-list .MuiButton-root[aria-pressed="true"] { background: #f3eefa; border-color: #73549c; color: #73549c; }
+.live-recipe-list svg { flex-shrink: 0; }
+.live-recipe-list small { display: block; margin-top: 3px; color: #706761; font-size: 11px; }
+.live-recipe-article { min-width: 0; }
+.live-recipe-heading { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 18px; }
+.live-recipe-photo { display: block; width: 100%; height: 270px; object-fit: contain; background: #fffdfa; border: 1px solid #ebddd0; border-radius: 12px; margin-bottom: 24px; }
+.live-recipe-photo-missing { display: grid; place-content: center; justify-items: center; gap: 8px; min-height: 160px; margin-bottom: 24px; background: #fffdfa; border: 1px dashed #d7c9bd; border-radius: 12px; color: #706761; }
+.live-recipe-details { display: grid; grid-template-columns: minmax(150px, .8fr) minmax(0, 1.2fr); gap: 26px; }
+.live-recipe-details section { min-width: 0; }
+.live-recipe-details h3 { margin-bottom: 14px; }
+.live-recipe-details ol { padding-left: 20px; }
+.live-recipe-details li { padding-bottom: 10px; }
+.live-recipe-note { margin-bottom: 16px; color: #706761; }
+.live-recipe-ingredients dl { margin: 0; }
+.live-recipe-ingredients dl > div { display: flex; justify-content: space-between; gap: 16px; padding: 9px 0; border-bottom: 1px dashed #ebddd0; }
+.live-recipe-ingredients dd { margin: 0; text-align: right; font-size: 14px; font-variant-numeric: tabular-nums; }
+.live-ingredient-group.MuiTypography-root { margin-top: 14px; padding: 5px 8px; background: #f3eefa; color: #73549c; border-radius: 5px; }
+.live-ingredients-layout { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, .9fr); gap: 22px; align-items: start; }
+.live-ingredient-panel { min-width: 0; padding: 24px; background: #fff; border: 1px solid #ebddd0; border-radius: 14px; }
+.live-ingredient-panel > h2 { margin-bottom: 22px; }
+.live-upload-zone { display: grid; place-items: center; align-content: center; text-align: center; gap: 14px; min-height: 260px; padding: 24px; background: #fffdfa; border: 1px dashed #d7c9bd; border-radius: 10px; }
+.live-upload-symbol { display: grid; place-items: center; width: 58px; height: 58px; border-radius: 18px; color: #b44c0d; background: #fce8cf; }
+.live-photo-preview { background: #fffdfa; border: 1px solid #ebddd0; border-radius: 10px; overflow: hidden; }
+.live-photo-preview img { display: block; width: 100%; height: 300px; object-fit: contain; }
+.live-photo-actions { display: flex; flex-wrap: wrap; gap: 10px; }
+.live-recognition-results { display: grid; gap: 14px; padding-top: 18px; border-top: 1px solid #ebddd0; }
+.live-manual-ingredients { margin-top: 24px; padding-top: 24px; border-top: 1px solid #ebddd0; }
+.live-available-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 20px; }
+.live-available-list { list-style: none; padding: 0; margin: 0; }
+.live-available-list li { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 0; border-bottom: 1px solid #ebddd0; }
+.live-available-list li:last-child { border-bottom: 0; }
+.live-available-empty { display: grid; gap: 12px; min-height: 220px; align-content: center; text-align: center; padding: 20px; }
+
 @media (max-width: 1000px) {
+  .live-recipe-details { grid-template-columns: 1fr; }
   .live-header { padding-inline: 28px; }
   .live-nav { gap: 22px; }
   .live-auth-story { padding: 40px 30px 0; min-height: 680px; }
   .live-auth-copy { margin-top: 70px; }
 }
 @media (max-width: 760px) {
+  .live-ingredients-layout, .live-recipe-layout { grid-template-columns: 1fr; }
+  .live-recipe-list { flex-direction: row; overflow-x: auto; padding-bottom: 6px; }
+  .live-recipe-list .MuiButton-root { flex-shrink: 0; }
+  .live-ingredient-panel { padding: 20px; }
+  .live-photo-preview img { height: 240px; }
   .live-header { padding-inline: 20px; }
   .live-header-top { min-height: 74px; }
   .live-brand { font-size: 21px; gap: 9px; }

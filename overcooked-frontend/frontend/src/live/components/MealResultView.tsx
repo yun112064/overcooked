@@ -1,4 +1,5 @@
 import ResultSections from './ResultSections'
+import RecipeBook from './RecipeBook'
 import { GeneratedPortions } from './PortionsTable'
 import CheckCircleOutlineOutlined from '@mui/icons-material/CheckCircleOutlineOutlined'
 import {
@@ -314,46 +315,28 @@ export default function MealResultView({ requestId, mealDate, onChanged, onRegen
       <ResultSections key={r.result_version} showShopping={confirmed}
         recipes={<>
       <Section title="全家配方" aside="整餐用量">
-        <Stack spacing={3} divider={<Box sx={{ borderTop: `1px solid ${tokens.line}` }} />}>
-          {r.dishes.map((d, idx) => (
-            <Box key={d.standard_dish_id} sx={{ display: 'flex', gap: 2 }}>
-              <Typography sx={{ fontFamily: tokens.serif, color: tokens.brick, fontSize: '0.95rem', pt: 0.4, width: 22, flexShrink: 0 }}>
-                {String(idx + 1).padStart(2, '0')}
+        <RecipeBook recipes={[
+          ...r.dishes.map(d => ({
+            id: d.standard_dish_id, name: d.dish_name, category: d.cooking_method,
+            specified: d.specified, coverUrl: d.cover_url,
+            badges: <HighSodiumTag high={d.high_sodium} sodium={d.sodium_mg_per_serving} />,
+            ingredients: <DishIngredients ingredients={d.ingredients} />,
+            steps: d.steps.length ? <DishSteps steps={d.steps} display={d.steps_display} /> : undefined,
+          })),
+          ...(r.staple ? [{
+            id: 'staple', name: r.staple.label, category: '主食',
+            ingredients: <>
+              <Typography variant="body2" color={r.staple.display_amount != null ? 'text.primary' : 'error'}>
+                {r.staple.display_amount != null
+                  ? `${r.staple.tfda_name ?? r.staple.label} ${Number(r.staple.display_amount)} ${r.staple.display_unit ?? ''}`
+                  : `${stapleProblem(r.staple.label, r.staple.unresolved_reason)}，不可採用`}
               </Typography>
-              <Box sx={{ minWidth: 0, flexGrow: 1 }}>
-                {d.cover_url && (
-                  <Box component="img" src={`/api${d.cover_url}`} alt={d.dish_name} loading="lazy"
-                    sx={{ display: 'block', width: '100%', maxWidth: 320, aspectRatio: '4 / 3',
-                      objectFit: 'contain', borderRadius: 1, mb: 1.5 }} />
-                )}
-                <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 1, flexWrap: 'wrap', mb: 0.5 }}>
-                  <Typography sx={{ fontFamily: tokens.serif, fontSize: '1.15rem', letterSpacing: '0.06em' }}>{d.dish_name}</Typography>
-                  {d.cooking_method && <Typography variant="caption">{d.cooking_method}</Typography>}
-                  {d.specified && <Chip size="small" variant="outlined" color="primary" label="指定菜" />}
-                  <HighSodiumTag high={d.high_sodium} sodium={d.sodium_mg_per_serving} />
-                </Box>
-                <DishIngredients ingredients={d.ingredients} />
-                <DishSteps steps={d.steps} display={d.steps_display} />
-              </Box>
-            </Box>
-          ))}
-          {r.staple && (
-            <Box sx={{ display: 'flex', gap: 2 }}>
-              <Typography sx={{ fontFamily: tokens.serif, color: tokens.inkMuted, fontSize: '0.95rem', pt: 0.4, width: 22, flexShrink: 0 }}>主</Typography>
-              <Box>
-                <Typography sx={{ fontFamily: tokens.serif, fontSize: '1.15rem', letterSpacing: '0.06em' }}>{r.staple.label}</Typography>
-                <Typography variant="body2" color={r.staple.display_amount != null ? 'text.primary' : 'error'}>
-                  {r.staple.display_amount != null
-                    ? `${r.staple.tfda_name ?? r.staple.label} ${Number(r.staple.display_amount)} ${r.staple.display_unit ?? ''}`
-                    : `${stapleProblem(r.staple.label, r.staple.unresolved_reason)}，不可採用`}
-                </Typography>
-                <Typography variant="caption">
-                  計入營養驗證，不計入價格{r.staple.review_status === 'pending_review' ? '；份量設定待營養審核' : ''}
-                </Typography>
-              </Box>
-            </Box>
-          )}
-        </Stack>
+              <Typography variant="caption">
+                計入營養驗證，不計入價格{r.staple.review_status === 'pending_review' ? '；份量設定待營養審核' : ''}
+              </Typography>
+            </>,
+          }] : []),
+        ]} />
       </Section>
 
       <Section title="避免重複的菜">

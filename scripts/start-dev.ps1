@@ -66,12 +66,13 @@ if (-not (Test-Path $ReqStamp) -or (Get-Content $ReqStamp) -ne $ReqHash) {
 }
 
 # ---------- 3. 前端套件 ----------
-$LockStamp = Join-Path $Root 'frontend\node_modules\.overcooked-lock.sha256'
-$LockHash = (Get-FileHash (Join-Path $Root 'frontend\package-lock.json')).Hash
+$Frontend = 'overcooked-frontend/frontend'
+$LockStamp = Join-Path $Root "$Frontend/node_modules/.overcooked-lock.sha256"
+$LockHash = (Get-FileHash (Join-Path $Root "$Frontend/package-lock.json")).Hash
 if (-not (Test-Path $LockStamp) -or (Get-Content $LockStamp) -ne $LockHash) {
     Step '安裝前端套件（package-lock.json 有更新）'
     # npm ci 完全照 lock 檔安裝且不改寫它（npm install 會改 lock 檔，造成 Git 出現修改）
-    & npm --prefix frontend ci
+    & npm --prefix $Frontend ci
     if ($LASTEXITCODE -ne 0) { Fail 'npm ci 失敗，請確認已安裝 Node.js。' }
     Set-Content $LockStamp $LockHash
 }
@@ -367,7 +368,7 @@ if ((Cfg 'KNOWLEDGE_DATABASE_URL') -and (Cfg 'KNOWLEDGE_SERVICE_TOKEN')) {
 Start-Service-Isolated 'backend' 8000 $Py @('-m', 'uvicorn', 'app.main:app', '--app-dir', 'backend',
     '--host', '127.0.0.1', '--port', '8000')
 Start-Service-Here 'worker' $null "& '$Py' -m app.jobs.worker"
-Start-Service-Here 'frontend' 5173 'npm --prefix frontend run dev -- --host 127.0.0.1 --port 5173 --strictPort'
+Start-Service-Here 'frontend' 5173 'npm --prefix overcooked-frontend/frontend run dev -- --host 127.0.0.1 --port 5173 --strictPort'
 if ((Cfg 'KNOWLEDGE_DATABASE_URL') -and (Cfg 'KNOWLEDGE_SERVICE_TOKEN')) {
     Start-Service-Here 'knowledge' $KnowledgePort "& '$Py' -m uvicorn knowledge_rag.server:create_app --factory --host 127.0.0.1 --port $KnowledgePort"
 } else {

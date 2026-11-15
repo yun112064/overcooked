@@ -1,9 +1,8 @@
 import { Box, Chip, Tooltip, Typography } from '@mui/material'
-import type { ResultIngredient } from '../api/types'
 import CookingQuantity from './CookingQuantity'
 import { cleanSteps } from './recipeSteps'
 
-type Ingredient = Pick<ResultIngredient, 'name' | 'group' | 'display_amount' | 'display_unit' | 'display_text' | 'display_grams'> & Partial<Pick<ResultIngredient, 'whole_meal_grams'>>
+type Ingredient = { name: string; group?: string | null } & Parameters<typeof CookingQuantity>[0]['ingredient']
 
 /** 每日鈉上限（mg），與 config/daily_reference_nutrients.json 一致；只用於提示文字 */
 const SODIUM_DAILY_MAX = 2400
@@ -28,16 +27,19 @@ export function DishIngredients({ ingredients }: { ingredients: Ingredient[] }) 
   }
   const ordered = [...groups.entries()].sort(([a], [b]) => (a === '' ? -1 : b === '' ? 1 : 0))
   return (
-    <>
+    <Box className="live-recipe-ingredients">
       {ordered.map(([group, items]) => (
-        <Typography key={group || '_'} variant="body2" component="div">
-          {group && <Box component="span" sx={{ fontWeight: 'bold' }}>{group}：</Box>}
-          {items.map((i, idx) => <Box component="span" key={`${i.name}-${idx}`}>
-            {idx > 0 && '、'}{i.name} <CookingQuantity ingredient={i} name={i.name} />
-          </Box>)}
-        </Typography>
+        <Box key={group || '_'}>
+          {group && <Typography className="live-ingredient-group" variant="caption" component="p">{group}</Typography>}
+          <Box component="dl">
+            {items.map((i, idx) => <Box key={`${i.name}-${idx}`}>
+              <Typography component="dt" variant="body2">{i.name}</Typography>
+              <Box component="dd"><CookingQuantity ingredient={i} name={i.name} /></Box>
+            </Box>)}
+          </Box>
+        </Box>
       ))}
-    </>
+    </Box>
   )
 }
 

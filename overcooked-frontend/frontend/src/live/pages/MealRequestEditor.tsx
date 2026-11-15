@@ -342,15 +342,38 @@ function Editor({ initial, members: memberList }: { initial: MealRequest; member
             <Typography variant="body2" color="text.secondary">
               選擇家中已有的食材種類。已有的種類視為足夠這餐使用，不需要輸入重量；沒選的食材會按整餐需求量補買。
             </Typography>
-            <RecognitionCapture mealRequestId={id} onAdd={(ingredient) => {
-              const current = getValues('available')
-              if (!current.some((i) => i.ingredient_id === ingredient.ingredient_id)) {
-                form.setValue('available', [...current, ingredient], { shouldDirty: true })
-              }
-            }} />
             <Controller name="available" control={control} render={({ field }) => (
-              <IngredientPicker label="家中已有的食材（也可直接搜尋加入，例如肉類）" value={field.value as IngredientRef[]}
-                onChange={field.onChange} error={!!errors.available} helperText={errors.available?.message} />
+              <Box className="live-ingredients-layout">
+                <Box component="section" className="live-ingredient-panel">
+                  <Typography component="h2" variant="h6">輸入食材</Typography>
+                  <RecognitionCapture mealRequestId={id} onAdd={(ingredient) => {
+                    const current = getValues('available')
+                    if (!current.some((i) => i.ingredient_id === ingredient.ingredient_id)) {
+                      form.setValue('available', [...current, ingredient], { shouldDirty: true })
+                    }
+                  }} />
+                  <Box className="live-manual-ingredients">
+                    <IngredientPicker label="手動搜尋食材（也可加入肉類）" value={field.value as IngredientRef[]}
+                      onChange={field.onChange} error={!!errors.available} helperText={errors.available?.message} />
+                  </Box>
+                </Box>
+                <Box component="section" className="live-ingredient-panel">
+                  <Box className="live-available-heading">
+                    <Typography component="h2" variant="h6">現有食材清單</Typography>
+                    <Chip label={`${field.value.length} 項`} size="small" />
+                  </Box>
+                  {field.value.length ? <Box component="ul" className="live-available-list">
+                    {(field.value as IngredientRef[]).map(ingredient => <li key={ingredient.ingredient_id}>
+                      <span>{ingredient.name}</span>
+                      <Button color="inherit" size="small" aria-label={`移除${ingredient.name}`}
+                        onClick={() => field.onChange(field.value.filter(item => item.ingredient_id !== ingredient.ingredient_id))}>移除</Button>
+                    </li>)}
+                  </Box> : <Box className="live-available-empty">
+                    <Typography color="text.secondary">尚未加入食材</Typography>
+                    <Typography variant="body2" color="text.secondary">確認辨識結果或手動搜尋後，食材會顯示在這裡。</Typography>
+                  </Box>}
+                </Box>
+              </Box>
             )} />
           </Stack>
         )}

@@ -602,3 +602,15 @@ Scope: nested checkout `1111_update_V2`, Docker project `overcooked-1111_update_
     - second run → 0 written;
     - 114 records usable for explanations.
   - Prod knowledge DB, new `apply` → 0 approved, 0 classified, no error.
+
+
+## 2026-11-15：獨立前端結果／辨識版型補齊
+
+- 基底 `b9584d0`。使用者依食譜結果與圖片辨識畫面的差異要求修正；本輪修改獨立前端呈現、一般 Compose 與開發腳本的前端入口，未修改舊 `frontend/`、後端、API 端口、資料庫或外部模型。沒有提交、推送或合併。
+- 結果／預覽改為共用 RecipeBook：菜色選單、配方照片或明確缺圖、食材與步驟；保留後端整餐用量、原食譜未調整提示、主食、未知值、高鈉與採用阻擋。辨識補上大型本機預覽、明確開始辨識、逐項確認及右側已有食材清單。
+- 乾淨 `npm ci` 完成；30 項測試通過，包含 API 方法、URL、請求本文、multipart 欄位、版本／冪等鍵、Cookie／SSE、單側營養界線及用量顯示；TypeScript 與正式 Vite build 通過。lint 無錯誤，既有 react-hooks/incompatible-library 對 form.watch 的 1 項警告保留。
+- 最初 835b4e7 的 frontend 雜湊已被後續 main 更新超越；未覆寫歷史 baseline，改為比對目前 HEAD 的舊 frontend 工作目錄，API 契約仍逐一比對。
+- Chrome 在 localhost:5174，使用 /private/tmp 下的獨立合成 HTTP fixture 驗證：兩道菜切換與用量／步驟同步、未知照片提示、不可採用阻擋、大型照片預覽、模擬離線後重試、多蔬菜加入／略過、手動搜尋、清單移除及草稿版本遞增保存。只上傳專案內蔬果素材，不連真實資料庫或模型；測試分頁已關閉。
+- 實際 YOLO 推論、真實資料端到端與 Windows 程序啟停未重新驗收；本次不宣稱手機實機測試通過。原後端與舊前端受追蹤程式碼的 git diff 為空。
+- 已用合成環境變數實際解析一般 Compose 與正式合併 Compose：兩者均建置 `overcooked-frontend/frontend`；一般前端 8080／後端 8000、正式不發布 host ports 的政策維持。暫時 QA 伺服器已停止，既有容器未操作。
+- 使用者隨後要求提交、推送與開 PR；改以 `codex/frontend-recipe-recognition-layout` 分支交付，不合併 main。

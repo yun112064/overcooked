@@ -141,7 +141,7 @@ services:
 
   frontend:
     build:
-      context: ./frontend
+      context: ./overcooked-frontend/frontend
       dockerfile: Dockerfile
 
     container_name: meal-planner-frontend
