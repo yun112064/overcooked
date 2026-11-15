@@ -60,6 +60,8 @@ python -m nutrition_target --rules nutrition_target/rules/hpa-dri8-mvp-0.3.0.jso
 
 ## 本機開發一鍵啟動
 
+開發腳本、一般 Compose 與正式部署統一使用 `overcooked-frontend/frontend` 的正式 API 介面；根目錄 `frontend/` 保留作既有版本與契約比對。
+
 需要 Docker Desktop、Python 3.12、Node.js。在專案根目錄雙擊 `start-dev.cmd`（或執行 `scripts\start-dev.ps1`），完成後開啟 http://localhost:5173 ；雙擊 `stop-dev.cmd` 全部關閉（資料庫資料保留）。
 
 腳本每次啟動都會自動同步，平常新增功能不必修改它：

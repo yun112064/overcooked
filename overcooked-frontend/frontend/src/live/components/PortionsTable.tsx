@@ -25,7 +25,7 @@ function PortionsTable({ rows }: { rows: Row[] }) {
   </Section>
 }
 
-export function GeneratedPortions({ result }: { result: MealResult }) {
+export function GeneratedPortions({ result }: { result: Pick<MealResult, 'nutrition'> }) {
   const rows: Row[] = []
   for (const person of result.nutrition.per_person ?? []) {
     if (person.dining ?? true) rows.push({ id: `${person.member_id}-dining`, name: person.name ?? '已刪除成員',
@@ -43,5 +43,14 @@ export function PreviewPortions({ nutrition, names }: { nutrition: NutritionPrev
     kind: `${MEAL_LABELS[person.meal]}${person.kind === 'bento' ? '便當' : '用餐'}`,
     n: person.n, share: person.dish_share,
     staple: person.staple_g === null ? null : String(toNumber(person.staple_g) ?? person.staple_g),
+  }))} />
+}
+
+export function SavedPortions({ people }: { people: NutritionPreview['people'] }) {
+  return <PortionsTable rows={(people ?? []).flatMap(person => (['dining', 'bento'] as const).flatMap(kind => {
+    const portion = person[kind]
+    return portion ? [{ id: portion.participation_id, name: person.name ?? '已刪除成員',
+      kind: `${MEAL_LABELS[portion.meal]}${kind === 'bento' ? '便當' : '用餐'}`,
+      n: portion.n, share: portion.dish_share, staple: portion.staple_g }] : []
   }))} />
 }

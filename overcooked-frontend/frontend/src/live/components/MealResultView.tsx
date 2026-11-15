@@ -1,25 +1,28 @@
 import ResultSections from './ResultSections'
+import RecipeBook from './RecipeBook'
 import { GeneratedPortions } from './PortionsTable'
 import CheckCircleOutlineOutlined from '@mui/icons-material/CheckCircleOutlineOutlined'
 import {
-  Alert, Box, Button, Chip, Link, Stack, Table, TableBody, TableCell, TableHead, TableRow, Typography,
+  Alert, Box, Button, Chip, Dialog, DialogActions, DialogContent, DialogTitle, Link, Stack, Table, TableBody, TableCell, TableHead, TableRow, Typography,
 } from '@mui/material'
 import { amount } from '../api/resultNutrition'
 import PersonNutrition, { MacroBar } from './ResultPersonNutrition'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import { Check, Pencil, RefreshCw } from 'lucide-react'
 import { Link as RouterLink } from 'react-router'
 import { toNumber, withinTarget } from '../api/nutrition'
 import { api, errorMessage } from '../api/client'
 import MarketCheckoutButton from './MarketCheckoutButton'
 import type {
-  DecisionKind, MealPlanSummary, MealResult, MealResultSummary, NutritionSuggestion,
+  DecisionKind, MealPlanSummary, MealResult, MealResultSummary, MealType, NutritionSuggestion,
 } from '../api/types'
+import { MEAL_LABELS } from '../api/types'
 import { DishIngredients, DishSteps, HighSodiumTag } from './DishDetail'
 import { Section, Stat, StatRow } from './ui'
 import { tokens } from '../theme'
 
-type Props = { requestId: string; mealDate?: string | null; onChanged: () => void; onRegenerate?: () => void; regenerateDisabled?: boolean }
+type Props = { requestId: string; mealDate?: string | null; mealType?: MealType | null; onChanged: () => void; onModify?: () => void; onRegenerate?: () => void; regenerateDisabled?: boolean }
 
 /** 顯示用取整：金額到 1 元、克到 1 g、營養到 0.1；計算與判定一律由後端以精確值完成。 */
 const money = (v: string | null) => (v === null ? '未知' : `${Math.round(Number(v))} 元`)
@@ -70,8 +73,9 @@ const DECISION_LABELS: Record<DecisionKind, string> = {
 }
 
 /** T15 生成結果：全家配方、缺料雙價格、數值營養、知識說明、昨日比對與後端判定的採用資格。 */
-export default function MealResultView({ requestId, mealDate, onChanged, onRegenerate, regenerateDisabled }: Props) {
+export default function MealResultView({ requestId, mealDate, mealType, onChanged, onModify, onRegenerate, regenerateDisabled }: Props) {
   const queryClient = useQueryClient()
+  const [adoptVersion, setAdoptVersion] = useState<number | null>(null)
   // 每個（結果版本、命令）固定一把冪等鍵：重複點擊或網路重送只產生一筆決定
   const keys = useRef(new Map<string, string>())
   const keyFor = (name: string) => {
@@ -314,46 +318,28 @@ export default function MealResultView({ requestId, mealDate, onChanged, onRegen
       <ResultSections key={r.result_version} showShopping={confirmed}
         recipes={<>
       <Section title="全家配方" aside="整餐用量">
-        <Stack spacing={3} divider={<Box sx={{ borderTop: `1px solid ${tokens.line}` }} />}>
-          {r.dishes.map((d, idx) => (
-            <Box key={d.standard_dish_id} sx={{ display: 'flex', gap: 2 }}>
-              <Typography sx={{ fontFamily: tokens.serif, color: tokens.brick, fontSize: '0.95rem', pt: 0.4, width: 22, flexShrink: 0 }}>
-                {String(idx + 1).padStart(2, '0')}
+        <RecipeBook recipes={[
+          ...r.dishes.map(d => ({
+            id: d.standard_dish_id, name: d.dish_name, category: d.cooking_method,
+            specified: d.specified, coverUrl: d.cover_url,
+            badges: <HighSodiumTag high={d.high_sodium} sodium={d.sodium_mg_per_serving} />,
+            ingredients: <DishIngredients ingredients={d.ingredients} />,
+            steps: d.steps.length ? <DishSteps steps={d.steps} display={d.steps_display} /> : undefined,
+          })),
+          ...(r.staple ? [{
+            id: 'staple', name: r.staple.label, category: '主食',
+            ingredients: <>
+              <Typography variant="body2" color={r.staple.display_amount != null ? 'text.primary' : 'error'}>
+                {r.staple.display_amount != null
+                  ? `${r.staple.tfda_name ?? r.staple.label} ${Number(r.staple.display_amount)} ${r.staple.display_unit ?? ''}`
+                  : `${stapleProblem(r.staple.label, r.staple.unresolved_reason)}，不可採用`}
               </Typography>
-              <Box sx={{ minWidth: 0, flexGrow: 1 }}>
-                {d.cover_url && (
-                  <Box component="img" src={`/api${d.cover_url}`} alt={d.dish_name} loading="lazy"
-                    sx={{ display: 'block', width: '100%', maxWidth: 320, aspectRatio: '4 / 3',
-                      objectFit: 'contain', borderRadius: 1, mb: 1.5 }} />
-                )}
-                <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 1, flexWrap: 'wrap', mb: 0.5 }}>
-                  <Typography sx={{ fontFamily: tokens.serif, fontSize: '1.15rem', letterSpacing: '0.06em' }}>{d.dish_name}</Typography>
-                  {d.cooking_method && <Typography variant="caption">{d.cooking_method}</Typography>}
-                  {d.specified && <Chip size="small" variant="outlined" color="primary" label="指定菜" />}
-                  <HighSodiumTag high={d.high_sodium} sodium={d.sodium_mg_per_serving} />
-                </Box>
-                <DishIngredients ingredients={d.ingredients} />
-                <DishSteps steps={d.steps} display={d.steps_display} />
-              </Box>
-            </Box>
-          ))}
-          {r.staple && (
-            <Box sx={{ display: 'flex', gap: 2 }}>
-              <Typography sx={{ fontFamily: tokens.serif, color: tokens.inkMuted, fontSize: '0.95rem', pt: 0.4, width: 22, flexShrink: 0 }}>主</Typography>
-              <Box>
-                <Typography sx={{ fontFamily: tokens.serif, fontSize: '1.15rem', letterSpacing: '0.06em' }}>{r.staple.label}</Typography>
-                <Typography variant="body2" color={r.staple.display_amount != null ? 'text.primary' : 'error'}>
-                  {r.staple.display_amount != null
-                    ? `${r.staple.tfda_name ?? r.staple.label} ${Number(r.staple.display_amount)} ${r.staple.display_unit ?? ''}`
-                    : `${stapleProblem(r.staple.label, r.staple.unresolved_reason)}，不可採用`}
-                </Typography>
-                <Typography variant="caption">
-                  計入營養驗證，不計入價格{r.staple.review_status === 'pending_review' ? '；份量設定待營養審核' : ''}
-                </Typography>
-              </Box>
-            </Box>
-          )}
-        </Stack>
+              <Typography variant="caption">
+                計入營養驗證，不計入價格{r.staple.review_status === 'pending_review' ? '；份量設定待營養審核' : ''}
+              </Typography>
+            </>,
+          }] : []),
+        ]} />
       </Section>
 
       <Section title="避免重複的菜">
@@ -544,18 +530,37 @@ export default function MealResultView({ requestId, mealDate, onChanged, onRegen
         portions={<GeneratedPortions result={r} />}
       />
       {!confirmed && (
-        <Box sx={{ position: 'sticky', bottom: 0, zIndex: 10, bgcolor: '#FFFDF9', border: `1px solid ${tokens.line}`,
-          borderRadius: 1, p: 2, display: 'flex', gap: 2, alignItems: 'center', flexWrap: 'wrap' }}>
-          <Typography variant="body2" sx={{ flexGrow: 1 }}>
-            第 {r.result_version} 版・{energy === null ? '熱量未知' : `${Math.round(energy)} kcal`}・蛋白質 {protein === null ? '未知' : `${protein.toFixed(1)} g`}
-            {!el.adoptable && '・目前不可採用，請查看上方原因'}
-          </Typography>
-          {onRegenerate && <Button variant="outlined" disabled={regenerateDisabled || adopt.isPending}
-            onClick={onRegenerate}>重新生成</Button>}
-          <Button variant="contained" size="large" disabled={!el.adoptable || adopt.isPending || dayConflict}
-            onClick={() => adopt.mutate(r)}>{adopt.isPending ? '採用中…' : '採用這份菜單'}</Button>
-          {adopt.isError && <Alert severity="error" sx={{ width: '100%' }}>{errorMessage(adopt.error)}</Alert>}
-        </Box>
+        <>
+          <Box className="live-result-actions">
+            {onModify && <Button variant="outlined" startIcon={<Pencil size={17} />} disabled={adopt.isPending}
+              onClick={onModify}>修改條件</Button>}
+            {onRegenerate && <Button variant="outlined" startIcon={<RefreshCw size={17} />} disabled={regenerateDisabled || adopt.isPending}
+              onClick={onRegenerate}>重新產生</Button>}
+            <Button variant="contained" startIcon={<Check size={18} />} disabled={!el.adoptable || adopt.isPending || dayConflict}
+              onClick={() => { adopt.reset(); setAdoptVersion(r.result_version) }}>採用菜單</Button>
+          </Box>
+          <Dialog open={adoptVersion === r.result_version} fullWidth maxWidth="sm"
+            onClose={() => { if (!adopt.isPending) setAdoptVersion(null) }}>
+            <DialogTitle>確認採用菜單</DialogTitle>
+            <DialogContent>
+              <Box component="dl" className="live-result-confirmation">
+                <div><Typography component="dt">餐食日期</Typography><Typography component="dd">{mealDate ?? '未選日期'}</Typography></div>
+                <div><Typography component="dt">餐別</Typography><Typography component="dd">{mealType ? MEAL_LABELS[mealType] : '未選餐別'}</Typography></div>
+                <div><Typography component="dt">菜單</Typography><Typography component="dd">{r.dishes.map(dish => dish.dish_name).join('、')}
+                  <Typography component="span" variant="body2" sx={{ display: 'block' }} color="text.secondary">主食：{r.staple?.label ?? '不需要主食'}</Typography>
+                </Typography></div>
+                <div><Typography component="dt">本餐成本</Typography><Typography component="dd">{money(r.prices.cost_total)}</Typography></div>
+                <div><Typography component="dt">採購金額</Typography><Typography component="dd">{money(r.prices.purchase_total)}</Typography></div>
+              </Box>
+              {adopt.isError && <Alert severity="error" sx={{ mt: 2 }}>{errorMessage(adopt.error)}</Alert>}
+            </DialogContent>
+            <DialogActions>
+              <Button variant="outlined" disabled={adopt.isPending} onClick={() => setAdoptVersion(null)}>返回結果</Button>
+              <Button variant="contained" disabled={!el.adoptable || adopt.isPending || dayConflict}
+                onClick={() => adopt.mutate(r)}>{adopt.isPending ? '保存中…' : '確認採用並保存'}</Button>
+            </DialogActions>
+          </Dialog>
+        </>
       )}
     </Stack>
   )
