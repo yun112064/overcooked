@@ -5,7 +5,7 @@ import RestartAltRounded from '@mui/icons-material/RestartAltRounded'
 import {
   Alert, Box, Chip, Grow, IconButton, Paper, Stack, Tooltip, Typography, useMediaQuery, useTheme,
 } from '@mui/material'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, type MouseEvent as ReactMouseEvent } from 'react'
 import { useNavigate } from 'react-router'
 import AssistantMascot from '../components/AssistantMascot'
 import { tokens } from '../theme'
@@ -17,6 +17,9 @@ const EDGE = 12
 const SPEED = 70 // px／秒
 
 const randomBetween = (min: number, max: number) => min + Math.random() * (max - min)
+const rightmost = () => Math.max(EDGE, window.innerWidth - SIZE - EDGE)
+const clampX = (value: number) => Math.max(EDGE, Math.min(rightmost(), value))
+const clampY = (value: number) => Math.max(EDGE, Math.min(Math.max(EDGE, window.innerHeight - SIZE - EDGE), value))
 
 export default function FloatingAssistant() {
   const chat = useAssistantChat()
@@ -25,16 +28,88 @@ export default function FloatingAssistant() {
   const mobile = useMediaQuery(theme.breakpoints.down('md'))
   const reducedMotion = useMediaQuery('(prefers-reduced-motion: reduce)')
 
-  const rightmost = () => Math.max(EDGE, window.innerWidth - SIZE - EDGE)
   const [open, setOpen] = useState(false)
   const [x, setX] = useState(rightmost)
   const [duration, setDuration] = useState(0)
   const [facing, setFacing] = useState<1 | -1>(1)
   const [walking, setWalking] = useState(false)
+  const [hovered, setHovered] = useState(false)
+  const [dragging, setDragging] = useState(false)
+  const [top, setTop] = useState<number | null>(null)
   const [hint, setHint] = useState(true)
   const [seen, setSeen] = useState(0)
   const xRef = useRef(x)
   const listRef = useRef<HTMLDivElement | null>(null)
+  const mascotRef = useRef<HTMLDivElement | null>(null)
+  const dragRef = useRef<{
+    offsetX: number; offsetY: number; startX: number; startY: number; button: number; moved: boolean
+  } | null>(null)
+  const suppressClick = useRef(false)
+
+  // CSS 過渡途中 x 是目的地；讀取目前畫面位置才能原地停下。
+  const freeze = () => {
+    const rect = mascotRef.current?.getBoundingClientRect()
+    if (!rect) return
+    const current = clampX(rect.left)
+    xRef.current = current
+    setX(current)
+    setDuration(0)
+    setWalking(false)
+    return rect
+  }
+
+  const startDrag = (event: ReactMouseEvent<HTMLButtonElement>) => {
+    if (![0, 2].includes(event.button)) return
+    event.preventDefault()
+    suppressClick.current = false
+    const rect = freeze()
+    if (!rect) return
+    dragRef.current = { offsetX: event.clientX - rect.left, offsetY: event.clientY - rect.top,
+      startX: event.clientX, startY: event.clientY, button: event.button, moved: event.button === 2 }
+    if (event.button === 2) {
+      setTop(clampY(rect.top))
+      setDragging(true)
+    }
+  }
+
+  // 在整個視窗追蹤滑鼠，不依賴按鈕的 Pointer Capture 或原生圖片拖放。
+  useEffect(() => {
+    const finish = (event?: MouseEvent) => {
+      const active = dragRef.current
+      if (!active || (event && event.button !== active.button)) return
+      dragRef.current = null
+      suppressClick.current = !!event && active.button === 0 && active.moved
+      setDragging(false)
+      const rect = mascotRef.current?.getBoundingClientRect()
+      setHovered(!!event && !!rect && event.clientX >= rect.left && event.clientX <= rect.right
+        && event.clientY >= rect.top && event.clientY <= rect.bottom)
+    }
+    const move = (event: MouseEvent) => {
+      const active = dragRef.current
+      if (!active) return
+      if (!(event.buttons & (active.button === 2 ? 2 : 1))) { finish(); return }
+      if (!active.moved) {
+        if (Math.hypot(event.clientX - active.startX, event.clientY - active.startY) < 5) return
+        active.moved = true
+        setDragging(true)
+      }
+      event.preventDefault()
+      const nextX = clampX(event.clientX - active.offsetX)
+      xRef.current = nextX
+      setX(nextX)
+      setTop(clampY(event.clientY - active.offsetY))
+    }
+    const release = (event: MouseEvent) => finish(event)
+    const cancel = () => finish()
+    window.addEventListener('mousemove', move, true)
+    window.addEventListener('mouseup', release, true)
+    window.addEventListener('blur', cancel)
+    return () => {
+      window.removeEventListener('mousemove', move, true)
+      window.removeEventListener('mouseup', release, true)
+      window.removeEventListener('blur', cancel)
+    }
+  }, [])
 
   const moveTo = (target: number, seconds: number) => {
     setFacing(target < xRef.current ? -1 : 1)
@@ -49,9 +124,9 @@ export default function FloatingAssistant() {
     return () => window.clearTimeout(t)
   }, [])
 
-  // 閒晃：停一下、走到隨機位置；打開對話或使用者關閉動畫時就停在右下角（見下方 parked）
+  // 游標移入或拖曳時暫停；放開落地後稍作停留，再沿底部繼續閒晃。
   useEffect(() => {
-    if (open || reducedMotion) return
+    if (open || reducedMotion || hovered || dragging) return
     let timer = 0
     const rest = () => {
       setWalking(false)
@@ -66,11 +141,14 @@ export default function FloatingAssistant() {
     }
     timer = window.setTimeout(walk, 2500)
     return () => window.clearTimeout(timer)
-  }, [open, reducedMotion])
+  }, [open, reducedMotion, hovered, dragging])
 
   // 視窗縮小時不要走出畫面
   useEffect(() => {
-    const onResize = () => { if (xRef.current > rightmost()) moveTo(rightmost(), 0) }
+    const onResize = () => {
+      if (xRef.current > rightmost()) moveTo(rightmost(), 0)
+      setTop(value => value === null ? null : clampY(value))
+    }
     window.addEventListener('resize', onResize)
     return () => window.removeEventListener('resize', onResize)
   }, [])
@@ -85,11 +163,11 @@ export default function FloatingAssistant() {
   const last = chat.messages.at(-1)
   const settledId = last && last.status !== 'streaming' ? last.id : 0
 
-  // 開關時記下已讀；關閉後吉祥物從右下角繼續閒晃
+  // 開關時記下已讀；未手動定位時，關閉後從右下角繼續閒晃。
   const setPanel = (next: boolean) => {
     setSeen(settledId)
     setHint(false)
-    if (!next) moveTo(rightmost(), 0)
+    if (!next && top === null) moveTo(rightmost(), 0)
     else setFacing(1)
     setOpen(next)
   }
@@ -99,17 +177,17 @@ export default function FloatingAssistant() {
     const onKey = (e: KeyboardEvent) => {
       if (e.key !== 'Escape') return
       setSeen(settledId)
-      moveTo(rightmost(), 0)
+      if (top === null) moveTo(rightmost(), 0)
       setOpen(false)
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [open, settledId])
+  }, [open, settledId, top])
 
   const parked = open || reducedMotion
-  const shownX = parked ? rightmost() : x
-  const shownDuration = parked ? (reducedMotion ? 0 : 0.5) : duration
-  const moving = walking && !parked
+  const shownX = parked && top === null ? rightmost() : x
+  const shownDuration = hovered || dragging ? 0 : parked ? (reducedMotion ? 0 : 0.5) : duration
+  const moving = walking && !parked && !hovered && !dragging
   const unread = !open && settledId > seen
   const bottom = mobile ? 'calc(64px + env(safe-area-inset-bottom))' : '16px'
   const bubbleText = chat.busy && !open ? '查資料中…' : unread ? '回答好了！' : hint && !open ? '有飲食問題問我！' : null
@@ -176,24 +254,39 @@ export default function FloatingAssistant() {
         </Paper>
       </Grow>
 
-      <Box sx={{
-        position: 'fixed', zIndex: 1250, bottom, left: 0, width: SIZE, height: SIZE,
-        transform: `translateX(${shownX}px)`, transition: `transform ${shownDuration}s ease-in-out`, pointerEvents: 'none',
+      <Box ref={mascotRef} sx={{
+        position: 'fixed', zIndex: 1250, bottom: top === null ? bottom : 'auto',
+        // 拖曳時跟隨游標；放開只改垂直座標，落地位置隨可視視窗高度調整。
+        top: top === null ? undefined : dragging ? top : `calc(100dvh - ${SIZE}px - env(safe-area-inset-bottom, 0px))`,
+        left: 0, width: SIZE, height: SIZE,
+        transform: `translateX(${shownX}px)`,
+        transition: `transform ${shownDuration}s ease-in-out, top ${dragging || reducedMotion ? 0 : 0.45}s ease-in`,
+        pointerEvents: 'none',
       }}>
         {bubbleText && (
           <Box sx={{
-            position: 'absolute', bottom: SIZE - 4, whiteSpace: 'nowrap', px: 1.25, py: 0.5, borderRadius: '12px',
+            position: 'absolute', ...(dragging && top !== null && top < 60 ? { top: SIZE - 4 } : { bottom: SIZE - 4 }), whiteSpace: 'nowrap', px: 1.25, py: 0.5, borderRadius: '12px',
             bgcolor: tokens.paper, border: `1px solid ${tokens.line}`, boxShadow: '0 4px 12px rgba(63,58,52,0.12)',
             fontSize: '0.8rem', color: tokens.ink,
             // 靠近右邊時泡泡往左長，避免超出畫面
             ...(shownX > SIZE ? { right: 6 } : { left: 6 }),
           }}>{bubbleText}</Box>
         )}
-        <Box component="button" type="button" onClick={() => setPanel(!open)}
+        <Box component="button" type="button" onClick={event => {
+          if (suppressClick.current && event.detail > 0) { suppressClick.current = false; event.preventDefault(); return }
+          suppressClick.current = false
+          setPanel(!open)
+        }}
+          onMouseEnter={() => { if (!dragRef.current) freeze(); setHovered(true) }}
+          onMouseLeave={() => setHovered(false)}
+          onMouseDown={startDrag} draggable={false}
+          onContextMenu={event => event.preventDefault()}
+          onDragStart={event => event.preventDefault()}
+          title="點一下開啟聊天；按住左鍵或右鍵可拖曳移動"
           aria-label={open ? '關閉飲食小幫手' : '開啟飲食小幫手，問飲食問題'} aria-expanded={open}
           sx={{
             pointerEvents: 'auto', position: 'relative', width: SIZE, height: SIZE, p: 0, border: 0, bgcolor: 'transparent',
-            cursor: 'pointer', borderRadius: '50%', transition: 'transform 0.2s',
+            cursor: dragging ? 'grabbing' : 'pointer', userSelect: 'none', borderRadius: '50%', transition: 'transform 0.2s',
             '&:hover': { transform: 'scale(1.08)' },
             '&:focus-visible': { outline: `2px solid ${tokens.indigo}`, outlineOffset: 2 },
           }}>

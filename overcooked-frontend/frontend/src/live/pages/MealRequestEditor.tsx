@@ -1,7 +1,7 @@
 import { zodResolver } from '@hookform/resolvers/zod'
-import ArrowBackOutlined from '@mui/icons-material/ArrowBackOutlined'
+import { ArrowLeft, ArrowRight, CalendarDays, Carrot, ClipboardCheck, Save, ShoppingBasket, Users, Utensils } from 'lucide-react'
 import {
-  Alert, Autocomplete, Box, Button, Checkbox, Chip, CircularProgress, Divider, FormControlLabel, MenuItem,
+  Alert, Autocomplete, Box, Button, Card, CardContent, Checkbox, Chip, CircularProgress, Divider, FormControlLabel, MenuItem,
   Paper, Stack, Step, StepLabel, Stepper, TextField, Typography,
 } from '@mui/material'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
@@ -18,10 +18,10 @@ import FormTextField from '../components/FormTextField'
 import GenerationPanel from '../components/GenerationPanel'
 import IngredientPicker from '../components/IngredientPicker'
 import RecognitionCapture from '../components/RecognitionCapture'
-import { PageHeader } from '../components/ui'
 import { tokens } from '../theme'
 
 const STEPS = ['用餐資訊', '成員與便當', '口味與指定菜', '已有食材', '確認']
+const STEP_ICONS = [CalendarDays, Users, Carrot, ShoppingBasket, ClipboardCheck]
 const MEALS: MealType[] = ['breakfast', 'lunch', 'dinner']
 
 /** 已存的主食文字（可能是別名或「無」等寫法）對應到清單上的標準選項；對不到回傳 null。 */
@@ -206,20 +206,28 @@ function Editor({ initial, members: memberList }: { initial: MealRequest; member
   const dishError = errors.specified_dishes?.message
     ?? (Array.isArray(errors.specified_dishes) ? errors.specified_dishes.find((e) => e?.message)?.message : undefined)
 
+  const StepIcon = STEP_ICONS[step]
+
   return (
-    <Stack spacing={3}>
+    <Stack spacing={3} className="live-planner">
       <Box>
-        <Button component={Link} to="/plan" size="small" color="inherit" startIcon={<ArrowBackOutlined />}
+        <Button component={Link} to="/plan" size="small" color="inherit" startIcon={<ArrowLeft size={16} />}
           sx={{ color: tokens.inkSoft, ml: -1.5, mb: 1 }}>
           所有問卷
         </Button>
-        <PageHeader eyebrow={`Step ${step + 1} / ${STEPS.length}`} title={STEPS[step]}
-          action={<Typography variant="caption" sx={{ alignSelf: 'flex-end' }}>
-            草稿第 {server.version} 版{save.isPending ? '・儲存中…' : ''}
-          </Typography>} />
+        <Box className="live-planner-heading">
+          <Box className="live-family-title">
+            <Box className="live-family-title-icon"><StepIcon size={23} aria-hidden="true" /></Box>
+            <Box>
+              <Typography variant="caption">步驟 {step + 1}／{STEPS.length}</Typography>
+              <Typography component="h1" variant="h4">{STEPS[step]}</Typography>
+            </Box>
+          </Box>
+          <Chip variant="outlined" label={`草稿第 ${server.version} 版${save.isPending ? '・儲存中…' : ''}`} />
+        </Box>
       </Box>
 
-      <Stepper activeStep={step} alternativeLabel sx={{ overflowX: 'auto', pb: 1 }}>
+      <Stepper activeStep={step} alternativeLabel className="live-planner-steps">
         {STEPS.map((label, i) => (
           <Step key={label} completed={i < step}>
             <StepLabel onClick={() => i !== step && goTo(i)} sx={{ cursor: i !== step ? 'pointer' : 'default',
@@ -238,9 +246,12 @@ function Editor({ initial, members: memberList }: { initial: MealRequest; member
       {locked && <Alert severity="info">此問卷正在生成中，完成前無法修改；等不及可在「確認」步驟取消生成。</Alert>}
       {adopted && <Alert severity="info">此問卷已採用，只能瀏覽；如需調整請建立新的問卷。</Alert>}
 
-      <Paper variant="outlined" sx={{ p: { xs: 2.5, sm: 4 } }}>
+      <Box className={step === 4 ? 'live-planner-review' : undefined}>
         {step === 0 && (
-          <Stack spacing={3}>
+          <Box className="live-planner-grid">
+            <Card component="section"><CardContent>
+              <Typography component="h2" variant="h6" className="live-planner-section-title"><CalendarDays size={19} aria-hidden="true" />餐食安排</Typography>
+              <Stack spacing={3}>
             <TextField label="餐食日期" type="date" {...register('meal_date')}
               slotProps={{ inputLabel: { shrink: true } }} error={!!errors.meal_date} helperText={errors.meal_date?.message} />
             <Controller name="meal_type" control={control} render={({ field }) => (
@@ -249,7 +260,12 @@ function Editor({ initial, members: memberList }: { initial: MealRequest; member
                 {MEALS.map((m) => <MenuItem key={m} value={m}>{MEAL_LABELS[m]}</MenuItem>)}
               </TextField>
             )} />
-            <FormTextField name="budget" control={control} label="預算（新台幣）" inputMode="decimal"
+              </Stack>
+            </CardContent></Card>
+            <Card component="section"><CardContent>
+              <Typography component="h2" variant="h6" className="live-planner-section-title"><Utensils size={19} aria-hidden="true" />餐食設定</Typography>
+              <Box className="live-planner-fields">
+            <FormTextField className="live-planner-wide" name="budget" control={control} label="預算（新台幣）" inputMode="decimal"
               error={!!budgetLow && Number(budgetValue) === Number(server.draft.budget)}
               helperText={budgetLow && Number(budgetValue) === Number(server.draft.budget) ? budgetLow.message
                 : server.budget_floor
@@ -283,24 +299,31 @@ function Editor({ initial, members: memberList }: { initial: MealRequest; member
                 {Array.from({ length: 10 }, (_, i) => String(i + 1)).map((n) => <MenuItem key={n} value={n}>{n} 道</MenuItem>)}
               </TextField>
             )} />
-          </Stack>
+              </Box>
+            </CardContent></Card>
+          </Box>
         )}
 
         {step === 1 && (
-          <Stack spacing={2}>
+          <Card component="section"><CardContent>
+            <Typography component="h2" variant="h6" className="live-planner-section-title"><Users size={19} aria-hidden="true" />用餐成員</Typography>
+            <Stack spacing={2}>
             {memberList.length === 0 && (
               <Alert severity="info">還沒有家庭成員。<Link to="/members">先新增成員</Link></Alert>
             )}
             <Typography variant="body2" color="text.secondary">
               勾選這餐要一起吃的成員；帶便當代表另外多準備一份，同一人可同時勾選。
             </Typography>
+            <Box className="live-planner-grid">
             {memberList.map((m) => (
               <Controller key={m.id} name={`participants.${m.id}`} control={control} render={({ field }) => (
-                <Paper variant="outlined" sx={{ p: 2, bgcolor: field.value?.dining || field.value?.bento ? '#FFFDF9' : 'transparent',
+                <Paper variant="outlined" className="live-planner-person" sx={{ p: 2, bgcolor: field.value?.dining || field.value?.bento ? '#FFFDF9' : 'transparent',
                   borderColor: field.value?.dining || field.value?.bento ? tokens.lineStrong : tokens.line }}>
-                  <Typography sx={{ fontFamily: tokens.serif, fontSize: '1.05rem', letterSpacing: '0.06em' }}>
-                    {m.display_name}<Typography component="span" variant="caption" sx={{ ml: 1 }}>食量 {m.portion}n</Typography>
-                  </Typography>
+                  <Box className="live-planner-person-heading">
+                    <Box className="live-member-avatar" aria-hidden="true">{m.display_name.slice(0, 1)}</Box>
+                    <Typography component="h3" variant="h6">{m.display_name}</Typography>
+                    <Chip size="small" label={`${m.portion}n`} />
+                  </Box>
                   <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} sx={{ alignItems: { sm: 'center' } }}>
                     <FormControlLabel label="一起用餐" control={
                       <Checkbox checked={field.value?.dining ?? false}
@@ -318,13 +341,20 @@ function Editor({ initial, members: memberList }: { initial: MealRequest; member
                 </Paper>
               )} />
             ))}
-          </Stack>
+            </Box>
+            </Stack>
+          </CardContent></Card>
         )}
 
         {step === 2 && (
-          <Stack spacing={2}>
-            <FormTextField name="taste_preferences" control={control} label="口味偏好" multiline minRows={2}
+          <Box className="live-planner-grid">
+            <Card component="section"><CardContent>
+              <Typography component="h2" variant="h6" className="live-planner-section-title"><Carrot size={19} aria-hidden="true" />口味偏好</Typography>
+            <FormTextField fullWidth name="taste_preferences" control={control} label="口味偏好" multiline minRows={2}
               helperText="例如：清淡、少辣（會盡量滿足）" />
+            </CardContent></Card>
+            <Card component="section"><CardContent>
+              <Typography component="h2" variant="h6" className="live-planner-section-title"><Utensils size={19} aria-hidden="true" />指定菜色</Typography>
             <Controller name="specified_dishes" control={control} render={({ field }) => (
               <Autocomplete multiple freeSolo options={[]} value={field.value}
                 onChange={(_, v) => field.onChange(v.map((s) => String(s).trim()).filter(Boolean))}
@@ -334,7 +364,8 @@ function Editor({ initial, members: memberList }: { initial: MealRequest; member
                       ?? `輸入菜名後按 Enter；指定菜一定會出現在菜單中${dishCount ? `（已指定 ${specified?.length ?? 0}／${dishCount} 道）` : ''}`} />
                 )} />
             )} />
-          </Stack>
+            </CardContent></Card>
+          </Box>
         )}
 
         {step === 3 && (
@@ -353,8 +384,9 @@ function Editor({ initial, members: memberList }: { initial: MealRequest; member
                     }
                   }} />
                   <Box className="live-manual-ingredients">
-                    <IngredientPicker label="手動搜尋食材（也可加入肉類）" value={field.value as IngredientRef[]}
-                      onChange={field.onChange} error={!!errors.available} helperText={errors.available?.message} />
+                    <IngredientPicker confirmBeforeAdd label="食材名稱" value={field.value as IngredientRef[]}
+                      onChange={field.onChange} error={!!errors.available}
+                      helperText={errors.available?.message ?? '可搜尋蔬菜或肉類，選擇後再按「加入」。'} />
                   </Box>
                 </Box>
                 <Box component="section" className="live-ingredient-panel">
@@ -382,22 +414,22 @@ function Editor({ initial, members: memberList }: { initial: MealRequest; member
           <Stack spacing={3}>
             <Summary row={server} members={memberList} />
             <Divider />
-            <GenerationPanel row={server} onChanged={refresh} />
+            <GenerationPanel row={server} onChanged={refresh} onModify={() => { void goTo(0) }} />
           </Stack>
         )}
-      </Paper>
+      </Box>
 
       {saveNotice && <Alert severity="success" role="status">{saveNotice}</Alert>}
-      <Box sx={{ display: 'flex', gap: 1, justifyContent: 'space-between', flexWrap: 'wrap' }}>
-        <Button color="inherit" disabled={step === 0 || save.isPending} onClick={() => goTo(step - 1)}>上一步</Button>
+      <Box className="live-planner-actions">
+        <Button variant="outlined" startIcon={<ArrowLeft size={16} />} disabled={step === 0 || save.isPending} onClick={() => goTo(step - 1)}>上一步</Button>
         <Box sx={{ display: 'flex', gap: 1 }}>
           {step < STEPS.length - 1 && !readOnly && (
-            <Button variant="outlined" disabled={save.isPending} onClick={() => goTo(step, true)}>
+            <Button variant="outlined" startIcon={<Save size={16} />} disabled={save.isPending} onClick={() => goTo(step, true)}>
               {save.isPending ? '儲存中…' : '儲存草稿'}
             </Button>
           )}
           {step < STEPS.length - 1 && (
-            <Button variant="contained" disabled={save.isPending} onClick={() => goTo(step + 1)}>下一步</Button>
+            <Button variant="contained" endIcon={<ArrowRight size={16} />} disabled={save.isPending} onClick={() => goTo(step + 1)}>下一步</Button>
           )}
         </Box>
       </Box>
@@ -407,9 +439,9 @@ function Editor({ initial, members: memberList }: { initial: MealRequest; member
 
 function Row({ label, children }: { label: string; children: ReactNode }) {
   return (
-    <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '120px 1fr' }, gap: { xs: 0.5, sm: 2 }, py: 1.5,
+    <Box className="live-confirm-row" sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '120px 1fr' }, gap: { xs: 0.5, sm: 2 }, py: 2,
       borderBottom: `1px solid ${tokens.line}` }}>
-      <Typography variant="caption" sx={{ letterSpacing: '0.12em', pt: 0.25 }}>{label}</Typography>
+      <Typography variant="caption" className="live-confirm-label" sx={{ letterSpacing: '0.12em', pt: 0.25 }}>{label}</Typography>
       <Box sx={{ minWidth: 0 }}>{children}</Box>
     </Box>
   )
@@ -420,7 +452,7 @@ function Summary({ row, members }: { row: MealRequest; members: Member[] }) {
   const d = row.draft
   const preview = row.targets_preview
   return (
-    <Stack spacing={2}>
+    <Stack spacing={2.5} className="live-confirm-summary">
       {['confirmed', 'result_ready', 'awaiting_decision', 'queued', 'running'].includes(row.status) ? null : row.complete
         ? <Alert severity="success">問卷已自動儲存。確認下方條件後，按「生成菜單」。</Alert>
         : (

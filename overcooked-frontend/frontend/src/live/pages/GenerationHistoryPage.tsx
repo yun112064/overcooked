@@ -146,7 +146,7 @@ function Legend({ items }: { items: [string, string, boolean][] }) {
   )
 }
 
-function Trends({ selected, onPick }: { selected: string; onPick: (date: string) => void }) {
+export function GenerationHistoryTrends({ selected, onPick }: { selected: string; onPick: (date: string) => void }) {
   const [days, setDays] = useState(30)
   const trend = useQuery({
     queryKey: ['meal-plan-trend', days, today()],
@@ -330,7 +330,7 @@ export default function MealHistoryPage() {
           description="在規劃餐食頁產生菜單並按「採用」後，這裡會記錄每一餐，並畫出熱量與成本的趨勢。" />
       ) : (
         <>
-          <Trends selected={date} onPick={pick} />
+          <GenerationHistoryTrends selected={date} onPick={pick} />
           <Stack spacing={2}>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flexWrap: 'wrap' }}>
               <Typography variant="h6" component="h2" sx={{ flexGrow: 1 }}>{date} 的餐食</Typography>
