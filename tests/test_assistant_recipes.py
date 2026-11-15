@@ -285,6 +285,26 @@ def test_recipes_already_shown_in_conversation_not_repeated():
     assert again == []
 
 
+@pytest.mark.parametrize("question", ["吃紅蘿蔔要注意什麼", "紅蘿蔔不能多吃嗎", "紅蘿蔔有什麼禁忌", "胡蘿蔔不適合誰吃"])
+def test_question_warning_words_do_not_disable_food_focus(question):
+    mentions = svc.find_mentions(EYES, VOCAB)
+    assert [m.term for m in svc.focus(mentions, question, VOCAB)] == ["紅蘿蔔"]
+
+
+def test_question_focus_still_ignores_nutrients_and_longer_food_names():
+    vocab = svc.build_vocabulary({**ALIASES, "F-SP": ("地瓜", []), "F-SPL": ("地瓜葉", []),
+                                  "F-CORN": ("玉米", [])})
+    mentions = svc.find_mentions("地瓜有纖維。地瓜葉有鈣。玉米有營養。", vocab)
+    assert [m.term for m in svc.focus(mentions, "地瓜葉要注意什麼，含玉米黃素嗎", vocab)] == ["地瓜葉"]
+
+
+def test_api_question_with_warning_only_suggests_the_named_food(client):
+    res = client.post("/assistant/recipes", json={"answer": EYES, "type": "answer",
+                                              "question": "吃紅蘿蔔要注意什麼"})
+    assert res.status_code == 200, res.text
+    assert [r["dish_name"] for r in res.json()["recipes"]] == ["紅蘿蔔炒蛋"]
+
+
 def test_api_skips_shown_recipes(client):
     res = client.post("/assistant/recipes", json={"answer": EYES, "type": "answer", "shown_recipe_ids": ["R1"]})
     assert [r["dish_name"] for r in res.json()["recipes"]] == ["菠菜炒蛋"]

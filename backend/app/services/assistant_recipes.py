@@ -103,8 +103,8 @@ def _content(answer: str) -> str:
     return CITATION.sub("", TAIL.sub("", text))
 
 
-def find_mentions(answer: str, vocab: dict[str, frozenset[str]]) -> list[Mention]:
-    """依出現順序列出回答中正面提到的食材（同一 FOOD 編號只列一次）。"""
+def find_mentions(answer: str, vocab: dict[str, frozenset[str]], *, positive_only: bool = True) -> list[Mention]:
+    """依出現順序列出食材（同一 FOOD 編號只列一次）；回答只取正面語境，問句則辨識所有點名食材。"""
     if not vocab:
         return []
     longest = max(map(len, vocab))
@@ -112,7 +112,7 @@ def find_mentions(answer: str, vocab: dict[str, frozenset[str]]) -> list[Mention
     seen_ids: set[str] = set()
     for sentence in SENTENCE_SPLIT.split(_content(answer)):
         for clause in CLAUSE_SPLIT.split(sentence):
-            if not clause.strip() or any(w in clause for w in NEGATIVE_WORDS):
+            if not clause.strip() or (positive_only and any(w in clause for w in NEGATIVE_WORDS)):
                 continue
             i = 0
             while i < len(clause):
@@ -224,7 +224,8 @@ def focus(mentions: list[Mention], question: str | None, vocab: dict[str, frozen
     （地瓜葉、玉米）不推薦。問題沒有點名食材（吃什麼可以顧眼睛）就照回答提到的食材。"""
     if not question:
         return mentions
-    asked = set().union(*(m.food_ids for m in find_mentions(question, vocab))) if question.strip() else set()
+    # 「紅蘿蔔要注意什麼」仍然是在問紅蘿蔔；問句的提醒詞不能讓聚焦失效。
+    asked = set().union(*(m.food_ids for m in find_mentions(question, vocab, positive_only=False))) if question.strip() else set()
     return [m for m in mentions if m.food_ids & asked] if asked else mentions
 
 

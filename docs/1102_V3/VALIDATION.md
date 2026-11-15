@@ -694,3 +694,12 @@ Scope: nested checkout `1111_update_V2`, Docker project `overcooked-1111_update_
     | 吃地瓜有甚麼好處 | 4 地瓜 articles | |
     | 吃番茄有什麼好處 | 番茄 articles and one general fruit article | |
     | 植物奶可以取代牛奶嗎 | 3 植物奶 articles | sensible |
+
+## 2026-11-15 — PR #44 review: preserve the PR rules and fix question food focus
+
+- Base: PR #44 at `6588758cee45976db995a266abe360dd5b87a5b8`. User clarification: modifications follow the PR's existing rules. Article score threshold, distinct-food rules, all-passages-removed behavior, category/alias behavior, unnamed-food recipe fallback, allowed dish categories and conversation deduplication are unchanged.
+- Bug reproduced: `focus` reused the answer's positive-clause detector for questions. Questions containing 注意 / 不能 / 禁忌 / 不適合 lost their named food and allowed other foods from the answer to produce recipes.
+- Fix: question detection uses the same longest-name, alias and nutrient checks without the answer's positive-context filter. Answer-side negative-context filtering remains enabled.
+- Six new regression cases failed before the fix: four warning questions, a 地瓜葉/地瓜/玉米黃素 case, and the synthetic SQLite recipe API case. They pass after the fix.
+- Executed on an isolated Python 3.12 venv installed from `requirements-dev.txt`, with `TEST_DATABASE_URL` unset: `PROJECT_DATA_ROOT=/tmp/pr44-test-data PYTHONPATH=backend:tests /tmp/pr44-venv/bin/python -m pytest tests/test_assistant_*.py -q` → **233 passed, 1 skipped**, one Starlette/httpx deprecation warning. The skipped case requires disposable PostgreSQL.
+- Initial collection attempts lacked `PYTHONPATH`, then used the unwritable default `/app/data`; corrected using the environment above. No production databases, external models, crawlers or deployment commands were used. These checks do not validate live LLM answer quality or the production frontend.
