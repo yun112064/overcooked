@@ -36,6 +36,16 @@ function calls(path, full = false, argumentsOnly = false, sourceText = readFileS
   return found.sort((a, b) => JSON.stringify(a).localeCompare(JSON.stringify(b)))
 }
 
+function baselineCalls(name, full = false) {
+  // Result pages intentionally removed knowledge tips and their retry action.
+  // Compare every remaining request, including full bodies and idempotency keys.
+  return calls(join(source, name), full).filter(call => {
+    const request = full ? call : call[1]
+    return !(name === 'components/MenuPreviewPanel.tsx' && request.includes('/knowledge-tips'))
+      && !(name === 'components/MealResultView.tsx' && request.includes('/knowledge-retry'))
+  })
+}
+
 test('the legacy frontend has no local changes relative to the current checkout', () => {
   // The original 835b4e7 snapshot is historical evidence. Later main commits
   // intentionally updated that frontend; compare with this checkout instead.
@@ -45,7 +55,7 @@ test('every existing API method and URL is retained in the isolated frontend', (
   for (const file of files(source).filter(path => /\.tsx?$/.test(path) && !path.endsWith('main.tsx'))) {
     if (relative(source, file) === 'pages/MealHistoryPage.tsx') continue // trend reads are shared with GenerationHistoryPage
     const target = join(live, liveName(relative(source, file)))
-    assert.deepEqual(calls(target), calls(file), relative(source, file))
+    assert.deepEqual(calls(target), baselineCalls(relative(source, file)), relative(source, file))
   }
 })
 test('API models, decimal handling, credentials, SSE and polling stay on the existing contracts', () => {
@@ -56,7 +66,7 @@ test('API models, decimal handling, credentials, SSE and polling stay on the exi
   for (const name of ['components/MenuPreviewPanel.tsx', 'components/MealResultView.tsx',
     'components/GenerationPanel.tsx', 'components/RecognitionCapture.tsx', 'pages/MealRequestEditor.tsx',
     'pages/HouseholdPage.tsx', 'pages/MembersPage.tsx', 'components/MemberFormDialog.tsx', 'components/IngredientPicker.tsx', 'components/RecipeCatalogPicker.tsx', 'pages/RecipePickerPage.tsx', 'pages/MealRequestsPage.tsx']) {
-    assert.deepEqual(calls(join(live, liveName(name)), true), calls(join(source, name), true), `${name}: request bodies, versions and idempotency keys`)
+    assert.deepEqual(calls(join(live, liveName(name)), true), baselineCalls(name, true), `${name}: request bodies, versions and idempotency keys`)
   }
   // HomePage was added by the isolated frontend and has no legacy counterpart.
   const home = join(live, 'pages/HomePage.tsx')

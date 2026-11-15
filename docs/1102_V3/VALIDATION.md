@@ -910,3 +910,12 @@ Scope: nested checkout `1111_update_V2`, Docker project `overcooked-1111_update_
     | 我想增加蛋白質可以吃什麼 | 牛肉丼飯, 雞肉豆腐排, 麻婆豆腐 |
 
   - Not checked: browser UI.
+
+## 2026-11-16：依使用者要求移除最終結果頁營養小知識（本機未提交）
+
+- 獨立前端 `MenuPreviewPanel` 與 `MealResultView` 移除食材／營養小知識區塊及載入、不可用、錯誤與重試入口；前者一併移除自動 POST knowledge-tips，後者移除 knowledge-retry mutation。食譜、採購、營養數值／檢核、分餐與採用流程保留，未修改後端、飲食小幫手、歷史頁或正式 API 型別；後端原有知識處理並未停用。
+- 更新既有契約測試的基準，僅排除上述兩個元件已明確移除的知識請求，其餘請求方法、路徑、完整本文與冪等鍵持續比對。
+- 實際執行 `npm test`：37 項通過；`npm run lint`：0 errors、既有 MealRequestEditor form.watch 1 warning；`npm run build`：TypeScript／正式建置通過；`git diff --check` 通過。日誌：`/private/tmp/overcooked-remove-result-tips-{test,lint,build}.log`。
+- 本輪未重跑 demo 建置、瀏覽器結果頁實測、真實資料庫／模型端到端或遠端 CI；現有 Vite 服務可熱更新。未提交、推送或合併。
+
+- 後續使用者明確授權建立新 PR 並合併。整合 `main@20fabc6`（已含 PR #45），只解決本檔追加紀錄的衝突，保留兩邊完整紀錄；後端推薦規則／測試逐檔保持 main 版本，這次提交範圍仍為兩個結果元件、契約測試與本文件。待新 PR 的 CI 通過後再執行合併。
