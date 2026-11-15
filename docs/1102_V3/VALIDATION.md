@@ -832,3 +832,10 @@ Scope: nested checkout `1111_update_V2`, Docker project `overcooked-1111_update_
 - 將 `origin/main@e3109aa` 整合進 PR 分支 `codex/frontend-recipe-recognition-layout`；唯一文字衝突為本檔追加紀錄，保留兩邊完整內容。後端、舊 frontend、助理規則與測試採 main；獨立前端同步保留 main 的問題食材聚焦、對話去重、錯誤訊息與引用呈現修正。吉祥物仍支援左右鍵拖曳、移入暫停、垂直落地及移開後繼續走動。
 - 整合後實際執行：`npm test` 37 項通過（22 demo＋13 契約＋2 用量）、`npm run lint` 0 errors／既有 form.watch 1 warning、`npm run build` 及 `npm run build:demo` 通過。以逐檔位元組比對確認 main 的 18 個程式／測試檔全部保留，吉祥物元件／互動及 live.css 與 PR 原提交相同，兩邊追加的驗證歷史完整保留。`git diff --check` 通過；相對 main 的目錄外差異僅有已授權的 CI、README、Compose、開發腳本與本驗證文件。
 - 本機日誌在 `/private/tmp/pr43-integrated-{test,lint,build,build-demo}.log`。待推送後檢查最新提交的遠端 CI；未合併至 main、未啟用自動合併，未重新執行真實資料庫／模型端到端或 Windows 啟停驗收。
+
+## 2026-11-16：依使用者要求移除最終結果頁營養小知識（本機未提交）
+
+- 獨立前端 `MenuPreviewPanel` 與 `MealResultView` 移除食材／營養小知識區塊及載入、不可用、錯誤與重試入口；前者一併移除自動 POST knowledge-tips，後者移除 knowledge-retry mutation。食譜、採購、營養數值／檢核、分餐與採用流程保留，未修改後端、飲食小幫手、歷史頁或正式 API 型別；後端原有知識處理並未停用。
+- 更新既有契約測試的基準，僅排除上述兩個元件已明確移除的知識請求，其餘請求方法、路徑、完整本文與冪等鍵持續比對。
+- 實際執行 `npm test`：37 項通過；`npm run lint`：0 errors、既有 MealRequestEditor form.watch 1 warning；`npm run build`：TypeScript／正式建置通過；`git diff --check` 通過。日誌：`/private/tmp/overcooked-remove-result-tips-{test,lint,build}.log`。
+- 本輪未重跑 demo 建置、瀏覽器結果頁實測、真實資料庫／模型端到端或遠端 CI；現有 Vite 服務可熱更新。未提交、推送或合併。

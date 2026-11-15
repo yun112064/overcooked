@@ -72,7 +72,7 @@ const DECISION_LABELS: Record<DecisionKind, string> = {
   continue_missing_nutrition: '繼續查看（仍不可採用）',
 }
 
-/** T15 生成結果：全家配方、缺料雙價格、數值營養、知識說明、昨日比對與後端判定的採用資格。 */
+/** T15 生成結果：全家配方、缺料雙價格、數值營養、昨日比對與後端判定的採用資格。 */
 export default function MealResultView({ requestId, mealDate, mealType, onChanged, onModify, onRegenerate, regenerateDisabled }: Props) {
   const queryClient = useQueryClient()
   const [adoptVersion, setAdoptVersion] = useState<number | null>(null)
@@ -129,13 +129,6 @@ export default function MealResultView({ requestId, mealDate, mealType, onChange
         { headers: { 'Idempotency-Key': keyFor(`${r.result_version}:retry`) } }),
     onSuccess: refreshAll,
   })
-  const retryKnowledge = useMutation({
-    mutationFn: async (r: MealResult) =>
-      api.post(`/meal-requests/${requestId}/results/${r.result_version}/knowledge-retry`,
-        { request_version: r.request_version },
-        { headers: { 'Idempotency-Key': keyFor(`${r.result_version}:knowledge-retry`) } }),
-    onSuccess: refreshAll,
-  })
   // T16 採用：前端只負責送出指定版本；資格、版本、缺價接受與昨日歷史一律由後端在交易內重驗
   const adopt = useMutation({
     mutationFn: async (r: MealResult) => {
@@ -171,9 +164,7 @@ export default function MealResultView({ requestId, mealDate, mealType, onChange
   const missingPriceNames = r.prices.items.filter((i) => i.price_status === 'unknown').map((i) => i.name)
   const missingQuantityNames = (r.prices.unquantified_items ?? []).map((i) => i.name)
   const priceRetry = r.retries?.price ?? null
-  const knowledgeRetry = r.retries?.knowledge ?? null
   const priceRetrying = !!priceRetry && ACTIVE.has(priceRetry.status)
-  const knowledgeRetrying = !!knowledgeRetry && ACTIVE.has(knowledgeRetry.status)
   const dayConflict = r.previous_day_check?.status === 'conflict'
   const suggestions: NutritionSuggestion[] = r.nutrition.suggestions ?? []
   const totalN = Number(r.nutrition.total_n ?? 1) || 1
@@ -362,51 +353,6 @@ export default function MealResultView({ requestId, mealDate, mealType, onChange
         </Stack>
       </Section>
 
-      {r.knowledge.status === 'unavailable' && (
-        <Alert severity="warning" action={r.knowledge.retry_available && !confirmed ? (
-          <Button size="small" color="inherit" disabled={retryKnowledge.isPending || knowledgeRetrying}
-            onClick={() => retryKnowledge.mutate(r)}>
-            {knowledgeRetrying ? '重試中…' : '只重試知識說明'}
-          </Button>) : undefined}>
-          {r.knowledge.reason === 'BUDGET_EXHAUSTED'
-            ? '本月外部服務額度不足，知識說明暫時無法產生；'
-            : '營養知識服務暫時無法使用；'}
-          菜單、份量與採用資格不受影響。可「只重試知識說明」（不會重新生成菜單，結果存成新版本）。
-          {knowledgeRetry?.status === 'failed' && ` 上次重試失敗：${knowledgeRetry.error?.message ?? '原因未知'}`}
-        </Alert>
-      )}
-      {retryKnowledge.isError && <Alert severity="error">{errorMessage(retryKnowledge.error)}</Alert>}
-      {r.knowledge.status === 'available' && (
-        <Section title="食材小知識" aside="資料來源：健康醫療網">
-          <Stack spacing={2.5}>
-            {r.knowledge.items.map((k) => (
-              <Box key={k.ingredient_id} sx={{ pl: 2, borderLeft: `2px solid ${tokens.sand}` }}>
-                <Typography sx={{ fontWeight: 500, letterSpacing: '0.08em', mb: 0.5 }}>{k.ingredient_name ?? k.ingredient_id}</Typography>
-                <Typography variant="body2">{k.explanation}</Typography>
-                <Typography variant="caption" component="p" sx={{ mt: 0.5 }}>
-                  {k.citations.map((c, idx) => (
-                    <span key={c.knowledge_id}>
-                      {idx > 0 && '、'}
-                      {c.attribution ? (
-                        <>
-                          {c.attribution}{' '}
-                          {c.source_url && <Link href={c.source_url} target="_blank" rel="noreferrer">原文</Link>}
-                        </>
-                      ) : (
-                        <>
-                          來源：
-                          {c.source_url ? <Link href={c.source_url} target="_blank" rel="noreferrer">{c.knowledge_id}</Link> : c.knowledge_id}
-                          （{c.source_version}）
-                        </>
-                      )}
-                    </span>
-                  ))}
-                </Typography>
-              </Box>
-            ))}
-          </Stack>
-        </Section>
-      )}
         </>}
         shopping={<>
       <Section title="需補買食材" aside={computed && r.prices.items.length > 0 ? '調味料與家中已有的不列入' : undefined}>
