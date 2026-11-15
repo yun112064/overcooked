@@ -21,6 +21,8 @@ from app.services.recipe_catalog import NOT_MAIN_SUFFIXES, NOT_MAIN_WORDS
 from app.services.recipe_retrieval import active_release_filter
 
 ANSWER_TYPES = frozenset({"answer", "category_answer"})
+# 2026-11-10 使用者要求：主菜、主食優先，甜點不要推薦；湯可以但排後面。其他類別（點心、醃漬配料、飲品基底）不推薦
+CATEGORY_RANK = {"主菜": 0, "主食": 0, "湯": 1}
 MAX_RECIPES = 3
 MIN_SHARE = Decimal("0.08")
 MIN_TERM_LENGTH = 2
@@ -35,7 +37,9 @@ SEASONINGS = frozenset({
 # 子句含這些詞就視為負面語境（勸少吃、提醒風險）
 NEGATIVE_WORDS = ("避免", "不宜", "少吃", "不要", "不建議", "不能", "不可", "不適合", "過量", "過多", "禁忌",
                   "忌口", "致癌", "小心", "注意", "勿", "別吃")
-NUTRIENT_FOLLOWERS = ("素", "紅素", "鹼", "苷")
+# 食材名稱後面最多隔兩個字就接這些字：是營養素名稱（β-胡蘿蔔素、番茄紅素、玉米黃素、大蒜素、
+# 葡萄多酚、黃豆異黃酮），不是在講這個食材
+NUTRIENT_AFTER = re.compile(r"^[一-鿿]{0,2}[素酚酮苷鹼]")
 CITATION = re.compile(r"[ \t]*\[\d{1,2}\]")
 SENTENCE_SPLIT = re.compile(r"(?<=[。！？；\n])")
 CLAUSE_SPLIT = re.compile(r"[，,。！？；;\n]")
@@ -119,7 +123,7 @@ def find_mentions(answer: str, vocab: dict[str, frozenset[str]]) -> list[Mention
                     continue
                 ids = vocab[term]
                 rest = clause[i + len(term):]
-                if rest.startswith(NUTRIENT_FOLLOWERS):  # 「β-胡蘿蔔素」「番茄紅素」是營養素，不是食材
+                if NUTRIENT_AFTER.match(rest):  # 營養素名稱，不是食材
                     ids = frozenset()
                 if ids and term not in mentions and not ids & seen_ids:
                     reason = sentence.strip().lstrip("・•-*·● ").strip()  # 去掉條列符號
@@ -155,28 +159,35 @@ def _share(recipe: _Recipe, food_ids: frozenset[str]) -> Decimal:
 
 
 def choose(mentions: list[Mention], recipes: list[_Recipe], excluded: set[str]) -> list[tuple[_Recipe, list[Mention]]]:
-    """每個食材輪流挑一道最合適、還沒選過的菜，最多 MAX_RECIPES 道。"""
-    usable = [r for r in recipes if not {ln.food_id for ln in r.lines} & excluded]
+    """食材輪流挑最合適、還沒選過的菜，直到 MAX_RECIPES 道或沒有可選的（只問地瓜時也能有 2–3 道地瓜料理）。
+
+    只推薦主菜、主食、湯（點心、醃漬配料、飲品基底不推薦）；主菜與主食優先，湯排在後面。
+    """
+    usable = [r for r in recipes if r.category in CATEGORY_RANK and not {ln.food_id for ln in r.lines} & excluded]
     main = {r.recipe_id: _main_food_ids(r) for r in usable}
     picks: list[tuple[_Recipe, list[Mention]]] = []
     dishes: set[str] = set()
-    for mention in mentions:
-        if len(picks) >= MAX_RECIPES:
-            break
-        candidates = [r for r in usable if r.standard_dish_id not in dishes and main[r.recipe_id] & mention.food_ids]
-        if not candidates:
-            continue
+    progress = True
+    while progress and len(picks) < MAX_RECIPES:
+        progress = False
+        for mention in mentions:
+            if len(picks) >= MAX_RECIPES:
+                break
+            candidates = [r for r in usable if r.standard_dish_id not in dishes and main[r.recipe_id] & mention.food_ids]
+            if not candidates:
+                continue
 
-        def rank(r: _Recipe):
-            # 菜名就有這個食材（紅蘿蔔炒蛋）優先，其次是用到較多回答提到的食材、這個食材占比較高
-            named = any(n in r.name for n in (mention.names or (mention.term,)))
-            covered = [m for m in mentions if main[r.recipe_id] & m.food_ids]
-            return (not named, -len(covered), -_share(r, mention.food_ids), r.name)
+            def rank(r: _Recipe, mention=mention):
+                # 主菜／主食優先於湯；其次菜名就有這個食材（紅蘿蔔炒蛋）、用到較多回答提到的食材、這個食材占比較高
+                named = any(n in r.name for n in (mention.names or (mention.term,)))
+                covered = [m for m in mentions if main[r.recipe_id] & m.food_ids]
+                return (CATEGORY_RANK[r.category], not named, -len(covered), -_share(r, mention.food_ids), r.name)
 
-        best = min(candidates, key=rank)
-        dishes.add(best.standard_dish_id)
-        # 選中它的食材排第一（理由取這個食材的句子），其餘回答也提到的食材跟在後面
-        picks.append((best, [mention, *(m for m in mentions if m is not mention and main[best.recipe_id] & m.food_ids)]))
+            best = min(candidates, key=rank)
+            dishes.add(best.standard_dish_id)
+            progress = True
+            # 選中它的食材排第一（理由取這個食材的句子），其餘回答也提到的食材跟在後面
+            picks.append((best, [mention, *(m for m in mentions if m is not mention and main[best.recipe_id] & m.food_ids)]))
     return picks
 
 
@@ -208,10 +219,27 @@ def _load(db: Session) -> tuple[dict[str, tuple[str, list[str]]], list[_Recipe]]
     return aliases, list(recipes.values())
 
 
-def suggest(db: Session, answer: str, excluded_food_ids: set[str]) -> list[dict]:
+def focus(mentions: list[Mention], question: str | None, vocab: dict[str, frozenset[str]]) -> list[Mention]:
+    """問題本身點名了食材（吃地瓜有什麼好處）：只推薦用到那些食材的菜，回答順帶提到的其他食物
+    （地瓜葉、玉米）不推薦。問題沒有點名食材（吃什麼可以顧眼睛）就照回答提到的食材。"""
+    if not question:
+        return mentions
+    asked = set().union(*(m.food_ids for m in find_mentions(question, vocab))) if question.strip() else set()
+    return [m for m in mentions if m.food_ids & asked] if asked else mentions
+
+
+def without_shown(recipes: list[_Recipe], shown_recipe_ids: set[str]) -> list[_Recipe]:
+    """同一段對話已推薦過的菜不再推薦（2026-11-10 使用者要求）；同一道菜的其他來源也算推薦過。"""
+    shown_dishes = {r.standard_dish_id for r in recipes if r.recipe_id in shown_recipe_ids}
+    return [r for r in recipes if r.standard_dish_id not in shown_dishes and r.recipe_id not in shown_recipe_ids]
+
+
+def suggest(db: Session, answer: str, excluded_food_ids: set[str], question: str | None = None,
+            shown_recipe_ids: set[str] | None = None) -> list[dict]:
     aliases, recipes = _load(db)
-    mentions = find_mentions(answer, build_vocabulary(aliases))
-    picks = choose(mentions, recipes, excluded_food_ids)
+    vocab = build_vocabulary(aliases)
+    mentions = focus(find_mentions(answer, vocab), question, vocab)
+    picks = choose(mentions, without_shown(recipes, shown_recipe_ids or set()), excluded_food_ids)
     covers = set()
     if picks:
         covers = {(c.recipe_id, c.recipe_release_id) for c in db.execute(

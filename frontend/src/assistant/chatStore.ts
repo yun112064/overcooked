@@ -33,7 +33,7 @@ export type AssistantChat = {
 
 export const ENGINE_LABEL: Record<AssistantEngine, string> = { local: '地端 qwen', openai: 'OpenAI' }
 
-export const EXAMPLES = ['吃地瓜有什麼好處', '我想增加蛋白質可以吃什麼', '豆腐有什麼營養價值', '吃隔夜菜會致癌嗎']
+export const EXAMPLES = ['吃番茄有什麼好處', '我想增加蛋白質可以吃什麼', '豆腐有什麼營養價值', '吃隔夜菜會致癌嗎']
 export const MAX_LENGTH = 500
 
 export const AssistantChatContext = createContext<AssistantChat | null>(null)

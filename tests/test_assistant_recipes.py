@@ -238,9 +238,67 @@ def test_dish_named_after_the_food_is_preferred_even_with_lower_share():
     stir = recipe("S2", "紅蘿蔔炒蛋", [(CARROT, 100), (EGG, 150)])          # 紅蘿蔔占 40%，但菜名就有
     picks = svc.choose(svc.find_mentions("胡蘿蔔富含β-胡蘿蔔素。", VOCAB), [stew, stir], set())
     # 回答寫「胡蘿蔔」，菜名寫「紅蘿蔔」（別名）也算
-    assert [r.name for r, _ in picks] == ["紅蘿蔔炒蛋"]
+    assert [r.name for r, _ in picks][0] == "紅蘿蔔炒蛋"
 
 
 def test_reason_drops_list_bullet():
     [m] = svc.find_mentions("・菠菜含有葉黃素 [2]。\n", VOCAB)
     assert m.reason == "菠菜含有葉黃素。"
+
+
+def test_food_names_inside_nutrient_names_are_not_foods():
+    vocab = svc.build_vocabulary({**ALIASES, "F-CORN": ("玉米", []), "F-SWEETPOTATO": ("地瓜", ["番薯"]),
+                                  "F-GARLIC": ("大蒜", []), "F-SOY": ("黃豆", [])})
+
+    def terms(text):
+        return [m.term for m in svc.find_mentions(text, vocab)]
+
+    # 2026-11-10 使用者回報：問地瓜卻推薦玉米炒蛋，因為回答寫了「玉米黃素」
+    assert terms("此外，地瓜還含有葉黃素、玉米黃素等抗氧化物 [2]。") == ["地瓜"]
+    assert terms("大蒜素有抗菌作用，黃豆異黃酮也常被討論。") == []
+    # 食材本身是主角的句子照常算
+    assert terms("玉米富含葉黃素 [1]。") == ["玉米"]
+    assert terms("番茄含茄紅素，地瓜富含維生素A。") == ["番茄", "地瓜"]
+
+
+def test_question_naming_a_food_limits_recipes_to_it():
+    vocab = svc.build_vocabulary({**ALIASES, "F-SP": ("地瓜", ["番薯"]), "F-SPL": ("地瓜葉", []), "F-CORN": ("玉米", [])})
+    answer = "地瓜富含纖維 [1]。深綠色的地瓜葉則提供高鈣 [2]。玉米也很好 [3]。"
+    mentions = svc.find_mentions(answer, vocab)
+    assert [m.term for m in mentions] == ["地瓜", "地瓜葉", "玉米"]
+    # 問地瓜：只留地瓜（別名番薯也算同一個食材）
+    assert [m.term for m in svc.focus(mentions, "吃地瓜有什麼好處", vocab)] == ["地瓜"]
+    assert [m.term for m in svc.focus(mentions, "番薯可以幹嘛", vocab)] == ["地瓜"]
+    # 問題沒點名食材：照回答提到的食材
+    assert len(svc.focus(mentions, "吃什麼可以顧眼睛", vocab)) == 3
+    assert len(svc.focus(mentions, None, vocab)) == 3
+    # 問的食材回答沒提到：不推薦
+    assert svc.focus(mentions, "菠菜有什麼營養", vocab) == []
+
+
+def test_recipes_already_shown_in_conversation_not_repeated():
+    mentions = svc.find_mentions(EYES, VOCAB)
+    first = svc.choose(mentions, svc.without_shown(RECIPES, set()), set())
+    assert [r.recipe_id for r, _ in first] == ["R1", "R3"]
+    # 追問時：R1、R3 已推薦過；R2 是同一道紅蘿蔔炒蛋的另一個來源，也不再出現
+    again = svc.choose(mentions, svc.without_shown(RECIPES, {"R1", "R3"}), set())
+    assert again == []
+
+
+def test_api_skips_shown_recipes(client):
+    res = client.post("/assistant/recipes", json={"answer": EYES, "type": "answer", "shown_recipe_ids": ["R1"]})
+    assert [r["dish_name"] for r in res.json()["recipes"]] == ["菠菜炒蛋"]
+
+
+def test_main_and_staple_first_soup_later_dessert_never():
+    def dish(rid, name, category):
+        r = recipe(rid, name, [(CARROT, 100)])
+        r.category = category
+        return r
+    pool = [dish("D1", "紅蘿蔔蛋糕", "點心"), dish("D2", "紅蘿蔔濃湯", "湯"), dish("D3", "紅蘿蔔炒飯", "主食"),
+            dish("D4", "紅蘿蔔醃菜", "醃漬配料"), dish("D5", "紅蘿蔔燉肉", "主菜")]
+    picks = svc.choose(svc.find_mentions("紅蘿蔔富含β-胡蘿蔔素。", VOCAB), pool, set())
+    # 只問一種食材也會輪到 3 道；主菜／主食在前、湯在後，點心與醃漬配料不出現
+    names = [r.name for r, _ in picks]
+    assert names[:2] == sorted(["紅蘿蔔炒飯", "紅蘿蔔燉肉"]) and names[2] == "紅蘿蔔濃湯"
+    assert "紅蘿蔔蛋糕" not in names and "紅蘿蔔醃菜" not in names
