@@ -38,6 +38,8 @@ const STREAM_ERRORS: Record<string, string> = {
   ASSISTANT_STREAM_BROKEN: '連線中斷，回答沒有完成，請再問一次。',
   ASSISTANT_FAILED: '飲食小幫手發生錯誤，請再問一次。',
   LLM_BUDGET_EXHAUSTED: '本月 AI 額度已用完，飲食小幫手暫停回答，請下個月再試或通知管理者。',
+  LLM_KEY_INVALID: 'OpenAI 金鑰無效或已過期，請通知管理者更新；可以先切換到「地端 qwen」提問。',
+  LLM_FAILED: '回答模型暫時無法使用，請稍後再試；有「地端 qwen」可選時也可以先切換過去。',
 }
 
 /** 把 SSE 文字切成事件；回傳完整事件與剩下未完成的部分。 */

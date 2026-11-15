@@ -71,6 +71,10 @@ class ChatBody(BaseModel):
 class RecipeBody(BaseModel):
     answer: str = Field(min_length=1, max_length=8000)
     type: str = Field(min_length=1, max_length=40)
+    # 使用者的問題：點名了食材時只推薦那些食材的菜（問地瓜不推地瓜葉）
+    question: str | None = Field(default=None, max_length=service.MAX_MESSAGE)
+    # 同一段對話已推薦過的食譜（不再推薦）
+    shown_recipe_ids: list[str] = Field(default_factory=list, max_length=200)
 
 
 @router.post("/recipes")
@@ -92,7 +96,8 @@ def recipes(body: RecipeBody, auth: AuthContext = Depends(current_auth), db: Ses
         except allergen_groups.AllergenGroupsInvalid:
             # 讀不到過敏原群組就不推薦，避免推薦到過敏的菜
             return {"recipes": [], "household_filtered": False}
-    return {"recipes": recipe_service.suggest(db, body.answer, excluded),
+    return {"recipes": recipe_service.suggest(db, body.answer, excluded, body.question,
+                                                  set(body.shown_recipe_ids)),
             "household_filtered": household_id is not None}
 
 

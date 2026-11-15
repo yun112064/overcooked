@@ -62,11 +62,13 @@ npm test
 npm run build
 ```
 
-包含原有 22 項示範測試、6 項隔離／正式契約測試與 2 項用量顯示測試，共 30 項。測試會確認舊 `frontend/` 相對目前 checkout 沒有本機修改，並比對既有 API 方法、路徑、請求本文、辨識 multipart 欄位、Cookie／SSE／輪詢模組、營養界線及未知值語意。最初 974 個檔案的雜湊仍作為歷史施工紀錄保留。
+包含原有 22 項示範測試、13 項隔離／正式契約測試與 2 項用量顯示測試，共 37 項。測試會確認舊 `frontend/` 相對目前 checkout 沒有本機修改，並比對既有 API 方法、路徑、請求本文、辨識 multipart 欄位、Cookie／SSE／輪詢模組、營養界線及未知值語意，另涵蓋歷史日期、快照價格及前端隨機選菜。最初 974 個檔案的雜湊仍作為歷史施工紀錄保留。
 
 `npm run build` 輸出正式版 `dist/`；`npm run preview -- --host localhost --port 5173 --strictPort` 只能預覽靜態檔案，Vite preview 不提供 `/api` 代理。正式連線開發請使用 `npm run dev`，或透過已配置後端服務的 Caddy 部署。
 
 本次實際檢查與限制見 [整合驗證紀錄](../docs/FRONTEND-INTEGRATION-VALIDATION.md)。
+
+2026-11-16 整合 `main@e3109aa`：保留已確認的逐頁版面、吉祥物互動及此目錄的啟動入口，其餘正式業務規則沿用 main。飲食小幫手同步 main 的問題食材聚焦、對話內食譜去重、錯誤訊息與引用呈現修正；沒有另定後端規則。後續實測與限制見 [主專案驗證紀錄](../../docs/1102_V3/VALIDATION.md)。
 
 
 ## 結果與辨識版型補齊（2026-11-15）

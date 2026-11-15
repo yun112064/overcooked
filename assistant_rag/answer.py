@@ -20,10 +20,11 @@ import re
 import os
 import threading
 import time
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 
 from assistant_rag import safety, store
-from assistant_rag.categories import FoodCategories
+from assistant_rag.categories import (FoodCategories, FoodNames, about_other_food, distinct_foods,
+                                      title_only_about_other_food)
 from assistant_rag.providers import ProviderUnavailable
 from assistant_rag.retrieval import Retriever
 from assistant_rag.textconv import to_traditional
@@ -55,6 +56,9 @@ class Settings:
     embedder: str | None = field(default_factory=lambda: os.getenv("RAG_ANSWER_EMBEDDER", "embeddinggemma"))
     threshold: float = field(default_factory=lambda: float(os.getenv("RAG_REFUSAL_THRESHOLD", "0.5")))
     threshold_status: str = field(default_factory=lambda: os.getenv("RAG_THRESHOLD_STATUS", "provisional"))
+    # 每篇文章給模型的最低重排分數（第 1 名另以 threshold 判斷能不能回答）。2026-11-12 使用者同意：
+    # 開發集 74 題「應回答」題，第 4、5 名中位數 0.43、0.22；≥0.3 保留 93% 標註相關文章、擋掉 43% 未標註文章
+    article_min_score: float = field(default_factory=lambda: float(os.getenv("RAG_ARTICLE_MIN_SCORE", "0.3")))
     temperature: float = 0.2
 
     def __post_init__(self):
@@ -81,12 +85,14 @@ def clean_history(history) -> list[dict]:
 
 class Assistant:
     def __init__(self, retriever: Retriever, chat=None, settings: Settings | None = None, *, converter=None,
-                 categories: FoodCategories | None | bool = True):
+                 categories: FoodCategories | None | bool = True, food_names: FoodNames | None | bool = True):
         self.retriever = retriever
         self.chat = chat or retriever.chat()
         self.settings = settings or Settings()
         # True＝讀預設對照表；None／False＝不做類別回答
         self.categories = FoodCategories.load() if categories is True else (categories or None)
+        # True＝讀 TFDA 食材名稱；None／False＝不擋標題在講別的食物的文章
+        self.food_names = FoodNames.load() if food_names is True else (food_names or None)
         self._lock = threading.Lock()  # 單一資料庫連線，檢索序列化
         self.convert = converter or to_traditional
 
@@ -220,6 +226,29 @@ class Assistant:
         if fallback:
             meta["fallback"] = {"food": fallback.food, "category": fallback.category, "label": fallback.label,
                                 "reason": "not_mentioned" if off_topic else "low_score"}
+        # 只把夠相關的文章給模型：第 1 名一定保留，其餘重排分數低於 article_min_score 的不給（避免偏題文章混進回答）
+        if self.settings.method in RERANK_METHODS and result.hits:
+            relevant = result.hits[:1] + [h for h in result.hits[1:] if h.score >= self.settings.article_min_score]
+            if len(relevant) < len(result.hits):
+                result = replace(result, hits=relevant)
+                refs = self.references(result.hits)
+        # 名稱相近但不同的食物（地瓜／地瓜葉）：提醒模型不要混寫，並在逐句過濾時刪掉只談另一種食物的句子
+        distinct = {} if fallback else distinct_foods(question)
+        if distinct:
+            on_topic = [h for h in result.hits if not title_only_about_other_food(h.title or "", distinct)]
+            if on_topic and len(on_topic) < len(result.hits):
+                result = replace(result, hits=on_topic)
+                refs = self.references(result.hits)
+            pairs = "；".join(f"「{'」「'.join(others)}」不是「{base}」" for base, others in distinct.items())
+            prompt_question += f"\n（注意：{pairs}，是不同的食物。只寫問題問的食物本身，不要提到這些食物，也不要說明它們不同。）"
+        # 標題在講別的食物的文章不給模型（問地瓜葉卻拿到茼蒿、地瓜的文章）；類別與別名回答本來就查相近食物，不篩
+        asked = self.food_names.asked(question) if self.food_names and not (fallback or alias_used) else []
+        if asked:
+            on_topic = [h for h in result.hits if not self.food_names.title_about_other_food(
+                " ".join([h.title or "", *(h.heading_path or [])]), asked, question)]
+            if on_topic and len(on_topic) < len(result.hits):
+                result = replace(result, hits=on_topic)
+                refs = self.references(result.hits)
         yield {"event": "meta", "data": meta}
         yield {"event": "references", "data": refs}
         if fallback:
@@ -234,11 +263,11 @@ class Assistant:
                                           temperature=self.settings.temperature):
                 buffer += piece
                 sentences, buffer = safety.split_sentences(buffer)
-                for out in self._filter(sentences, len(refs), removed, kept):
+                for out in self._filter(sentences, len(refs), removed, kept, distinct):
                     kept.append(out)
                     cited.update(safety.citations(out))
                     yield {"event": "delta", "data": {"text": out}}
-            for out in self._filter([buffer] if buffer.strip() else [], len(refs), removed, kept):
+            for out in self._filter([buffer] if buffer.strip() else [], len(refs), removed, kept, distinct):
                 kept.append(out)
                 cited.update(safety.citations(out))
                 yield {"event": "delta", "data": {"text": out}}
@@ -258,10 +287,12 @@ class Assistant:
         yield self._done(kind, start, timings, top_score=top, citations=sorted(cited), removed=removed,
                          fallback=meta.get("fallback"), alias=meta.get("alias"))
 
-    def _filter(self, sentences, n_refs, removed, kept):
+    def _filter(self, sentences, n_refs, removed, kept, distinct=None):
         for sentence in sentences:
             converted = self.convert(sentence)
             out, reason = safety.check_sentence(converted, n_refs)
+            if not reason and distinct and about_other_food(converted, distinct):
+                reason = "other_food"
             if reason:
                 removed[reason] = removed.get(reason, 0) + 1
                 continue
