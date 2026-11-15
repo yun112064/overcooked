@@ -614,3 +614,11 @@ Scope: nested checkout `1111_update_V2`, Docker project `overcooked-1111_update_
 - 實際 YOLO 推論、真實資料端到端與 Windows 程序啟停未重新驗收；本次不宣稱手機實機測試通過。原後端與舊前端受追蹤程式碼的 git diff 為空。
 - 已用合成環境變數實際解析一般 Compose 與正式合併 Compose：兩者均建置 `overcooked-frontend/frontend`；一般前端 8080／後端 8000、正式不發布 host ports 的政策維持。暫時 QA 伺服器已停止，既有容器未操作。
 - 使用者隨後要求提交、推送與開 PR；改以 `codex/frontend-recipe-recognition-layout` 分支交付，不合併 main。
+
+
+## 2026-11-15：新版前端加入 CI（PR #43）
+
+- 新增 `redesigned-frontend-checks`（顯示名稱 Redesigned frontend），明確設定工作目錄與 npm cache lock 為 `overcooked-frontend/frontend`；使用既有 Node.js 24、checkout／setup-node 版本。
+- 每個 PR 與 main 推送會依序執行安裝、30 項測試、lint、正式建置與示範建置。保留原有五個工作，未改前後端程式、部署行為、秘密或權限設定。
+- 本機 Node.js 26.10.0 實際重跑 30 項測試、lint、正式／示範 build 全部成功；lint 保留既有 form.watch 的 1 項警告。Ruby YAML 解析確認六個工作與新版的目錄／命令順序；whitespace 檢查通過。
+- 遠端 Node.js 24 的結果以本次提交的 GitHub Actions run 為準，不沿用上一提交的 CI 結果。使用者要求處理 CI，更新同一 PR 分支；不合併 main。

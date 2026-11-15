@@ -62,7 +62,7 @@ npm test
 npm run build
 ```
 
-包含原有 22 項示範測試，以及 6 項隔離／正式契約測試。測試會確認舊 `frontend/` 相對目前 checkout 沒有本機修改，並比對既有 API 方法、路徑、請求本文、辨識 multipart 欄位、Cookie／SSE／輪詢模組、營養界線及未知值語意。最初 974 個檔案的雜湊仍作為歷史施工紀錄保留。
+包含原有 22 項示範測試、6 項隔離／正式契約測試與 2 項用量顯示測試，共 30 項。測試會確認舊 `frontend/` 相對目前 checkout 沒有本機修改，並比對既有 API 方法、路徑、請求本文、辨識 multipart 欄位、Cookie／SSE／輪詢模組、營養界線及未知值語意。最初 974 個檔案的雜湊仍作為歷史施工紀錄保留。
 
 `npm run build` 輸出正式版 `dist/`；`npm run preview -- --host localhost --port 5173 --strictPort` 只能預覽靜態檔案，Vite preview 不提供 `/api` 代理。正式連線開發請使用 `npm run dev`，或透過已配置後端服務的 Caddy 部署。
 
@@ -75,3 +75,10 @@ npm run build
 - 正式結果使用後端提供的料理照片，缺少照片或載入失敗時顯示「尚無料理照片」。預覽契約沒有照片欄位時同樣顯示缺圖狀態，不套用示範食譜照片冒充真實菜色。
 - 辨識流程為先選照片、檢視大型預覽，再按「開始辨識」上傳；保留多種蔬菜逐一修正／確認／略過、重試、刪除及手動搜尋。右側食材清單可移除項目，沿用問卷原本的儲存流程。
 - API 與主機端口不變。修改前端入口後，已運行的開發程序須停止重啟；Docker 前端須重新建置才會載入新版本。
+
+
+## GitHub CI
+
+根目錄 `.github/workflows/t06-ci.yml` 的 **Redesigned frontend** 工作使用 Node.js 24，在此目錄依序執行 `npm ci`、`npm test`、`npm run lint`、`npm run build` 與 `npm run build:demo`。PR 與 main 的推送都會執行；任何一步失敗即回報該工作失敗。
+
+既有 `frontend-build` 保留檢查舊前端，其他後端、辨識服務、管理網站與模擬超市的工作也保留。查看 CI 時請確認最新提交的 **Redesigned frontend** 結果；此工作不會連接真實資料庫、模型、部署網站或發布示範版。
