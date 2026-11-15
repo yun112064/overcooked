@@ -919,3 +919,9 @@ Scope: nested checkout `1111_update_V2`, Docker project `overcooked-1111_update_
 - 本輪未重跑 demo 建置、瀏覽器結果頁實測、真實資料庫／模型端到端或遠端 CI；現有 Vite 服務可熱更新。未提交、推送或合併。
 
 - 後續使用者明確授權建立新 PR 並合併。整合 `main@20fabc6`（已含 PR #45），只解決本檔追加紀錄的衝突，保留兩邊完整紀錄；後端推薦規則／測試逐檔保持 main 版本，這次提交範圍仍為兩個結果元件、契約測試與本文件。待新 PR 的 CI 通過後再執行合併。
+
+## 2026-11-16：後端小知識變更暫緩，僅保留歷史餐單隱藏（本機未提交）
+
+- 使用者決定先與組員討論後端需求，本輪除了歷史餐單頁隱藏小知識以外全部還原。HistoryPlanDetails 與 GenerationHistoryPage 僅移除小知識顯示；舊快照與其知識內容保留。
+- generation.py、meal_results.py、GenerationPanel、相關後端測試與文件首頁全部回復本次修改前的 HEAD；新增的後端測試及未生效的後端交接文件移除。後端產生餐單時仍會依原流程取得知識，prod-up 的 T11 初始化與黃色警告行為未修改。PR #46 已合併的結果頁隱藏維持。
+- 歷史頁移除已在本輪先前的 37 項前端測試、lint（0 errors／既有 form.watch 1 warning）與正式 build 中通過；還原後以逐檔位元組比對確認後端與測試回復 HEAD，並執行 git diff --check。未重跑已通過的整套測試，未更新正在運行的後端／worker，未提交、推送或合併。

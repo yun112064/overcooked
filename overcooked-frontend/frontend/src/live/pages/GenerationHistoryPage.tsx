@@ -283,23 +283,6 @@ function PlanCard({ plan }: { plan: GenerationPlanDetail }) {
             {plan.previous_day.specified_repeats.length > 0 && `；指定保留 ${plan.previous_day.specified_repeats.join('、')}`}
           </Typography>
         )}
-        {plan.knowledge?.status === 'available' && plan.knowledge.items.length > 0 && (
-          <Box sx={{ bgcolor: tokens.washi, borderRadius: 1, p: 2 }}>
-            <Typography variant="caption" component="p" sx={{ letterSpacing: '0.16em', mb: 1 }}>食材小知識</Typography>
-            <Stack spacing={1}>
-              {plan.knowledge.items.map((k) => (
-                <Typography key={k.ingredient_id} variant="body2">
-                  <Box component="span" sx={{ fontWeight: 500, mr: 1 }}>{k.ingredient_name ?? k.ingredient_id}</Box>{k.explanation}
-                  <Typography component="span" variant="caption">
-                    （{k.citations.map((c) => (c.attribution
-                      ? `${c.attribution} ${c.source_url ?? ''}`.trim()
-                      : `來源：${c.knowledge_id} ${c.source_version}`)).join('、')}）
-                  </Typography>
-                </Typography>
-              ))}
-            </Stack>
-          </Box>
-        )}
       </Stack>
     </Section>
   )

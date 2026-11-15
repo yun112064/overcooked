@@ -76,13 +76,6 @@ function GeneratedDetails({ plan }: { plan: SavedGenerationPlan }) {
       {plan.previous_day && <Section title="避免重複的菜"><Typography variant="body2">採用當時的昨日比對（{plan.previous_day.previous_date ?? '未保存日期'}）：
         {plan.previous_day.excluded_dishes.length ? `排除 ${plan.previous_day.excluded_dishes.map(d => d.dish_name).join('、')}` : '沒有排除的菜'}
         {plan.previous_day.specified_repeats.length > 0 && `；指定保留 ${plan.previous_day.specified_repeats.join('、')}`}</Typography></Section>}
-      {plan.knowledge?.status === 'available' && plan.knowledge.items.length > 0 && <Section title="食材小知識"><Stack spacing={2}>
-        {plan.knowledge.items.map(item => <Box key={item.ingredient_id}>
-          <Typography variant="subtitle2">{item.ingredient_name ?? item.ingredient_id}</Typography><Typography variant="body2">{item.explanation}</Typography>
-          <Typography variant="caption">{item.citations.map((c, index) => <span key={`${c.knowledge_id}-${index}`}>{index > 0 && '、'}{c.attribution ?? `來源：${c.knowledge_id} ${c.source_version}`}
-            {c.source_url && <> <Link href={c.source_url} target="_blank" rel="noreferrer">原文</Link></>}</span>)}</Typography>
-        </Box>)}
-      </Stack></Section>}
     </>} shopping={<SavedShopping prices={plan.prices} />}
       nutrition={nutrition ? <><MacroBar nutrition={nutrition} /><Section title="每人營養（這一餐／每日建議）"><GeneratedNutrition nutrition={nutrition} /></Section></> : <Alert severity="info">此紀錄未保存營養資料。</Alert>}
       portions={nutrition ? <GeneratedPortions result={{ nutrition }} /> : <Alert severity="info">此紀錄未保存個人分餐資料。</Alert>} />
