@@ -703,3 +703,81 @@ Scope: nested checkout `1111_update_V2`, Docker project `overcooked-1111_update_
 - Six new regression cases failed before the fix: four warning questions, a 地瓜葉/地瓜/玉米黃素 case, and the synthetic SQLite recipe API case. They pass after the fix.
 - Executed on an isolated Python 3.12 venv installed from `requirements-dev.txt`, with `TEST_DATABASE_URL` unset: `PROJECT_DATA_ROOT=/tmp/pr44-test-data PYTHONPATH=backend:tests /tmp/pr44-venv/bin/python -m pytest tests/test_assistant_*.py -q` → **233 passed, 1 skipped**, one Starlette/httpx deprecation warning. The skipped case requires disposable PostgreSQL.
 - Initial collection attempts lacked `PYTHONPATH`, then used the unwritable default `/app/data`; corrected using the environment above. No production databases, external models, crawlers or deployment commands were used. These checks do not validate live LLM answer quality or the production frontend.
+
+## 2026-11-16 — 小幫手 recipe suggestions: 蛋白質 is not the food 蛋白
+
+- Context: confirmed main `5dbedba` (warning words in the question no longer disable the named-food focus).
+  - Worktree fast-forwarded to `e3109aa`. `tests/test_assistant_*.py` → 233 passed, 1 skipped.
+  - Prod DB, with the 「番茄要注意什麼」 and 「番茄有什麼禁忌」 questions:
+
+    | | Food found in the question |
+    |---|---|
+    | Old question parsing | none |
+    | New question parsing | 番茄 |
+
+    Both questions suggest 蕃茄炒蛋, 奶油蝦仁番茄飯 and 清燉蕃茄牛肉湯麵.
+- Bug: the example question 「我想增加蛋白質可以吃什麼」 suggested no recipes.
+  - `find_mentions` read 「蛋白質」 in the question, and 「高蛋白」 in the answer, as the food 蛋白 (egg white). The focus then kept only egg-white dishes, and there were none. `NUTRIENT_AFTER` does not cover 質.
+- Fix: `backend/app/services/assistant_recipes.py` masks `NUTRIENT_PHRASES` in each clause before matching.
+  - Phrases: 蛋白質, 高/低蛋白, 優質蛋白, 植物(性)/動物(性)蛋白, 乳清蛋白, 大豆蛋白.
+  - 「蛋白比蛋黃熱量低」 still counts as 蛋白.
+  - The reason text still uses the original sentence.
+- Tests: `tests/test_assistant_*.py` → 234 passed, 1 skipped, including 1 new.
+- Live: rebuilt `meal-prod-backend` and recreated only `backend`; public `/api/health` ok. On the prod DB with a real 小幫手 answer:
+  - 「我想增加蛋白質可以吃什麼」 → 牛肉丼飯, 法式蜂蜜吐司, 麻婆豆腐 (previously none).
+  - 「番茄要注意什麼」 → unchanged.
+- Found, not fixed: 「吃素要怎麼補充蛋白質」 suggests 麻婆豆腐, 鐵板豆腐 and 味噌鮮魚湯 from the vegetarian answer's 豆腐 mention. The matcher does not consider vegetarian diets, so dishes with meat or fish can appear.
+- Vegetarian questions (user request, same day):
+  - `vegetarian_only` in `assistant_recipes.suggest` applies when the question contains 吃素, 素食, 茹素, 全素, 純素, 蛋奶素, 奶素, 蛋素 or 鍋邊素.
+  - It removes recipes with any meat, seafood or animal broth/seasoning ingredient (肉, 雞, 豬, 魚, 蝦, 蠔油, 柴魚, 高湯 …). Exceptions: 肉桂, 素蠔油, 雞蛋, 牛奶, 牛蒡, 牛番茄.
+  - 全素 and 純素 also remove 蛋, 奶, 乳, 起司, 優格 and 蜂蜜. 豆腐乳 and 酪梨 are kept.
+  - 五辛 is not judged.
+  - Word lists were checked against all 431 ingredient names used by prod recipes.
+  - Tests: `tests/test_assistant_*.py` → 238 passed, 1 skipped.
+  - Live: backend rebuilt and recreated.
+
+    | Question | Suggestions |
+    |---|---|
+    | 吃素要怎麼補充蛋白質 | none; the answer names only 黃豆, 青豆, 扁豆 and 菇類, which match no main ingredient |
+    | 全素要怎麼補充蛋白質 | 百香南瓜 (see the 南瓜子 finding below) |
+
+- Check against the original recipe-suggestion design slide, by running its example question 「哪些蔬果的葉黃素比較多」 live:
+  - Result: 菠菜炒蛋, 玉米炒蛋, 百香南瓜. The slide shows 炒青花菜 third; this answer listed 南瓜 before 綠花椰菜.
+  - Still as designed:
+    - no suggestions for refusal or emergency replies;
+    - household allergy and forbidden-food exclusion;
+    - positive mentions only (clause level);
+    - alias table and longest match (番茄醬 ≠ 番茄);
+    - main ingredient ≥ 8% by weight;
+    - at most 3 dishes, taken from the library, no generated names.
+  - Added after the slide:
+    - only 主菜/主食/湯, ranked before 「dish named after the food」;
+    - question-named food focus;
+    - no repeats within a conversation;
+    - nutrient-word handling;
+    - vegetarian filter.
+  - Found, not fixed:
+    - 「南瓜子」 is read as 南瓜, because 南瓜子 is not in the recipe vocabulary, so longest match falls back to 南瓜. 全素 therefore suggested 百香南瓜.
+    - 「含蛋白的蔬菜」 is still read as 蛋白, because the masked phrases do not include 含蛋白.
+- Follow-up (user: 「要推薦有食譜的」 — an empty suggestion block looks broken on the page):
+  - `family_mentions`: when the question names no specific food, group words in positive answer clauses map to library ingredients of that group:
+    - 豆類, 豆製品, 黃豆, 扁豆, 鷹嘴豆 … → names with 豆腐, 豆干, 豆皮, 毛豆 …, excluding 豆芽 and 雞蛋豆腐; shown as 「豆製品」.
+    - 菇類, 蕈菇 → names with 菇 or 蕈; shown as 「菇類」.
+    - Regular food names take precedence (黃豆芽 ≠ 黃豆).
+  - Vegetarian filter also treats 餛飩, 水餃, 鍋貼 and 肉包 as meat (not 餛飩皮 or 水餃皮).
+  - Fixed the two slide-check findings:
+    - a food name followed directly by 子/籽 is its seed, not the food (南瓜子 ≠ 南瓜);
+    - 含蛋白 and 蛋白含量 are masked.
+  - Tests: `tests/test_assistant_*.py` → 241 passed, 1 skipped.
+  - Live: backend rebuilt. Replaying 8 real 小幫手 answers on the prod DB, every question gets 3 library dishes:
+
+    | Question | Suggestions |
+    |---|---|
+    | 吃素要怎麼補充蛋白質 (2 runs) | 滷豆干, 和風豆腐排, 糖醋豆腐 |
+    | 全素要怎麼補充蛋白質 (2 runs) | vegan only: 豆製品 dishes, 炒青花菜, 地瓜葉; no 百香南瓜 |
+    | 哪些蔬果的葉黃素比較多 | 菠菜炒蛋, 玉米炒蛋, 炒青花菜 (now identical to the slide) |
+    | 番茄 | unchanged |
+    | 豆腐 | unchanged |
+    | 我想增加蛋白質可以吃什麼 | 牛肉丼飯, 雞肉豆腐排, 麻婆豆腐 |
+
+  - Not checked: browser UI.

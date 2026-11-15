@@ -322,3 +322,73 @@ def test_main_and_staple_first_soup_later_dessert_never():
     names = [r.name for r, _ in picks]
     assert names[:2] == sorted(["紅蘿蔔炒飯", "紅蘿蔔燉肉"]) and names[2] == "紅蘿蔔濃湯"
     assert "紅蘿蔔蛋糕" not in names and "紅蘿蔔醃菜" not in names
+
+
+def test_protein_nutrient_words_are_not_the_food_egg_white():
+    # 「蛋白質」「高蛋白」是營養詞，不是食材「蛋白」；只講蛋白（蛋清）時仍算
+    vocab = svc.build_vocabulary({**ALIASES, "F-WHITE": ("蛋白", ["蛋清"]), "F-BEEF": ("牛肉", [])})
+    answer = "牛肉、雞蛋是蛋白質的好來源。豆類也是高蛋白的選擇，素食者可攝取植物性蛋白。"
+    assert [m.term for m in svc.find_mentions(answer, vocab)] == ["牛肉", "雞蛋"]
+    mentions = svc.find_mentions(answer, vocab)
+    assert [m.term for m in svc.focus(mentions, "我想增加蛋白質可以吃什麼", vocab)] == ["牛肉", "雞蛋"]
+    assert [m.term for m in svc.find_mentions("蛋白比蛋黃熱量低。", vocab)] == ["蛋白"]
+    # 理由仍是原句，不含遮罩字
+    assert svc.find_mentions(answer, vocab)[0].reason == "牛肉、雞蛋是蛋白質的好來源。"
+
+
+VEG_NAMES = {"F-TOFU": "板豆腐", "F-PORK": "豬絞肉", "F-FISH": "鯛魚片", "F-OYSTER": "蠔油", "F-VOYSTER": "素蠔油",
+             "F-EGG": "雞蛋", "F-MILK": "鮮奶", "F-CINNAMON": "肉桂", "F-SOUP": "清雞高湯", "F-FERM": "豆腐乳",
+             "F-HONEY": "蜂蜜"}
+VEG_RECIPES = [
+    recipe("V1", "麻婆豆腐", [("F-TOFU", 300), ("F-PORK", 100)]),
+    recipe("V2", "味噌鮮魚湯", [("F-FISH", 200), ("F-TOFU", 100)]),
+    recipe("V3", "蠔油豆腐", [("F-TOFU", 300), ("F-OYSTER", 15)]),
+    recipe("V4", "素蠔油豆腐", [("F-TOFU", 300), ("F-VOYSTER", 15)]),
+    recipe("V5", "豆腐蒸蛋", [("F-TOFU", 200), ("F-EGG", 100)]),
+    recipe("V6", "肉桂奶香豆腐", [("F-TOFU", 200), ("F-MILK", 100), ("F-CINNAMON", 1)]),
+    recipe("V7", "豆腐雞湯", [("F-TOFU", 200), ("F-SOUP", 300)]),
+    recipe("V8", "豆腐乳空心菜", [("F-FERM", 20), ("F-TOFU", 100)]),
+    recipe("V9", "蜜汁豆腐", [("F-TOFU", 200), ("F-HONEY", 20)]),
+]
+
+
+@pytest.mark.parametrize("question,expected", [
+    ("吃素要怎麼補充蛋白質", ["素蠔油豆腐", "豆腐蒸蛋", "肉桂奶香豆腐", "豆腐乳空心菜", "蜜汁豆腐"]),
+    ("蛋奶素可以吃什麼", ["素蠔油豆腐", "豆腐蒸蛋", "肉桂奶香豆腐", "豆腐乳空心菜", "蜜汁豆腐"]),
+    ("全素要怎麼補充蛋白質", ["素蠔油豆腐", "豆腐乳空心菜"]),
+    ("豆腐有什麼營養", [r.name for r in VEG_RECIPES]),  # 沒問吃素：不篩
+])
+def test_vegetarian_question_keeps_only_vegetarian_recipes(question, expected):
+    assert [r.name for r in svc.vegetarian_only(VEG_RECIPES, question, VEG_NAMES)] == expected
+
+
+def test_family_words_match_library_foods_when_question_names_no_food():
+    aliases = {"F-TOFU": ("板豆腐", []), "F-DRY": ("傳統豆干", []), "F-KING": ("杏鮑菇", []),
+               "F-SPROUT": ("黃豆芽", []), "F-PORK": ("豬絞肉", [])}
+    answer = "素食者可以透過黃豆、扁豆等豆類攝取蛋白質。菇類也是不錯的選擇。"
+    fams = svc.family_mentions(answer, aliases, [])
+    assert [(m.term, sorted(m.food_ids)) for m in fams] == [("豆製品", ["F-DRY", "F-TOFU"]), ("菇類", ["F-KING"])]
+    # 「黃豆芽」是一般食材，不算豆類；只出現在負面句子的不算
+    assert svc.family_mentions("黃豆芽很清脆。", aliases, []) == []
+    assert svc.family_mentions("菇類不宜生吃。", aliases, []) == []
+
+
+def test_vegetarian_question_gets_tofu_and_mushroom_dishes():
+    aliases = {"F-TOFU": ("板豆腐", []), "F-KING": ("杏鮑菇", []), "F-PORK": ("豬絞肉", []), "F-WONTON": ("餛飩", [])}
+    names = {f: n for f, (n, _) in aliases.items()}
+    recipes = [recipe("T1", "麻婆豆腐", [("F-TOFU", 300), ("F-PORK", 100)]),
+               recipe("T2", "和風豆腐排", [("F-TOFU", 300)]),
+               recipe("T3", "三杯杏鮑菇", [("F-KING", 300)]),
+               recipe("T4", "餛飩湯麵", [("F-WONTON", 200)])]
+    answer = "素食者可以透過黃豆等豆類攝取蛋白質。菇類也是不錯的選擇。"
+    mentions = svc.find_mentions(answer, svc.build_vocabulary(aliases)) + svc.family_mentions(answer, aliases, [])
+    veg = svc.vegetarian_only(recipes, "吃素要怎麼補充蛋白質", names)
+    assert [r.name for r, _ in svc.choose(mentions, veg, set())] == ["和風豆腐排", "三杯杏鮑菇"]
+
+
+def test_seeds_and_egg_tofu_are_not_the_food_or_soy():
+    vocab = svc.build_vocabulary({"F-PUMPKIN": ("南瓜", []), "F-WHITE": ("蛋白", [])})
+    assert [m.term for m in svc.find_mentions("堅果種子如南瓜子、西瓜籽。南瓜富含纖維。", vocab)] == ["南瓜"]
+    assert svc.find_mentions("含蛋白的蔬菜如花椰菜。", vocab) == []
+    fams = svc.family_mentions("可以多吃豆類。", {"F-EGGTOFU": ("雞蛋豆腐", []), "F-TOFU": ("板豆腐", [])}, [])
+    assert [sorted(m.food_ids) for m in fams] == [["F-TOFU"]]

@@ -40,6 +40,19 @@ NEGATIVE_WORDS = ("避免", "不宜", "少吃", "不要", "不建議", "不能",
 # 食材名稱後面最多隔兩個字就接這些字：是營養素名稱（β-胡蘿蔔素、番茄紅素、玉米黃素、大蒜素、
 # 葡萄多酚、黃豆異黃酮），不是在講這個食材
 NUTRIENT_AFTER = re.compile(r"^[一-鿿]{0,2}[素酚酮苷鹼]")
+# 含食材名稱的營養詞，比對前先遮掉：「蛋白質」「高蛋白」不是食材「蛋白」（2026-11-16：範例題
+# 「我想增加蛋白質可以吃什麼」被當成只問蛋白，一道菜都不推薦）。長的在前
+NUTRIENT_PHRASES = ("植物性蛋白", "動物性蛋白", "優質蛋白", "植物蛋白", "動物蛋白", "乳清蛋白", "大豆蛋白",
+                    "蛋白質", "高蛋白", "低蛋白", "含蛋白", "蛋白含量")
+# 食材名稱後面緊接「子／籽」是它的種子（南瓜子、西瓜籽），不是這個食材（2026-11-16：全素回答提到南瓜子卻推百香南瓜）
+SEED_AFTER = ("子", "籽")
+NUTRIENT_MASK = "＿"
+
+
+def _mask_nutrient_phrases(text: str) -> str:
+    for phrase in NUTRIENT_PHRASES:
+        text = text.replace(phrase, NUTRIENT_MASK * len(phrase))
+    return text
 CITATION = re.compile(r"[ \t]*\[\d{1,2}\]")
 SENTENCE_SPLIT = re.compile(r"(?<=[。！？；\n])")
 CLAUSE_SPLIT = re.compile(r"[，,。！？；;\n]")
@@ -114,6 +127,7 @@ def find_mentions(answer: str, vocab: dict[str, frozenset[str]], *, positive_onl
         for clause in CLAUSE_SPLIT.split(sentence):
             if not clause.strip() or (positive_only and any(w in clause for w in NEGATIVE_WORDS)):
                 continue
+            clause = _mask_nutrient_phrases(clause)
             i = 0
             while i < len(clause):
                 term = next((clause[i:i + n] for n in range(min(longest, len(clause) - i), MIN_TERM_LENGTH - 1, -1)
@@ -123,7 +137,7 @@ def find_mentions(answer: str, vocab: dict[str, frozenset[str]], *, positive_onl
                     continue
                 ids = vocab[term]
                 rest = clause[i + len(term):]
-                if NUTRIENT_AFTER.match(rest):  # 營養素名稱，不是食材
+                if NUTRIENT_AFTER.match(rest) or rest.startswith(SEED_AFTER):  # 營養素名稱或種子，不是食材
                     ids = frozenset()
                 if ids and term not in mentions and not ids & seen_ids:
                     reason = sentence.strip().lstrip("・•-*·● ").strip()  # 去掉條列符號
@@ -235,11 +249,79 @@ def without_shown(recipes: list[_Recipe], shown_recipe_ids: set[str]) -> list[_R
     return [r for r in recipes if r.standard_dish_id not in shown_dishes and r.recipe_id not in shown_recipe_ids]
 
 
+# 2026-11-16 使用者要求：問題在問吃素時，只推薦不含肉、海鮮與動物性高湯／調味的菜（「吃素要怎麼補充蛋白質」
+# 不推麻婆豆腐、味噌鮮魚湯）。全素／純素另排除蛋、奶與蜂蜜。五辛（蔥、蒜、韭、洋蔥）不判斷。
+VEGETARIAN_WORDS = ("吃素", "素食", "茹素", "全素", "純素", "蛋奶素", "奶素", "蛋素", "鍋邊素")
+STRICT_VEGETARIAN_WORDS = ("全素", "純素")
+ANIMAL_WORDS = ("肉", "雞", "牛", "豬", "羊", "鴨", "鵝", "魚", "蝦", "蟹", "蛤", "蚵", "鮭", "鯛", "鱈", "鮪", "鯖", "鱸",
+                "魷", "透抽", "小卷", "花枝", "章魚", "干貝", "培根", "火腿", "香腸", "排骨", "五花", "里肌", "貢丸",
+                "甜不辣", "蠔油", "柴魚", "鰹", "高湯", "大骨", "餛飩", "水餃", "鍋貼", "肉包")
+# 名稱含上面的字但不是肉或海鮮（先去掉再判斷；「素蠔油」是素的、「雞蛋」另由蛋奶規則處理；餛飩皮沒有餡）
+NOT_ANIMAL = ("肉桂", "肉豆蔻", "素蠔油", "雞蛋", "牛奶", "牛蒡", "牛番茄", "餛飩皮", "水餃皮")
+EGG_DAIRY_WORDS = ("蛋", "奶", "乳", "起司", "優格", "酪", "蜂蜜")
+NOT_EGG_DAIRY = ("豆腐乳", "酪梨")
+
+
+def _has(name: str, words, exceptions) -> bool:
+    for exception in exceptions:
+        name = name.replace(exception, "")
+    return any(w in name for w in words)
+
+
+def vegetarian_only(recipes: list[_Recipe], question: str | None, names: dict[str, str]) -> list[_Recipe]:
+    """問題在問吃素時只留素食可吃的菜；其他問題原樣回傳。"""
+    if not question or not any(w in question for w in VEGETARIAN_WORDS):
+        return recipes
+    strict = any(w in question for w in STRICT_VEGETARIAN_WORDS)
+
+    def ok(name: str) -> bool:
+        if _has(name, ANIMAL_WORDS, NOT_ANIMAL):
+            return False
+        return not (strict and _has(name, EGG_DAIRY_WORDS, NOT_EGG_DAIRY))
+
+    return [r for r in recipes if all(ok(names.get(ln.food_id, "")) for ln in r.lines)]
+
+
+# 2026-11-16 使用者要求「要推薦有食譜的」：回答常用類別詞（豆類、黃豆、扁豆、菇類），食譜庫沒有以它們本身
+# 為主角的菜，於是一道都不推。問題沒點名特定食材時，把這些詞對到食譜庫裡同一類的食材：
+# 類別詞 → 食譜食材名稱含這些字就算（豆類 → 豆腐、豆干、豆皮、毛豆…；菇類 → 杏鮑菇、鴻喜菇…）。
+FOOD_FAMILIES = (  # (顯示名稱, 類別詞, 算同一類的食材名稱用字, 不算的食材名稱用字)
+    ("豆製品", ("豆類", "豆製品", "大豆製品", "黃豆", "大豆", "黑豆", "青豆", "毛豆", "扁豆", "鷹嘴豆", "豆莢"),
+     ("豆腐", "豆干", "豆乾", "豆皮", "毛豆", "黃豆", "黑豆", "鷹嘴豆", "百頁"), ("豆芽", "蛋豆腐")),  # 雞蛋豆腐是蛋做的
+    ("菇類", ("菇類", "蕈菇", "蕈類"), ("菇", "蕈"), ()),
+)
+
+
+def family_mentions(answer: str, aliases: dict[str, tuple[str, list[str]]], known: list[Mention]) -> list[Mention]:
+    """回答正面提到的類別詞 → 食譜庫裡同一類的食材（已由一般比對找到的食材不重複）。"""
+    seen = set().union(*(m.food_ids for m in known)) if known else set()
+    # 一般食材名稱先佔住整個詞（「黃豆芽」不算黃豆），只有類別詞會對到食材
+    vocab = {name: frozenset() for name in build_vocabulary(aliases)}
+    labels: dict[frozenset[str], str] = {}
+    for label, triggers, members, not_members in FOOD_FAMILIES:
+        ids = frozenset(f for f, (name, _) in aliases.items()
+                        if f not in seen and any(m in name for m in members)
+                        and not any(n in name for n in not_members) and not _is_seasoning(name))
+        if ids:
+            labels[ids] = label
+            for word in triggers:
+                vocab[word] = ids
+    out = []
+    for m in find_mentions(answer, vocab):
+        names = tuple(sorted({aliases[f][0] for f in m.food_ids}, key=len, reverse=True))
+        # 畫面標「含豆製品」而不是回答裡的「黃豆」：菜裡實際是豆腐、豆干
+        out.append(Mention(labels[m.food_ids], m.food_ids, m.reason, names))
+    return out
+
+
 def suggest(db: Session, answer: str, excluded_food_ids: set[str], question: str | None = None,
             shown_recipe_ids: set[str] | None = None) -> list[dict]:
     aliases, recipes = _load(db)
     vocab = build_vocabulary(aliases)
     mentions = focus(find_mentions(answer, vocab), question, vocab)
+    if not (question and find_mentions(question, vocab, positive_only=False)):
+        mentions += family_mentions(answer, aliases, mentions)
+    recipes = vegetarian_only(recipes, question, {food_id: name for food_id, (name, _) in aliases.items()})
     picks = choose(mentions, without_shown(recipes, shown_recipe_ids or set()), excluded_food_ids)
     covers = set()
     if picks:
