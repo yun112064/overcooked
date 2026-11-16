@@ -212,6 +212,7 @@ export default function MealResultView({ requestId, mealDate, onChanged }: Props
             note={proteinInfo.note} tone={proteinInfo.tone} />
           <Stat label="成本價" value={cost === null ? '未知' : Math.round(cost)} unit={cost === null ? undefined : '元'}
             note={[cost === null && computed ? `已知 ${money(r.prices.known_cost_total)}` : null,
+              r.prices.price_estimated ? '含估價' : null,
               budget === null ? null : `預算 ${Math.round(budget)} 元`].filter(Boolean).join('・') || undefined}
             tone={cost === null || budget === null ? 'default' : cost <= budget ? 'good' : 'bad'} />
           <Stat label="菜數" value={r.dishes.length} unit="道" note={r.staple ? `主食：${r.staple.label}` : undefined} />
@@ -420,11 +421,14 @@ export default function MealResultView({ requestId, mealDate, onChanged }: Props
               <TableBody>
                 {r.prices.items.map((i, index) => (
                   <TableRow key={`${i.food_id}-${index}`}>
-                    <TableCell sx={{ fontWeight: 500, whiteSpace: 'nowrap' }}>{i.name}</TableCell>
+                    <TableCell sx={{ fontWeight: 500, whiteSpace: 'nowrap' }}>
+                      {i.name}
+                      {i.price_status === 'estimated' && <Chip label="估價" size="small" color="warning" variant="outlined" sx={{ ml: 0.5, height: 20 }} />}
+                    </TableCell>
                     <TableCell align="right" sx={{ whiteSpace: 'nowrap' }}>
                       {i.shortage_ml != null ? volume(i.shortage_ml) : grams(i.shortage_grams)}
                     </TableCell>
-                    <TableCell sx={{ whiteSpace: 'nowrap' }}>{i.price_status === 'known' && i.packs !== null ? `${i.package_description ?? ''} × ${i.packs}` : '待確認'}</TableCell>
+                    <TableCell sx={{ whiteSpace: 'nowrap' }}>{i.price_status !== 'unknown' && i.packs !== null ? `${i.package_description ?? (i.price_status === 'estimated' ? '估價包裝' : '')} × ${i.packs}` : '待確認'}</TableCell>
                     <TableCell align="right" sx={{ whiteSpace: 'nowrap' }}>{money(i.purchase_price)}</TableCell>
                     <TableCell align="right" sx={{ whiteSpace: 'nowrap' }}>{money(i.cost)}</TableCell>
                     <TableCell sx={{ minWidth: 140 }}>
@@ -434,6 +438,12 @@ export default function MealResultView({ requestId, mealDate, onChanged }: Props
                             {i.product_url ? <Link href={i.product_url} target="_blank" rel="noreferrer">{i.source_name ?? i.retailer ?? i.source}</Link> : (i.source_name ?? i.retailer ?? i.source)}
                             {i.queried_at && <Typography variant="caption" component="p">{shortTime(i.queried_at)} 查詢</Typography>}
                             {i.missing_reason && <Typography variant="caption" component="p" color="warning.main">{missingReason(i.missing_reason)}</Typography>}
+                            {i.estimate_note && (
+                              <Typography variant="caption" component="p" color={i.price_status === 'estimated' ? 'warning.main' : 'text.secondary'} title={i.estimate_note}
+                                sx={{ maxWidth: 260, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                {i.estimate_url ? <Link href={i.estimate_url} target="_blank" rel="noreferrer" color="inherit">{i.estimate_note}</Link> : i.estimate_note}
+                              </Typography>
+                            )}
                           </>}
                     </TableCell>
                   </TableRow>
@@ -457,6 +467,11 @@ export default function MealResultView({ requestId, mealDate, onChanged }: Props
         )}
         {computed && pricePending && missingPriceNames.length > 0 && (
           <Typography variant="caption" component="p" sx={{ textAlign: 'right', mt: 0.5 }}>部分價格未知，成本只計已知部分</Typography>
+        )}
+        {computed && r.prices.price_estimated && (
+          <Typography variant="caption" component="p" color="warning.main" sx={{ textAlign: 'right', mt: 0.5 }}>
+            金額含估價（{r.prices.items.filter((i) => i.price_status === 'estimated').map((i) => i.name).join('、')}），僅供參考，不是當日售價
+          </Typography>
         )}
         {confirmed && hasShortages && adoptedPlanId && (
           <Stack direction="row" sx={{ justifyContent: 'flex-end', mt: 2 }}>

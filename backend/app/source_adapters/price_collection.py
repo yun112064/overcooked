@@ -3,6 +3,8 @@
 決策 #25：全聯報價無法供 T13 使用時，以第二來源（萬家福）查價。
 第二來源用獨立的 run（run_key 加 ":<provider>"），
 統計分來源記錄；同一 run_key 重跑可續跑、已完成則略過（冪等）。
+最後一段（run_key 加 ":confirmed"）只查前兩個來源都沒有可用報價、且有使用者確認商品頁
+（config/t02_confirmed_recheck.json）的食材，直接讀該商品頁的當日價格。
 """
 
 from __future__ import annotations
@@ -50,6 +52,7 @@ class CollectionResult:
     skipped_reason: str | None = None
     provider: str = "pxmart"
     fallback: "CollectionResult | None" = None
+    confirmed: "CollectionResult | None" = None
     paused_reason: str | None = None
 
 
@@ -97,8 +100,14 @@ class PriceCollectionService:
         synonym_groups: list[set[str]] | None = None,
         fallback_adapter_factory: Callable[[], object] | None = None,
         seasoning_food_ids: set[str] | None = None,
+        confirmed_adapter_factory: Callable[[], object] | None = None,
+        confirmed_food_ids: set[str] | None = None,
     ) -> None:
         self.fallback_adapter_factory = fallback_adapter_factory
+        if (confirmed_adapter_factory is None) != (confirmed_food_ids is None):
+            raise ValueError("confirmed product stage needs both an adapter factory and its Food_IDs")
+        self.confirmed_adapter_factory = confirmed_adapter_factory
+        self.confirmed_food_ids = set(confirmed_food_ids or ())
         if seasoning_food_ids is None:
             from app.services.seasonings import load_seasonings
             seasoning_food_ids = load_seasonings()
@@ -134,10 +143,42 @@ class PriceCollectionService:
                       food_ids=food_ids)
         primary = self._collect(provider="pxmart", run_key=run_key, adapter_factory=self.adapter_factory,
                                 limit=limit, **common)
-        if self.fallback_adapter_factory is None:
-            return primary
-        fallback = self.run_fallback(run_key=run_key, follow_primary=True, **common)
-        return replace(primary, fallback=fallback)
+        if self.fallback_adapter_factory is not None:
+            self._pause_between_stages()
+            fallback = self.run_fallback(run_key=run_key, follow_primary=True, **common)
+            primary = replace(primary, fallback=fallback)
+        if self.confirmed_adapter_factory is not None:
+            self._pause_between_stages()
+            primary = replace(primary, confirmed=self.run_confirmed(run_key=run_key, **common))
+        return primary
+
+    def _pause_between_stages(self) -> None:
+        """Stages can hit the same hosts (the confirmed pages include PX Mart and Uni-Prosperity)."""
+        if self.delay_seconds:
+            self.sleep(self.delay_seconds)
+
+    def run_confirmed(
+        self,
+        *,
+        trigger_type: str,
+        scheduled_for: datetime,
+        run_key: str,
+        food_ids: set[str] | None,
+        batch_size: int | None = None,
+    ) -> CollectionResult:
+        """Confirmed product pages for foods that neither store search priced in this run."""
+        earlier = [run_key] + ([f"{run_key}:{getattr(self.fallback_adapter_factory, 'provider', 'uniprosperity')}"]
+                               if self.fallback_adapter_factory is not None else [])
+
+        def target_filter(lease):
+            return self.repository.unpriced_after(lease, run_keys=earlier)
+
+        return self._collect(
+            provider="confirmed", run_key=f"{run_key}:confirmed", adapter_factory=self.confirmed_adapter_factory,
+            trigger_type=trigger_type, scheduled_for=scheduled_for, limit=None, batch_size=batch_size,
+            food_ids=food_ids, target_filter=target_filter,
+            eligible=lambda ingredient: bool(set(ingredient.food_ids or ()) & self.confirmed_food_ids),
+        )
 
     def run_fallback(
         self,
@@ -177,6 +218,7 @@ class PriceCollectionService:
         batch_size: int | None,
         food_ids: set[str] | None,
         target_filter: Callable[[object], tuple[set[str], bool]] | None = None,
+        eligible: Callable[[IngredientQuery], bool] | None = None,
     ) -> CollectionResult:
         started_at = datetime.now(timezone.utc)
         started_monotonic = time.monotonic()
@@ -248,6 +290,8 @@ class PriceCollectionService:
                 # 第二來源只查主要來源查無／不可用的食材；總數即目標數
                 targets, primary_finished = target_filter(lease)
                 ingredients = [i for i in ingredients if i.canonical_name in targets]
+            if eligible is not None:
+                ingredients = [i for i in ingredients if not i.mapping_missing_reason and eligible(i)]
             if food_ids is not None:
                 ingredients = [i for i in ingredients if set(i.food_ids or ()) & food_ids]
             selected_ingredients = ingredients[:limit] if limit else ingredients

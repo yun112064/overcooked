@@ -1,7 +1,8 @@
 import type { GenerationPlanDetail, MealPlanDetail, MealResult, PriceItem } from '../api/types'
 
 type SavedCost = Omit<MealResult['prices'], 'items' | 'unquantified_items'> & {
-  lines: (Pick<PriceItem, 'food_id' | 'shortage_grams' | 'shortage_ml' | 'price_status' | 'packs' | 'purchase_price' | 'cost' | 'missing_reason'> & {
+  lines: (Pick<PriceItem, 'food_id' | 'shortage_grams' | 'shortage_ml' | 'price_status' | 'packs' | 'purchase_price' | 'cost' | 'missing_reason'
+    | 'price_basis' | 'estimate_note' | 'estimate_url' | 'derived_from_food_id'> & {
     quote?: Partial<PriceItem> | null
   })[]
   unquantified_food_ids?: string[]
@@ -19,7 +20,7 @@ export function savedPrices(snapshot: SavedLegacyPlan['snapshot']): MealResult['
   return { ...cost,
     ...(unquantified.length ? { price_complete: false, purchase_total: null, cost_total: null } : {}),
     unquantified_items: unquantified,
-    items: (cost.lines ?? []).filter(line => ['known', 'unknown'].includes(line.price_status)).map(line => ({
+    items: (cost.lines ?? []).filter(line => ['known', 'estimated', 'unknown'].includes(line.price_status)).map(line => ({
       food_id: line.food_id, name: names.get(line.food_id) ?? line.food_id,
       shortage_grams: line.shortage_grams, shortage_ml: line.shortage_ml, price_status: line.price_status,
       packs: line.packs, purchase_price: line.purchase_price, cost: line.cost, missing_reason: line.missing_reason,
@@ -27,6 +28,8 @@ export function savedPrices(snapshot: SavedLegacyPlan['snapshot']): MealResult['
       source: line.quote?.source ?? null, product_name: line.quote?.product_name ?? null,
       product_url: line.quote?.product_url ?? null, package_description: line.quote?.package_description ?? null,
       queried_at: line.quote?.queried_at ?? null, valid_until: line.quote?.valid_until ?? null,
+      price_basis: line.price_basis ?? null, estimate_note: line.estimate_note ?? null,
+      estimate_url: line.estimate_url ?? null, derived_from_food_id: line.derived_from_food_id ?? null,
     })),
   }
 }

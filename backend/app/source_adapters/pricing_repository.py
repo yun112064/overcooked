@@ -446,6 +446,40 @@ class PricingRepository:
         finished = row["status"] in {"completed", "completed_with_errors"}
         return names, finished
 
+    def unpriced_after(self, lease: RunLease, *, run_keys: list[str]) -> tuple[set[str], bool]:
+        """Names the first run recorded that none of run_keys priced usably; finished when all runs ended."""
+        seen: set[str] | None = None
+        usable: set[str] = set()
+        finished = True
+        now = datetime.now(timezone.utc)
+        for run_key in run_keys:
+            row = lease.connection.execute(
+                text("SELECT id, status, recipe_release_id FROM price_collection_runs WHERE run_key = :run_key"),
+                {"run_key": run_key},
+            ).mappings().one_or_none()
+            if row is None:
+                lease.connection.commit()
+                return set(), False
+            if row["recipe_release_id"] != lease.recipe_release_id:
+                raise ValueError("Earlier and confirmed collection runs belong to different recipe releases")
+            quotes = lease.connection.execute(
+                text(f"""
+                    SELECT s.id, s.canonical_name, s.status, s.quote_payload, r.recipe_release_id,
+                           r.price_data_release_id, NULL AS usage_status, m.net_mass_g, m.source_url AS mass_source_url
+                    FROM price_quote_snapshots s JOIN price_collection_runs r ON r.id = s.run_id
+                    {PACKAGE_MASS_JOIN}
+                    WHERE s.run_id = :run_id
+                """),
+                {"run_id": row["id"]},
+            ).mappings().all()
+            if seen is None:
+                seen = {quote["canonical_name"] for quote in quotes}
+            usable |= {quote["canonical_name"] for quote in quotes if quote["status"] == "success"
+                       and quote_unusable_reason(materialize_quote(quote), now) is None}
+            finished = finished and row["status"] in {"completed", "completed_with_errors"}
+        lease.connection.commit()
+        return (seen or set()) - usable, finished
+
     def list_recent_runs(self, limit: int = 20) -> list[dict[str, Any]]:
         query, params = run_rows_query(limit)
         with self.engine.connect() as connection:

@@ -925,3 +925,104 @@ Scope: nested checkout `1111_update_V2`, Docker project `overcooked-1111_update_
 - 使用者決定先與組員討論後端需求，本輪除了歷史餐單頁隱藏小知識以外全部還原。HistoryPlanDetails 與 GenerationHistoryPage 僅移除小知識顯示；舊快照與其知識內容保留。
 - generation.py、meal_results.py、GenerationPanel、相關後端測試與文件首頁全部回復本次修改前的 HEAD；新增的後端測試及未生效的後端交接文件移除。後端產生餐單時仍會依原流程取得知識，prod-up 的 T11 初始化與黃色警告行為未修改。PR #46 已合併的結果頁隱藏維持。
 - 歷史頁移除已在本輪先前的 37 項前端測試、lint（0 errors／既有 form.watch 1 warning）與正式 build 中通過；還原後以逐檔位元組比對確認後端與測試回復 HEAD，並執行 git diff --check。未重跑已通過的整套測試，未更新正在運行的後端／worker，未提交、推送或合併。
+## 2026-11-16 — Confirmed product pages and confirmed synonyms in T02 pricing
+
+- Before: the `pxmart-daily-2026-11-16` runs (PxMart, then Uni-Prosperity) priced 203 of 301 foods.
+  - 72 of the 98 unpriced foods had user-confirmed product pages in `config/t02_confirmed_recheck.json`, but only the file-only `scripts/recheck_t02_prices.py` used them.
+  - 2 had confirmed synonyms that were priced (椰菜 = 高麗菜 SYN006, 全蛋).
+- Change:
+  - Moved the confirmed-page parsing and gates out of the script into `backend/app/source_adapters/confirmed_products.py`; the script now imports it. Gates: robots.txt, ≥ 2 s per-host pacing, exact title/SKU/package checks, single offer, in stock.
+  - New third collection stage `<run_key>:confirmed`, provider `confirmed`, enabled by default with `PRICE_CONFIRMED_PRODUCTS_ENABLED`. It fetches only foods with a rule that neither store run priced usably (`PricingRepository.unpriced_after`).
+  - Quote rules:
+    - The price uses the user-approved package basis.
+    - Market estimates stay `review_required`/`estimate`.
+    - Failed checks are recorded as missing with their reason. No older or guessed price is used.
+  - Targeted T15 price retries use the same three stages.
+  - `meal_cost_from_db`: a food without a usable quote takes a teammate-confirmed synonym's quote (`synonyms.confirmed_equivalents`), with the reason recorded in `selection_reasons`. Management price-policy reasons are not overridden.
+- Tests (throwaway backend-image container; disposable `meal_planner_1102_v3_confirmed_test` on a throwaway pgvector container, removed afterwards):
+  - New `tests/test_t02_confirmed_products.py`:
+    - adapter success, out of stock, SKU/title mismatch, page change, blocked source, no rule, estimate, 79 rules, settings default;
+    - DB stage (only both-store misses with a rule are fetched; rerun skipped; failed page stays unknown);
+    - synonym pricing.
+  - `test_t02_confirmed_products`, `test_t02_uni_prosperity`, `test_t13_meal_cost`, `test_price_scheduler_database`, `test_management_price` → 78 passed, 7 skipped.
+  - Full `tests/` → 1273 passed, 28 skipped. 5 failed and 19 errors, all from the test container lacking `git`, `jieba`, `opencc` or a backup container, in assistant/T17/secrets tests this change does not touch.
+- Real run on prod (one-off container with this branch's code, crawler role): `pxmart-daily-2026-11-16:confirmed` ran 72 targets in 187 s.
+
+  | Result | Count | Foods |
+  |---|---|---|
+  | Priced | 70 | |
+  | Estimate | 1 | 甜豆 |
+  | Missing | 1 | 蒟蒻烏龍麵 (robots.txt disallows the confirmed URL) |
+
+- Coverage read with this branch's `meal_cost_from_db` (100 g and 100 mL requirements per food), 301 foods:
+
+  | Priced by | Count |
+  |---|---|
+  | Store search | 208 |
+  | Confirmed page | 70 |
+  | Synonym | 1 |
+  | Still unknown | 22 |
+
+  The 22 still unknown: 大白菜 (out of stock today), 甜豆, 蒟蒻烏龍麵, the cooking liquids (香菇水, 泡香菇的水, 高湯水), the derived eggs and chicken cuts (水煮蛋, 荷包蛋, 蛋黃, 帶皮雞腿, 雞柳條), unparseable packages (澄粉, 紅酒, 荷包蛋) and items with no store match.
+- Limitations:
+  - The running prod backend, worker and scheduler still use main's code. Until rebuilt, the daily 03:00 job will not run the confirmed stage, and generation will not apply synonym pricing.
+  - Confirmed quotes without a source expiry are usable for 48 h, like other live quotes.
+
+## 2026-11-16 — Price supplements: no unknown prices (user decisions)
+
+User decisions (2026-11-16):
+- 香菇水 / 泡香菇的水 / 高湯水 are priced by 香菇 or 雞湯塊 at a package or soaking ratio, and not counted again when the menu already lists the source.
+- 水煮蛋, 荷包蛋, 帶皮雞腿 and 雞柳條 use the raw egg or chicken price; 蛋黃 uses the yolk share of the egg.
+- 澄粉 / 紅酒 are charged as one whole package.
+- Foods no store sells get a cited estimate.
+- 大白菜 is filled from historical data.
+- Estimates count in cost and budget, but are always labelled 估價 with their source and date.
+
+Implementation:
+- `config/t02_price_supplements.json` holds 8 derived and 14 estimate rules. Each has a basis, source URL and observation date. It is loaded and validated by `backend/app/services/price_supplements.py`.
+  - Figures were researched by web agents, and each was re-fetched by an independent verifier.
+  - No store history existed for 大白菜: every snapshot in prod and in the historical seed release is `not_found` or `out_of_stock`. Its estimate therefore uses the MOA wholesale data republished on twfood.cc.
+  - 米粕 uses a labelled substitute (米豆麴).
+  - 蛤蜊汁 uses clams by weight. It is not derived from the 蛤蜊 store quote, because the current 蛤蜊 quote is a pet treat (汪喵星球 無膠點心罐), an existing matching defect left for follow-up.
+- `meal_cost._price_by_supplements` runs after confirmed synonyms. In order:
+  1. included (cost 0 when the menu already buys the source);
+  2. derived from the source's live quote, with the managed price policy applied to the source;
+  3. the latest user-confirmed market estimate, queried directly so an older expired success cannot hide it;
+  4. historical: the last store success that is only expired and is still TWD;
+  5. the cited estimate.
+- New `price_status` values: `estimated` (has an amount; counts in cost/budget; labelled) and `included` (cost 0, hidden).
+- `_share_packages` rounds a derived food and its source on one quote once, and charges a split whole-package estimate once.
+- Payload changes: `cost_snapshot` and `meal_results._prices` add `price_basis`, `estimate_note`, `estimate_url`, `derived_from_food_id`, `price_estimated` and `estimated_food_ids`. Trend rows carry `price_estimated`.
+- Frontend, both trees (`frontend/src` and `overcooked-frontend/frontend/src/live`): 估價 chip and note with source link per item; 含估價 on the 成本價 stat, the history plan card and the trend caption; the history mapper keeps the new fields.
+- Collection follow-ups from review:
+  - a blocked or rate-limited confirmed host pauses the run so it can be resumed;
+  - stages wait `delay_seconds` between them;
+  - `unpriced_after` uses the gram-only usability test;
+  - the T15 price retry also looks up derived sources and synonyms.
+- Review: 4 reviewer agents, each finding checked by 2 refuting agents; 14 of 17 findings survived. All 14 were addressed. The 香菇水 one was a misreading of "5–10 g" (per mushroom, not total), so its basis wording was clarified and the 0.05 ratio kept.
+
+Checks:
+- Disposable `meal_planner_1102_v3_supplement_test` on a throwaway pgvector container, removed afterwards:
+  - `tests/test_t02_price_supplements.py` and `test_t02_confirmed_products.py` → 36 passed.
+  - Full `tests/` → 1332 passed, 28 skipped. 5 failed and 19 errors are the same environment-only cases as before (no `git`, `jieba`, `opencc` or backup container in the test image). An intermediate run caught 3 regressions (SQLite/stubbed DB reaching the new market-estimate query); they were fixed by querying only foods with a market-estimate rule.
+- `overcooked-frontend/frontend`: `npm run build` and `npm run lint` pass (1 pre-existing warning). `npm test`: 22 + 14 pass. `live-contracts` "every existing API method…" fails on Windows only, because the test compares `relative()` output with `/` while Windows yields `\`. It is unrelated to this change.
+- `frontend`: `tsc -b` and eslint on the changed files pass.
+- Prod coverage, read-only with this code, 100 g / 100 mL per food over the 301 foods of `pxmart-daily-2026-11-16`:
+
+  | Priced by | Count |
+  |---|---|
+  | Store | 206 |
+  | Confirmed page | 70 |
+  | Derived | 8 |
+  | Synonym | 1 |
+  | Market estimate | 1 |
+  | Cited estimate | 13 |
+  | Historical | 2 |
+  | Unknown | 0 |
+
+- Limitation: a day with a new store miss and no rule can still show an unknown price; estimates are static figures dated 2026-11-16.
+- Deploy (2026-11-16, user request "這些做完rebuild"):
+  - Rebuilt `backend`, `worker`, `scheduler` and `frontend` from branch `claude/t02-confirmed-product-prices` (ab9aa51, which includes main b6267c2), using `docker compose --env-file .env.prod -f compose.yaml -f compose.prod.yaml up -d --build --wait`. All four came up healthy.
+  - The backend loads 14 estimate rules. The scheduler reports `enabled=True` and `confirmed_products=True`. The live `overcooked-frontend` bundle contains the 含估價 labels.
+  - The public tunnel URL returns 200 for `/` and `/api/health`.
+  - Not checked: no menu was generated in the browser after the deploy.

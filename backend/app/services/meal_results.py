@@ -236,7 +236,7 @@ def _nutrition(payload: dict) -> dict:
 QUOTE_FIELDS = ("retailer", "source", "source_url", "product_name", "product_url", "price", "package_quantity",
                 "package_unit", "package_description", "queried_at", "valid_until", "region_condition",
                 "store_condition", "promotion_description", "recipe_release_id",
-                "price_data_release_id", "snapshot_id", "usage_status")
+                "price_data_release_id", "snapshot_id", "usage_status", "estimated_price", "estimated_product_name")
 
 
 # 畫面標示的價格來源名稱（決策 #25）
@@ -261,20 +261,25 @@ def _prices(payload: dict) -> dict:
                 "unquantified_items": unquantified}
     items = []
     for ln in cost["lines"]:
-        if ln["price_status"] not in ("known", "unknown"):
-            continue  # 已有種類與免計價（水）不列入價格區
+        if ln["price_status"] not in ("known", "estimated", "unknown"):
+            continue  # 已有種類、免計價（水）與已含在其他食材者不列入價格區
         quote = ln.get("quote") or {}
         item = {"food_id": ln["food_id"], "name": names.get(ln["food_id"], ln["food_id"]),
                 "shortage_grams": ln["shortage_grams"], "price_status": ln["price_status"],
                 "packs": ln.get("packs"), "purchase_price": ln.get("purchase_price"), "cost": ln.get("cost"),
                 "missing_reason": ln.get("missing_reason"), "source_name": _source_name(quote),
-                **{k: quote.get(k) for k in QUOTE_FIELDS}}
+                **{k: quote.get(k) for k in QUOTE_FIELDS},
+                "price_basis": ln.get("price_basis"), "estimate_note": ln.get("estimate_note"),
+                "estimate_url": ln.get("estimate_url"),
+                "derived_from_food_id": ln.get("derived_from_food_id")}
         if ln.get("shortage_ml") is not None:
             item["shortage_ml"] = ln["shortage_ml"]
         items.append(item)
     result = {"status": "computed", **{k: cost.get(k) for k in (
         "budget", "budget_status", "price_complete", "purchase_total", "cost_total", "known_purchase_total",
-        "known_cost_total")}, "items": items, "unquantified_items": unquantified}
+        "known_cost_total")}, "items": items, "unquantified_items": unquantified,
+              "price_estimated": bool(cost.get("price_estimated")),
+              "estimated_food_ids": list(cost.get("estimated_food_ids") or [])}
     if unquantified:
         result.update(price_complete=False, purchase_total=None, cost_total=None)
         if result["budget_status"] == "OK":

@@ -87,17 +87,20 @@ def make_knowledge_retry_handler(*, responder=_DEFAULT, knowledge_client=_DEFAUL
 def default_price_lookup(food_ids: list[str]) -> dict:
     """以 T02 PriceCollectionService 只查指定 FOOD 編號（全聯；查無時萬家福；低頻率），結果寫入價格快照。"""
     from app.core.config import settings
-    from app.pricing_scheduler import SchedulerSettings, create_repository, create_service
+    from app.pricing_scheduler import SchedulerSettings, create_service
     from app.source_adapters.price_collection import PriceCollectionService
     from app.source_adapters.pxmart import PxMartAdapter
 
     config = SchedulerSettings.from_env()
+    scheduled = create_service(config)
     service = PriceCollectionService(
         # 寫入價格要用 crawler 帳號（CRAWLER_DATABASE_URL）；應用程式帳號對價格表只有讀取權
-        repository=create_repository(),
+        repository=scheduled.repository,
         adapter_factory=lambda: PxMartAdapter(timeout=config.timeout_seconds, retries=config.retries),
         delay_seconds=max(settings.price_retry_delay_seconds, config.delay_seconds),
-        fallback_adapter_factory=create_service(config).fallback_adapter_factory)
+        fallback_adapter_factory=scheduled.fallback_adapter_factory,
+        confirmed_adapter_factory=scheduled.confirmed_adapter_factory,
+        confirmed_food_ids=scheduled.confirmed_food_ids if scheduled.confirmed_adapter_factory else None)
     now = datetime.now(timezone.utc)
     result = service.run(trigger_type="targeted", scheduled_for=now, run_key=f"pxmart-targeted-{uuid.uuid4()}",
                          food_ids=set(food_ids))
@@ -109,14 +112,33 @@ def default_price_lookup(food_ids: list[str]) -> dict:
         outcome["fallback"] = {"provider": result.fallback.provider, "status": result.fallback.status,
                                "auto_adopted": result.fallback.auto_adopted_count,
                                "missing": result.fallback.missing_count}
+    if result.confirmed is not None:
+        outcome["confirmed"] = {"provider": result.confirmed.provider, "status": result.confirmed.status,
+                                "auto_adopted": result.confirmed.auto_adopted_count,
+                                "missing": result.confirmed.missing_count}
     return outcome
+
+
+def lookup_food_ids(food_ids: list[str]) -> list[str]:
+    """Foods to query for missing prices: a derived food's source food and confirmed synonyms are added,
+    because the derived food itself is never sold (水煮蛋 is priced from 雞蛋)."""
+    from app.services.price_supplements import load_supplements
+    from app.services.synonyms import confirmed_equivalents
+    derived = load_supplements().derived
+    result: list[str] = []
+    for food_id in food_ids:
+        extra = [derived[food_id].source_food_id] if food_id in derived else []
+        for candidate in (food_id, *extra, *sorted(confirmed_equivalents([food_id]) - {food_id})):
+            if candidate not in result:
+                result.append(candidate)
+    return result
 
 
 def make_price_retry_handler(*, price_lookup=None, now=None):
     def handler(ctx) -> dict:
         from app.core.config import settings
         payload = _source(ctx)
-        missing = meal_validation.missing_price_food_ids(payload)[:settings.price_retry_max_foods]
+        missing = lookup_food_ids(meal_validation.missing_price_food_ids(payload))[:settings.price_retry_max_foods]
         ctx.stage("price_lookup")
         try:
             outcome = (price_lookup or default_price_lookup)(missing)

@@ -254,7 +254,13 @@ export type PriceItem = {
   name: string
   shortage_grams: string | null
   shortage_ml?: string | null
-  price_status: 'known' | 'unknown'
+  /** estimated：估價（有出處與日期，計入成本與預算，但不是當日售價） */
+  price_status: 'known' | 'estimated' | 'unknown'
+  /** derived：由其他食材的報價換算；estimate／market_estimate／historical（過期的最後售價）：估價 */
+  price_basis?: 'derived' | 'estimate' | 'market_estimate' | 'historical' | null
+  estimate_note?: string | null
+  estimate_url?: string | null
+  derived_from_food_id?: string | null
   packs: number | null
   purchase_price: string | null
   cost: string | null
@@ -470,6 +476,9 @@ export type MealResult = {
     known_purchase_total: string | null
     known_cost_total: string | null
     items: PriceItem[]
+    /** 2026-11-16：含估價時為 true，畫面要標示金額含估價 */
+    price_estimated?: boolean
+    estimated_food_ids?: string[]
   }
   knowledge: {
     status: 'available' | 'not_found' | 'unavailable'

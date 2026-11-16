@@ -284,7 +284,7 @@ def trend(db: Session, household_id, since: date, until: date) -> list[dict]:
             "energy_kcal": nutrition.get("energy_kcal"), "protein_g": nutrition.get("protein_g"),
             "target_energy_kcal": target.get("energy_kcal"), "target_protein_g": target.get("protein_g"),
             "cost_total": prices.get("cost_total"), "known_cost_total": prices.get("known_cost_total"),
-            "budget": prices.get("budget"),
+            "budget": prices.get("budget"), "price_estimated": bool(prices.get("price_estimated")),
         })
     return out
 
