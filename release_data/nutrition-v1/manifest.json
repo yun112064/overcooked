@@ -1,0 +1,42 @@
+{
+  "schema_version": "portable-nutrition-v1",
+  "schema_head": "m1111simorder1",
+  "data_file": "data.json.gz",
+  "data_sha256": "f63caca490d30d0fb3a97ee65d8dac65a10ce2b5713dd985afcdf6f90b6ed42e",
+  "policy_file": "policy.json",
+  "policy_sha256": "c1bac3cfba03d78fb71ebf4c19b402d2eb692897cef058c6d4ad8210aef37674",
+  "tables": {
+    "recipe_data_releases": 1,
+    "source_archive": 293,
+    "ingredient_aliases": 1993,
+    "allergens": 15,
+    "recipes": 293,
+    "recipe_steps": 1472,
+    "recipe_ingredients": 2477,
+    "recipe_covers": 293,
+    "nutrition_imports": 1,
+    "nutrition_sources": 3869,
+    "food_nutrition": 1996,
+    "nutrition_source_links": 3848,
+    "nutrition_food_mappings": 2192,
+    "nutrition_data_releases": 1,
+    "nutrition_product_sources": 1,
+    "nutrition_source_candidates": 509,
+    "t04_cooking_receipts": 0
+  },
+  "synthetic": false,
+  "source_archive_sha256": "16f9a61c058e25237921a25d0906c2857bdbc40fd111aef74c86d1b59728af74",
+  "excluded": "users, credentials, households, orders, jobs, management events and price snapshots",
+  "unresolved_food_ids": [
+    "FOOD000312",
+    "FOOD000808",
+    "FOOD001170",
+    "FOOD001682"
+  ],
+  "provenance": {
+    "recipe_workbook": "The historical dd4f75c1377299fdef858c98d8625cfbdee1e21dd7699f3f78e210048cf0289b workbook is not present. This package preserves its imported SQL records and source evidence.",
+    "different_repository_workbook_sha256": "6599f53b16a6b4bfc7f8aed4a44fd10758cf46b8d96a744faa36eefe56d43908",
+    "historical_source_uri": "Retained as provenance, not a claim that the same file is available at that path.",
+    "do_not_reimport_same_named_workbook": true
+  }
+}

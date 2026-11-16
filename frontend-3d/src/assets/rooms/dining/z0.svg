@@ -1,0 +1,70 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 1000" preserveAspectRatio="xMidYMid slice">
+  <!-- 餐桌 z0：俯視——木地板、圓形編織地毯、角落的盆栽、吊燈打下來的光 -->
+  <defs>
+    <filter id="tz0-woodv" x="0" y="0" width="100%" height="100%">
+      <feTurbulence type="fractalNoise" baseFrequency=".5 .006" numOctaves="3" seed="8"/>
+      <feColorMatrix type="matrix" values="0 0 0 0 .22  0 0 0 0 .12  0 0 0 0 .05  1.6 0 0 0 -.6"/>
+      <feComposite in2="SourceGraphic" operator="in"/>
+    </filter>
+    <filter id="tz0-weave" x="0" y="0" width="100%" height="100%">
+      <feTurbulence type="fractalNoise" baseFrequency="1.2" numOctaves="2" seed="23"/>
+      <feColorMatrix type="matrix" values="0 0 0 0 .3  0 0 0 0 .22  0 0 0 0 .14  1.4 0 0 0 -.5"/>
+      <feComposite in2="SourceGraphic" operator="in"/>
+    </filter>
+    <filter id="tz0-b6"><feGaussianBlur stdDeviation="6"/></filter>
+    <filter id="tz0-b14"><feGaussianBlur stdDeviation="14"/></filter>
+    <pattern id="tz0-planks" width="200" height="1000" patternUnits="userSpaceOnUse">
+      <rect width="100" height="1000" fill="#A97C4E"/><rect x="100" width="100" height="1000" fill="#B58A5C"/>
+      <rect x="98" width="2" height="1000" fill="#5E3F24"/><rect x="198" width="2" height="1000" fill="#5E3F24"/>
+      <rect x="0" y="330" width="100" height="2" fill="#5E3F24"/><rect x="100" y="700" width="100" height="2" fill="#5E3F24"/>
+      <rect x="0" y="880" width="100" height="2" fill="#5E3F24"/><rect x="100" y="180" width="100" height="2" fill="#5E3F24"/>
+    </pattern>
+    <radialGradient id="tz0-rug" cx=".5" cy=".5" r=".5">
+      <stop offset="0" stop-color="#EFE6D4"/><stop offset="1" stop-color="#D9CDB6"/>
+    </radialGradient>
+    <radialGradient id="tz0-pool" gradientUnits="userSpaceOnUse" cx="800" cy="500" r="820">
+      <stop offset="0" stop-color="#FFEBC2" stop-opacity=".5"/><stop offset=".55" stop-color="#FFE0A8" stop-opacity=".08"/><stop offset="1" stop-color="#201828" stop-opacity=".45"/>
+    </radialGradient>
+    <linearGradient id="tz0-leaf" x1="0" y1="1" x2="1" y2="0">
+      <stop offset="0" stop-color="#27422C"/><stop offset=".6" stop-color="#3F6B45"/><stop offset="1" stop-color="#7BA765"/>
+    </linearGradient>
+    <radialGradient id="tz0-pot" cx=".4" cy=".35" r=".8">
+      <stop offset="0" stop-color="#F3EDE1"/><stop offset="1" stop-color="#A9A296"/>
+    </radialGradient>
+    <g id="tz0-plant">
+      <circle cx="8" cy="10" r="120" fill="#0E0A14" opacity=".4" filter="url(#tz0-b14)"/>
+      <circle r="52" fill="url(#tz0-pot)"/><circle r="42" fill="#3A2A20"/>
+      <g fill="url(#tz0-leaf)">
+        <path d="M0 0 C-30 -40 -30 -90 0 -124 C30 -90 30 -40 0 0Z"/>
+        <path d="M0 0 C-30 -40 -30 -90 0 -124 C30 -90 30 -40 0 0Z" transform="rotate(60)"/>
+        <path d="M0 0 C-30 -40 -30 -90 0 -124 C30 -90 30 -40 0 0Z" transform="rotate(120)"/>
+        <path d="M0 0 C-30 -40 -30 -90 0 -124 C30 -90 30 -40 0 0Z" transform="rotate(180)"/>
+        <path d="M0 0 C-30 -40 -30 -90 0 -124 C30 -90 30 -40 0 0Z" transform="rotate(240)"/>
+        <path d="M0 0 C-30 -40 -30 -90 0 -124 C30 -90 30 -40 0 0Z" transform="rotate(300)"/>
+      </g>
+      <g fill="#4E8A45">
+        <path d="M0 0 C-18 -24 -18 -56 0 -78 C18 -56 18 -24 0 0Z" transform="rotate(30)"/>
+        <path d="M0 0 C-18 -24 -18 -56 0 -78 C18 -56 18 -24 0 0Z" transform="rotate(150)"/>
+        <path d="M0 0 C-18 -24 -18 -56 0 -78 C18 -56 18 -24 0 0Z" transform="rotate(270)"/>
+      </g>
+    </g>
+  </defs>
+
+  <!-- 木地板 -->
+  <rect width="1600" height="1000" fill="url(#tz0-planks)"/>
+  <rect width="1600" height="1000" fill="#000" filter="url(#tz0-woodv)"/>
+
+  <!-- 圓形地毯 -->
+  <circle cx="806" cy="510" r="452" fill="#0E0A14" opacity=".35" filter="url(#tz0-b6)"/>
+  <circle cx="800" cy="500" r="450" fill="url(#tz0-rug)"/>
+  <circle cx="800" cy="500" r="450" fill="#000" filter="url(#tz0-weave)" opacity=".5"/>
+  <circle cx="800" cy="500" r="424" fill="none" stroke="#A8402A" stroke-width="8" opacity=".8"/>
+  <circle cx="800" cy="500" r="404" fill="none" stroke="#A8402A" stroke-width="3" stroke-dasharray="16 12" opacity=".7"/>
+
+  <!-- 盆栽 -->
+  <use href="#tz0-plant" x="150" y="150"/>
+  <use href="#tz0-plant" x="1470" y="860" transform="rotate(24 1470 860)"/>
+
+  <!-- 吊燈的光與四周暗部 -->
+  <rect width="1600" height="1000" fill="url(#tz0-pool)"/>
+</svg>

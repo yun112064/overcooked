@@ -1,0 +1,67 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 1000" preserveAspectRatio="xMidYMid slice">
+  <!-- 大門（寫實風）z3：前景失焦枝葉、散景光斑、暗角 -->
+  <defs>
+    <filter id="rz3-b9" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="9"/></filter>
+    <filter id="rz3-b5" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="5"/></filter>
+    <radialGradient id="rz3-vig" cx=".5" cy=".5" r=".75">
+      <stop offset=".55" stop-color="#1A1528" stop-opacity="0"/><stop offset="1" stop-color="#1A1528" stop-opacity=".5"/>
+    </radialGradient>
+    <radialGradient id="rz3-bokeh" cx=".5" cy=".5" r=".5">
+      <stop offset="0" stop-color="#FFE4A6" stop-opacity=".5"/><stop offset=".8" stop-color="#FFD68A" stop-opacity=".38"/><stop offset="1" stop-color="#FFD68A" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="rz3-leaf" x1="0" y1="1" x2="1" y2="0">
+      <stop offset="0" stop-color="#13241B"/><stop offset="1" stop-color="#2F5236"/>
+    </linearGradient>
+  </defs>
+
+  <!-- 左下樹叢 -->
+  <g filter="url(#rz3-b9)">
+    <g fill="#13241B"><circle cx="30" cy="970" r="160"/><circle cx="220" cy="1010" r="120"/><circle cx="-30" cy="820" r="100"/></g>
+    <g fill="url(#rz3-leaf)">
+      <ellipse cx="120" cy="880" rx="90" ry="34" transform="rotate(-30 120 880)"/>
+      <ellipse cx="230" cy="930" rx="80" ry="28" transform="rotate(-12 230 930)"/>
+      <ellipse cx="40" cy="820" rx="80" ry="30" transform="rotate(-54 40 820)"/>
+      <ellipse cx="300" cy="985" rx="70" ry="24" transform="rotate(8 300 985)"/>
+    </g>
+    <g fill="#F2A65E" opacity=".5"><ellipse cx="170" cy="852" rx="40" ry="8" transform="rotate(-30 170 852)"/><ellipse cx="270" cy="916" rx="36" ry="6" transform="rotate(-12 270 916)"/></g>
+  </g>
+
+  <!-- 右下樹叢 -->
+  <g filter="url(#rz3-b9)">
+    <g fill="#13241B"><circle cx="1580" cy="970" r="160"/><circle cx="1420" cy="1020" r="110"/><circle cx="1630" cy="820" r="90"/></g>
+    <g fill="url(#rz3-leaf)">
+      <ellipse cx="1500" cy="890" rx="86" ry="30" transform="rotate(28 1500 890)"/>
+      <ellipse cx="1400" cy="950" rx="74" ry="26" transform="rotate(10 1400 950)"/>
+      <ellipse cx="1570" cy="820" rx="76" ry="28" transform="rotate(52 1570 820)"/>
+    </g>
+    <g fill="#FFC27A" opacity=".55"><ellipse cx="1530" cy="872" rx="40" ry="7" transform="rotate(28 1530 872)"/><ellipse cx="1590" cy="800" rx="34" ry="6" transform="rotate(52 1590 800)"/></g>
+  </g>
+
+  <!-- 左上垂枝 -->
+  <g filter="url(#rz3-b5)">
+    <path d="M-20 30 Q170 50 320 160" fill="none" stroke="#22180F" stroke-width="12" stroke-linecap="round"/>
+    <g fill="url(#rz3-leaf)">
+      <ellipse cx="80" cy="84" rx="60" ry="22" transform="rotate(34 80 84)"/>
+      <ellipse cx="170" cy="124" rx="64" ry="22" transform="rotate(52 170 124)"/>
+      <ellipse cx="260" cy="176" rx="60" ry="20" transform="rotate(66 260 176)"/>
+      <ellipse cx="30" cy="20" rx="80" ry="28" transform="rotate(10 30 20)"/>
+      <ellipse cx="150" cy="54" rx="58" ry="20" transform="rotate(-12 150 54)"/>
+      <ellipse cx="250" cy="104" rx="54" ry="18" transform="rotate(4 250 104)"/>
+      <ellipse cx="330" cy="210" rx="44" ry="16" transform="rotate(74 330 210)"/>
+    </g>
+  </g>
+
+  <!-- 散景光斑 -->
+  <g>
+    <circle cx="330" cy="700" r="34" fill="url(#rz3-bokeh)"/>
+    <circle cx="236" cy="590" r="22" fill="url(#rz3-bokeh)"/>
+    <circle cx="1300" cy="520" r="26" fill="url(#rz3-bokeh)"/>
+    <circle cx="1456" cy="690" r="38" fill="url(#rz3-bokeh)"/>
+    <circle cx="1240" cy="770" r="18" fill="url(#rz3-bokeh)"/>
+    <circle cx="420" cy="470" r="16" fill="url(#rz3-bokeh)"/>
+    <circle cx="1520" cy="420" r="20" fill="url(#rz3-bokeh)"/>
+  </g>
+
+  <!-- 暗角 -->
+  <rect x="-80" y="-60" width="1760" height="1120" fill="url(#rz3-vig)"/>
+</svg>

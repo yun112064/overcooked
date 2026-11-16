@@ -1,0 +1,150 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 1000" preserveAspectRatio="xMidYMid slice">
+  <!-- 玄關 z2：檯面上的黃金葛、鑰匙盤、信件、檯燈；落塵區的鞋；架高地板上的室內拖鞋 -->
+  <defs>
+    <filter id="gz2-grain" x="0" y="0" width="100%" height="100%">
+      <feTurbulence type="fractalNoise" baseFrequency="1.1" numOctaves="2" seed="5"/>
+      <feColorMatrix type="matrix" values="0 0 0 0 .2  0 0 0 0 .14  0 0 0 0 .08  1.5 0 0 0 -.55"/>
+      <feComposite in2="SourceGraphic" operator="in"/>
+    </filter>
+    <filter id="gz2-b3"><feGaussianBlur stdDeviation="3"/></filter>
+    <filter id="gz2-b6"><feGaussianBlur stdDeviation="6"/></filter>
+    <linearGradient id="gz2-ceramic" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#A9A296"/><stop offset=".5" stop-color="#EFEADF"/><stop offset=".75" stop-color="#FFFBF2"/><stop offset="1" stop-color="#C9C2B5"/>
+    </linearGradient>
+    <linearGradient id="gz2-leaf" x1="0" y1="1" x2="1" y2="0">
+      <stop offset="0" stop-color="#2C4A30"/><stop offset=".6" stop-color="#47744A"/><stop offset="1" stop-color="#86B06C"/>
+    </linearGradient>
+    <radialGradient id="gz2-brass" cx=".35" cy=".3" r=".8">
+      <stop offset="0" stop-color="#FFF0B8"/><stop offset=".4" stop-color="#D9B04E"/><stop offset="1" stop-color="#6E5216"/>
+    </radialGradient>
+    <linearGradient id="gz2-brassl" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#6E5216"/><stop offset=".4" stop-color="#E9CB74"/><stop offset="1" stop-color="#7A5C1A"/>
+    </linearGradient>
+    <linearGradient id="gz2-shade" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#F3DDB0"/><stop offset=".5" stop-color="#FFF1CC"/><stop offset="1" stop-color="#FFE2A0"/>
+    </linearGradient>
+    <radialGradient id="gz2-glow" cx=".5" cy=".5" r=".5">
+      <stop offset="0" stop-color="#FFE9B4" stop-opacity=".9"/><stop offset=".4" stop-color="#FFD48A" stop-opacity=".35"/><stop offset="1" stop-color="#FFD48A" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="gz2-tom" cx=".36" cy=".32" r=".75">
+      <stop offset="0" stop-color="#FF9A7C"/><stop offset=".4" stop-color="#DC4426"/><stop offset="1" stop-color="#861C0E"/>
+    </radialGradient>
+    <linearGradient id="gz2-canvas" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#FBF7EE"/><stop offset="1" stop-color="#CFC6B6"/>
+    </linearGradient>
+    <linearGradient id="gz2-leather" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#8E5A34"/><stop offset=".5" stop-color="#6B3F22"/><stop offset="1" stop-color="#3E2412"/>
+    </linearGradient>
+    <linearGradient id="gz2-boot" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#C9952A"/><stop offset=".4" stop-color="#F2C94C"/><stop offset="1" stop-color="#B38322"/>
+    </linearGradient>
+    <linearGradient id="gz2-felt" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#D9CDB8"/><stop offset="1" stop-color="#A89C88"/>
+    </linearGradient>
+  </defs>
+  <g transform="translate(0 -44)">
+
+  <!-- 檯燈 -->
+  <circle cx="806" cy="420" r="190" fill="url(#gz2-glow)"/>
+  <ellipse cx="806" cy="503" rx="120" ry="9" fill="#FFE0A0" opacity=".45" filter="url(#gz2-b3)"/>
+  <ellipse cx="810" cy="502" rx="34" ry="5" fill="#17121C" opacity=".45" filter="url(#gz2-b3)"/>
+  <rect x="800" y="442" width="12" height="52" fill="url(#gz2-brassl)"/>
+  <ellipse cx="806" cy="496" rx="26" ry="6" fill="url(#gz2-brass)"/>
+  <path d="M762 380 h88 l18 64 h-124Z" fill="url(#gz2-shade)"/>
+  <path d="M762 380 h88 l18 64 h-124Z" fill="#000" filter="url(#gz2-grain)" opacity=".18"/>
+  <path d="M762 380 h88" stroke="#C9A56E" stroke-width="2"/><path d="M744 444 h124" stroke="#C9A56E" stroke-width="2"/>
+
+  <!-- 黃金葛 -->
+  <ellipse cx="336" cy="503" rx="46" ry="5" fill="#17121C" opacity=".45" filter="url(#gz2-b3)"/>
+  <g fill="none" stroke="#3E6B3A" stroke-width="3" stroke-linecap="round">
+    <path d="M330 446 C318 420 300 404 286 396 M334 446 C332 414 340 392 352 376 M338 446 C352 424 370 414 388 410 M326 448 C300 452 272 470 262 500 C254 530 258 560 250 596"/>
+  </g>
+  <g fill="url(#gz2-leaf)">
+    <path d="M286 396 c-22 -8 -34 -26 -30 -44 c20 2 34 18 30 44Z"/>
+    <path d="M352 376 c-12 -22 -6 -42 12 -52 c10 18 6 38 -12 52Z"/>
+    <path d="M388 410 c14 -18 34 -22 50 -12 c-10 18 -30 24 -50 12Z"/>
+    <path d="M312 420 c-20 -2 -34 -16 -34 -32 c18 -2 34 10 34 32Z"/>
+    <path d="M360 424 c10 -16 28 -22 42 -14 c-8 16 -24 22 -42 14Z"/>
+    <path d="M336 404 c-10 -18 -4 -36 12 -44 c8 16 4 34 -12 44Z"/>
+    <path d="M262 500 c-20 0 -32 -12 -32 -28 c18 -2 32 8 32 28Z"/>
+    <path d="M256 548 c-18 4 -32 -4 -36 -18 c16 -8 32 0 36 18Z"/>
+    <path d="M250 596 c-16 8 -32 2 -38 -12 c14 -10 30 -6 38 12Z"/>
+    <path d="M268 476 c14 -12 30 -10 38 2 c-10 12 -26 12 -38 -2Z"/>
+  </g>
+  <g fill="none" stroke="#1F3A24" stroke-width="1.2" opacity=".5">
+    <path d="M286 396 q-14 -20 -30 -44 M352 376 q0 -26 12 -52 M388 410 q24 -10 50 -12 M262 500 q-14 -12 -32 -28"/>
+  </g>
+  <path d="M298 446 h76 l-8 56 h-60Z" fill="url(#gz2-ceramic)"/>
+  <rect x="292" y="438" width="88" height="12" rx="4" fill="url(#gz2-ceramic)"/>
+  <rect x="292" y="438" width="88" height="3" rx="1.5" fill="#fff" opacity=".8"/>
+
+  <!-- 鑰匙盤 -->
+  <ellipse cx="564" cy="504" rx="62" ry="6" fill="#17121C" opacity=".45" filter="url(#gz2-b3)"/>
+  <ellipse cx="560" cy="496" rx="58" ry="10" fill="#3E2A18"/>
+  <ellipse cx="560" cy="494" rx="50" ry="7" fill="#6B4A2C"/>
+  <g>
+    <circle cx="540" cy="490" r="9" fill="none" stroke="url(#gz2-brassl)" stroke-width="3"/>
+    <rect x="546" y="488" width="34" height="5" rx="2" fill="url(#gz2-brassl)" transform="rotate(8 546 490)"/>
+    <rect x="566" y="492" width="5" height="6" fill="#B38A2C" transform="rotate(8 546 490)"/>
+    <rect x="546" y="484" width="30" height="5" rx="2" fill="#A8A4B0" transform="rotate(-14 546 486)"/>
+    <circle cx="590" cy="486" r="9" fill="url(#gz2-tom)"/>
+    <path d="M590 478 l-5 -3 l4 -1 l1 -4 l1 4 l4 1Z" fill="#34573A"/>
+  </g>
+
+  <!-- 信件 -->
+  <g>
+    <rect x="652" y="494" width="96" height="10" fill="#17121C" opacity=".4" filter="url(#gz2-b3)"/>
+    <rect x="650" y="490" width="92" height="8" fill="#E6DCCB" transform="rotate(-2 696 494)"/>
+    <rect x="654" y="484" width="92" height="8" fill="#F6F0E4" transform="rotate(3 700 488)"/>
+    <rect x="654" y="484" width="92" height="2" fill="#fff" transform="rotate(3 700 488)"/>
+  </g>
+
+  <!-- 落塵區的鞋：帆布鞋 -->
+  <g>
+    <ellipse cx="452" cy="972" rx="110" ry="8" fill="#0E0A14" opacity=".55" filter="url(#gz2-b6)"/>
+    <g id="gz2-sneaker">
+      <path d="M372 958 C372 940 380 930 396 928 L424 924 C432 910 450 908 456 922 C468 936 486 942 498 948 C508 952 510 960 508 966 H372Z" fill="url(#gz2-canvas)"/>
+      <path d="M424 924 C432 910 450 908 456 922" fill="none" stroke="#A89C88" stroke-width="2"/>
+      <path d="M432 930 l16 -6 M438 938 l16 -6 M446 944 l14 -5" stroke="#B2301A" stroke-width="2.5" stroke-linecap="round"/>
+      <path d="M380 948 h70" stroke="#B2301A" stroke-width="4" opacity=".85"/>
+      <path d="M370 964 h140 q2 10 -8 10 h-124 q-10 0 -8 -10Z" fill="#F6F0E4"/>
+      <path d="M370 970 h140" stroke="#A89C88" stroke-width="1.5"/>
+    </g>
+    <use href="#gz2-sneaker" x="34" y="-10" opacity=".96"/>
+  </g>
+  <!-- 皮鞋 -->
+  <g>
+    <ellipse cx="640" cy="976" rx="100" ry="7" fill="#0E0A14" opacity=".55" filter="url(#gz2-b6)"/>
+    <g id="gz2-loafer">
+      <path d="M570 962 C570 946 578 940 594 940 L626 940 C640 940 648 950 664 954 C684 958 698 960 700 968 V972 H570Z" fill="url(#gz2-leather)"/>
+      <path d="M580 946 C600 942 626 944 640 950" fill="none" stroke="#C99468" stroke-width="2.5" opacity=".7" stroke-linecap="round"/>
+      <path d="M626 940 q-4 12 -30 12" fill="none" stroke="#2A1608" stroke-width="2"/>
+      <rect x="568" y="970" width="134" height="6" rx="2" fill="#1E120A"/>
+    </g>
+    <use href="#gz2-loafer" x="30" y="-9" opacity=".96"/>
+  </g>
+  <!-- 小雨靴 -->
+  <g>
+    <ellipse cx="800" cy="978" rx="74" ry="7" fill="#0E0A14" opacity=".55" filter="url(#gz2-b6)"/>
+    <g id="gz2-bootshape">
+      <path d="M760 892 h36 v56 c14 2 28 8 32 20 v8 h-68Z" fill="url(#gz2-boot)"/>
+      <rect x="760" y="892" width="36" height="8" fill="#FFE08A"/>
+      <path d="M766 902 v40" stroke="#FFF3C4" stroke-width="3" opacity=".7" stroke-linecap="round"/>
+      <rect x="758" y="974" width="72" height="6" rx="2" fill="#6E5216"/>
+    </g>
+    <use href="#gz2-bootshape" x="22" y="-8" opacity=".96"/>
+  </g>
+
+  <!-- 架高地板上的室內拖鞋 -->
+  <g>
+    <ellipse cx="1260" cy="852" rx="120" ry="7" fill="#0E0A14" opacity=".45" filter="url(#gz2-b6)"/>
+    <g id="gz2-slipper">
+      <path d="M1176 846 q0 -12 16 -12 h60 q18 0 18 12 q0 6 -10 6 h-74 q-10 0 -10 -6Z" fill="url(#gz2-felt)"/>
+      <path d="M1224 834 q24 -14 40 2 q6 8 2 14 h-40Z" fill="#84291A"/>
+      <path d="M1224 834 q24 -14 40 2" fill="none" stroke="#C2553A" stroke-width="2"/>
+      <path d="M1176 849 h94" stroke="#6E6252" stroke-width="2" opacity=".6"/>
+    </g>
+    <use href="#gz2-slipper" x="104" y="2"/>
+  </g>
+  </g>
+</svg>

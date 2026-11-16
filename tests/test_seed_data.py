@@ -10,6 +10,7 @@ import unittest
 from pathlib import Path
 
 import psycopg
+from alembic.script import ScriptDirectory
 from sqlalchemy import create_engine, text
 
 from db_support import ROOT, TEST_DATABASE_URL, migrate_fresh, requires_db, truncate_all
@@ -150,7 +151,7 @@ class SeedDataRoundTripTest(unittest.TestCase):
     def test_export_writes_only_seed_files_with_manifest_counts(self):
         self.assertEqual({p.name for p in self.seed_dir.iterdir()}, SEED_FILES)
         manifest = self._read("manifest.json")
-        self.assertEqual(manifest["alembic_version"], "d4e8a2c7f913")
+        self.assertEqual(manifest["alembic_version"], ScriptDirectory(str(ROOT / "migrations")).get_current_head())
         self.assertEqual(manifest["files"]["conversion_factor_estimates.json"]["count"], 4)
         self.assertEqual(manifest["files"]["price_quote_snapshots.json"]["count"], 4)
         self.assertEqual(manifest["files"]["knowledge_records.json"]["count"], 1)

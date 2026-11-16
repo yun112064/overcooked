@@ -1,0 +1,32 @@
+.notice {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  /* 有兩行（訊息＋重試）時靠在一起放中間，不要各佔半個畫面 */
+  align-content: center;
+  gap: 12px;
+  margin: 0;
+  padding: 24px;
+  color: #fff6e0;
+  text-align: center;
+}
+
+.notice p {
+  margin: 0;
+}
+
+.retry {
+  min-height: 44px;
+  padding: 0 20px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--cream-50);
+  color: var(--ink-900);
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.retry:disabled {
+  opacity: 0.7;
+}

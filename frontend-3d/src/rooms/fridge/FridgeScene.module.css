@@ -1,0 +1,179 @@
+/* 冰箱門上的東西：兩顆大磁鐵（分頁）、左右兩欄便利貼、可以拉的把手。 */
+
+/*
+ * 磁鐵與兩欄的外框（<Placed>）。位置照畫稿，手機上另外再往下讓兩段（數字由 FridgeScene 的 OnDoor 傳進來）：
+ *   --door-push  畫面矮的時候世界貼齊畫面上緣，磁鐵會跑到右上角的家庭選單底下，整排往下讓（layout.ts 的 doorFit）
+ *   --safe-push  有瀏海時家庭選單會往下移（SessionMenu 的 top），這一排跟著再往下
+ */
+.onDoor {
+  margin-top: calc(var(--door-push, 0px) + var(--safe-push, 0px));
+}
+
+:global([data-layout='phone']) .onDoor {
+  --safe-push: calc(max(12px, env(safe-area-inset-top)) - 12px);
+}
+
+/*
+ * 一欄便利貼：寬度由 <Placed width> 決定，內容由上往下排。
+ * 世界不能捲動，所以欄不能比畫面高。手機上下緣停在吉祥物的頭頂：再往下是吉祥物的跑道、物件列和分頁，
+ * 排進去的按鈕會被蓋住，或被跑過去的吉祥物搶走點擊。桌機到畫面底部（留 --pad-bottom）。
+ *   --column-room   欄的上緣往下可以用的高度（px；layout.ts 的 doorFit 依現在的取景算好，手機已扣掉吉祥物）
+ *   --mascot-inset  分頁與物件列佔掉的高度（Room 設定；桌機沒有物件列，只有 --bottom-inset）
+ * 放不下時：桌機由下面那張便利貼縮短、裡面的清單自己捲（DoorNotes 的 .shrink）；
+ * 還是放不下（手機、很矮的視窗）就整欄上下捲，每一張都還點得到。
+ *
+ * 捲動的外框比欄大一圈（--pad-*，用負的外距抵掉），便利貼的陰影、磁鐵和焦點框才不會被切掉。
+ * 多出來的那一圈不接收點擊：左邊緊貼著冰箱把手，不能把它蓋住。
+ */
+.column {
+  --pad-top: 16px;
+  --pad-side: 12px;
+  --pad-bottom: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: clamp(10px, 1cqw, 18px);
+  margin: calc(var(--pad-top) * -1) calc(var(--pad-side) * -1) 0;
+  padding: var(--pad-top) var(--pad-side) var(--pad-bottom);
+  /* 外框的上緣比欄高出 --pad-top，所以加回來 */
+  max-height: calc(
+    var(--column-room, 100vh) - var(--mascot-inset, var(--bottom-inset, 0px)) - env(safe-area-inset-bottom)
+    - var(--safe-push, 0px) + var(--pad-top)
+  );
+  overflow: hidden auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  pointer-events: none;
+  /* 上下緣淡出：捲動時便利貼不會被一刀切斷；沒在捲的時候只淡掉陰影的尾巴 */
+  -webkit-mask-image: linear-gradient(transparent, #000 4px, #000 calc(100% - 10px), transparent);
+  mask-image: linear-gradient(transparent, #000 4px, #000 calc(100% - 10px), transparent);
+}
+
+.column > * {
+  pointer-events: auto;
+}
+
+/* 手機上每 1px 高度都要省：底下只留焦點框的位置 */
+:global([data-layout='phone']) .column {
+  --pad-bottom: 10px;
+}
+
+/* 大磁鐵＝分頁：桌機上兩半都看得到，它就是標題；手機上點了會換到那一半 */
+.tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5em;
+  min-height: 44px;
+  padding: 0 1.1em 0 0.5em;
+  border: 0;
+  border-radius: 99em;
+  background: linear-gradient(#fffefa, #efe6d3);
+  box-shadow: 0 0.15em 0.25em rgba(20, 12, 10, 0.4), 0 0.5em 1em rgba(20, 12, 10, 0.3);
+  color: var(--ink-900);
+  font-family: var(--font-round);
+  font-size: clamp(15px, 1.2cqw, 21px);
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  white-space: nowrap;
+}
+
+.tab i {
+  width: 1.5em;
+  height: 1.5em;
+  border-radius: 50%;
+  background: radial-gradient(circle at 36% 30%, #ff9a7c, #dc4426 45%, #861c0e);
+  box-shadow: inset 0 -0.1em 0.2em rgba(0, 0, 0, 0.3);
+}
+
+.tabGreen i {
+  background: radial-gradient(circle at 36% 30%, #a9d8a5, #3f7d4e 45%, #1f4a2a);
+}
+
+/* 目前這一半：字變磚紅、底下加一條線（不只靠顏色） */
+.tab[aria-pressed='true'] {
+  color: var(--brick-800);
+  text-decoration: underline;
+  text-decoration-thickness: 0.12em;
+  text-underline-offset: 0.25em;
+}
+
+.tab:hover {
+  filter: brightness(1.04);
+}
+
+/* 把手：可點的範圍蓋在插圖的鍍鉻把手上（畫稿 242–280 × 254–774），滑過或取得焦點時亮起外框 */
+.handle {
+  /* 和 layout.ts 的 HANDLE（寬 60、高 540）同一組數字 */
+  aspect-ratio: 60 / 540;
+  border-radius: 1.4cqw;
+  /* transform 那一段是 Room 的視差位移，這裡要一起寫才不會被蓋掉 */
+  transition: transform 250ms ease-out, box-shadow var(--dur-base) var(--ease-out), background var(--dur-base);
+}
+
+.handle:hover,
+.handle:focus-visible {
+  background: rgba(255, 210, 122, 0.14);
+  box-shadow: 0 0 0 0.25cqw rgba(255, 210, 122, 0.9), 0 0 2cqw 0.6cqw rgba(255, 210, 122, 0.45);
+}
+
+/* 把手很窄，標籤直著寫才放得下，也不會蓋到旁邊的月曆 */
+.tag {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  padding: 0.8em 0.3em;
+  transform: translate(-50%, -50%);
+  border-radius: 99em;
+  background: rgba(255, 253, 247, 0.95);
+  box-shadow: 0 0.3em 0.8em rgba(15, 8, 25, 0.4);
+  color: var(--ink-900);
+  font-size: clamp(12px, 0.8cqw, 15px);
+  font-weight: 700;
+  letter-spacing: 0.15em;
+  line-height: 1.4;
+  writing-mode: vertical-rl;
+  white-space: nowrap;
+}
+
+/* 面板底部的連結，長得和旁邊的 <Button> 一樣 */
+.link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 0 16px;
+  border: 1px solid var(--paper-edge);
+  border-radius: 10px;
+  background: var(--cream-100);
+  color: var(--ink-900);
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1.2;
+  text-align: center;
+  text-decoration: none;
+}
+
+.link:hover {
+  background: var(--cream-200);
+}
+
+.panelEmpty {
+  margin: 0;
+  color: var(--ink-600);
+}
+
+.panelError {
+  margin: 12px 0 0;
+  padding: 8px 10px;
+  border-left: 4px solid var(--brick-700);
+  border-radius: 8px;
+  background: var(--tomato-100);
+  color: var(--brick-800);
+  font-size: 14px;
+  font-weight: 700;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .handle {
+    transition: none;
+  }
+}

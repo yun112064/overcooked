@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 1000" preserveAspectRatio="xMidYMid slice">
+  <!-- 客廳 z3：前景——左下失焦的龜背芋葉、右下失焦的扶手椅一角、暗角 -->
+  <defs>
+    <filter id="lz3-b8" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="8"/></filter>
+    <filter id="lz3-b12" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="12"/></filter>
+    <linearGradient id="lz3-leaf" x1="0" y1="1" x2="1" y2="0">
+      <stop offset="0" stop-color="#101E16"/><stop offset="1" stop-color="#2C4A30"/>
+    </linearGradient>
+    <linearGradient id="lz3-chair" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#8E6A46"/><stop offset="1" stop-color="#3E2A18"/>
+    </linearGradient>
+    <radialGradient id="lz3-vig" cx=".5" cy=".46" r=".8">
+      <stop offset=".55" stop-color="#150F1E" stop-opacity="0"/><stop offset="1" stop-color="#150F1E" stop-opacity=".55"/>
+    </radialGradient>
+  </defs>
+
+  <!-- 左下龜背芋 -->
+  <g filter="url(#lz3-b8)">
+    <path d="M-20 1010 Q60 880 40 760" fill="none" stroke="#1A2E1F" stroke-width="12" stroke-linecap="round"/>
+    <path d="M40 1010 Q150 930 210 840" fill="none" stroke="#1A2E1F" stroke-width="10" stroke-linecap="round"/>
+    <g fill="url(#lz3-leaf)">
+      <path d="M40 770 c-90 -30 -130 -110 -90 -180 c80 10 130 90 90 180Z"/>
+      <path d="M214 846 c-30 -90 20 -170 110 -180 c30 80 -20 160 -110 180Z"/>
+      <path d="M120 960 c-70 -50 -70 -130 -10 -180 c60 50 60 130 10 180Z"/>
+      <path d="M260 1010 c-10 -70 40 -120 110 -120 c10 70 -40 120 -110 120Z"/>
+    </g>
+    <g fill="#F2A65E" opacity=".28"><ellipse cx="290" cy="730" rx="46" ry="10" transform="rotate(-50 290 730)"/><ellipse cx="6" cy="660" rx="40" ry="9" transform="rotate(-70 6 660)"/></g>
+  </g>
+
+  <!-- 右下扶手椅一角 -->
+  <g filter="url(#lz3-b12)">
+    <path d="M1380 1010 q-10 -150 110 -190 q90 -24 150 30 V1010Z" fill="url(#lz3-chair)"/>
+    <path d="M1396 990 q0 -120 100 -152" fill="none" stroke="#C9A56E" stroke-width="6" opacity=".5" stroke-linecap="round"/>
+  </g>
+
+  <!-- 暗角 -->
+  <rect x="-80" y="-60" width="1760" height="1120" fill="url(#lz3-vig)"/>
+</svg>

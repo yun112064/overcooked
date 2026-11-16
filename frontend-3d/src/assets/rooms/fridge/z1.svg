@@ -1,0 +1,49 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 1000" preserveAspectRatio="xMidYMid slice">
+  <!-- 冰箱門 z1：奶油色復古冰箱的門（近看）。上方是冷凍門的下緣，左側是鍍鉻把手。
+       門面刻意留白：左半給「已採用」、右半給「營養與採購」，便利貼與圖表都由介面疊上。 -->
+  <defs>
+    <filter id="fz1-grain" x="0" y="0" width="100%" height="100%">
+      <feTurbulence type="fractalNoise" baseFrequency=".9" numOctaves="2" seed="5"/>
+      <feColorMatrix type="matrix" values="0 0 0 0 .3  0 0 0 0 .26  0 0 0 0 .2  1.2 0 0 0 -.56"/>
+      <feComposite in2="SourceGraphic" operator="in"/>
+    </filter>
+    <filter id="fz1-b4"><feGaussianBlur stdDeviation="4"/></filter>
+    <filter id="fz1-b16"><feGaussianBlur stdDeviation="16"/></filter>
+    <linearGradient id="fz1-door" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#B5AD9E"/><stop offset=".05" stop-color="#E4DDCF"/><stop offset=".3" stop-color="#FAF7F0"/>
+      <stop offset=".72" stop-color="#F1ECE0"/><stop offset=".95" stop-color="#DDD5C6"/><stop offset="1" stop-color="#ADA596"/>
+    </linearGradient>
+    <linearGradient id="fz1-vert" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#FFFFFF" stop-opacity=".35"/><stop offset=".12" stop-color="#FFFFFF" stop-opacity="0"/>
+      <stop offset=".85" stop-color="#17121C" stop-opacity="0"/><stop offset="1" stop-color="#17121C" stop-opacity=".18"/>
+    </linearGradient>
+    <linearGradient id="fz1-chrome" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#6E757C"/><stop offset=".35" stop-color="#F4F7F9"/><stop offset=".6" stop-color="#C9D0D6"/><stop offset="1" stop-color="#7C848C"/>
+    </linearGradient>
+    <linearGradient id="fz1-chromev" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#F4F7F9"/><stop offset=".5" stop-color="#AEB6BD"/><stop offset="1" stop-color="#6E757C"/>
+    </linearGradient>
+  </defs>
+
+  <!-- 冷凍門（只露出下緣） -->
+  <rect x="180" y="-200" width="1240" height="236" rx="44" fill="url(#fz1-door)"/>
+  <rect x="180" y="-10" width="1240" height="46" fill="#17121C" opacity=".1"/>
+  <rect x="1240" y="-6" width="130" height="22" rx="11" fill="url(#fz1-chromev)"/>
+  <!-- 門縫 -->
+  <rect x="184" y="36" width="1232" height="20" fill="#4A443A"/>
+  <rect x="184" y="52" width="1232" height="5" fill="#FFFFFF" opacity=".7"/>
+
+  <!-- 冷藏門 -->
+  <rect x="180" y="56" width="1240" height="1100" rx="44" fill="url(#fz1-door)"/>
+  <rect x="180" y="56" width="1240" height="1100" rx="44" fill="url(#fz1-vert)"/>
+  <rect x="180" y="56" width="1240" height="1100" rx="44" fill="#000" filter="url(#fz1-grain)" opacity=".1"/>
+  <!-- 門面上的柔和反光 -->
+  <rect x="430" y="70" width="70" height="960" fill="#FFFFFF" opacity=".22" filter="url(#fz1-b16)"/>
+  <rect x="1250" y="70" width="40" height="960" fill="#FFFFFF" opacity=".14" filter="url(#fz1-b16)"/>
+
+  <!-- 鍍鉻把手 -->
+  <rect x="248" y="262" width="38" height="520" rx="19" fill="#17121C" opacity=".4" filter="url(#fz1-b4)" transform="translate(8 8)"/>
+  <rect x="234" y="300" width="20" height="30" rx="6" fill="#8A9198"/><rect x="234" y="700" width="20" height="30" rx="6" fill="#8A9198"/>
+  <rect x="242" y="254" width="38" height="520" rx="19" fill="url(#fz1-chrome)"/>
+  <rect x="250" y="270" width="6" height="488" rx="3" fill="#FFFFFF" opacity=".7"/>
+</svg>

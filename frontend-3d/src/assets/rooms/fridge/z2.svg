@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 1000" preserveAspectRatio="xMidYMid slice">
+  <!-- 冰箱門 z2：門上固定的裝飾磁鐵（番茄、小魚、字母、迴紋針夾）。便利貼與它們的磁鐵由介面疊上。 -->
+  <defs>
+    <filter id="fz2-b3"><feGaussianBlur stdDeviation="3"/></filter>
+    <radialGradient id="fz2-tom" cx=".36" cy=".3" r=".75">
+      <stop offset="0" stop-color="#FF9A7C"/><stop offset=".45" stop-color="#DC4426"/><stop offset="1" stop-color="#861C0E"/>
+    </radialGradient>
+    <linearGradient id="fz2-fish" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#8FB4E6"/><stop offset="1" stop-color="#3F6FC2"/>
+    </linearGradient>
+    <linearGradient id="fz2-steel" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#8A9198"/><stop offset=".4" stop-color="#F4F7F9"/><stop offset="1" stop-color="#8A9198"/>
+    </linearGradient>
+  </defs>
+  <!-- 番茄磁鐵 -->
+  <g transform="translate(800 952)">
+    <circle cx="3" cy="5" r="30" fill="#17121C" opacity=".4" filter="url(#fz2-b3)"/>
+    <circle r="30" fill="url(#fz2-tom)"/><path d="M0 -20 l-12 -7 l8 -2 l4 -10 l4 10 l8 2Z" fill="#34573A"/>
+    <ellipse cx="-10" cy="-8" rx="8" ry="5" fill="#FFD2C2" opacity=".7" transform="rotate(-30 -10 -8)"/>
+  </g>
+  <!-- 小魚磁鐵 -->
+  <g transform="translate(330 950) rotate(-8)">
+    <path d="M-36 4 q36 -30 72 0 q-36 30 -72 0Z M36 4 l22 -16 v32Z" fill="#17121C" opacity=".4" filter="url(#fz2-b3)" transform="translate(3 5)"/>
+    <path d="M-36 0 q36 -30 72 0 q-36 30 -72 0Z" fill="url(#fz2-fish)"/><path d="M36 0 l22 -16 v32Z" fill="#3F6FC2"/>
+    <circle cx="-18" cy="-4" r="4" fill="#fff"/><circle cx="-18" cy="-4" r="2" fill="#17121C"/>
+    <path d="M-6 -12 q10 12 0 24 M8 -12 q10 12 0 24" fill="none" stroke="#DCE8FA" stroke-width="2" opacity=".7"/>
+  </g>
+  <!-- 字母磁鐵 -->
+  <g font-family="'M PLUS Rounded 1c','Arial Rounded MT Bold',sans-serif" font-weight="800" font-size="46">
+    <text x="1206" y="972" fill="#17121C" opacity=".35" filter="url(#fz2-b3)">Y U M</text>
+    <text x="1202" y="966" fill="#E7A72E">Y</text><text x="1246" y="968" fill="#3F7D4E">U</text><text x="1294" y="966" fill="#D9472B">M</text>
+  </g>
+  <!-- 迴紋針夾 -->
+  <g transform="translate(1340 620)">
+    <rect x="-16" y="-10" width="36" height="52" rx="6" fill="#17121C" opacity=".35" filter="url(#fz2-b3)" transform="translate(3 4)"/>
+    <rect x="-16" y="-10" width="32" height="48" rx="6" fill="#26242C"/><rect x="-10" y="-22" width="20" height="18" rx="4" fill="none" stroke="url(#fz2-steel)" stroke-width="4"/>
+  </g>
+</svg>

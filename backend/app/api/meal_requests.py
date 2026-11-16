@@ -8,12 +8,17 @@ from sqlalchemy.orm import Session
 
 from app.api.deps import AuthContext, current_auth, current_household_id, verify_origin
 from app.api.errors import ApiError, already_adopted, not_found, version_conflict
-from app.db.models import MealRequest, MealRequestRevision, Member
-from app.db.session import get_db
+from app.core.config import settings
+from app.db.models import AdoptedMealPlan, MealRequest, MealRequestRevision, Member
+from app.db.session import SessionLocal, get_db
+from app.services import database_menu_plans as menu_plans
 from app.services import ingredients
 from app.services import jobs as job_service
+from app.services import knowledge_explanation
 from app.services import meal_request as service
 from app.services import recipe_catalog as catalog_service
+from app.services import recipe_retrieval, t12_planning
+from app.services.assistant import RateLimiter
 
 router = APIRouter(prefix="/meal-requests", tags=["meal-requests"], dependencies=[Depends(verify_origin)])
 
@@ -21,6 +26,17 @@ router = APIRouter(prefix="/meal-requests", tags=["meal-requests"], dependencies
 class DraftUpdate(BaseModel):
     version: int = Field(ge=1)
     draft: service.MealRequestDraft
+
+
+_tips_limiter = RateLimiter(settings.knowledge_tips_rate_per_minute)
+
+
+def get_tips_limiter() -> RateLimiter:
+    return _tips_limiter
+
+
+class NutritionPreviewBody(BaseModel):
+    recipe_ids: list[str] = Field(min_length=1, max_length=10)
 
 
 def _members(db: Session, household_id) -> dict:
@@ -117,6 +133,104 @@ def get_request(request_id: uuid.UUID, household_id=Depends(current_household_id
                 db: Session = Depends(get_db)):
     return _out(db, get_owned_request(db, household_id, request_id))
 
+
+@router.get("/{request_id}/recipes")
+def retrieve_recipes(request_id: uuid.UUID, household_id=Depends(current_household_id),
+                     db: Session = Depends(get_db)):
+    """T11 資料庫菜單預覽（略過這一版問卷「不採用」過的組合）；營養與預算驗證在 nutrition-preview 與採用時重算。"""
+    row = get_owned_request(db, household_id, request_id)
+    draft = service.load(row.payload)
+    adopted = db.scalar(select(AdoptedMealPlan).where(AdoptedMealPlan.meal_request_id == row.id))
+    if draft.mode == "picker" and adopted is not None and adopted.result_version is None:
+        selected = (adopted.snapshot or {}).get("selected") or []
+        result = recipe_retrieval.RetrievalResult(recipe_retrieval.DATABASE_MENU, selected=selected).to_dict()
+        return {**result, "input_version": row.version, "fallback_eligible": False,
+                "adopted_plan": menu_plans.summary(adopted)}
+    _reject_bad_references(db, household_id, draft)
+    members = _members(db, household_id)
+    issues = service.completeness(draft, members)
+    if issues:
+        raise ApiError(422, "INVALID_INPUT", "請先完成問卷。", {"issues": issues})
+    try:
+        result = menu_plans.current_menu(db, household_id, row, draft, members)
+    except recipe_retrieval.RecipeRetrievalError as exc:
+        raise ApiError(503, exc.code, exc.message) from None
+    return {**result, "input_version": row.version,
+            "fallback_eligible": result["status"] == recipe_retrieval.NO_FEASIBLE,
+            "adopted_plan": menu_plans.summary(adopted) if adopted is not None else None}
+
+
+class RejectBody(BaseModel):
+    version: int = Field(ge=1)
+    recipe_ids: list[str] = Field(min_length=1, max_length=10)
+
+
+@router.post("/{request_id}/menu-rejections", status_code=204)
+def reject_menu(request_id: uuid.UUID, body: RejectBody, auth: AuthContext = Depends(current_auth),
+                household_id=Depends(current_household_id), db: Session = Depends(get_db)):
+    """「不採用，換一份」：記錄這組食譜，同一版問卷下次查詢改給下一組。"""
+    row = get_owned_request(db, household_id, request_id, lock=True)
+    menu_plans.reject(db, row, version=body.version, recipe_ids=body.recipe_ids, user_id=auth.user_id)
+    db.commit()
+    return Response(status_code=204)
+
+
+@router.post("/{request_id}/nutrition-preview")
+def nutrition_preview(request_id: uuid.UUID, body: NutritionPreviewBody,
+                      household_id=Depends(current_household_id), db: Session = Depends(get_db)):
+    """所選食譜的 T12 營養計算；只用伺服器端的問卷、食譜與營養資料，不接受前端傳來的營養數值。"""
+    row = get_owned_request(db, household_id, request_id)
+    draft = service.load(row.payload)
+    _reject_bad_references(db, row.household_id, draft)
+    members = _members(db, row.household_id)
+    issues = service.completeness(draft, members)
+    if issues:
+        raise ApiError(422, "INVALID_INPUT", "請先完成問卷。", {"issues": issues})
+    try:
+        return t12_planning.public_view(
+            t12_planning.preview(db, draft=draft, members=members, recipe_ids=body.recipe_ids))
+    except t12_planning.T12PlanningUnavailable as exc:
+        raise ApiError(exc.status, exc.code, exc.message) from None
+
+
+
+@router.post("/{request_id}/knowledge-tips")
+def knowledge_tips(request_id: uuid.UUID, body: NutritionPreviewBody,
+                   household_id=Depends(current_household_id), db: Session = Depends(get_db),
+                   limiter: RateLimiter = Depends(get_tips_limiter)):
+    """T12 之後的營養小知識：後端重算最終食材 → T11 檢索審核知識 → 生成一句說明（雲端經 T10）。
+
+    不接受前端傳來的食材或知識；營養未通過（含主食防線）或菜單不能採用時不呼叫任何付費服務，直接回 unavailable。
+    付費查詢每戶每分鐘有上限（429 RATE_LIMITED），避免重複觸發耗盡共用的 T10 額度。
+    缺知識、知識服務故障或額度不足都不阻擋採用，只回報狀態與原因。
+    """
+    row = get_owned_request(db, household_id, request_id)
+    draft = service.load(row.payload)
+    _reject_bad_references(db, row.household_id, draft)
+    members = _members(db, row.household_id)
+    issues = service.completeness(draft, members)
+    if issues:
+        raise ApiError(422, "INVALID_INPUT", "請先完成問卷。", {"issues": issues})
+    try:
+        menu = t12_planning.preview(db, draft=draft, members=members, recipe_ids=body.recipe_ids)
+    except t12_planning.T12PlanningUnavailable as exc:
+        raise ApiError(exc.status, exc.code, exc.message) from None
+    food_ids = list(menu.get("final_food_ids") or [])
+    extra = {"input_version": row.version, "recipe_ids": body.recipe_ids, "nutrition_status": menu.get("status")}
+    # 與採用同一條判斷：營養未通過或有任何阻擋採用的問題（例如菜含禁吃食材）都不花付費額度
+    if menu.get("status") != "nutrition_passed" or menu.get("adoption_blocked", True):
+        reason = "NUTRITION_NOT_PASSED" if menu.get("status") != "nutrition_passed" else "ADOPTION_BLOCKED"
+        return {"status": "unavailable", "reason": reason, "items": [], "dropped": [],
+                "not_found": [], "final_food_ids": [], "knowledge_status": None, "index_version": None, **extra}
+    if not limiter.allow(str(household_id)):
+        raise ApiError(429, "RATE_LIMITED", "營養小知識查詢太頻繁，請稍等一分鐘再試。")
+    names = ingredients.names(db, food_ids) if food_ids else {}
+    version = row.version  # rollback 後讀 ORM 屬性會重新開交易，先記下
+    db.rollback()  # 釋放讀取交易；以下的付費呼叫用各自的短交易
+    result = knowledge_explanation.tips_for_menu(
+        SessionLocal, final_food_ids=food_ids, household_id=household_id,
+        request_tag=f"tips:{request_id}:{version}", names=names)
+    return {**result, **extra}
 
 @router.get("/{request_id}/recipe-catalog")
 def recipe_catalog(request_id: uuid.UUID, household_id=Depends(current_household_id),

@@ -1,0 +1,181 @@
+/* 跑道：橫跨畫面底部，本身不接收點擊 */
+.lane {
+  --size: clamp(56px, 6.5vw, 96px);
+  /* 來回一圈的時間；和 Mascot.tsx 的 PATROL_MS 是同一個數字 */
+  --patrol: 16s;
+  /* 跑道離畫面底部多遠；聊天室視窗用它算自己最多能多高 */
+  --lane-bottom: calc(10px + var(--mascot-inset, var(--bottom-inset, 0px)) + env(safe-area-inset-bottom));
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: var(--lane-bottom);
+  height: var(--size);
+  pointer-events: none;
+}
+
+.runner {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: var(--size);
+  animation: patrol var(--patrol) linear var(--phase, 0s) infinite;
+}
+
+.body {
+  position: relative;
+  display: block;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: none;
+  pointer-events: auto;
+  filter: drop-shadow(0 4px 6px rgba(20, 12, 30, 0.35));
+  -webkit-tap-highlight-color: transparent;
+}
+
+.flip {
+  display: block;
+  animation: flip var(--patrol) steps(1) var(--phase, 0s) infinite;
+}
+
+.unread {
+  position: absolute;
+  top: 8%;
+  right: 4%;
+  width: 14px;
+  height: 14px;
+  border: 2px solid #fff;
+  border-radius: 50%;
+  background: var(--mustard-500);
+}
+
+@keyframes patrol {
+  0% { transform: translateX(3vw); }
+  46%, 50% { transform: translateX(calc(97vw - var(--size))); }
+  96%, 100% { transform: translateX(3vw); }
+}
+
+@keyframes flip {
+  0% { transform: scaleX(1); }
+  48% { transform: scaleX(-1); }
+  98% { transform: scaleX(1); }
+}
+
+/* 被點到：停在原地 */
+.stopped .runner,
+.stopped .flip,
+.stopped .bubble {
+  animation-play-state: paused;
+}
+
+/* ---- 圖本身的姿勢 ---- */
+.figure {
+  display: block;
+}
+
+.figure svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: visible;
+}
+
+.legA { transform-origin: 48px 102px; }
+.legB { transform-origin: 72px 102px; }
+.armA { transform-origin: 26px 76px; }
+.armB { transform-origin: 94px 76px; }
+.shadow { transform-origin: 60px 133px; }
+
+/* 跑步循環 0.4 秒：雙腳交替、雙手擺動、身體上下彈、影子縮放 */
+.run .legA,
+.run .armB { animation: swingA 0.4s ease-in-out infinite; }
+.run .legB,
+.run .armA { animation: swingB 0.4s ease-in-out infinite; }
+.run .bob { animation: bob 0.2s ease-in-out infinite alternate; }
+.run .shadow { animation: squash 0.2s ease-in-out infinite alternate; }
+
+/* 停下來揮手 */
+.wave .armA { animation: wave 0.5s ease-in-out infinite alternate; }
+.wave .bob { animation: bob 1.2s ease-in-out infinite alternate; }
+
+/* 查資料中：原地小跳 */
+.think .bob { animation: bob 0.45s ease-in-out infinite alternate; }
+.think .shadow { animation: squash 0.45s ease-in-out infinite alternate; }
+
+@keyframes swingA { 0%, 100% { transform: rotate(30deg); } 50% { transform: rotate(-30deg); } }
+@keyframes swingB { 0%, 100% { transform: rotate(-30deg); } 50% { transform: rotate(30deg); } }
+@keyframes bob { from { transform: translateY(0); } to { transform: translateY(-4px); } }
+@keyframes squash { from { transform: scaleX(1); } to { transform: scaleX(0.86); } }
+@keyframes wave { from { transform: rotate(100deg); } to { transform: rotate(140deg); } }
+
+/* ---- 頭上的對話泡泡 ---- */
+.bubble {
+  position: absolute;
+  left: 50%;
+  bottom: calc(100% + 10px);
+  width: max-content;
+  max-width: min(240px, 70vw);
+  margin: 0;
+  padding: 8px 12px;
+  border-radius: 12px;
+  background: var(--cream-50);
+  box-shadow: var(--shadow-float);
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.5;
+  /* 吉祥物在左邊時泡泡往右長、在右邊時往左長，和跑步同步位移，兩端都不會超出畫面 */
+  animation: bubble-shift var(--patrol) linear var(--phase, 0s) infinite;
+}
+
+.bubbleEmpty {
+  visibility: hidden;
+}
+
+@keyframes bubble-shift {
+  0% { transform: translateX(-12%); }
+  46%, 50% { transform: translateX(-88%); }
+  96%, 100% { transform: translateX(-12%); }
+}
+
+/* 靜態景深、關閉、系統減少動態，或場景要它讓開（parked）：不跑，站在右下角；泡泡往左長 */
+.parked .runner,
+:global(html[data-depth='static']) .runner,
+:global(html[data-depth='off']) .runner {
+  left: auto;
+  right: 3vw;
+  animation: none;
+}
+
+.parked .bubble,
+:global(html[data-depth='static']) .bubble,
+:global(html[data-depth='off']) .bubble {
+  animation: none;
+  transform: translateX(-88%);
+}
+
+.parked .flip,
+:global(html[data-depth='static']) .flip,
+:global(html[data-depth='off']) .flip,
+:global(html[data-depth='static']) .figure *,
+:global(html[data-depth='off']) .figure * {
+  animation: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .runner {
+    left: auto;
+    right: 3vw;
+    animation: none;
+  }
+
+  .bubble {
+    animation: none;
+    transform: translateX(-88%);
+  }
+
+  .flip,
+  .figure * {
+    animation: none !important;
+  }
+}

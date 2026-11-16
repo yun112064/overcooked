@@ -12,6 +12,7 @@ from sqlalchemy import (
     ForeignKey,
     Index,
     Integer,
+    LargeBinary,
     Numeric,
     String,
     Text,
@@ -19,6 +20,7 @@ from sqlalchemy import (
     text,
 )
 from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.dialects import postgresql
 
 from app.db.base import Base
 
@@ -59,6 +61,33 @@ class SourceArchive(Base):
     )
     quality_issues: Mapped[list[Any]] = mapped_column(
         JSON, nullable=False, default=_json_list_default, server_default=text("'[]'")
+    )
+
+
+class RecipeDataRelease(Base):
+    __tablename__ = "recipe_data_releases"
+    __table_args__ = (
+        CheckConstraint("source_kind IN ('legacy', 'sql_seed', 'xlsx_import')",
+                        name="ck_recipe_data_releases_source_kind"),
+        Index("uq_recipe_data_releases_active", "active", unique=True,
+              postgresql_where=text("active"), sqlite_where=text("active")),
+    )
+
+    release_id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    dataset_version: Mapped[str] = mapped_column(String(64), unique=True, nullable=False)
+    source_sha256: Mapped[str] = mapped_column(String(64), nullable=False)
+    schema_version: Mapped[str] = mapped_column(String(64), nullable=False)
+    source_kind: Mapped[str] = mapped_column(String(24), nullable=False)
+    source_uri: Mapped[str | None] = mapped_column(Text)
+    row_counts: Mapped[dict[str, Any]] = mapped_column(
+        JSON().with_variant(postgresql.JSONB(astext_type=Text()), "postgresql"),
+        nullable=False, default=dict, server_default=text("'{}'")
+    )
+    active: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=False, server_default=text("false")
+    )
+    imported_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=text("CURRENT_TIMESTAMP")
     )
 
 
@@ -117,6 +146,30 @@ class Recipe(Base):
     )
     quality_issues: Mapped[list[Any]] = mapped_column(
         JSON, nullable=False, default=_json_list_default, server_default=text("'[]'")
+    )
+
+
+class RecipeCover(Base):
+    __tablename__ = "recipe_covers"
+    __table_args__ = (
+        CheckConstraint("media_type IN ('image/jpeg', 'image/png', 'image/webp')",
+                        name="ck_recipe_covers_media_type"),
+    )
+
+    # DEMO 的 recipes 沒有 recipe_release_id：封面以 recipe_id 連到食譜、以 recipe_release_id 記錄封面所屬發布版本
+    recipe_id: Mapped[str] = mapped_column(
+        String(32), ForeignKey("recipes.recipe_id", ondelete="CASCADE"), primary_key=True
+    )
+    recipe_release_id: Mapped[str] = mapped_column(
+        String(64), ForeignKey("recipe_data_releases.release_id"), primary_key=True
+    )
+    filename: Mapped[str] = mapped_column(Text, nullable=False)
+    image_url: Mapped[str] = mapped_column(Text, nullable=False)
+    sha256: Mapped[str] = mapped_column(String(64), nullable=False)
+    media_type: Mapped[str] = mapped_column(String(32), nullable=False)
+    image_bytes: Mapped[bytes] = mapped_column(LargeBinary, nullable=False)
+    approved_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=text("CURRENT_TIMESTAMP"),
     )
 
 

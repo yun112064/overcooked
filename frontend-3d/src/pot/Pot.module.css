@@ -1,0 +1,118 @@
+.pot {
+  position: relative;
+  width: 100%;
+}
+
+/* 側視以鍋身為基準（240×170）；開蓋與失敗的圖會超出這個框 */
+.side {
+  aspect-ratio: 240 / 170;
+}
+
+.top {
+  aspect-ratio: 1;
+}
+
+.art {
+  position: absolute;
+  display: block;
+  max-width: none;
+  pointer-events: none;
+  user-select: none;
+}
+
+.fill {
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+/* ---- 蒸氣（生成中）與黑煙（失敗）：鍋蓋上方的幾縷 ---- */
+.steam {
+  position: absolute;
+  pointer-events: none;
+  --wisp: rgba(255, 255, 255, 0.78);
+}
+
+.smoke {
+  --wisp: rgba(38, 32, 42, 0.82);
+}
+
+.side .steam {
+  left: 13%;
+  bottom: 61%;
+  width: 74%;
+  height: 147%;
+}
+
+.top .steam {
+  left: 25.75%;
+  top: -12.5%;
+  width: 48.5%;
+  height: 53%;
+}
+
+.steam i {
+  position: absolute;
+  bottom: 0;
+  width: 22%;
+  height: 100%;
+  border-radius: 50%;
+  background: linear-gradient(transparent, var(--wisp));
+  /* cqw 以場景的世界為準（和插圖一起縮放）；放在世界外面時退回以畫面寬度計算 */
+  filter: blur(0.25cqw);
+  opacity: 0;
+  animation: rise 3s ease-in-out infinite;
+}
+
+.top .steam i {
+  filter: blur(0.6cqw);
+}
+
+.steam i:nth-child(1) {
+  left: 14%;
+}
+
+.steam i:nth-child(2) {
+  left: 40%;
+  animation-delay: 1s;
+}
+
+.steam i:nth-child(3) {
+  left: 64%;
+  animation-delay: 2s;
+}
+
+/* 黑煙升得慢一點、散得開一點 */
+.smoke i {
+  animation-duration: 4.2s;
+}
+
+@keyframes rise {
+  0% {
+    transform: translateY(30%) scaleX(0.6);
+    opacity: 0;
+  }
+
+  40% {
+    opacity: 0.8;
+  }
+
+  100% {
+    transform: translateY(-40%) scaleX(1.5);
+    opacity: 0;
+  }
+}
+
+/* 靜態景深、關閉、系統減少動態：不循環，只留靜止的幾縷，狀態仍看得出來 */
+:global(html[data-depth='static']) .steam i,
+:global(html[data-depth='off']) .steam i {
+  animation: none;
+  opacity: 0.5;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .steam i {
+    animation: none;
+    opacity: 0.5;
+  }
+}

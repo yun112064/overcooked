@@ -23,7 +23,7 @@ INFERENCE_TOKEN=keep-me
 
 KEYS = ("DATABASE_URL", "KNOWLEDGE_DATABASE_URL", "KNOWLEDGE_SERVICE_URL", "KNOWLEDGE_SERVICE_TOKEN", "KNOWLEDGE_TOKEN",
         "KNOWLEDGE_PORT", "CLOUD_INTERNAL_URL", "CLOUD_INTERNAL_TOKEN", "INTERNAL_API_TOKEN", "APP_ENV",
-        "INFERENCE_TOKEN")
+        "INFERENCE_TOKEN", "SIM_MARKET_URL", "SIM_MARKET_HANDOFF_KEY")
 
 
 @unittest.skipUnless(POWERSHELL, "needs Windows PowerShell")
@@ -96,6 +96,21 @@ class DevEnvScriptTests(unittest.TestCase):
         # BASE_ENV 已有空白 KNOWLEDGE_SERVICE_URL=；後面非空的設定優先
         env = self.environment("KNOWLEDGE_SERVICE_TOKEN=kn-not-real\nKNOWLEDGE_SERVICE_URL=https://knowledge.example.invalid\n")
         self.assertEqual(env["KNOWLEDGE_SERVICE_URL"], "https://knowledge.example.invalid")
+
+    def test_sim_market_stays_unconfigured_without_handoff_key(self):
+        env = self.environment("KNOWLEDGE_SERVICE_TOKEN=kn-not-real\nSIM_MARKET_URL=\n")
+        self.assertFalse(env["SIM_MARKET_URL"])
+        self.assertFalse(env["SIM_MARKET_HANDOFF_KEY"])
+
+    def test_handoff_key_points_market_at_local_dev_server(self):
+        env = self.environment("KNOWLEDGE_SERVICE_TOKEN=kn-not-real\nSIM_MARKET_HANDOFF_KEY=" + "k" * 40 + "\n")
+        self.assertEqual(env["SIM_MARKET_URL"], "http://127.0.0.1:5174")
+        self.assertEqual(env["SIM_MARKET_HANDOFF_KEY"], "k" * 40)
+
+    def test_explicit_market_url_is_respected(self):
+        env = self.environment("KNOWLEDGE_SERVICE_TOKEN=kn-not-real\nSIM_MARKET_HANDOFF_KEY=" + "k" * 40 +
+                               "\nSIM_MARKET_URL=http://localhost:6000\n")
+        self.assertEqual(env["SIM_MARKET_URL"], "http://localhost:6000")
 
 
 if __name__ == "__main__":

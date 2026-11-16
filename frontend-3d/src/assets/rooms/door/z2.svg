@@ -1,0 +1,143 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 1000" preserveAspectRatio="xMidYMid slice">
+  <!-- 大門（寫實風）z2：椰纖踏墊、陶盆番茄、鍍鋅澆水壺、虎尾蘭、鐵信箱、橘貓 -->
+  <defs>
+    <filter id="rz2-grain" x="0" y="0" width="100%" height="100%">
+      <feTurbulence type="fractalNoise" baseFrequency="1.1" numOctaves="2" seed="3"/>
+      <feColorMatrix type="matrix" values="0 0 0 0 .2  0 0 0 0 .13  0 0 0 0 .06  1.6 0 0 0 -.55"/>
+      <feComposite in2="SourceGraphic" operator="in"/>
+    </filter>
+    <filter id="rz2-fur" x="0" y="0" width="100%" height="100%">
+      <feTurbulence type="fractalNoise" baseFrequency=".06 .5" numOctaves="2" seed="9"/>
+      <feColorMatrix type="matrix" values="0 0 0 0 .55  0 0 0 0 .25  0 0 0 0 .06  1.8 0 0 0 -.7"/>
+      <feComposite in2="SourceGraphic" operator="in"/>
+    </filter>
+    <filter id="rz2-b4"><feGaussianBlur stdDeviation="4"/></filter>
+    <filter id="rz2-b8"><feGaussianBlur stdDeviation="8"/></filter>
+    <linearGradient id="rz2-terra" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#7E3F26"/><stop offset=".55" stop-color="#B8683F"/><stop offset=".8" stop-color="#D08A5E"/><stop offset="1" stop-color="#A65B38"/>
+    </linearGradient>
+    <linearGradient id="rz2-ceramic" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#B9B2A6"/><stop offset=".6" stop-color="#EFEADF"/><stop offset=".85" stop-color="#FFFBF2"/><stop offset="1" stop-color="#D9D2C5"/>
+    </linearGradient>
+    <linearGradient id="rz2-zinc" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#6E7B88"/><stop offset=".45" stop-color="#B9C4CE"/><stop offset=".7" stop-color="#E6ECF1"/><stop offset="1" stop-color="#8794A1"/>
+    </linearGradient>
+    <linearGradient id="rz2-leaf" x1="0" y1="1" x2="1" y2="0">
+      <stop offset="0" stop-color="#2C4A30"/><stop offset=".6" stop-color="#47744A"/><stop offset="1" stop-color="#7BA765"/>
+    </linearGradient>
+    <linearGradient id="rz2-blade" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#C9B95A"/><stop offset=".12" stop-color="#2F5236"/><stop offset=".5" stop-color="#48744C"/>
+      <stop offset=".88" stop-color="#2F5236"/><stop offset="1" stop-color="#D9C968"/>
+    </linearGradient>
+    <radialGradient id="rz2-tom" cx=".36" cy=".32" r=".75">
+      <stop offset="0" stop-color="#FF9A7C"/><stop offset=".35" stop-color="#DC4426"/><stop offset="1" stop-color="#861C0E"/>
+    </radialGradient>
+    <linearGradient id="rz2-mail" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#D4553A"/><stop offset=".3" stop-color="#B2301A"/><stop offset="1" stop-color="#7A1D0F"/>
+    </linearGradient>
+    <linearGradient id="rz2-post" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#3E2A18"/><stop offset="1" stop-color="#7A5636"/>
+    </linearGradient>
+    <radialGradient id="rz2-cat" cx=".55" cy=".25" r=".9">
+      <stop offset="0" stop-color="#F3B57C"/><stop offset=".6" stop-color="#D98643"/><stop offset="1" stop-color="#9A5524"/>
+    </radialGradient>
+  </defs>
+
+  <!-- 椰纖踏墊 -->
+  <rect x="664" y="858" width="272" height="20" rx="3" fill="#9A7647"/>
+  <rect x="664" y="858" width="272" height="20" rx="3" fill="#000" filter="url(#rz2-grain)"/>
+  <rect x="672" y="862" width="256" height="12" fill="none" stroke="#5E4426" stroke-width="2.5"/>
+  <rect x="664" y="876" width="272" height="4" fill="#3A2A18" opacity=".5"/>
+
+  <!-- 左：陶盆番茄 -->
+  <ellipse cx="452" cy="884" rx="120" ry="14" fill="#120F1C" opacity=".4" filter="url(#rz2-b8)"/>
+  <path d="M446 786 h108 l-16 88 h-76Z" fill="url(#rz2-terra)"/>
+  <path d="M446 786 h108 l-16 88 h-76Z" fill="#000" filter="url(#rz2-grain)" opacity=".7"/>
+  <rect x="438" y="770" width="124" height="22" rx="4" fill="url(#rz2-terra)"/>
+  <rect x="438" y="770" width="124" height="5" rx="2" fill="#E3A77F" opacity=".8"/>
+  <ellipse cx="500" cy="772" rx="56" ry="7" fill="#2E1E14"/>
+  <!-- 支架與莖 -->
+  <path d="M520 772 V600" stroke="#9A7A4A" stroke-width="5" stroke-linecap="round"/>
+  <path d="M500 772 C498 720 506 680 500 620 M500 720 C480 706 464 700 448 700 M502 690 C524 676 540 672 556 664 M500 650 C486 636 474 632 462 626"
+        fill="none" stroke="#3E6B3A" stroke-width="5" stroke-linecap="round"/>
+  <!-- 葉 -->
+  <g fill="url(#rz2-leaf)">
+    <path d="M448 700 c-30 -22 -52 -14 -62 8 c24 14 46 12 62 -8Z"/>
+    <path d="M452 706 c-14 20 -10 40 6 52 c14 -16 12 -36 -6 -52Z"/>
+    <path d="M556 664 c28 -24 52 -18 64 2 c-22 18 -46 18 -64 -2Z"/>
+    <path d="M552 672 c18 18 18 40 4 54 c-16 -14 -18 -34 -4 -54Z"/>
+    <path d="M462 626 c-26 -24 -50 -18 -60 2 c22 16 44 16 60 -2Z"/>
+    <path d="M500 620 c-22 -30 -12 -58 8 -70 c16 22 12 50 -8 70Z"/>
+    <path d="M506 624 c24 -18 48 -12 58 6 c-20 14 -42 12 -58 -6Z"/>
+    <path d="M498 730 c-20 4 -32 20 -30 38 c18 -4 30 -18 30 -38Z"/>
+  </g>
+  <g fill="none" stroke="#1F3A24" stroke-width="1.5" opacity=".5">
+    <path d="M448 700 q-34 -4 -60 8 M556 664 q34 -6 62 2 M462 626 q-32 -6 -58 2 M500 620 q-4 -36 8 -68"/>
+  </g>
+  <!-- 番茄 -->
+  <g>
+    <circle cx="470" cy="748" r="15" fill="url(#rz2-tom)"/><circle cx="536" cy="740" r="14" fill="url(#rz2-tom)"/>
+    <circle cx="512" cy="700" r="12" fill="url(#rz2-tom)"/><circle cx="486" cy="672" r="9" fill="#8FA548"/>
+    <g fill="#34573A"><path d="M470 734 l-8 -5 l6 -1 l2 -7 l2 7 l6 1Z"/><path d="M536 727 l-8 -5 l6 -1 l2 -7 l2 7 l6 1Z"/><path d="M512 689 l-6 -4 l5 -1 l1 -6 l2 6 l5 1Z"/></g>
+  </g>
+
+  <!-- 鍍鋅澆水壺 -->
+  <ellipse cx="350" cy="882" rx="80" ry="10" fill="#120F1C" opacity=".38" filter="url(#rz2-b8)"/>
+  <path d="M352 842 L312 806" stroke="url(#rz2-zinc)" stroke-width="12" stroke-linecap="butt"/>
+  <ellipse cx="308" cy="802" rx="13" ry="7" fill="#8794A1" transform="rotate(42 308 802)"/>
+  <path d="M416 812 q36 4 28 38 q-6 16 -28 14" fill="none" stroke="#7C8996" stroke-width="7" stroke-linecap="round"/>
+  <path d="M354 800 h64 l-4 74 h-56Z" fill="url(#rz2-zinc)"/>
+  <ellipse cx="386" cy="800" rx="32" ry="6" fill="#55616D"/>
+  <path d="M356 822 h60 M357 850 h58" stroke="#6E7B88" stroke-width="2" opacity=".7"/>
+  <path d="M354 800 h64 l-4 74 h-56Z" fill="#000" filter="url(#rz2-grain)" opacity=".35"/>
+
+  <!-- 右：虎尾蘭 -->
+  <ellipse cx="1090" cy="884" rx="120" ry="13" fill="#120F1C" opacity=".4" filter="url(#rz2-b8)"/>
+  <g>
+    <path d="M1118 792 C1096 700 1084 620 1070 560 C1104 610 1132 700 1140 792Z" fill="url(#rz2-blade)"/>
+    <path d="M1136 792 C1126 690 1128 590 1146 500 C1166 590 1168 690 1158 792Z" fill="url(#rz2-blade)"/>
+    <path d="M1150 792 C1164 710 1186 640 1218 590 C1206 660 1188 730 1172 792Z" fill="url(#rz2-blade)"/>
+    <path d="M1112 792 C1088 740 1066 700 1040 672 C1076 694 1112 740 1130 792Z" fill="url(#rz2-blade)"/>
+    <path d="M1160 792 C1178 744 1204 712 1236 694 C1214 724 1194 756 1180 792Z" fill="url(#rz2-blade)"/>
+    <g fill="none" stroke="#1F3A24" stroke-width="5" opacity=".28" stroke-linecap="round">
+      <path d="M1138 560 h18 M1134 620 h26 M1133 680 h28 M1134 740 h26 M1082 620 h14 M1096 680 h20 M1110 740 h22 M1198 650 h12 M1184 710 h14 M1172 760 h14"/>
+    </g>
+  </g>
+  <path d="M1092 792 h100 l-12 80 h-76Z" fill="url(#rz2-ceramic)"/>
+  <rect x="1084" y="778" width="116" height="18" rx="4" fill="url(#rz2-ceramic)"/>
+  <rect x="1084" y="778" width="116" height="4" rx="2" fill="#FFFFFF" opacity=".7"/>
+  <path d="M1097 826 h90 l-1 10 h-88Z" fill="#B2301A" opacity=".85"/>
+
+  <!-- 鐵信箱 -->
+  <ellipse cx="1310" cy="888" rx="90" ry="10" fill="#120F1C" opacity=".38" filter="url(#rz2-b8)"/>
+  <rect x="1343" y="700" width="18" height="184" fill="url(#rz2-post)"/>
+  <path d="M1290 644 a62 52 0 0 1 124 0 v64 h-124Z" fill="url(#rz2-mail)"/>
+  <path d="M1296 640 a56 46 0 0 1 112 0" fill="none" stroke="#F0907A" stroke-width="3" opacity=".7"/>
+  <path d="M1290 644 a62 52 0 0 1 124 0 v64 h-124Z" fill="#000" filter="url(#rz2-grain)" opacity=".4"/>
+  <rect x="1304" y="656" width="96" height="10" rx="2" fill="#1E0A06"/>
+  <g transform="rotate(-7 1350 648)">
+    <rect x="1322" y="630" width="58" height="32" fill="#F6F1E6"/>
+    <path d="M1322 630 l29 18 l29 -18" fill="none" stroke="#C9BEA9" stroke-width="2"/>
+  </g>
+  <circle cx="1352" cy="690" r="5" fill="#E9CB74"/>
+  <rect x="1412" y="606" width="6" height="60" fill="#55616D"/>
+  <path d="M1418 606 h36 l-10 13 l10 13 h-36Z" fill="#E2B13C"/>
+
+  <!-- 橘貓（趴睡） -->
+  <ellipse cx="1000" cy="862" rx="74" ry="7" fill="#120F1C" opacity=".45" filter="url(#rz2-b4)"/>
+  <path d="M1052 848 q40 -4 30 -36 q-5 -14 -18 -8" fill="none" stroke="#C97A3C" stroke-width="13" stroke-linecap="round"/>
+  <path d="M1052 848 q40 -4 30 -36" fill="none" stroke="#8E4E22" stroke-width="3" stroke-dasharray="4 10" opacity=".7"/>
+  <path d="M954 856 C950 826 980 808 1012 810 C1046 812 1068 828 1064 856Z" fill="url(#rz2-cat)"/>
+  <path d="M954 856 C950 826 980 808 1012 810 C1046 812 1068 828 1064 856Z" fill="#000" filter="url(#rz2-fur)" opacity=".8"/>
+  <g stroke="#8E4E22" stroke-width="4.500" stroke-linecap="round" opacity=".65" fill="none">
+    <path d="M1000 812 q4 10 0 20 M1018 812 q5 12 0 24 M1036 816 q5 10 1 22"/>
+  </g>
+  <path d="M938 836 c0 -18 12 -28 26 -28 c14 0 26 10 26 28 c0 14 -10 22 -26 22 c-16 0 -26 -8 -26 -22Z" fill="url(#rz2-cat)"/>
+  <path d="M942 822 l-1 -22 l17 11Z M972 810 l14 -14 l3 22Z" fill="#D98643"/>
+  <path d="M945 818 l0 -10 l8 5Z M975 810 l7 -7 l2 11Z" fill="#E9A99A"/>
+  <path d="M948 836 q5 4 10 0 M968 836 q5 4 10 0" fill="none" stroke="#2A1A10" stroke-width="2" stroke-linecap="round"/>
+  <path d="M960 843 l3 3 l3 -3Z" fill="#C0553E"/>
+  <ellipse cx="963" cy="852" rx="15" ry="6" fill="#F6E6D2"/>
+  <g stroke="#FFF7EA" stroke-width="1" opacity=".8"><path d="M950 846 l-16 -3 M950 849 l-16 2 M976 846 l16 -3 M976 849 l16 2"/></g>
+  <ellipse cx="972" cy="857" rx="12" ry="4.500" fill="#F3B57C"/>
+</svg>

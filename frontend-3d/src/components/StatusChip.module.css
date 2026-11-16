@@ -1,0 +1,45 @@
+/* em 單位：在世界裡或面板裡都跟著周圍的字縮放 */
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3em;
+  padding: 0.1em 0.65em;
+  border: 0.1em solid transparent;
+  border-radius: 99em;
+  font-size: 0.85em;
+  font-weight: 700;
+  line-height: 1.5;
+  white-space: nowrap;
+}
+
+.neutral {
+  background: #efe7d6;
+  color: var(--ink-600);
+}
+
+.info {
+  background: var(--cream-200);
+  color: var(--ink-900);
+}
+
+.ok {
+  background: var(--basil-100);
+  color: var(--basil-700);
+}
+
+.warn {
+  background: var(--mustard-100);
+  color: var(--mustard-700);
+}
+
+.danger {
+  background: var(--tomato-100);
+  color: var(--brick-800);
+}
+
+.unknown {
+  border-style: dashed;
+  border-color: var(--unknown);
+  background: rgba(255, 253, 247, 0.6);
+  color: var(--ink-600);
+}

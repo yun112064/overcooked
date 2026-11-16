@@ -1,0 +1,100 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 1000" preserveAspectRatio="xMidYMid slice">
+  <!-- 單板＋鍋 z1：俯視——夾著點菜單的木製單板（問卷由介面疊上）、鉛筆、瓦斯爐的左爐口（鍋由介面疊上） -->
+  <defs>
+    <filter id="pz1-woodv" x="0" y="0" width="100%" height="100%">
+      <feTurbulence type="fractalNoise" baseFrequency=".35 .008" numOctaves="3" seed="15"/>
+      <feColorMatrix type="matrix" values="0 0 0 0 .12  0 0 0 0 .06  0 0 0 0 .02  1.7 0 0 0 -.62"/>
+      <feComposite in2="SourceGraphic" operator="in"/>
+    </filter>
+    <filter id="pz1-b3"><feGaussianBlur stdDeviation="3"/></filter>
+    <filter id="pz1-b10"><feGaussianBlur stdDeviation="10"/></filter>
+    <linearGradient id="pz1-board" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#9A7650"/><stop offset=".5" stop-color="#7A5636"/><stop offset="1" stop-color="#5A3D24"/>
+    </linearGradient>
+    <linearGradient id="pz1-paper" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#FFFEFA"/><stop offset="1" stop-color="#F1EADB"/>
+    </linearGradient>
+    <linearGradient id="pz1-curl" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#E4DAC6"/><stop offset=".5" stop-color="#FFFEFA"/><stop offset="1" stop-color="#C9BEA9"/>
+    </linearGradient>
+    <linearGradient id="pz1-steel" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#F4F7F9"/><stop offset=".45" stop-color="#B9C0C6"/><stop offset="1" stop-color="#7C848C"/>
+    </linearGradient>
+    <linearGradient id="pz1-steelh" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#AEB6BD"/><stop offset=".3" stop-color="#EEF2F5"/><stop offset=".7" stop-color="#C9D0D6"/><stop offset="1" stop-color="#8A9198"/>
+    </linearGradient>
+    <linearGradient id="pz1-glass" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#34323C"/><stop offset=".5" stop-color="#17151C"/><stop offset="1" stop-color="#0C0B10"/>
+    </linearGradient>
+    <radialGradient id="pz1-knob" cx=".35" cy=".3" r=".8">
+      <stop offset="0" stop-color="#FFFFFF"/><stop offset=".5" stop-color="#B9C0C6"/><stop offset="1" stop-color="#4A5158"/>
+    </radialGradient>
+    <linearGradient id="pz1-pencil" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#C9952A"/><stop offset=".4" stop-color="#F6D25A"/><stop offset=".7" stop-color="#E2B13C"/><stop offset="1" stop-color="#A97F22"/>
+    </linearGradient>
+    <g id="pz1-grate">
+      <!-- 鑄鐵爐架：外框、六支爪、爐頭 -->
+      <rect x="-262" y="-262" width="524" height="524" rx="40" fill="none" stroke="#17151C" stroke-width="22"/>
+      <rect x="-262" y="-262" width="524" height="524" rx="40" fill="none" stroke="#4A4652" stroke-width="3" transform="translate(-4 -4)"/>
+      <g stroke="#17151C" stroke-width="22" stroke-linecap="round">
+        <path d="M0 -252 V-112 M0 252 V112 M-252 0 H-112 M252 0 H112"/>
+      </g>
+      <g stroke="#4A4652" stroke-width="3" stroke-linecap="round">
+        <path d="M-6 -252 V-112 M-6 252 V112 M-252 -6 H-112 M252 -6 H112"/>
+      </g>
+      <circle r="96" fill="#0A090C"/><circle r="96" fill="none" stroke="#2E2C36" stroke-width="10" stroke-dasharray="6 9"/>
+      <circle r="58" fill="#26242C"/><circle r="58" fill="none" stroke="#4A4652" stroke-width="2"/>
+      <circle cx="-16" cy="-18" r="20" fill="#FFFFFF" opacity=".06"/>
+    </g>
+  </defs>
+
+  <!-- 單板 -->
+  <g transform="rotate(-1.5 400 500)">
+    <rect x="124" y="74" width="580" height="888" rx="18" fill="#0E0A14" opacity=".5" filter="url(#pz1-b10)"/>
+    <rect x="110" y="56" width="580" height="888" rx="18" fill="url(#pz1-board)"/>
+    <rect x="110" y="56" width="580" height="888" rx="18" fill="#000" filter="url(#pz1-woodv)"/>
+    <path d="M110 926 V74 q0 -18 18 -18 H672" fill="none" stroke="#C39A66" stroke-width="3" opacity=".8"/>
+    <!-- 點菜單（紙） -->
+    <rect x="158" y="130" width="500" height="790" fill="#0E0A14" opacity=".35" filter="url(#pz1-b3)"/>
+    <path d="M150 120 H650 V858 L598 910 H150Z" fill="url(#pz1-paper)"/>
+    <path d="M650 858 L598 910 L604 866Z" fill="url(#pz1-curl)"/>
+    <path d="M150 120 H650" stroke="#FFFFFF" stroke-width="2"/>
+    <!-- 金屬夾 -->
+    <rect x="296" y="52" width="216" height="92" rx="10" fill="#0E0A14" opacity=".45" filter="url(#pz1-b3)" transform="translate(4 6)"/>
+    <rect x="292" y="46" width="216" height="92" rx="10" fill="url(#pz1-steel)"/>
+    <rect x="292" y="46" width="216" height="6" rx="3" fill="#FFFFFF" opacity=".9"/>
+    <rect x="320" y="24" width="160" height="44" rx="12" fill="url(#pz1-steelh)"/>
+    <rect x="352" y="34" width="96" height="12" rx="6" fill="#4A5158" opacity=".7"/>
+    <circle cx="316" cy="118" r="7" fill="#6E757C"/><circle cx="484" cy="118" r="7" fill="#6E757C"/>
+    <circle cx="314" cy="116" r="2.500" fill="#FFFFFF"/><circle cx="482" cy="116" r="2.500" fill="#FFFFFF"/>
+  </g>
+
+  <!-- 鉛筆 -->
+  <g transform="rotate(6 736 520)">
+    <rect x="730" y="318" width="22" height="400" rx="3" fill="#0E0A14" opacity=".4" filter="url(#pz1-b3)" transform="translate(5 5)"/>
+    <rect x="726" y="352" width="22" height="330" fill="url(#pz1-pencil)"/>
+    <rect x="726" y="328" width="22" height="26" fill="url(#pz1-steelh)"/><rect x="726" y="312" width="22" height="18" rx="6" fill="#E88A7A"/>
+    <path d="M726 682 h22 l-11 34Z" fill="#E9CFA0"/><path d="M733 704 h8 l-4 12Z" fill="#3A2A20"/>
+  </g>
+
+  <!-- 瓦斯爐 -->
+  <rect x="810" y="86" width="860" height="760" rx="20" fill="#0E0A14" opacity=".45" filter="url(#pz1-b10)"/>
+  <rect x="798" y="70" width="860" height="760" rx="20" fill="url(#pz1-steelh)"/>
+  <rect x="798" y="70" width="860" height="6" rx="3" fill="#FFFFFF" opacity=".9"/>
+  <rect x="818" y="90" width="840" height="604" rx="10" fill="url(#pz1-glass)"/>
+  <path d="M840 110 h300 l-180 560 h-120Z" fill="#FFFFFF" opacity=".035"/>
+  <use href="#pz1-grate" x="1090" y="390"/>
+  <use href="#pz1-grate" x="1660" y="390"/>
+  <!-- 旋鈕列 -->
+  <path d="M818 700 H1658" stroke="#6E757C" stroke-width="2"/>
+  <g>
+    <circle cx="1094" cy="768" r="38" fill="#0E0A14" opacity=".4" filter="url(#pz1-b3)"/>
+    <circle cx="1090" cy="762" r="38" fill="url(#pz1-knob)"/><circle cx="1090" cy="762" r="38" fill="none" stroke="#6E757C" stroke-width="2"/>
+    <rect x="1086" y="728" width="8" height="34" rx="4" fill="#D9472B"/>
+    <g fill="none" stroke="#6E757C" stroke-width="3" stroke-linecap="round"><path d="M1034 730 a64 64 0 0 1 112 0"/></g>
+    <g fill="#6E757C"><circle cx="1030" cy="738" r="3"/><circle cx="1150" cy="738" r="5"/></g>
+    <rect x="900" y="752" width="90" height="20" rx="10" fill="#4A5158" opacity=".35"/>
+    <circle cx="1586" cy="768" r="38" fill="#0E0A14" opacity=".4" filter="url(#pz1-b3)"/>
+    <circle cx="1582" cy="762" r="38" fill="url(#pz1-knob)"/><rect x="1578" y="728" width="8" height="34" rx="4" fill="#3A2A20"/>
+  </g>
+</svg>

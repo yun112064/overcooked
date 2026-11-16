@@ -1,0 +1,87 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 1000" preserveAspectRatio="xMidYMid slice">
+  <!-- 大門（寫實風）z0：黃昏天空、逆光雲、遠處街屋、樹籬 -->
+  <defs>
+    <linearGradient id="rz0-sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#4F5F92"/>
+      <stop offset=".22" stop-color="#8E7FA8"/>
+      <stop offset=".42" stop-color="#D99A8C"/>
+      <stop offset=".6" stop-color="#F4B37E"/>
+      <stop offset=".76" stop-color="#FAD9A6"/>
+      <stop offset=".86" stop-color="#F3D9B4"/>
+    </linearGradient>
+    <radialGradient id="rz0-sun" gradientUnits="userSpaceOnUse" cx="1390" cy="560" r="620">
+      <stop offset="0" stop-color="#FFF6D8" stop-opacity=".95"/>
+      <stop offset=".1" stop-color="#FFDFA0" stop-opacity=".8"/>
+      <stop offset=".4" stop-color="#F7A96E" stop-opacity=".28"/>
+      <stop offset="1" stop-color="#F7A96E" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="rz0-ground" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#8E8A84"/><stop offset="1" stop-color="#5F5C5E"/>
+    </linearGradient>
+    <linearGradient id="rz0-hedge" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#4E6B4A"/><stop offset="1" stop-color="#2C4033"/>
+    </linearGradient>
+    <filter id="rz0-b14"><feGaussianBlur stdDeviation="14"/></filter>
+    <filter id="rz0-b4"><feGaussianBlur stdDeviation="4"/></filter>
+    <filter id="rz0-b2"><feGaussianBlur stdDeviation="2"/></filter>
+  </defs>
+
+  <rect width="1600" height="1000" fill="url(#rz0-sky)"/>
+  <rect width="1600" height="1000" fill="url(#rz0-sun)"/>
+  <circle cx="1390" cy="560" r="44" fill="#FFF8E2" filter="url(#rz0-b2)"/>
+
+  <!-- 雲：上緣暗紫、下緣被夕陽照亮 -->
+  <g filter="url(#rz0-b14)">
+    <g fill="#7C6F98" opacity=".75">
+      <ellipse cx="240" cy="150" rx="230" ry="38"/><ellipse cx="420" cy="118" rx="150" ry="30"/>
+      <ellipse cx="1180" cy="170" rx="260" ry="34"/><ellipse cx="1420" cy="120" rx="170" ry="28"/>
+      <ellipse cx="760" cy="60" rx="200" ry="22"/>
+    </g>
+    <g fill="#FFC79A" opacity=".85">
+      <ellipse cx="260" cy="176" rx="210" ry="18"/><ellipse cx="1200" cy="194" rx="240" ry="16"/>
+      <ellipse cx="1430" cy="142" rx="150" ry="12"/><ellipse cx="780" cy="74" rx="170" ry="9"/>
+    </g>
+    <g fill="#F8B7A0" opacity=".6">
+      <ellipse cx="560" cy="290" rx="260" ry="14"/><ellipse cx="1040" cy="330" rx="300" ry="12"/>
+    </g>
+  </g>
+
+  <!-- 遠山與遠處街屋（大氣透視：偏紫、模糊） -->
+  <path d="M0 690 Q200 610 420 660 T860 640 T1250 650 T1600 630 V820 H0Z" fill="#8C7C9C" opacity=".55" filter="url(#rz0-b4)"/>
+  <g filter="url(#rz0-b2)">
+    <g fill="#5F5878">
+      <path d="M0 650 h150 v-70 l60 -44 l60 44 v70 h40 v180 H0Z"/>
+      <path d="M1330 668 l70 -54 l70 54 v150 h-140Z"/>
+      <rect x="1470" y="620" width="130" height="200"/>
+    </g>
+    <g fill="#4A4563">
+      <path d="M130 584 l80 -58 l80 58Z"/><path d="M1318 672 l82 -62 l82 62Z"/>
+      <rect x="1462" y="610" width="146" height="14"/>
+    </g>
+    <g fill="#FFD68A">
+      <rect x="34" y="686" width="24" height="34"/><rect x="88" y="686" width="24" height="34"/>
+      <rect x="196" y="610" width="26" height="30"/><rect x="1384" y="694" width="26" height="34"/>
+      <rect x="1500" y="660" width="22" height="30"/><rect x="1548" y="660" width="22" height="30"/><rect x="1500" y="720" width="22" height="30"/>
+    </g>
+  </g>
+  <g fill="#FFD68A" opacity=".35" filter="url(#rz0-b14)">
+    <circle cx="46" cy="702" r="26"/><circle cx="208" cy="624" r="24"/><circle cx="1396" cy="710" r="26"/><circle cx="1524" cy="690" r="28"/>
+  </g>
+
+  <!-- 遠樹剪影 -->
+  <g fill="#45435E" filter="url(#rz0-b2)">
+    <circle cx="300" cy="730" r="58"/><circle cx="248" cy="756" r="42"/><circle cx="346" cy="762" r="36"/><rect x="292" y="770" width="12" height="60"/>
+    <circle cx="1280" cy="744" r="48"/><circle cx="1236" cy="766" r="34"/><rect x="1274" y="780" width="12" height="50"/>
+  </g>
+
+  <!-- 電線桿 -->
+  <g stroke="#3B3852" fill="none" stroke-linecap="round" opacity=".9">
+    <path d="M118 430 V820" stroke-width="9"/><path d="M88 462 H148 M96 492 H140" stroke-width="5"/>
+    <path d="M90 462 Q420 560 780 452 M146 462 Q470 580 820 462 M98 492 Q420 590 760 500" stroke-width="1.6"/>
+  </g>
+
+  <!-- 樹籬與地面 -->
+  <path d="M0 800 q40 -26 90 -14 t120 -4 t140 6 t130 -8 V880 H0Z" fill="url(#rz0-hedge)"/>
+  <path d="M1250 808 q60 -24 120 -10 t130 -6 t100 4 V880 H1250Z" fill="url(#rz0-hedge)"/>
+  <rect y="850" width="1600" height="150" fill="url(#rz0-ground)"/>
+</svg>

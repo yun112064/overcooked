@@ -1,0 +1,133 @@
+.panel {
+  position: absolute;
+  z-index: var(--z-panel);
+  display: flex;
+  flex-direction: column;
+  background: linear-gradient(#fffefa, #f1eadb);
+  box-shadow: var(--shadow-float);
+  color: var(--ink-900);
+  font-size: 15px;
+}
+
+/* 焦點移進面板本身時不畫外框（它只是起點），裡面的按鈕照常有焦點框 */
+.panel:focus {
+  outline: none;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 6px 6px 18px;
+  border-bottom: 1px solid var(--cream-200);
+}
+
+.header h2 {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  font-family: var(--font-round);
+  font-size: 18px;
+  line-height: 1.3;
+  color: var(--brick-800);
+}
+
+.close {
+  flex: none;
+  width: 44px;
+  height: 44px;
+  border: 0;
+  border-radius: 10px;
+  background: none;
+  font-size: 18px;
+  color: var(--ink-600);
+}
+
+.body {
+  flex: 1;
+  min-height: 0;
+  padding: 14px 18px 18px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.footer {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 10px 18px;
+  border-top: 1px solid var(--cream-200);
+}
+
+.footer > * {
+  flex: 1;
+}
+
+/* ---- 桌機與平板：浮在場景左右 ---- */
+:global([data-layout='wide']) .panel {
+  width: clamp(280px, 28vw, 400px);
+  border-radius: 16px;
+  animation: slide-side var(--dur-base) var(--ease-out);
+}
+
+:global([data-layout='wide']) .left {
+  /* 讓開左側欄 */
+  left: calc(var(--left-inset) + max(12px, env(safe-area-inset-left)));
+  top: max(16px, env(safe-area-inset-top));
+  max-height: calc(100% - 32px - var(--bottom-inset));
+  --from: -16px;
+}
+
+:global([data-layout='wide']) .right {
+  right: max(12px, env(safe-area-inset-right));
+  /* 讓開右上角的家庭選單 */
+  top: calc(max(12px, env(safe-area-inset-top)) + 56px);
+  max-height: calc(100% - 84px - var(--bottom-inset));
+  --from: 16px;
+}
+
+/* ---- 手機：下方抽屜，蓋住分頁與物件列 ---- */
+:global([data-layout='phone']) .panel {
+  left: 0;
+  right: 0;
+  bottom: 0;
+  max-height: 76vh;
+  max-height: 76dvh;
+  padding-bottom: env(safe-area-inset-bottom);
+  border-radius: 18px 18px 0 0;
+  animation: slide-up var(--dur-base) var(--ease-out);
+}
+
+@keyframes slide-side {
+  from {
+    opacity: 0;
+    transform: translateX(var(--from));
+  }
+}
+
+@keyframes slide-up {
+  from {
+    transform: translateY(100%);
+  }
+}
+
+/* 靜態景深只淡入；關閉模式與系統減少動態都不動 */
+:global(html[data-depth='static']) .panel {
+  animation-name: fade;
+}
+
+@keyframes fade {
+  from {
+    opacity: 0;
+  }
+}
+
+:global(html[data-depth='off']) .panel {
+  animation: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .panel {
+    animation: none !important;
+  }
+}

@@ -1,0 +1,39 @@
+.notice {
+  display: grid;
+  gap: 4px;
+  padding: 10px 12px;
+  border-left: 4px solid var(--paper-edge);
+  border-radius: 10px;
+  background: var(--cream-100);
+  box-shadow: 0 2px 8px rgba(15, 8, 25, 0.18);
+  color: var(--ink-900);
+  font-size: 14px;
+  line-height: 1.6;
+  text-align: left;
+}
+
+.notice strong {
+  font-family: var(--font-round);
+  font-size: 15px;
+}
+
+.action {
+  margin-top: 6px;
+}
+
+.success {
+  border-left-color: var(--basil-600);
+  background: var(--basil-100);
+}
+
+.warn {
+  border-left-color: var(--mustard-500);
+  background: var(--mustard-100);
+}
+
+.error {
+  border-left-color: var(--brick-700);
+  background: var(--tomato-100);
+  color: var(--brick-800);
+  font-weight: 700;
+}

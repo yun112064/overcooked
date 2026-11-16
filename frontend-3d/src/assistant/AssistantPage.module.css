@@ -1,0 +1,100 @@
+/* 把後面的客廳壓暗一點，前面的字才好讀 */
+.scrim {
+  position: absolute;
+  inset: 0;
+  background: rgba(42, 34, 56, 0.5);
+  pointer-events: none;
+}
+
+.page {
+  position: absolute;
+  /* 讓開右上角的家庭選單 */
+  top: calc(max(12px, env(safe-area-inset-top)) + 56px);
+  display: flex;
+  flex-direction: column;
+  background: linear-gradient(#fffefa, #f1eadb);
+  box-shadow: var(--shadow-float);
+  color: var(--ink-900);
+}
+
+/* 桌機與平板：置中的一張面板，讓開左側欄 */
+:global([data-layout='wide']) .page {
+  left: calc(var(--left-inset) + 16px);
+  right: 16px;
+  bottom: calc(16px + var(--bottom-inset));
+  max-width: 860px;
+  margin-inline: auto;
+  border-radius: 16px;
+}
+
+/* 手機：整個寬度，底下貼著分頁 */
+:global([data-layout='phone']) .page {
+  left: 0;
+  right: 0;
+  bottom: calc(var(--bottom-inset) + env(safe-area-inset-bottom));
+  border-radius: 18px 18px 0 0;
+}
+
+.header {
+  display: flex;
+  flex: none;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 8px 16px;
+  padding: 14px 18px 12px;
+  border-bottom: 1px solid var(--cream-200);
+}
+
+.heading {
+  flex: 1 1 280px;
+  min-width: 0;
+}
+
+.heading h1 {
+  margin: 0;
+  font-family: var(--font-round);
+  font-size: 22px;
+  line-height: 1.3;
+  color: var(--brick-800);
+}
+
+.heading p {
+  margin: 4px 0 0;
+  color: var(--ink-600);
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.tools {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+}
+
+.log {
+  flex: 1;
+}
+
+.foot {
+  flex: none;
+  padding: 6px 16px 12px;
+}
+
+/* 手機上省一點高度給對話 */
+:global([data-layout='phone']) .header {
+  padding: 10px 14px 8px;
+}
+
+:global([data-layout='phone']) .heading h1 {
+  font-size: 19px;
+}
+
+:global([data-layout='phone']) .log {
+  padding: 12px;
+}
+
+:global([data-layout='phone']) .foot {
+  padding: 4px 10px 8px;
+}

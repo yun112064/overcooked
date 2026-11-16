@@ -1,10 +1,11 @@
 ﻿<#
 .SYNOPSIS
-  關閉 scripts/demo-up.ps1 啟動的單機 demo（全部容器、cloudflared 快速通道、主機上的 YOLO）。資料保留在 volume。
+  關閉 scripts/demo-up.ps1 啟動的單機 demo（全部容器、兩條 cloudflared 快速通道、模擬超市、飲食小幫手、主機上的 YOLO）。
+  資料保留在 volume。不需要補 .env.demo 的鍵：compose.demo.yaml 新增的鍵都有空值預設。
 
 .PARAMETER Purge
-  連同 demo 的資料 volume（overcooked-demo_*：資料庫、知識庫、上傳檔）一起刪除；會要求輸入確認。
-  不會動到開發用的 overcooked-dev-db 與其 volume。
+  連同 demo 的資料 volume（overcooked-demo_*：資料庫、知識庫、飲食小幫手索引、上傳檔）一起刪除；會要求輸入確認。
+  不會動到開發用的 overcooked-dev-db 與其 volume，也不會動到 ASSISTANT_DATA_DIR 的原文語料（主機目錄）。
 #>
 param([switch]$Purge)
 
@@ -24,10 +25,13 @@ if (Test-Path $YoloPidFile) {
 
 if (-not (Test-Path (Join-Path $Root '.env.demo'))) { Write-Host '沒有 .env.demo，demo 沒有啟動過。'; exit 0 }
 $Compose = @('compose', '-p', 'overcooked-demo', '--env-file', '.env.demo', '-f', 'compose.yaml', '-f', 'compose.demo.yaml',
-    '--profile', 'tunnel', '--profile', 'tools')
+    '--profile', 'tunnel', '--profile', 'tools', '--profile', 'sim-market', '--profile', 'assistant',
+    '--profile', 'assistant-tools')
 
 if ($Purge) {
-    $answer = Read-Host '確定要刪除 demo 的所有資料（資料庫、知識庫、上傳檔）？輸入 PURGE 確認'
+    Write-Host '將刪除：demo 資料庫、知識庫、上傳檔，以及飲食小幫手索引（demo_assistant_pg；之後要重新向量化）。' -ForegroundColor Yellow
+    Write-Host '保留：ASSISTANT_DATA_DIR 的原文語料（主機目錄，不是 volume）；食譜封面與 T04 營養證據會在下次 demo-up 重新載入。'
+    $answer = Read-Host '確定要刪除 demo 的所有資料（資料庫、知識庫、飲食小幫手索引、上傳檔）？輸入 PURGE 確認'
     if ($answer -cne 'PURGE') { Write-Host '已取消，未刪除任何資料。'; $Purge = $false }
 }
 if ($Purge) {

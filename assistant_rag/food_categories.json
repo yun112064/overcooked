@@ -1,0 +1,568 @@
+{
+  "version": "food-categories-v1",
+  "status": "draft",
+  "note": "類別回答用：食材查不到專文時，改查它所屬類別的一般資料，並明說沒有該食材本身的資料。食材名稱取自 V3 食譜（recipe_dataset_1103_V3.xlsx）在 2026-11-09 覆蓋檢查中會拒答或只找到相近文章的食材。 2026-11-09 排除疾病主題文章後，低脂牛奶、鮪魚罐頭、水煮鮪魚罐頭、雞里肌肉不再過門檻，補入類別。 2026-11-10：分數過門檻但前 3 篇都沒提到該食材時也改走類別回答（例如柴魚→鯖魚文章、蔭油→藻油文章）；match 列出算作「提到」的同物異名（金瓜＝南瓜、新鮮檸檬＝檸檬）。 2026-11-10：aliases 列出同一種食物的別名（來源見 alias_source）；本名查不到（低於門檻或文章沒提到）時先以別名重查，查到就直接回答並說明以別名的資料回答，查不到才走類別回答。 2026-11-10：不確定的對照一律刪除——皮蛋、泡香菇的水、油花生、蛋豆腐改列 refuse（查不到本身資料就說查不到，不用類別或相近食物回答）；鳳梨罐頭≠任何罐頭、蒟蒻烏龍麵≠蒟蒻、芋頭餡≠芋頭、蛤蜊汁≠蛤蜊、橄欖油檸檬沙拉醬≠沙拉醬、黃芥末醬≠芥末、小茴香≠茴香，這些對照刪掉。",
+  "categories": {
+    "salt": {
+      "label": "鹽與鹹味調味",
+      "query": "怎麼減少吃鹽"
+    },
+    "soy_sauce": {
+      "label": "醬油類",
+      "query": "醬油的鈉含量高嗎"
+    },
+    "sauce": {
+      "label": "醬料與沾醬",
+      "query": "醬料和沾醬怎麼吃比較健康"
+    },
+    "seasoning_powder": {
+      "label": "味精與調味粉",
+      "query": "味精吃了對身體有害嗎"
+    },
+    "sugar": {
+      "label": "糖與甜味調味",
+      "query": "添加糖、精緻糖要怎麼減少攝取"
+    },
+    "cooking_wine": {
+      "label": "料理用酒",
+      "query": "用米酒煮菜要注意什麼"
+    },
+    "oil": {
+      "label": "食用油與奶油",
+      "query": "植物油和動物油哪個好"
+    },
+    "spice": {
+      "label": "香料與辛香料",
+      "query": "香料入菜有什麼好處"
+    },
+    "vinegar": {
+      "label": "醋",
+      "query": "吃醋有什麼好處和注意事項"
+    },
+    "stock": {
+      "label": "湯與高湯",
+      "query": "喝湯要注意什麼？湯的鈉含量高嗎"
+    },
+    "pork": {
+      "label": "豬肉（紅肉）",
+      "query": "豬肉屬於紅肉嗎？紅肉要怎麼吃"
+    },
+    "chicken": {
+      "label": "雞肉（白肉）",
+      "query": "雞肉和紅肉哪個比較健康"
+    },
+    "red_meat": {
+      "label": "紅肉（牛肉、羊肉）",
+      "query": "紅肉怎麼吃比較健康"
+    },
+    "processed_meat": {
+      "label": "加工肉品與火鍋料",
+      "query": "加工肉品、培根、香腸吃了健康嗎"
+    },
+    "seafood": {
+      "label": "海鮮（蝦、貝、頭足類）",
+      "query": "吃蝦會讓膽固醇變高嗎"
+    },
+    "fish": {
+      "label": "魚類",
+      "query": "吃魚有什麼營養和好處"
+    },
+    "starch": {
+      "label": "澱粉與勾芡粉",
+      "query": "澱粉類食物怎麼吃比較健康"
+    },
+    "noodle": {
+      "label": "麵食與米粉",
+      "query": "吃麵怎麼吃比較健康"
+    },
+    "rice": {
+      "label": "米飯",
+      "query": "白米飯有什麼營養？怎麼吃比較健康"
+    },
+    "egg": {
+      "label": "蛋與蛋類加工品",
+      "query": "蛋怎麼吃比較健康"
+    },
+    "soy": {
+      "label": "豆製品",
+      "query": "吃豆製品有什麼好處"
+    },
+    "pickled": {
+      "label": "醃漬與罐頭食品",
+      "query": "罐頭食品健康嗎"
+    },
+    "dairy": {
+      "label": "起司與乳製品",
+      "query": "起司有什麼營養"
+    },
+    "vegetable": {
+      "label": "蔬菜",
+      "query": "多吃蔬菜有什麼好處"
+    },
+    "mushroom": {
+      "label": "菇類",
+      "query": "菇類有什麼營養和好處"
+    },
+    "seaweed": {
+      "label": "海藻類",
+      "query": "海帶、紫菜有什麼營養"
+    },
+    "tea": {
+      "label": "茶飲",
+      "query": "喝茶有什麼好處和注意事項"
+    },
+    "dumpling_bread": {
+      "label": "麵粉製品（水餃、麵包）",
+      "query": "麵粉做的食物怎麼吃比較健康"
+    },
+    "nuts_seeds": {
+      "label": "堅果與種子",
+      "query": "堅果和芝麻有什麼營養"
+    },
+    "fruit": {
+      "label": "水果",
+      "query": "吃水果有什麼營養和好處"
+    },
+    "fermented": {
+      "label": "發酵食品與乳酸飲料",
+      "query": "發酵食品和益生菌飲料有什麼好處"
+    }
+  },
+  "foods": {
+    "七味粉": "spice",
+    "中筋麵粉": "dumpling_bread",
+    "乾燥海帶芽": "seaweed",
+    "乾燥迷迭香": "spice",
+    "乾辣椒": "spice",
+    "五印醋": "vinegar",
+    "五味粉": "spice",
+    "五木營養麵條": "noodle",
+    "五花肉": "pork",
+    "五花肉片": "pork",
+    "五香粉": "spice",
+    "傳統豆干": "soy",
+    "八角": "spice",
+    "冰糖": "sugar",
+    "冷凍烏龍麵": "noodle",
+    "凱撒沙拉醬": "sauce",
+    "台式醬油": "soy_sauce",
+    "史雲生清雞湯": "stock",
+    "吳郭魚": "fish",
+    "味醂": "sauce",
+    "咖哩塊": "sauce",
+    "咖喱塊": "sauce",
+    "啤酒": "cooking_wine",
+    "土雞腿": "chicken",
+    "在來米粉": "starch",
+    "地瓜粉": "starch",
+    "培根": "processed_meat",
+    "多利魚": "fish",
+    "大白粉": "starch",
+    "大頭菜": "vegetable",
+    "太白粉": "starch",
+    "太白粉水": "starch",
+    "寬麵條": "noodle",
+    "小卷": "seafood",
+    "小松菜": "vegetable",
+    "小白菇": "mushroom",
+    "小白菜": "vegetable",
+    "小茴香": "spice",
+    "小辣椒": "spice",
+    "山葵胡椒粉": "spice",
+    "巴西里": "spice",
+    "帶皮帶骨雞肉": "chicken",
+    "帶皮雞腿": "chicken",
+    "干貝醬": "sauce",
+    "拉麵": "noodle",
+    "排骨酥": "pork",
+    "料理酒": "cooking_wine",
+    "料酒": "cooking_wine",
+    "新鮮檸檬": "fruit",
+    "日式炒麵醬": "sauce",
+    "普羅旺斯風味香料": "spice",
+    "月桂葉": "spice",
+    "有機素蠔油": "sauce",
+    "朝天椒": "spice",
+    "木薯粉": "starch",
+    "松阪豬": "pork",
+    "柴魚": "seasoning_powder",
+    "柴魚片花": "seasoning_powder",
+    "柴魚粉": "seasoning_powder",
+    "柴魚高湯": "seasoning_powder",
+    "桂竹筍": "vegetable",
+    "梅子粉": "pickled",
+    "梅花肉": "pork",
+    "橄欖油檸檬沙拉醬": "sauce",
+    "水餃皮": "dumpling_bread",
+    "沙拉油": "oil",
+    "沙茶": "sauce",
+    "沙茶醬": "sauce",
+    "沙茶醬的油": "sauce",
+    "油菜": "vegetable",
+    "油蒜酥": "spice",
+    "油蔥酥": "spice",
+    "油麵": "noodle",
+    "法式香料": "spice",
+    "洋菇": "mushroom",
+    "海苔粉": "seaweed",
+    "海鹽": "salt",
+    "淡醬油": "soy_sauce",
+    "清酒": "cooking_wine",
+    "清雞高湯": "stock",
+    "澄粉": "starch",
+    "火腿": "processed_meat",
+    "火鍋羊肉片": "red_meat",
+    "火鍋肉片": "pork",
+    "烏龍麵": "noodle",
+    "烹大師": "seasoning_powder",
+    "焗烤起司": "dairy",
+    "無塩奶油": "oil",
+    "無骨雞腿肉": "chicken",
+    "熟蛤蜊": "seafood",
+    "燻鮭魚": "fish",
+    "牛小排": "red_meat",
+    "牛肉貢丸": "processed_meat",
+    "牛肋條": "red_meat",
+    "牛腩": "red_meat",
+    "牛腱": "red_meat",
+    "牛腱肉": "red_meat",
+    "甘草": "spice",
+    "甜不辣": "processed_meat",
+    "甜麵醬": "sauce",
+    "生米": "rice",
+    "番茄糊": "sauce",
+    "番茄醬": "sauce",
+    "當歸": "spice",
+    "白米醋": "vinegar",
+    "白胡椒粉": "spice",
+    "白蘑菇": "mushroom",
+    "石頭火鍋粉": "processed_meat",
+    "筍片": "vegetable",
+    "米油": "oil",
+    "米粉": "noodle",
+    "米粕": "rice",
+    "米酒": "cooking_wine",
+    "粉絲": "noodle",
+    "粗黑胡椒粉": "spice",
+    "粟米": "rice",
+    "糖粉": "sugar",
+    "糯米粉": "starch",
+    "糯米辣椒醬": "sauce",
+    "紅冰糖": "sugar",
+    "紅彩椒": "vegetable",
+    "紅標料理米酒": "cooking_wine",
+    "紅茶葉": "tea",
+    "紅蔥酥": "spice",
+    "紅酒": "cooking_wine",
+    "素蠔油": "sauce",
+    "紫菜": "seaweed",
+    "紫薯粉": "starch",
+    "細糖": "sugar",
+    "紹興酒": "cooking_wine",
+    "罐頭花瓜醬汁": "pickled",
+    "罐頭鮪魚": "fish",
+    "羅勒葉": "spice",
+    "美乃滋": "sauce",
+    "美極鮮味露": "seasoning_powder",
+    "義大利麵醬": "sauce",
+    "義式香料": "spice",
+    "義式香腸": "processed_meat",
+    "老抽": "soy_sauce",
+    "肉絲": "pork",
+    "胡椒鹽": "salt",
+    "脆瓜罐頭": "pickled",
+    "腰內肉": "pork",
+    "芋頭餡": "vegetable",
+    "花枝": "seafood",
+    "花椒": "spice",
+    "花椒粉": "spice",
+    "花椒粒": "spice",
+    "花瓜": "pickled",
+    "芹菜": "vegetable",
+    "茉莉香米": "rice",
+    "草果": "spice",
+    "草蝦": "seafood",
+    "草蝦仁": "seafood",
+    "荷包蛋": "egg",
+    "蒜酥": "spice",
+    "蒟蒻烏龍麵": "noodle",
+    "蓮藕粉": "starch",
+    "蔬菜雞高湯": "stock",
+    "蔭油": "soy_sauce",
+    "蕃茄膏": "sauce",
+    "蛤蜊汁": "seafood",
+    "蝦": "seafood",
+    "蝦仁": "seafood",
+    "蝦子": "seafood",
+    "蝦皮": "seafood",
+    "蟹肉棒": "processed_meat",
+    "蠔油": "sauce",
+    "袖珍菇": "mushroom",
+    "西洋芹": "vegetable",
+    "話梅": "pickled",
+    "豆干": "soy",
+    "豆瓣醬": "sauce",
+    "豆皮": "soy",
+    "豆豉": "soy",
+    "豬五花肉片": "pork",
+    "豬後腿肉": "pork",
+    "豬排肉": "pork",
+    "豬排骨": "pork",
+    "豬梅花排骨": "pork",
+    "豬油蔥": "oil",
+    "豬肉片": "pork",
+    "豬肉絲": "pork",
+    "豬肩肉": "pork",
+    "豬里肌肉": "pork",
+    "貢丸": "processed_meat",
+    "起司粉": "dairy",
+    "辣椒醬": "sauce",
+    "辣豆瓣": "sauce",
+    "辣豆瓣醬": "sauce",
+    "迷迭香": "spice",
+    "透抽": "seafood",
+    "酸黃瓜醬": "sauce",
+    "醃豬肉": "pork",
+    "醬油膏": "soy_sauce",
+    "金瓜": "vegetable",
+    "長米": "rice",
+    "雞柳條": "chicken",
+    "雞粉": "seasoning_powder",
+    "雞翅": "chicken",
+    "雞腿排": "chicken",
+    "雞腿肉": "chicken",
+    "雞腿骨": "chicken",
+    "雞里肌肉": "chicken",
+    "青蘿蔔": "vegetable",
+    "韓式烤肉醬": "sauce",
+    "韓式芝麻油": "oil",
+    "韓式辣椒粉": "spice",
+    "韓式辣椒醬": "sauce",
+    "韓式辣醬": "sauce",
+    "食鹽": "salt",
+    "養樂多": "fermented",
+    "餛飩": "dumpling_bread",
+    "餛飩皮": "dumpling_bread",
+    "香油": "oil",
+    "香腸": "processed_meat",
+    "香菇水": "mushroom",
+    "香葉": "spice",
+    "香蒜胡椒鹽": "salt",
+    "高湯水": "stock",
+    "高筋麵粉": "dumpling_bread",
+    "高粱酒": "cooking_wine",
+    "高粱醋": "vinegar",
+    "高鮮味精": "seasoning_powder",
+    "魚高湯": "seasoning_powder",
+    "鮮味炒手": "seasoning_powder",
+    "鮮雞粉": "seasoning_powder",
+    "鯛魚片": "fish",
+    "鰹魚粉": "seasoning_powder",
+    "鳳梨罐頭": "pickled",
+    "鹹蛋": "egg",
+    "鹹豬肉": "pork",
+    "鹽": "salt",
+    "鹽巴": "salt",
+    "鹽麴": "salt",
+    "麥芽糖": "sugar",
+    "麵包丁": "dumpling_bread",
+    "麵包粉": "dumpling_bread",
+    "黃冰糖": "sugar",
+    "黃芥末醬": "sauce",
+    "黃豆油": "oil",
+    "黑啤酒": "cooking_wine",
+    "黑白芝麻": "nuts_seeds",
+    "黑胡椒粉": "spice",
+    "低脂牛奶": "dairy",
+    "鮪魚罐頭": "fish",
+    "水煮鮪魚罐頭": "fish",
+    "烏醋": "vinegar"
+  },
+  "match": {
+    "香油": [
+      "香油",
+      "麻油"
+    ],
+    "中筋麵粉": [
+      "麵粉"
+    ],
+    "烏醋": [
+      "醋"
+    ],
+    "五印醋": [
+      "醋"
+    ],
+    "白米醋": [
+      "醋"
+    ],
+    "高粱醋": [
+      "醋"
+    ],
+    "乾辣椒": [
+      "辣椒"
+    ],
+    "小辣椒": [
+      "辣椒"
+    ],
+    "桂竹筍": [
+      "筍"
+    ],
+    "筍片": [
+      "筍"
+    ],
+    "燻鮭魚": [
+      "燻鮭魚",
+      "煙燻鮭魚"
+    ],
+    "乾燥海帶芽": [
+      "海帶芽"
+    ],
+    "乾燥迷迭香": [
+      "迷迭香"
+    ],
+    "新鮮檸檬": [
+      "檸檬"
+    ],
+    "洋菇": [
+      "洋菇",
+      "蘑菇"
+    ],
+    "焗烤起司": [
+      "起司",
+      "乳酪"
+    ],
+    "起司粉": [
+      "起司",
+      "乳酪"
+    ],
+    "熟蛤蜊": [
+      "蛤蜊"
+    ],
+    "紅茶葉": [
+      "紅茶"
+    ],
+    "粗黑胡椒粉": [
+      "黑胡椒"
+    ],
+    "花瓜": [
+      "花瓜",
+      "醬瓜"
+    ],
+    "蟹肉棒": [
+      "蟹肉棒",
+      "蟹味棒"
+    ],
+    "豬排肉": [
+      "豬排",
+      "豬肉"
+    ],
+    "豬油蔥": [
+      "豬油",
+      "油蔥"
+    ],
+    "辣椒醬": [
+      "辣椒醬",
+      "辣醬"
+    ],
+    "金瓜": [
+      "金瓜",
+      "南瓜"
+    ],
+    "長米": [
+      "長米",
+      "秈米",
+      "在來米"
+    ],
+    "黑白芝麻": [
+      "芝麻"
+    ],
+    "鳳梨罐頭": [
+      "鳳梨罐頭"
+    ],
+    "白胡椒粉": [
+      "白胡椒"
+    ],
+    "黑胡椒粉": [
+      "黑胡椒"
+    ],
+    "黃豆油": [
+      "黃豆油",
+      "大豆油"
+    ]
+  },
+  "aliases": {
+    "中筋麵粉": [
+      "麵粉"
+    ],
+    "乾燥海帶芽": [
+      "海帶芽"
+    ],
+    "乾燥迷迭香": [
+      "迷迭香"
+    ],
+    "味醂": [
+      "味淋"
+    ],
+    "太白粉": [
+      "馬鈴薯澱粉"
+    ],
+    "新鮮檸檬": [
+      "檸檬"
+    ],
+    "洋菇": [
+      "蘑菇"
+    ],
+    "澄粉": [
+      "澄麵",
+      "小麥澱粉"
+    ],
+    "火鍋羊肉片": [
+      "羊肉"
+    ],
+    "熟蛤蜊": [
+      "蛤蜊"
+    ],
+    "牛腱肉": [
+      "牛腱"
+    ],
+    "白胡椒粉": [
+      "白胡椒"
+    ],
+    "粉絲": [
+      "冬粉",
+      "乾冬粉"
+    ],
+    "粗黑胡椒粉": [
+      "黑胡椒"
+    ],
+    "紅茶葉": [
+      "紅茶"
+    ],
+    "蕃茄膏": [
+      "番茄膏"
+    ],
+    "金瓜": [
+      "南瓜"
+    ],
+    "食鹽": [
+      "鹽巴",
+      "鹽"
+    ],
+    "香油": [
+      "麻油"
+    ],
+    "黃豆油": [
+      "大豆油"
+    ],
+    "黑胡椒粉": [
+      "黑胡椒"
+    ]
+  },
+  "alias_source": "先取 V3 食譜 recipe_dataset_1103_V3.xlsx 的 ingredient_aliases（2026-11-10 複製進來，服務執行時不讀試算表），食譜沒有別名的再用人工列的同物異名（金瓜＝南瓜等 14 種）；只差異體字的別名不收。",
+  "refuse": {
+    "皮蛋": "加工蛋品；類別資料談的是生蛋與一般蛋類，不適用",
+    "泡香菇的水": "不是一般食物；不能拿菇類營養回答",
+    "油花生": "加工方式不明，不能確定和花生的營養相同",
+    "蛋豆腐": "不是黃豆做的豆腐；參考資料沒有它本身的資料"
+  }
+}

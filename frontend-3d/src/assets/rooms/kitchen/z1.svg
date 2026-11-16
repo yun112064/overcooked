@@ -1,0 +1,111 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 1000" preserveAspectRatio="xMidYMid slice">
+  <!-- 廚房 z1：石紋流理台、鼠尾草綠下櫃、奶油色復古冰箱（便利貼由介面疊上） -->
+  <defs>
+    <filter id="kz1-speck" x="0" y="0" width="100%" height="100%">
+      <feTurbulence type="fractalNoise" baseFrequency=".7" numOctaves="3" seed="12"/>
+      <feColorMatrix type="matrix" values="0 0 0 0 .3  0 0 0 0 .26  0 0 0 0 .2  1.6 0 0 0 -.62"/>
+      <feComposite in2="SourceGraphic" operator="in"/>
+    </filter>
+    <filter id="kz1-grain" x="0" y="0" width="100%" height="100%">
+      <feTurbulence type="fractalNoise" baseFrequency="1" numOctaves="2" seed="5"/>
+      <feColorMatrix type="matrix" values="0 0 0 0 .1  0 0 0 0 .14  0 0 0 0 .1  1.4 0 0 0 -.55"/>
+      <feComposite in2="SourceGraphic" operator="in"/>
+    </filter>
+    <filter id="kz1-b3"><feGaussianBlur stdDeviation="3"/></filter>
+    <filter id="kz1-b8"><feGaussianBlur stdDeviation="8"/></filter>
+    <filter id="kz1-b18"><feGaussianBlur stdDeviation="18"/></filter>
+
+    <linearGradient id="kz1-stone" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#F3EDE1"/><stop offset="1" stop-color="#DCD3C2"/>
+    </linearGradient>
+    <linearGradient id="kz1-sage" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#9BAC94"/><stop offset="1" stop-color="#74866E"/>
+    </linearGradient>
+    <radialGradient id="kz1-brass" cx=".35" cy=".3" r=".8">
+      <stop offset="0" stop-color="#FFF0B8"/><stop offset=".4" stop-color="#D9B04E"/><stop offset="1" stop-color="#6E5216"/>
+    </radialGradient>
+    <linearGradient id="kz1-brassl" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#FFF0B8"/><stop offset=".5" stop-color="#D9B04E"/><stop offset="1" stop-color="#6E5216"/>
+    </linearGradient>
+    <linearGradient id="kz1-fridge" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#BDB5A6"/><stop offset=".14" stop-color="#E9E3D6"/><stop offset=".4" stop-color="#FAF7F0"/>
+      <stop offset=".8" stop-color="#E4DDCF"/><stop offset="1" stop-color="#B5AD9E"/>
+    </linearGradient>
+    <linearGradient id="kz1-chrome" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#6E757C"/><stop offset=".4" stop-color="#F4F7F9"/><stop offset="1" stop-color="#8A9198"/>
+    </linearGradient>
+    <linearGradient id="kz1-undershade" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#17121C" stop-opacity=".45"/><stop offset="1" stop-color="#17121C" stop-opacity="0"/>
+    </linearGradient>
+    <!-- 櫃門：外框＋內凹板 -->
+    <g id="kz1-door">
+      <rect width="190" height="196" fill="url(#kz1-sage)"/>
+      <rect x="18" y="18" width="154" height="160" fill="#7E9078"/>
+      <path d="M18 178 V18 H172" fill="none" stroke="#55634F" stroke-width="3"/>
+      <path d="M172 18 V178 H18" fill="none" stroke="#B9C8B2" stroke-width="2"/>
+      <path d="M0 196 V0 H190" fill="none" stroke="#B9C8B2" stroke-width="1.500" opacity=".8"/>
+      <path d="M190 0 V196 H0" fill="none" stroke="#4E5C49" stroke-width="1.500"/>
+    </g>
+    <g id="kz1-drawer">
+      <rect width="210" height="60" fill="url(#kz1-sage)"/>
+      <path d="M0 60 V0 H210" fill="none" stroke="#B9C8B2" stroke-width="1.500" opacity=".8"/>
+      <path d="M210 0 V60 H0" fill="none" stroke="#4E5C49" stroke-width="1.500"/>
+      <rect x="80" y="26" width="50" height="8" rx="4" fill="#17121C" opacity=".4" transform="translate(1 3)"/>
+      <rect x="80" y="26" width="50" height="8" rx="4" fill="url(#kz1-brassl)"/>
+    </g>
+  </defs>
+
+  <!-- 冰箱：牆上與地上的陰影 -->
+  <rect x="1210" y="80" width="350" height="800" rx="30" fill="#17121C" opacity=".32" filter="url(#kz1-b18)"/>
+  <ellipse cx="1380" cy="870" rx="170" ry="12" fill="#0E0A14" opacity=".55" filter="url(#kz1-b8)"/>
+  <!-- 冰箱腳 -->
+  <rect x="1250" y="852" width="26" height="16" fill="#2A2630"/><rect x="1484" y="852" width="26" height="16" fill="#2A2630"/>
+  <!-- 冰箱本體 -->
+  <rect x="1230" y="68" width="300" height="790" rx="30" fill="url(#kz1-fridge)"/>
+  <!-- 上下門縫 -->
+  <rect x="1230" y="252" width="300" height="9" fill="#6E675A"/><rect x="1230" y="261" width="300" height="3" fill="#FFFFFF" opacity=".8"/>
+  <rect x="1230" y="244" width="300" height="8" fill="#17121C" opacity=".12"/>
+  <!-- 頂部受光與側面暗部 -->
+  <path d="M1260 68 h240 q30 0 30 30 v8 h-300 v-8 q0 -30 30 -30Z" fill="#FFFFFF" opacity=".45"/>
+  <rect x="1500" y="90" width="30" height="750" fill="#17121C" opacity=".1"/>
+  <!-- 把手 -->
+  <g>
+    <rect x="1262" y="128" width="16" height="96" rx="8" fill="#17121C" opacity=".35" filter="url(#kz1-b3)" transform="translate(4 4)"/>
+    <rect x="1258" y="124" width="16" height="96" rx="8" fill="url(#kz1-chrome)"/>
+    <rect x="1262" y="300" width="16" height="190" rx="8" fill="#17121C" opacity=".35" filter="url(#kz1-b3)" transform="translate(4 4)"/>
+    <rect x="1258" y="296" width="16" height="190" rx="8" fill="url(#kz1-chrome)"/>
+  </g>
+  <!-- 廠徽 -->
+  <rect x="1440" y="96" width="62" height="14" rx="7" fill="url(#kz1-chrome)"/>
+  <!-- 冰箱門上的反光 -->
+  <rect x="1330" y="280" width="40" height="560" fill="#FFFFFF" opacity=".16" filter="url(#kz1-b8)"/>
+
+  <!-- 下櫃 -->
+  <rect x="0" y="630" width="1206" height="218" fill="#74866E"/>
+  <use href="#kz1-door" x="16" y="640"/>
+  <use href="#kz1-door" x="216" y="640"/>
+  <use href="#kz1-drawer" x="418" y="640"/><use href="#kz1-drawer" x="418" y="708"/><use href="#kz1-drawer" x="418" y="776"/>
+  <use href="#kz1-door" x="640" y="640"/>
+  <use href="#kz1-door" x="832" y="640"/>
+  <use href="#kz1-door" x="1012" y="640"/>
+  <!-- 門把 -->
+  <g>
+    <g id="kz1-pull"><rect x="182" y="716" width="8" height="46" rx="4" fill="#17121C" opacity=".4" transform="translate(2 3)"/><rect x="182" y="716" width="8" height="46" rx="4" fill="url(#kz1-brassl)"/></g>
+    <use href="#kz1-pull" x="50"/><use href="#kz1-pull" x="624"/><use href="#kz1-pull" x="666"/><use href="#kz1-pull" x="846"/>
+  </g>
+  <rect x="0" y="630" width="1206" height="218" fill="#000" filter="url(#kz1-grain)" opacity=".3"/>
+  <!-- 檯面在櫃體上的陰影 -->
+  <rect x="0" y="630" width="1206" height="30" fill="url(#kz1-undershade)"/>
+  <!-- 踢腳 -->
+  <rect x="0" y="848" width="1206" height="20" fill="#26242C"/>
+  <rect x="0" y="866" width="1206" height="12" fill="#0E0A14" opacity=".5" filter="url(#kz1-b3)"/>
+
+  <!-- 檯面 -->
+  <rect x="0" y="596" width="1212" height="26" fill="url(#kz1-stone)"/>
+  <rect x="0" y="596" width="1212" height="26" fill="#000" filter="url(#kz1-speck)" opacity=".7"/>
+  <rect x="0" y="596" width="1212" height="3" fill="#FFFFFF" opacity=".9"/>
+  <rect x="0" y="622" width="1212" height="10" fill="#B9AF9E"/>
+  <rect x="0" y="622" width="1212" height="2" fill="#F3EDE1"/>
+  <!-- 牆與檯面交界的陰影 -->
+  <rect x="0" y="588" width="1212" height="10" fill="#17121C" opacity=".22" filter="url(#kz1-b3)"/>
+</svg>

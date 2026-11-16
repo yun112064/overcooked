@@ -1,0 +1,422 @@
+/* 餐單明細（在面板裡）：奶油色面板上的乾淨排版，單欄，字級沿用面板的 15px。 */
+
+.detail {
+  display: grid;
+  gap: 16px;
+}
+
+.detail section {
+  display: grid;
+  gap: 8px;
+}
+
+.detail h3 {
+  margin: 0;
+  padding-bottom: 4px;
+  border-bottom: 1px solid var(--cream-200);
+  font-family: var(--font-round);
+  font-size: 16px;
+  color: var(--brick-800);
+}
+
+.detail h4 {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 8px;
+  margin: 0;
+  font-family: var(--font-round);
+  font-size: 15.5px;
+  line-height: 1.4;
+}
+
+.detail h4 small,
+.detail small {
+  color: var(--ink-600);
+  font-family: var(--font-body);
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.detail a {
+  color: var(--brick-700);
+  font-weight: 700;
+}
+
+.meta,
+.caption {
+  margin: 0;
+  color: var(--ink-600);
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+}
+
+.detail .off {
+  color: var(--mustard-700);
+  font-weight: 700;
+}
+
+/* ---- 數字摘要 ---- */
+.stats {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px 14px;
+  margin: 0;
+}
+
+.stats dt {
+  color: var(--ink-600);
+  font-size: 13px;
+}
+
+.stats dd {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.stats dd.sub {
+  color: var(--ink-600);
+  font-size: 13px;
+  font-weight: 500;
+}
+
+/* ---- 三大營養素 ---- */
+.macroBar {
+  display: flex;
+  gap: 2px;
+  height: 12px;
+  overflow: hidden;
+  border-radius: 6px;
+  background: var(--cream-200);
+}
+
+.carbohydrate_g {
+  background: var(--mustard-500);
+}
+
+.protein_g {
+  background: var(--tomato-500);
+}
+
+.fat_g {
+  background: var(--basil-600);
+}
+
+.macros {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.macros li {
+  display: grid;
+}
+
+.macros b i {
+  display: inline-block;
+  width: 9px;
+  height: 9px;
+  margin-right: 5px;
+  border-radius: 2px;
+}
+
+/* ---- 菜色 ---- */
+.dishes {
+  display: grid;
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.dishes > li {
+  display: grid;
+  gap: 4px;
+  padding-bottom: 12px;
+  border-bottom: 1px dashed var(--paper-edge);
+}
+
+.dishes > li:last-child {
+  padding-bottom: 0;
+  border-bottom: 0;
+}
+
+.ingredients {
+  margin: 0;
+  font-size: 14px;
+}
+
+.steps {
+  margin: 2px 0;
+  padding-left: 22px;
+  font-size: 14px;
+}
+
+.plainList {
+  margin: 0;
+  padding-left: 20px;
+}
+
+.groups {
+  overflow: hidden;
+  border: 1px solid var(--paper-edge);
+  border-radius: 8px;
+  background: var(--cream-50);
+}
+
+.groups h5 {
+  margin: 0;
+  padding: 4px 12px;
+  background: var(--cream-200);
+  font-size: 13px;
+  letter-spacing: 0.1em;
+  color: var(--ink-600);
+}
+
+.groups ul {
+  margin: 0;
+  padding: 2px 12px 6px;
+  list-style: none;
+}
+
+.groups li {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 4px 0;
+  border-bottom: 1px dashed var(--cream-200);
+  font-size: 14px;
+}
+
+.groups li span:last-child {
+  color: var(--ink-600);
+  white-space: nowrap;
+}
+
+/* ---- 每人營養 ---- */
+.people {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.person {
+  display: grid;
+  gap: 8px;
+  padding: 12px;
+  border: 1px solid var(--paper-edge);
+  border-radius: 10px;
+  background: var(--cream-50);
+}
+
+.energy {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 8px;
+  margin: 0;
+  font-size: 14px;
+}
+
+.nutrients {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+}
+
+.nutrients > div {
+  display: grid;
+  grid-template-columns: 5.5em minmax(0, 1fr);
+  gap: 8px;
+  align-items: start;
+}
+
+.nutrients dt {
+  font-size: 14px;
+}
+
+.nutrients > div:nth-child(-n + 2) dt {
+  font-weight: 700;
+}
+
+.nutrients dd {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 2px 8px;
+  margin: 0;
+  font-size: 14px;
+}
+
+.value {
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.ref {
+  margin-left: auto;
+  color: var(--ink-600);
+  font-size: 13px;
+}
+
+/* 占比長條：填色是這一份占每日建議的比例，直線是這一餐應占的比例 */
+.shareBar {
+  position: relative;
+  flex: 1 1 100%;
+  height: 6px;
+  margin-top: 3px;
+  border-radius: 3px;
+  background: var(--cream-200);
+}
+
+.shareBar i {
+  position: absolute;
+  inset: 0 auto 0 0;
+  border-radius: 3px;
+  background: var(--basil-600);
+}
+
+.shareBar u {
+  position: absolute;
+  top: -3px;
+  bottom: -3px;
+  width: 2px;
+  margin-left: -1px;
+  background: var(--ink-900);
+  opacity: 0.6;
+}
+
+.overMeal i {
+  background: var(--mustard-500);
+}
+
+.overDay i {
+  background: var(--brick-700);
+}
+
+.bento {
+  display: grid;
+  gap: 8px;
+  padding-top: 8px;
+  border-top: 1px dashed var(--paper-edge);
+}
+
+.toggle {
+  min-height: 44px;
+  margin-left: auto;
+  padding: 0 10px;
+  border: 0;
+  border-radius: 8px;
+  background: none;
+  color: var(--brick-700);
+  font-size: 14px;
+  font-weight: 700;
+  text-decoration: underline;
+}
+
+.detail section > .toggle {
+  justify-self: start;
+  margin-left: -10px;
+}
+
+/* ---- 整餐表 ---- */
+.tableWrap {
+  overflow-x: auto;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.table caption {
+  padding-bottom: 4px;
+  color: var(--ink-600);
+  font-size: 13px;
+  text-align: left;
+}
+
+.table th,
+.table td {
+  padding: 6px 8px 6px 0;
+  border-bottom: 1px solid var(--cream-200);
+  text-align: left;
+  vertical-align: top;
+}
+
+.table thead th {
+  color: var(--ink-600);
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.table tbody th {
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.table tbody tr:nth-child(-n + 2) th {
+  font-weight: 700;
+}
+
+.unknownText {
+  padding: 0 0.4em;
+  border: 1px dashed var(--unknown);
+  border-radius: 6px;
+  color: var(--ink-600);
+  font-weight: 700;
+}
+
+/* ---- 食材小知識 ---- */
+.knowledge {
+  padding: 12px;
+  border-radius: 10px;
+  background: var(--cream-200);
+}
+
+.knowledge h3 {
+  border-bottom: 0;
+}
+
+.knowledge ul {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 14px;
+}
+
+.knowledge b {
+  margin-right: 8px;
+}
+
+.cites {
+  display: block;
+  color: var(--ink-600);
+  font-size: 13px;
+}
+
+.cites > span + span::before {
+  content: '、';
+}
+
+.cites a {
+  margin-left: 6px;
+}

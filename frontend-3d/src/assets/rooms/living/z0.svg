@@ -1,0 +1,199 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 1000" preserveAspectRatio="xMidYMid slice">
+  <!-- 客廳 z0：牆、黃昏的窗與窗簾、牆上的蠟筆全家福、通往廚房的門口（看得到瓦斯爐）、木地板 -->
+  <defs>
+    <filter id="lz0-grain" x="0" y="0" width="100%" height="100%">
+      <feTurbulence type="fractalNoise" baseFrequency=".9" numOctaves="3" seed="4"/>
+      <feColorMatrix type="matrix" values="0 0 0 0 .16  0 0 0 0 .12  0 0 0 0 .1  1.5 0 0 0 -.55"/>
+      <feComposite in2="SourceGraphic" operator="in"/>
+    </filter>
+    <filter id="lz0-woodh" x="0" y="0" width="100%" height="100%">
+      <feTurbulence type="fractalNoise" baseFrequency=".006 .5" numOctaves="3" seed="8"/>
+      <feColorMatrix type="matrix" values="0 0 0 0 .22  0 0 0 0 .12  0 0 0 0 .05  1.6 0 0 0 -.6"/>
+      <feComposite in2="SourceGraphic" operator="in"/>
+    </filter>
+    <filter id="lz0-woodv" x="0" y="0" width="100%" height="100%">
+      <feTurbulence type="fractalNoise" baseFrequency=".45 .01" numOctaves="3" seed="6"/>
+      <feColorMatrix type="matrix" values="0 0 0 0 .18  0 0 0 0 .1  0 0 0 0 .05  1.6 0 0 0 -.62"/>
+      <feComposite in2="SourceGraphic" operator="in"/>
+    </filter>
+    <!-- 蠟筆筆觸：把線條抖一下 -->
+    <filter id="lz0-crayon" x="-5%" y="-5%" width="110%" height="110%">
+      <feTurbulence type="fractalNoise" baseFrequency=".09" numOctaves="2" seed="2" result="n"/>
+      <feDisplacementMap in="SourceGraphic" in2="n" scale="5"/>
+    </filter>
+    <filter id="lz0-b2"><feGaussianBlur stdDeviation="1.6"/></filter>
+    <filter id="lz0-b4"><feGaussianBlur stdDeviation="4"/></filter>
+    <filter id="lz0-b8"><feGaussianBlur stdDeviation="8"/></filter>
+    <filter id="lz0-b16"><feGaussianBlur stdDeviation="16"/></filter>
+
+    <linearGradient id="lz0-wall" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#C6B9A2"/><stop offset=".25" stop-color="#DFD3BC"/><stop offset="1" stop-color="#D5C7AE"/>
+    </linearGradient>
+    <radialGradient id="lz0-pool" gradientUnits="userSpaceOnUse" cx="800" cy="220" r="760">
+      <stop offset="0" stop-color="#FFEBC2" stop-opacity=".6"/><stop offset=".5" stop-color="#FFE0A8" stop-opacity=".2"/><stop offset="1" stop-color="#FFE0A8" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="lz0-sides" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#201828" stop-opacity=".4"/><stop offset=".16" stop-color="#201828" stop-opacity="0"/>
+      <stop offset=".9" stop-color="#201828" stop-opacity="0"/><stop offset="1" stop-color="#201828" stop-opacity=".25"/>
+    </linearGradient>
+    <linearGradient id="lz0-ceil" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#201828" stop-opacity=".5"/><stop offset="1" stop-color="#201828" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="lz0-trim" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#FAF5EA"/><stop offset=".6" stop-color="#E6DCCB"/><stop offset="1" stop-color="#A89C88"/>
+    </linearGradient>
+    <linearGradient id="lz0-dusk" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#4F5F92"/><stop offset=".35" stop-color="#9A83A6"/><stop offset=".65" stop-color="#E9A27E"/><stop offset="1" stop-color="#FAD9A6"/>
+    </linearGradient>
+    <linearGradient id="lz0-glass" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#FFFFFF" stop-opacity=".28"/><stop offset=".4" stop-color="#FFFFFF" stop-opacity=".04"/><stop offset="1" stop-color="#FFFFFF" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="lz0-curtain" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#CFC2AA"/><stop offset=".18" stop-color="#F1E8D6"/><stop offset=".36" stop-color="#C9BBA2"/>
+      <stop offset=".56" stop-color="#EDE3CF"/><stop offset=".76" stop-color="#C4B69C"/><stop offset="1" stop-color="#E6DBC6"/>
+    </linearGradient>
+    <linearGradient id="lz0-oak" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#D9B98A"/><stop offset="1" stop-color="#A9824F"/>
+    </linearGradient>
+    <linearGradient id="lz0-frame" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#4A321E"/><stop offset=".5" stop-color="#6B4A2C"/><stop offset="1" stop-color="#553A22"/>
+    </linearGradient>
+    <pattern id="lz0-subway" width="56" height="56" patternUnits="userSpaceOnUse">
+      <rect width="56" height="56" fill="#C9C0B0"/>
+      <rect x="1" y="1" width="54" height="26" fill="#F3EDE1"/><rect x="-27" y="29" width="54" height="26" fill="#EFE8DB"/><rect x="29" y="29" width="54" height="26" fill="#F5F0E6"/>
+    </pattern>
+    <linearGradient id="lz0-sage" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#9DAE96"/><stop offset="1" stop-color="#7A8C74"/>
+    </linearGradient>
+    <linearGradient id="lz0-steel" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#8E959C"/><stop offset=".45" stop-color="#E3E8EC"/><stop offset="1" stop-color="#9AA1A8"/>
+    </linearGradient>
+    <radialGradient id="lz0-kglow" gradientUnits="userSpaceOnUse" cx="1350" cy="240" r="330">
+      <stop offset="0" stop-color="#FFF0C8" stop-opacity=".85"/><stop offset=".5" stop-color="#FFDFA0" stop-opacity=".25"/><stop offset="1" stop-color="#FFDFA0" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="lz0-floor" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#8E6238"/><stop offset="1" stop-color="#B98A58"/>
+    </linearGradient>
+    <clipPath id="lz0-win"><rect x="150" y="130" width="350" height="264"/></clipPath>
+    <clipPath id="lz0-open"><rect x="1196" y="106" width="308" height="558"/></clipPath>
+  </defs>
+
+  <!-- 牆 -->
+  <rect width="1600" height="664" fill="url(#lz0-wall)"/>
+  <rect width="1600" height="664" fill="#000" filter="url(#lz0-grain)" opacity=".13"/>
+  <rect width="1600" height="900" fill="url(#lz0-pool)"/>
+  <rect width="1600" height="110" fill="url(#lz0-ceil)"/>
+
+  <!-- 窗 -->
+  <rect x="124" y="104" width="402" height="322" fill="#17121C" opacity=".3" filter="url(#lz0-b8)"/>
+  <rect x="130" y="110" width="390" height="304" fill="url(#lz0-trim)"/>
+  <g clip-path="url(#lz0-win)">
+    <rect x="150" y="130" width="350" height="264" fill="url(#lz0-dusk)"/>
+    <circle cx="420" cy="330" r="120" fill="#FFE9B4" opacity=".5" filter="url(#lz0-b16)"/>
+    <g filter="url(#lz0-b2)">
+      <path d="M150 340 q60 -40 130 -14 t130 -10 t90 14 V394 H150Z" fill="#7C6F98" opacity=".7"/>
+      <g fill="#4A4563"><path d="M170 394 v-70 l34 -26 l34 26 v70Z"/><rect x="250" y="300" width="60" height="94"/><path d="M400 394 v-56 l30 -22 l30 22 v56Z"/></g>
+      <g fill="#FFD68A"><rect x="186" y="344" width="12" height="16"/><rect x="262" y="318" width="12" height="16"/><rect x="286" y="318" width="12" height="16"/><rect x="262" y="350" width="12" height="16"/><rect x="424" y="352" width="12" height="16"/></g>
+      <g fill="#34324A"><circle cx="350" cy="350" r="34"/><circle cx="326" cy="366" r="24"/><rect x="346" y="370" width="8" height="24"/></g>
+    </g>
+    <rect x="150" y="130" width="350" height="264" fill="url(#lz0-glass)"/>
+  </g>
+  <path d="M150 130 h350 v264" fill="none" stroke="#3A3040" stroke-width="5" opacity=".28"/>
+  <path d="M325 130 V394 M150 262 H500" stroke="#F3ECDF" stroke-width="12"/>
+  <path d="M331 130 V394 M150 268 H500" stroke="#6E6252" stroke-width="1.5" opacity=".45"/>
+  <rect x="116" y="410" width="418" height="18" fill="url(#lz0-trim)"/><rect x="116" y="428" width="418" height="14" fill="#201828" opacity=".2"/>
+  <!-- 窗簾桿與窗簾 -->
+  <rect x="84" y="86" width="482" height="8" rx="4" fill="#2A2630"/><circle cx="84" cy="90" r="9" fill="#2A2630"/><circle cx="566" cy="90" r="9" fill="#2A2630"/>
+  <path d="M96 94 h92 q-6 260 6 520 h-104 q10 -260 6 -520Z" fill="url(#lz0-curtain)"/>
+  <path d="M462 94 h92 q4 260 -6 520 h-92 q12 -260 6 -520Z" fill="url(#lz0-curtain)"/>
+  <path d="M96 94 h92 q-6 260 6 520 h-104 q10 -260 6 -520Z M462 94 h92 q4 260 -6 520 h-92 q12 -260 6 -520Z" fill="#000" filter="url(#lz0-grain)" opacity=".2"/>
+
+  <!-- 蠟筆全家福 -->
+  <rect x="700" y="120" width="220" height="186" fill="#17121C" opacity=".4" filter="url(#lz0-b8)"/>
+  <rect x="690" y="108" width="220" height="186" fill="url(#lz0-oak)"/>
+  <rect x="690" y="108" width="220" height="186" fill="#000" filter="url(#lz0-woodh)" opacity=".8"/>
+  <path d="M690 294 V108 H910" fill="none" stroke="#F1DDB8" stroke-width="2.5" opacity=".9"/>
+  <path d="M910 108 V294 H690" fill="none" stroke="#6B4A2C" stroke-width="2.5" opacity=".8"/>
+  <rect x="706" y="124" width="188" height="154" fill="#F6F0E4"/>
+  <rect x="716" y="134" width="168" height="134" fill="#FFFDF7"/>
+  <path d="M716 134 h168 v134" fill="none" stroke="#3A3040" stroke-width="3" opacity=".18"/>
+  <g filter="url(#lz0-crayon)" stroke-linecap="round" stroke-linejoin="round" fill="none">
+    <circle cx="860" cy="158" r="13" stroke="#F2B32E" stroke-width="5"/>
+    <path d="M860 138 v-4 M878 146 l4 -3 M882 162 h4 M842 146 l-4 -3" stroke="#F2B32E" stroke-width="3.5"/>
+    <path d="M722 258 q10 -8 20 0 t20 0 t20 0 t20 0 t20 0 t20 0 t20 0 t18 0" stroke="#5DAA5A" stroke-width="6"/>
+    <!-- 爸爸 -->
+    <circle cx="744" cy="192" r="11" stroke="#D9472B" stroke-width="3.5"/>
+    <path d="M736 206 h16 v30 h-16Z" stroke="#3F6FC2" stroke-width="4" fill="#3F6FC2" fill-opacity=".55"/>
+    <path d="M736 212 l-9 12 M752 212 l9 12 M740 236 v16 M748 236 v16" stroke="#3A2A20" stroke-width="3"/>
+    <!-- 媽媽 -->
+    <circle cx="786" cy="196" r="10" stroke="#D9472B" stroke-width="3.5"/>
+    <path d="M776 190 q10 -14 20 0" stroke="#3A2A20" stroke-width="4"/>
+    <path d="M786 208 l-12 30 h24Z" stroke="#E0483A" stroke-width="4" fill="#E0483A" fill-opacity=".55"/>
+    <path d="M780 216 l-9 10 M792 216 l9 10 M782 238 v14 M790 238 v14" stroke="#3A2A20" stroke-width="3"/>
+    <!-- 小孩 -->
+    <circle cx="822" cy="212" r="8" stroke="#D9472B" stroke-width="3.5"/>
+    <path d="M816 222 h12 v18 h-12Z" stroke="#F2B32E" stroke-width="4" fill="#F2B32E" fill-opacity=".6"/>
+    <path d="M816 226 l-7 8 M828 226 l7 8 M819 240 v12 M825 240 v12" stroke="#3A2A20" stroke-width="3"/>
+    <!-- 阿嬤 -->
+    <circle cx="856" cy="200" r="10" stroke="#D9472B" stroke-width="3.5"/>
+    <path d="M846 196 q10 -12 20 0" stroke="#9A9AA6" stroke-width="4"/>
+    <path d="M856 212 l-11 28 h22Z" stroke="#9A6CC2" stroke-width="4" fill="#9A6CC2" fill-opacity=".55"/>
+    <path d="M851 220 l-8 9 M861 220 l8 9 M852 240 v12 M860 240 v12" stroke="#3A2A20" stroke-width="3"/>
+  </g>
+
+  <!-- 踢腳板 -->
+  <rect y="640" width="1170" height="26" fill="url(#lz0-trim)"/><rect x="1530" y="640" width="70" height="26" fill="url(#lz0-trim)"/>
+  <rect y="640" width="1170" height="3" fill="#FFFDF6" opacity=".9"/>
+
+  <!-- 廚房門口：門框 -->
+  <rect x="1168" y="78" width="364" height="588" fill="url(#lz0-frame)"/>
+  <rect x="1168" y="78" width="364" height="588" fill="#000" filter="url(#lz0-woodv)"/>
+  <path d="M1168 666 V78 H1532" fill="none" stroke="#9A7650" stroke-width="3" opacity=".7"/>
+  <!-- 門洞裡的廚房 -->
+  <g clip-path="url(#lz0-open)">
+    <rect x="1196" y="106" width="308" height="558" fill="url(#lz0-subway)"/>
+    <!-- 吊櫃 -->
+    <rect x="1196" y="106" width="308" height="118" fill="url(#lz0-sage)"/>
+    <path d="M1298 106 V224 M1400 106 V224" stroke="#5E6E5A" stroke-width="3"/>
+    <rect x="1196" y="220" width="308" height="8" fill="#55634F"/>
+    <g fill="#E9CB74"><circle cx="1286" cy="200" r="4"/><circle cx="1310" cy="200" r="4"/><circle cx="1388" cy="200" r="4"/><circle cx="1412" cy="200" r="4"/></g>
+    <rect x="1196" y="228" width="308" height="20" fill="#201828" opacity=".25" filter="url(#lz0-b4)"/>
+    <!-- 抽油煙機 -->
+    <path d="M1286 228 h132 l14 34 h-160Z" fill="url(#lz0-steel)"/><rect x="1272" y="262" width="160" height="8" fill="#6E757C"/>
+    <!-- 掛桿與湯勺、鍋鏟 -->
+    <rect x="1436" y="300" width="64" height="5" rx="2.5" fill="#8E959C"/>
+    <path d="M1452 305 v54" stroke="#8E959C" stroke-width="4"/><ellipse cx="1452" cy="368" rx="11" ry="10" fill="url(#lz0-steel)"/>
+    <path d="M1480 305 v46" stroke="#6B4A2C" stroke-width="5"/><rect x="1471" y="350" width="18" height="26" rx="4" fill="#8E959C"/>
+    <!-- 流理台與下櫃 -->
+    <rect x="1196" y="462" width="308" height="22" fill="#E6DED0"/><rect x="1196" y="462" width="308" height="4" fill="#FFFDF6"/>
+    <rect x="1196" y="484" width="308" height="166" fill="url(#lz0-sage)"/>
+    <rect x="1196" y="484" width="308" height="10" fill="#201828" opacity=".3"/>
+    <path d="M1298 494 V650 M1400 494 V650 M1196 532 H1504" stroke="#5E6E5A" stroke-width="3"/>
+    <g fill="#E9CB74"><rect x="1234" y="510" width="28" height="5" rx="2"/><rect x="1336" y="510" width="28" height="5" rx="2"/><rect x="1438" y="510" width="28" height="5" rx="2"/></g>
+    <rect x="1196" y="650" width="308" height="14" fill="#2A2630"/>
+    <!-- 瓦斯爐（鍋由介面疊層放上） -->
+    <rect x="1280" y="444" width="170" height="20" rx="3" fill="#1E1C24"/>
+    <rect x="1280" y="444" width="170" height="4" rx="2" fill="#4A4652"/>
+    <g fill="#0E0C12"><rect x="1300" y="436" width="56" height="9" rx="2"/><rect x="1378" y="436" width="56" height="9" rx="2"/></g>
+    <g fill="#8E959C"><circle cx="1312" cy="456" r="3.5"/><circle cx="1418" cy="456" r="3.5"/></g>
+    <!-- 廚房的暖光與門洞內側陰影 -->
+    <rect x="1196" y="106" width="308" height="558" fill="url(#lz0-kglow)"/>
+    <rect x="1196" y="106" width="36" height="558" fill="#17121C" opacity=".35" filter="url(#lz0-b8)"/>
+    <rect x="1196" y="106" width="308" height="26" fill="#17121C" opacity=".35" filter="url(#lz0-b4)"/>
+  </g>
+  <rect x="1196" y="106" width="308" height="558" fill="none" stroke="#2A1A10" stroke-width="3"/>
+
+  <!-- 木地板 -->
+  <rect y="664" width="1600" height="336" fill="url(#lz0-floor)"/>
+  <rect y="664" width="1600" height="336" fill="#000" filter="url(#lz0-woodh)"/>
+  <g stroke="#5E3F24" stroke-width="1.6" opacity=".6">
+    <path d="M0 690 H1600 M0 722 H1600 M0 762 H1600 M0 812 H1600 M0 874 H1600 M0 950 H1600"/>
+    <path d="M260 664 V690 M900 664 V690 M520 690 V722 M1240 690 V722 M180 722 V762 M820 722 V762 M1440 722 V762 M460 762 V812 M1100 762 V812 M240 812 V874 M860 812 V874 M1380 812 V874 M560 874 V950 M1180 874 V950"/>
+  </g>
+  <rect y="664" width="1600" height="18" fill="#17121C" opacity=".35" filter="url(#lz0-b4)"/>
+  <!-- 廚房灑出來的光 -->
+  <path d="M1196 666 H1504 L1680 900 H1010Z" fill="#FFDCA0" opacity=".3" filter="url(#lz0-b16)"/>
+
+  <!-- 兩側壓暗 -->
+  <rect width="1600" height="1000" fill="url(#lz0-sides)"/>
+</svg>

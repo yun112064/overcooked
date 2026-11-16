@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260 84">
+  <!-- 茶几大盤上的菜色（示意佔位）：白飯、煎魚配檸檬、清炒青花菜。
+       正式版會改用餐桌場景的「依菜類」寫實圖組，這張只用來審客廳構圖。 -->
+  <defs>
+    <filter id="pf-b2"><feGaussianBlur stdDeviation="2"/></filter>
+    <filter id="pf-grain" x="0" y="0" width="100%" height="100%">
+      <feTurbulence type="fractalNoise" baseFrequency="1.2" numOctaves="2" seed="7"/>
+      <feColorMatrix type="matrix" values="0 0 0 0 .5  0 0 0 0 .45  0 0 0 0 .35  1.3 0 0 0 -.55"/>
+      <feComposite in2="SourceGraphic" operator="in"/>
+    </filter>
+    <radialGradient id="pf-rice" cx=".4" cy=".3" r=".8">
+      <stop offset="0" stop-color="#FFFFFF"/><stop offset=".7" stop-color="#F1ECE0"/><stop offset="1" stop-color="#CFC6B4"/>
+    </radialGradient>
+    <linearGradient id="pf-fish" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#E9B46A"/><stop offset=".5" stop-color="#C9843A"/><stop offset="1" stop-color="#8E5220"/>
+    </linearGradient>
+    <radialGradient id="pf-broc" cx=".4" cy=".3" r=".8">
+      <stop offset="0" stop-color="#8FBF6A"/><stop offset=".6" stop-color="#4E8A45"/><stop offset="1" stop-color="#2A5230"/>
+    </radialGradient>
+    <radialGradient id="pf-lemon" cx=".5" cy=".5" r=".5">
+      <stop offset="0" stop-color="#FFF6B8"/><stop offset=".75" stop-color="#F6DC6A"/><stop offset="1" stop-color="#E2B93A"/>
+    </radialGradient>
+  </defs>
+  <!-- 白飯 -->
+  <ellipse cx="52" cy="62" rx="44" ry="10" fill="#17121C" opacity=".3" filter="url(#pf-b2)"/>
+  <path d="M10 58 q4 -40 42 -42 q38 2 42 42 q-42 16 -84 0Z" fill="url(#pf-rice)"/>
+  <path d="M10 58 q4 -40 42 -42 q38 2 42 42 q-42 16 -84 0Z" fill="#000" filter="url(#pf-grain)" opacity=".35"/>
+  <!-- 煎魚 -->
+  <ellipse cx="136" cy="64" rx="56" ry="9" fill="#17121C" opacity=".3" filter="url(#pf-b2)"/>
+  <path d="M84 52 q20 -26 62 -22 q30 4 44 20 q-18 20 -52 20 q-36 0 -54 -18Z" fill="url(#pf-fish)"/>
+  <g stroke="#6B3A14" stroke-width="2.500" opacity=".55" stroke-linecap="round"><path d="M112 40 l-8 20 M128 34 l-8 30 M146 32 l-6 34 M164 36 l-4 28"/></g>
+  <path d="M92 50 q22 -20 56 -18" fill="none" stroke="#FFE2A6" stroke-width="2" opacity=".7"/>
+  <circle cx="172" cy="34" r="13" fill="url(#pf-lemon)"/>
+  <g stroke="#FFFBE0" stroke-width="1.300" opacity=".9"><path d="M172 22 v24 M160 34 h24 M163 25 l18 18 M181 25 l-18 18"/></g>
+  <!-- 青花菜 -->
+  <ellipse cx="222" cy="66" rx="34" ry="8" fill="#17121C" opacity=".3" filter="url(#pf-b2)"/>
+  <g fill="#7FA85E"><rect x="206" y="48" width="8" height="18" rx="3"/><rect x="226" y="46" width="8" height="20" rx="3"/></g>
+  <g fill="url(#pf-broc)">
+    <circle cx="204" cy="42" r="13"/><circle cx="220" cy="34" r="14"/><circle cx="238" cy="40" r="13"/><circle cx="212" cy="52" r="10"/><circle cx="232" cy="52" r="11"/>
+  </g>
+  <g fill="#B5DB8E" opacity=".6"><circle cx="216" cy="29" r="4"/><circle cx="200" cy="38" r="3.500"/><circle cx="234" cy="35" r="3.500"/></g>
+</svg>

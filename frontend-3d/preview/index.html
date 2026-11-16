@@ -1,0 +1,581 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>今天吃啥 偽3D預覽</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@500;700;800&family=Noto+Sans+TC:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --tomato-600:#D9472B;--tomato-500:#E8603F;--tomato-100:#FCE3DA;
+  --cream-50:#FFF9F0;--cream-100:#FBEFDD;--cream-200:#F3E0C3;--cream-300:#E6CBA3;
+  --basil-600:#3F7D4E;--basil-100:#DDEFD9;--mustard-500:#E7A72E;--mustard-100:#FBEED2;
+  --ink-900:#3A2A20;--ink-600:#6E5A4C;--unknown:#9C8E83;
+  --sh:90,50,20;
+  --shadow-2:0 6px 0 var(--cream-200),0 14px 24px rgba(var(--sh),.14);
+  --shadow-3:0 9px 0 var(--cream-300),0 24px 36px rgba(var(--sh),.18);
+  --shadow-4:0 30px 50px rgba(var(--sh),.22);
+  --round:'M PLUS Rounded 1c','Noto Sans TC',sans-serif;
+  --px:0;--py:0;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#EADBC4;font-family:'Noto Sans TC',sans-serif;color:var(--ink-900);min-height:100vh;font-size:15px}
+button{font:inherit;color:inherit;border:0;background:none;cursor:pointer}
+button:focus-visible,[tabindex]:focus-visible{outline:3px solid var(--tomato-600);outline-offset:3px;border-radius:12px}
+.num{font-variant-numeric:tabular-nums;font-weight:600}
+
+/* ---------- 工具列 ---------- */
+.toolbar{position:sticky;top:0;z-index:100;display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:center;padding:12px 16px;background:rgba(255,249,240,.85);backdrop-filter:blur(10px);border-bottom:1px solid var(--cream-300)}
+.toolbar h1{font-family:var(--round);font-size:16px;margin-right:auto}
+.seg{display:flex;background:var(--cream-100);border-radius:12px;padding:3px;gap:2px}
+.seg button{padding:7px 12px;border-radius:9px;font-size:13px;font-weight:600;color:var(--ink-600)}
+.seg button[aria-pressed=true]{background:#fff;color:var(--tomato-600);box-shadow:0 2px 6px rgba(var(--sh),.15)}
+.stage{display:grid;place-items:center;padding:28px 16px 60px}
+
+/* ---------- 裝置框 ---------- */
+.device{position:relative;background:var(--cream-50);overflow:hidden;transition:width .4s,height .4s,border-radius .4s;box-shadow:0 40px 80px rgba(var(--sh),.3),0 0 0 10px #3A2A20}
+.device.phone{width:390px;height:800px;border-radius:44px}
+.device.desk{width:min(1240px,100%);height:780px;border-radius:18px;box-shadow:0 40px 80px rgba(var(--sh),.3),0 0 0 8px #3A2A20}
+@media (max-width:440px){.device.phone{width:100%;height:760px;border-radius:30px}}
+
+.app{position:absolute;inset:0;display:flex}
+.desk .app{flex-direction:row}
+.phone .app{flex-direction:column}
+
+/* 背景遠景層 z0 */
+.bg{position:absolute;inset:-40px;pointer-events:none;z-index:0}
+.bg .tile{position:absolute;inset:0;background:
+  radial-gradient(circle at 20% 15%,rgba(232,96,63,.10) 0 120px,transparent 121px),
+  radial-gradient(circle at 85% 70%,rgba(63,125,78,.10) 0 160px,transparent 161px),
+  repeating-linear-gradient(0deg,transparent 0 47px,rgba(230,203,163,.35) 47px 48px),
+  repeating-linear-gradient(90deg,transparent 0 47px,rgba(230,203,163,.35) 47px 48px);}
+
+/* ---------- 景深系統 ---------- */
+.layer{transform:translate3d(calc(var(--px)*var(--k,0)*-24px),calc(var(--py)*var(--k,0)*-18px),0);transition:transform .25s ease-out;will-change:transform}
+.z0{--k:.15}.z1{--k:.35}.z2{--k:.6}.z3{--k:.85}.z4{--k:1}
+.slab{background:#fff;border-radius:22px;box-shadow:var(--shadow-2);position:relative}
+.slab.hi{box-shadow:var(--shadow-3)}
+.tilt{transform:perspective(900px) rotateX(var(--rx,0deg)) rotateY(var(--ry,0deg)) translateZ(0);transition:transform .35s cubic-bezier(.2,.8,.2,1.2),box-shadow .3s;transform-style:preserve-3d}
+.layer.tilt{transform:translate3d(calc(var(--px)*var(--k,0)*-24px),calc(var(--py)*var(--k,0)*-18px),0) perspective(900px) rotateX(var(--rx,0deg)) rotateY(var(--ry,0deg))}
+.tilt:hover{box-shadow:var(--shadow-3)}
+.press{transition:transform .12s,box-shadow .12s}
+.press:active{transform:translateY(5px)!important;box-shadow:0 2px 0 var(--cream-300),0 6px 10px rgba(var(--sh),.15)!important}
+
+/* 景深模式 */
+[data-depth=static] .layer{transform:none!important}
+[data-depth=static] .tilt{transform:none!important}
+[data-depth=static] *{animation-play-state:paused!important}
+[data-depth=off] .layer,[data-depth=off] .tilt{transform:none!important}
+[data-depth=off] .slab,[data-depth=off] .slab.hi,[data-depth=off] .btn,[data-depth=off] .tilt:hover{box-shadow:0 1px 3px rgba(var(--sh),.15)!important}
+[data-depth=off] *{animation:none!important}
+[data-depth=off] .bg{display:none}
+
+/* ---------- 導覽 ---------- */
+.rail{display:none}
+.desk .rail{display:flex;flex-direction:column;gap:6px;width:230px;padding:22px 14px;background:var(--cream-100);z-index:5;position:relative;box-shadow:6px 0 0 var(--cream-200)}
+.brand{font-family:var(--round);font-weight:800;font-size:22px;color:var(--tomato-600);padding:4px 10px 18px;display:flex;gap:8px;align-items:center}
+.rail .nav-btn{display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:14px;font-weight:600;color:var(--ink-600);text-align:left}
+.rail .nav-btn[aria-current=page]{background:#fff;color:var(--tomato-600);box-shadow:var(--shadow-2);transform:translateX(4px)}
+.rail .foot{margin-top:auto;font-size:13px;color:var(--ink-600);padding:10px}
+.tabs{display:none}
+.phone .tabs{display:flex;position:absolute;left:12px;right:12px;bottom:14px;height:70px;background:#fff;border-radius:24px;box-shadow:0 8px 0 var(--cream-200),var(--shadow-4);z-index:20;justify-content:space-around;align-items:center;padding:0 6px}
+.tabs .nav-btn{display:flex;flex-direction:column;align-items:center;gap:2px;font-size:11px;font-weight:600;color:var(--ink-600);width:62px;padding:6px 0;border-radius:14px;transition:transform .25s}
+.tabs .nav-btn .ic{font-size:22px;transition:transform .3s cubic-bezier(.2,.8,.2,1.4),filter .3s}
+.tabs .nav-btn[aria-current=page]{color:var(--tomato-600)}
+.tabs .nav-btn[aria-current=page] .ic{transform:translateY(-8px) scale(1.18);filter:drop-shadow(0 6px 4px rgba(var(--sh),.3))}
+
+/* ---------- 頁面 ---------- */
+.main{flex:1;position:relative;overflow:hidden;z-index:2}
+.page{position:absolute;inset:0;overflow-y:auto;padding:22px 18px 110px;opacity:0;pointer-events:none;transform:perspective(1200px) translateZ(60px) translateY(-10px);transition:opacity .28s,transform .38s cubic-bezier(.2,.8,.2,1)}
+.desk .page{padding:30px 36px 40px}
+.page.active{opacity:1;pointer-events:auto;transform:none}
+.page.leaving{opacity:0;transform:perspective(1200px) translateZ(-80px)}
+[data-depth=off] .page{transform:none!important}
+.page::-webkit-scrollbar{width:0}
+.hd{display:flex;align-items:flex-end;justify-content:space-between;gap:10px;margin-bottom:16px}
+.eyebrow{font-size:12px;font-weight:700;color:var(--tomato-600);letter-spacing:.08em}
+h2{font-family:var(--round);font-size:24px;font-weight:800;line-height:1.25}
+.desk h2{font-size:30px}
+h3{font-family:var(--round);font-size:17px;font-weight:700;margin-bottom:10px}
+.sub{color:var(--ink-600);font-size:13px}
+.grid{display:grid;gap:16px}
+.desk .g-2-1{grid-template-columns:2fr 1fr}
+.g-3{grid-template-columns:repeat(3,1fr)}
+.phone .g-3{gap:10px}.phone .g-3 .stat{padding:12px 10px}.phone .g-3 .badge{font-size:10px;padding:4px 6px}
+.desk .g-2{grid-template-columns:1fr 1fr}
+.phone .g-3m{grid-template-columns:1fr 1fr}
+.desk .g-3m{grid-template-columns:repeat(4,1fr)}
+.pad{padding:16px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:48px;padding:0 20px;border-radius:16px;font-weight:700;background:var(--tomato-500);color:#fff;box-shadow:0 6px 0 var(--tomato-600),0 12px 18px rgba(217,71,43,.3)}
+.btn.ghost{background:#fff;color:var(--ink-900);box-shadow:0 6px 0 var(--cream-300),0 10px 16px rgba(var(--sh),.12)}
+.btn.green{background:var(--basil-600);box-shadow:0 6px 0 #2E5E3A,0 12px 18px rgba(63,125,78,.3)}
+.btn.block{width:100%}
+.chip{display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:999px;font-size:13px;font-weight:600;background:var(--cream-100)}
+.chip.on{background:var(--tomato-100);color:var(--tomato-600);box-shadow:0 3px 0 #F4C6B6}
+.badge{display:inline-flex;align-items:center;gap:6px;padding:5px 10px;border-radius:10px;font-size:12px;font-weight:700}
+.b-ok{background:var(--basil-100);color:var(--basil-600)}
+.b-warn{background:var(--mustard-100);color:#8A5A00}
+.b-unk{background:transparent;color:var(--unknown);border:1.5px dashed var(--unknown)}
+.unk{color:var(--unknown);border-bottom:1.5px dashed var(--unknown);font-weight:600}
+
+/* ---------- 登入 ---------- */
+.login{position:absolute;inset:0;z-index:55;background:linear-gradient(#FBE6CF,#FFF9F0 60%);display:flex;align-items:center;justify-content:center;transition:opacity .4s,transform .5s}
+.login.gone{opacity:0;pointer-events:none;transform:scale(1.08)}
+.login .window{position:absolute;top:8%;left:50%;width:260px;height:200px;margin-left:-130px;border-radius:120px 120px 16px 16px;background:linear-gradient(#BFE0F0,#E9F5EE);border:10px solid #fff;box-shadow:var(--shadow-2)}
+.desk .login .window{left:22%;width:340px;height:260px;margin-left:-170px;top:16%}
+.login .sun{position:absolute;width:60px;height:60px;border-radius:50%;background:#FFD27A;top:30px;left:40px}
+.login .counter{position:absolute;left:-40px;right:-40px;bottom:0;height:38%;background:var(--cream-200);border-top:16px solid #fff;box-shadow:0 -10px 30px rgba(var(--sh),.12)}
+.login .props{position:absolute;bottom:30%;left:8%;font-size:58px;display:flex;gap:18px;filter:drop-shadow(0 10px 6px rgba(var(--sh),.25))}
+.desk .login .props{left:8%;font-size:80px}
+.login-card{position:relative;width:min(330px,86%);padding:24px;z-index:3}
+.desk .login-card{margin-left:44%}
+.field{display:block;margin-bottom:12px}
+.field span{display:block;font-size:13px;font-weight:600;margin-bottom:6px;color:var(--ink-600)}
+.field input,.field select{width:100%;height:46px;border-radius:14px;border:2px solid var(--cream-200);background:var(--cream-50);padding:0 14px;font:inherit;box-shadow:inset 0 3px 0 rgba(var(--sh),.06)}
+.field input:focus{outline:none;border-color:var(--tomato-500)}
+
+/* ---------- 餐盤 ---------- */
+.hero{padding:22px;overflow:hidden;display:flex;flex-direction:column;justify-content:center;gap:8px;background:linear-gradient(160deg,#FFF3E4,#FFE2CF);min-height:280px}
+.plate-wrap{position:relative;height:230px;display:grid;place-items:center;perspective:800px}
+.plate{position:relative;width:210px;height:210px;border-radius:50%;background:radial-gradient(circle,#fff 0 58%,#F5EBDD 59% 64%,#fff 65%);box-shadow:0 18px 0 #EADCC8,0 34px 40px rgba(var(--sh),.25);transform:rotateX(52deg);transform-style:preserve-3d}
+.desk .plate{width:250px;height:250px}
+.dish{position:absolute;width:74px;height:74px;border-radius:50%;display:grid;place-items:center;font-size:40px;transform:translateZ(var(--z)) rotateX(-52deg);filter:drop-shadow(0 12px 6px rgba(var(--sh),.25));transition:transform .4s cubic-bezier(.2,.8,.2,1.4)}
+.dish:hover{transform:translateZ(calc(var(--z) + 30px)) rotateX(-52deg) scale(1.12)}
+.dish span{font-size:10px;position:absolute;bottom:-14px;background:#fff;padding:1px 6px;border-radius:6px;font-weight:700;white-space:nowrap;color:var(--ink-900)}
+.steam{position:absolute;top:10px;width:14px;height:50px;border-radius:10px;background:linear-gradient(transparent,rgba(255,255,255,.9));animation:steam 3s infinite ease-in-out;opacity:0}
+@keyframes steam{0%{transform:translateY(30px) scaleX(.6);opacity:0}40%{opacity:.8}100%{transform:translateY(-40px) scaleX(1.4);opacity:0}}
+.float{animation:bob 4s ease-in-out infinite}
+@keyframes bob{50%{transform:translateY(-6px)}}
+
+.stat{display:flex;flex-direction:column;gap:6px}
+.bar{height:10px;border-radius:6px;background:var(--cream-100);overflow:hidden;position:relative}
+.bar i{position:absolute;inset:0 auto 0 0;border-radius:6px;background:var(--basil-600)}
+.bar .mark{position:absolute;top:-3px;bottom:-3px;width:2px;background:var(--ink-900)}
+.row{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.list>*+*{margin-top:12px}
+.trend{display:flex;align-items:flex-end;gap:8px;height:90px;padding-top:8px}
+.trend div{flex:1;border-radius:8px 8px 3px 3px;background:var(--tomato-100);position:relative;box-shadow:0 4px 0 #F4C6B6}
+.trend div.t{background:var(--tomato-500);box-shadow:0 4px 0 var(--tomato-600)}
+.trend div.u{background:repeating-linear-gradient(45deg,transparent 0 4px,rgba(156,142,131,.3) 4px 8px);border:1.5px dashed var(--unknown);box-shadow:none}
+
+/* 卡片列表 */
+.req{padding:14px 16px;display:flex;gap:14px;align-items:center}
+.req .ic{width:48px;height:48px;border-radius:14px;display:grid;place-items:center;font-size:26px;background:var(--cream-100);box-shadow:0 4px 0 var(--cream-200);flex:none}
+.req .body{flex:1;min-width:0}
+.req b{font-family:var(--round)}
+
+/* 步驟條 */
+.steps{display:flex;gap:6px;margin-bottom:18px}
+.steps i{flex:1;height:10px;border-radius:6px;background:var(--cream-200);transition:all .3s}
+.steps i.done{background:var(--basil-600);box-shadow:0 3px 0 #2E5E3A;transform:translateY(2px)}
+.steps i.cur{background:var(--tomato-500);box-shadow:0 5px 0 var(--tomato-600);transform:translateY(-3px)}
+.members{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
+.desk .members{grid-template-columns:repeat(4,1fr)}
+.mem{padding:14px;text-align:center;cursor:pointer;border:3px solid transparent}
+.mem.on{border-color:var(--tomato-500)}
+.ava{width:56px;height:56px;border-radius:50%;margin:0 auto 8px;display:grid;place-items:center;font-size:30px;background:var(--cream-100);box-shadow:0 5px 0 var(--cream-200)}
+
+/* 備料 */
+.cook{display:grid;place-items:center;text-align:center;min-height:100%}
+.pot-scene{position:relative;width:280px;height:280px;margin:10px auto}
+.pot{position:absolute;bottom:20px;left:50%;width:200px;height:120px;margin-left:-100px;border-radius:20px 20px 90px 90px;background:linear-gradient(#E8603F,#C23B21);box-shadow:0 14px 0 #9E2E18,0 30px 40px rgba(var(--sh),.3)}
+.pot::before{content:'';position:absolute;top:-14px;left:-10px;right:-10px;height:28px;border-radius:50%;background:#B9361E;box-shadow:inset 0 8px 12px rgba(0,0,0,.35)}
+.pot::after{content:'';position:absolute;top:30px;left:-26px;right:-26px;height:14px;border-radius:8px;background:#9E2E18;z-index:-1}
+.fall{position:absolute;top:0;font-size:34px;animation:fall 2.4s infinite cubic-bezier(.5,0,.8,.5);opacity:0;filter:drop-shadow(0 8px 4px rgba(var(--sh),.25))}
+@keyframes fall{0%{transform:translateY(-30px) rotate(0);opacity:0}15%{opacity:1}75%{opacity:1}100%{transform:translateY(150px) rotate(220deg) scale(.6);opacity:0}}
+.flow{display:flex;flex-direction:column;gap:8px;text-align:left;width:min(320px,100%);margin:10px auto 18px}
+.flow div{display:flex;gap:10px;align-items:center;padding:10px 14px;border-radius:14px;background:#fff;color:var(--unknown);font-weight:600;box-shadow:0 3px 0 var(--cream-200);transition:all .35s}
+.flow div.on{color:var(--ink-900);box-shadow:0 5px 0 var(--basil-100),0 10px 14px rgba(var(--sh),.1);transform:translateZ(0) translateY(-2px)}
+.flow div.run{color:var(--tomato-600)}
+.flow .dot{width:12px;height:12px;border-radius:50%;background:var(--cream-200);flex:none}
+.flow .on .dot{background:var(--basil-600)}
+.flow .run .dot{background:var(--tomato-500);animation:pulse 1s infinite}
+@keyframes pulse{50%{transform:scale(1.5);opacity:.6}}
+
+/* 結果 */
+.tbl{width:100%;border-collapse:collapse;font-size:14px}
+.tbl th{text-align:left;font-size:12px;color:var(--ink-600);font-weight:600;padding:6px 4px}
+.tbl td{padding:9px 4px;border-top:1px solid var(--cream-100)}
+.cost{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.cost>div{padding:12px;border-radius:16px;background:var(--cream-50);box-shadow:inset 0 3px 0 rgba(var(--sh),.05)}
+.cost b{font-size:22px;display:block;font-family:var(--round)}
+.actionbar{display:flex;gap:10px;flex-wrap:wrap}
+.phone .actionbar.sticky{position:sticky;bottom:-96px;margin:18px -18px -110px;padding:14px 18px 100px;background:linear-gradient(transparent,var(--cream-50) 30%)}
+.flip{perspective:900px;cursor:pointer;height:150px}
+.flip .in{position:relative;width:100%;height:100%;transition:transform .6s;transform-style:preserve-3d}
+.flip.on .in{transform:rotateY(180deg)}
+.flip .face{position:absolute;inset:0;backface-visibility:hidden;padding:16px;border-radius:22px;background:#fff;box-shadow:var(--shadow-2)}
+.flip .back{transform:rotateY(180deg);background:var(--basil-100)}
+
+/* 食譜庫 */
+.rc{overflow:hidden;cursor:pointer}
+.rc .ph{height:96px;display:grid;place-items:center;font-size:50px;background:linear-gradient(150deg,var(--cream-100),var(--tomato-100));transform:translateZ(30px)}
+.rc .tx{padding:10px 12px 14px}
+.rc.sel{outline:3px solid var(--basil-600)}
+.tray{position:sticky;bottom:0;margin-top:16px;padding:12px 16px;display:flex;align-items:center;gap:10px;background:var(--ink-900);color:#fff;border-radius:20px;box-shadow:0 8px 0 #1E150F,var(--shadow-4)}
+.phone .tray{bottom:-96px}
+.tray .slots{display:flex;gap:6px;flex:1;font-size:24px}
+.tray .slots span{width:36px;height:36px;border-radius:10px;background:rgba(255,255,255,.12);display:grid;place-items:center}
+.pills{display:flex;gap:8px;overflow-x:auto;padding-bottom:6px;margin-bottom:14px}
+
+/* 紀錄 */
+.cal{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;text-align:center;font-size:12px}
+.cal b{color:var(--ink-600);font-weight:600;padding-bottom:4px}
+.cal div{aspect-ratio:1;border-radius:12px;background:var(--cream-50);display:grid;place-items:center;position:relative;font-weight:600}
+.cal div.has{background:#fff;box-shadow:0 4px 0 var(--cream-200)}
+.cal div.has::after{content:'🍽';position:absolute;bottom:2px;font-size:11px}
+.cal div.sel{background:var(--tomato-500);color:#fff;box-shadow:0 4px 0 var(--tomato-600);transform:translateY(-3px)}
+.tabbar{display:flex;gap:6px;margin-bottom:16px;background:var(--cream-100);padding:4px;border-radius:16px;width:max-content}
+.tabbar button{padding:9px 16px;border-radius:12px;font-weight:700;font-size:14px;color:var(--ink-600)}
+.tabbar button[aria-selected=true]{background:#fff;color:var(--tomato-600);box-shadow:0 4px 0 var(--cream-200)}
+
+/* 小幫手 */
+.mascot{position:absolute;right:18px;bottom:100px;z-index:40;width:76px;height:76px}
+.desk .mascot{bottom:28px;right:28px}
+.mascot .body{position:absolute;inset:0;border-radius:50% 50% 46% 46%;background:radial-gradient(circle at 35% 30%,#FF8E6E,var(--tomato-500) 60%);box-shadow:0 8px 0 var(--tomato-600),0 18px 26px rgba(217,71,43,.4);animation:breath 3.4s ease-in-out infinite}
+.mascot .hat{position:absolute;top:-22px;left:12px;width:52px;height:30px;border-radius:30px 30px 6px 6px;background:#fff;box-shadow:0 4px 0 var(--cream-200);transform:translate(calc(var(--px)*3px),0)}
+.mascot .face{position:absolute;inset:24px 14px;display:flex;justify-content:space-around;align-items:center;transform:translate(calc(var(--px)*6px),calc(var(--py)*4px))}
+.mascot .face i{width:9px;height:12px;border-radius:50%;background:var(--ink-900)}
+.mascot .leaf{position:absolute;top:-30px;left:34px;font-size:18px;transform:rotate(calc(var(--px)*14deg))}
+@keyframes breath{50%{transform:scale(1.04,.97) translateY(2px)}}
+.chat{position:absolute;z-index:45;background:#fff;display:flex;flex-direction:column;box-shadow:0 -10px 0 var(--cream-200),var(--shadow-4);transition:transform .45s cubic-bezier(.2,.8,.2,1),opacity .3s;opacity:0;pointer-events:none}
+.phone .chat{left:0;right:0;bottom:0;height:86%;border-radius:28px 28px 0 0;transform:translateY(100%)}
+.desk .chat{right:24px;bottom:24px;width:400px;height:560px;border-radius:26px;transform:perspective(900px) translateZ(-120px) rotateY(-12deg);box-shadow:var(--shadow-3)}
+.chat.open{opacity:1;pointer-events:auto;transform:none}
+.chat header{display:flex;align-items:center;gap:10px;padding:16px 18px;border-bottom:1px solid var(--cream-100)}
+.chat .msgs{flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:12px}
+.msg{max-width:85%;padding:11px 14px;border-radius:18px;line-height:1.6;font-size:14px}
+.msg.me{align-self:flex-end;background:var(--tomato-500);color:#fff;border-bottom-right-radius:6px;box-shadow:0 4px 0 var(--tomato-600)}
+.msg.bot{align-self:flex-start;background:var(--cream-100);border-bottom-left-radius:6px;box-shadow:0 4px 0 var(--cream-200)}
+.src{display:block;margin-top:8px;padding:8px 10px;border-radius:12px;background:#fff;font-size:12px;box-shadow:0 3px 0 var(--cream-200)}
+.chat footer{display:flex;gap:8px;padding:12px}
+.chat footer input{flex:1;height:46px;border-radius:14px;border:2px solid var(--cream-200);padding:0 14px;font:inherit}
+.toast{position:absolute;left:50%;top:18px;z-index:60;transform:translate(-50%,-80px);background:var(--ink-900);color:#fff;padding:10px 18px;border-radius:14px;font-weight:600;font-size:14px;transition:transform .4s cubic-bezier(.2,.8,.2,1.3);box-shadow:var(--shadow-4)}
+.toast.show{transform:translate(-50%,0)}
+.note{max-width:1240px;margin:18px auto 0;color:var(--ink-600);font-size:13px;text-align:center;line-height:1.7}
+</style>
+</head>
+<body>
+<div class="toolbar" role="toolbar" aria-label="預覽控制">
+  <h1>🍅 今天吃啥・偽 3D 預覽</h1>
+  <div class="seg" aria-label="裝置">
+    <button data-dev="phone" aria-pressed="true">📱 手機</button>
+    <button data-dev="desk" aria-pressed="false">🖥 桌機</button>
+  </div>
+  <div class="seg" aria-label="景深效果">
+    <button data-depthset="immersive" aria-pressed="true">沉浸</button>
+    <button data-depthset="static" aria-pressed="false">靜態景深</button>
+    <button data-depthset="off" aria-pressed="false">關閉</button>
+  </div>
+  <div class="seg" aria-label="跳到頁面">
+    <button data-jump="login" aria-pressed="false">登入</button>
+    <button data-jump="cook" aria-pressed="false">備料</button>
+    <button data-jump="result" aria-pressed="false">結果</button>
+  </div>
+</div>
+
+<div class="stage">
+<div class="device phone" id="device">
+ <div class="app" id="app" data-depth="immersive">
+  <div class="bg layer z0"><div class="tile"></div></div>
+
+  <!-- 桌機側欄 -->
+  <nav class="rail" aria-label="主要導覽">
+    <div class="brand">🍅 今天吃啥</div>
+    <button class="nav-btn" data-go="today">🏠 今日</button>
+    <button class="nav-btn" data-go="plan">📝 規劃</button>
+    <button class="nav-btn" data-go="pick">📚 食譜庫</button>
+    <button class="nav-btn" data-go="records">📅 紀錄</button>
+    <button class="nav-btn" data-go="family">👨‍👩‍👧 家庭</button>
+    <div class="foot">林家廚房 ▾<br><span class="sub">景深：<b id="railDepth">沉浸</b></span></div>
+  </nav>
+
+  <main class="main" id="main">
+
+   <!-- 今日 -->
+   <section class="page active" data-page="today" aria-label="今日">
+     <div class="hd layer z1"><div><div class="eyebrow">11 月 14 日・週六晚餐</div><h2>今晚吃這些 👋</h2></div></div>
+     <div class="grid g-2-1">
+      <div class="grid">
+       <div class="slab hi hero tilt layer z3">
+        <div class="row"><span class="badge b-ok">✓ 已採用</span><span class="sub">4 人份</span></div>
+        <div class="plate-wrap" aria-label="今日餐盤">
+          <div class="steam" style="left:42%;animation-delay:0s"></div><div class="steam" style="left:54%;animation-delay:1.2s"></div>
+          <div class="plate">
+            <div class="dish" style="--z:30px;left:18px;top:30px">🍚<span>五穀飯</span></div>
+            <div class="dish" style="--z:44px;right:16px;top:26px">🐟<span>清蒸鱸魚</span></div>
+            <div class="dish" style="--z:36px;left:66px;bottom:14px">🥦<span>蒜炒花椰</span></div>
+          </div>
+        </div>
+        <div class="actionbar" style="justify-content:center"><button class="btn press" data-go="result">看完整餐單</button><button class="btn ghost press" data-toast="已開啟模擬超市結帳（短效連結）">🛒 一鍵購入</button></div>
+       </div>
+       <div class="grid g-3 layer z2">
+        <div class="slab pad tilt stat"><span class="sub">熱量</span><b class="num" style="font-size:20px">96%</b><div class="bar"><i style="width:87%"></i><span class="mark" style="left:91%"></span></div><span class="badge b-ok">≤110% 通過</span></div>
+        <div class="slab pad tilt stat"><span class="sub">蛋白質</span><b class="num" style="font-size:20px">104%</b><div class="bar"><i style="width:94%"></i><span class="mark" style="left:82%"></span></div><span class="badge b-ok">≥90% 通過</span></div>
+        <div class="slab pad tilt stat"><span class="sub">膳食纖維</span><b class="unk" style="font-size:20px">未知</b><div class="bar" style="border:1.5px dashed var(--unknown);background:none"></div><span class="badge b-unk">? 缺來源資料</span></div>
+       </div>
+      </div>
+      <div class="grid layer z2" style="align-content:start">
+        <div class="slab pad tilt"><h3>進行中</h3>
+          <button class="req press" style="width:100%;padding:0;text-align:left" data-go="cook"><span class="ic">🍳</span><span class="body"><b>明天午餐</b><br><span class="sub">計算營養中…</span></span><span class="badge b-warn">生成中</span></button>
+        </div>
+        <div class="slab pad tilt"><h3>近 7 天熱量達成</h3>
+          <div class="trend" aria-label="近7天趨勢"><div style="height:70%"></div><div style="height:85%"></div><div class="u" style="height:60%" title="未知"></div><div style="height:92%"></div><div style="height:78%"></div><div style="height:88%"></div><div class="t" style="height:96%"></div></div>
+          <div class="row sub" style="margin-top:8px"><span>週日</span><span>斜紋＝計算不完整</span><span>今天</span></div>
+        </div>
+      </div>
+     </div>
+   </section>
+
+   <!-- 規劃 -->
+   <section class="page" data-page="plan" aria-label="規劃">
+     <div class="hd layer z1"><div><div class="eyebrow">規劃</div><h2>我的訂單夾</h2></div><button class="btn press" data-go="editor">＋ 新增一餐</button></div>
+     <div class="grid g-2 list" style="gap:14px">
+      <button class="slab req tilt layer z2 press" data-go="cook"><span class="ic">🍳</span><span class="body"><b>11/15 午餐</b><br><span class="sub">4 人・預算 $600</span></span><span class="badge b-warn">生成中</span></button>
+      <button class="slab req tilt layer z2 press" data-go="result"><span class="ic">🍽</span><span class="body"><b>11/14 晚餐</b><br><span class="sub">4 人・預算 $800</span></span><span class="badge b-ok">已採用</span></button>
+      <button class="slab req tilt layer z2 press" data-go="editor"><span class="ic">📝</span><span class="body"><b>11/16 早餐</b><br><span class="sub">尚未選成員</span></span><span class="badge b-unk">草稿</span></button>
+      <button class="slab req tilt layer z2 press" data-go="result"><span class="ic">🤔</span><span class="body"><b>11/13 晚餐</b><br><span class="sub">3 人・預算 $500</span></span><span class="badge" style="background:var(--tomato-100);color:var(--tomato-600)">待決定</span></button>
+     </div>
+   </section>
+
+   <!-- 問卷 -->
+   <section class="page" data-page="editor" aria-label="問卷編輯">
+     <div class="hd layer z1"><div><div class="eyebrow">步驟 2 / 5</div><h2>誰要一起吃？</h2></div></div>
+     <div class="steps layer z2" aria-hidden="true"><i class="done"></i><i class="cur"></i><i></i><i></i><i></i></div>
+     <div class="members layer z2">
+       <button class="slab mem on tilt"><div class="ava">👨</div><b>爸爸</b><div class="sub">2,100 kcal</div></button>
+       <button class="slab mem on tilt"><div class="ava">👩</div><b>媽媽</b><div class="sub">1,700 kcal</div></button>
+       <button class="slab mem on tilt"><div class="ava">👧</div><b>小米</b><div class="sub">1,500 kcal</div></button>
+       <button class="slab mem tilt"><div class="ava">👵</div><b>阿嬤</b><div class="sub">1,450 kcal</div></button>
+     </div>
+     <div class="slab pad layer z2" style="margin-top:16px"><h3>不吃的食材</h3><div style="display:flex;gap:8px;flex-wrap:wrap"><span class="chip on">香菜 ✕</span><span class="chip on">牛肉 ✕</span><span class="chip">＋ 新增</span></div></div>
+     <div class="actionbar layer z3" style="margin-top:18px"><button class="btn ghost press">上一步</button><button class="btn press" style="flex:1" data-go="cook">送出生成</button></div>
+   </section>
+
+   <!-- 備料 -->
+   <section class="page" data-page="cook" aria-label="生成等待">
+     <div class="cook">
+      <div>
+       <div class="eyebrow layer z1">11/15 午餐・4 人</div>
+       <h2 class="layer z1">正在備料中…</h2>
+       <div class="pot-scene layer z3" aria-hidden="true">
+         <span class="fall" style="left:70px;animation-delay:0s">🥕</span>
+         <span class="fall" style="left:130px;animation-delay:.6s">🧅</span>
+         <span class="fall" style="left:180px;animation-delay:1.2s">🍗</span>
+         <span class="fall" style="left:105px;animation-delay:1.8s">🥬</span>
+         <div class="steam" style="left:110px;top:60px"></div><div class="steam" style="left:160px;top:60px;animation-delay:1.5s"></div>
+         <div class="pot"></div>
+       </div>
+       <div class="flow layer z2" id="flow" aria-live="polite">
+         <div data-s="0"><span class="dot"></span>已收到需求</div>
+         <div data-s="1"><span class="dot"></span>排隊中</div>
+         <div data-s="2"><span class="dot"></span>計算營養</div>
+         <div data-s="3"><span class="dot"></span>查詢價格</div>
+         <div data-s="4"><span class="dot"></span>完成</div>
+       </div>
+       <p class="sub" style="margin-bottom:14px">步驟只依後端工作狀態點亮，離開此頁不會中斷。</p>
+       <button class="btn ghost press" data-go="plan">取消生成</button>
+      </div>
+     </div>
+   </section>
+
+   <!-- 結果 -->
+   <section class="page" data-page="result" aria-label="餐單結果">
+     <div class="hd layer z1"><div><div class="eyebrow">第 2 版結果・11/15 午餐</div><h2>這份餐單如何？</h2></div><span class="badge b-warn">待決定</span></div>
+     <div class="grid g-2">
+      <div class="slab hi hero tilt layer z3">
+        <div class="plate-wrap">
+          <div class="plate">
+            <div class="dish" style="--z:30px;left:18px;top:30px">🍜<span>番茄雞湯麵</span></div>
+            <div class="dish" style="--z:46px;right:16px;top:28px">🥚<span>蔥蛋</span></div>
+            <div class="dish" style="--z:36px;left:66px;bottom:14px">🥗<span>和風沙拉</span></div>
+          </div>
+        </div>
+        <p class="sub" style="text-align:center">點菜色可翻出做法與食材</p>
+      </div>
+      <div class="grid" style="align-content:start">
+        <div class="slab pad layer z2"><h3>家庭營養</h3>
+          <table class="tbl"><thead><tr><th>成員</th><th>熱量</th><th>蛋白質</th><th>狀態</th></tr></thead><tbody>
+          <tr><td>爸爸</td><td class="num">102%</td><td class="num">95%</td><td><span class="badge b-ok">通過</span></td></tr>
+          <tr><td>媽媽</td><td class="num">108%</td><td class="num">112%</td><td><span class="badge b-ok">通過</span></td></tr>
+          <tr><td>小米</td><td class="num">116%</td><td class="num">98%</td><td><span class="badge b-warn">熱量超出</span></td></tr>
+          <tr><td>阿嬤</td><td><span class="unk">未知</span></td><td><span class="unk">未知</span></td><td><span class="badge b-unk">計算不完整</span></td></tr>
+          </tbody></table>
+        </div>
+        <div class="slab pad layer z2"><h3>花費</h3>
+          <div class="cost"><div><span class="sub">整包花費</span><b class="num">$486</b><span class="sub">實際要買的包裝</span></div><div><span class="sub">按比例成本</span><b class="num">$312</b><span class="sub">這餐用掉的部分</span></div></div>
+          <div class="row" style="margin-top:10px"><span class="badge b-ok">預算內（$600）</span><span class="sub">1 項食材價格 <span class="unk">未知</span></span></div>
+        </div>
+      </div>
+     </div>
+     <div class="grid g-2 layer z2" style="margin-top:16px">
+       <div class="flip" tabindex="0" onclick="this.classList.toggle('on')"><div class="in"><div class="face"><h3>💡 知識小提示</h3><p class="sub">番茄加熱後茄紅素更容易吸收…<br><br>點一下看來源</p></div><div class="face back"><h3>參考來源</h3><p class="sub">健康醫療網・營養飲食<br>Hello醫師・健康飲食</p></div></div></div>
+       <div class="slab pad"><h3>想換一下？</h3><p class="sub">說明原因，下一版會避開。</p><div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px"><span class="chip">太油</span><span class="chip">昨天吃過</span><span class="chip">小孩不愛</span></div></div>
+     </div>
+     <div class="actionbar sticky layer z4" style="margin-top:18px"><button class="btn green press" style="flex:1" data-toast="已採用！可在今日頁一鍵購入" data-go="today">✓ 採用這份</button><button class="btn ghost press" data-go="cook">🔄 換一份</button></div>
+   </section>
+
+   <!-- 食譜庫 -->
+   <section class="page" data-page="pick" aria-label="食譜庫">
+     <div class="hd layer z1"><div><div class="eyebrow">食譜庫</div><h2>自己挑菜</h2></div><button class="btn ghost press" data-toast="開啟相機辨識食材">📷 拍冰箱</button></div>
+     <div class="pills layer z3"><span class="chip on">全部</span><span class="chip">主食</span><span class="chip">肉類</span><span class="chip">海鮮</span><span class="chip">蔬菜</span><span class="chip">湯品</span></div>
+     <div class="grid g-3m" id="recipes"></div>
+     <div class="tray layer z4"><span>托盤</span><div class="slots" id="slots"><span></span><span></span><span></span></div><button class="btn press" data-go="cook" style="min-height:40px">計算營養</button></div>
+   </section>
+
+   <!-- 紀錄 -->
+   <section class="page" data-page="records" aria-label="紀錄">
+     <div class="hd layer z1"><div><div class="eyebrow">紀錄</div><h2>吃過什麼</h2></div></div>
+     <div class="tabbar layer z2" role="tablist"><button role="tab" aria-selected="true" data-rtab="a">已採用</button><button role="tab" aria-selected="false" data-rtab="n">營養與採購</button></div>
+     <div class="grid g-2" data-rpanel="a">
+       <div class="slab pad tilt layer z2"><h3>2026 年 11 月</h3><div class="cal" id="cal"></div></div>
+       <div class="slab pad tilt layer z2"><h3>11/14 晚餐</h3><div class="list"><div class="row"><span>🍚 五穀飯</span><span class="sub">4 份</span></div><div class="row"><span>🐟 清蒸鱸魚</span><span class="sub">1 條</span></div><div class="row"><span>🥦 蒜炒花椰菜</span><span class="sub">1 盤</span></div></div></div>
+     </div>
+     <div class="grid g-2" data-rpanel="n" hidden>
+       <div class="slab pad tilt layer z2"><h3>每週採購金額</h3><div class="trend" style="height:140px"><div style="height:55%"></div><div style="height:72%"></div><div style="height:64%"></div><div class="t" style="height:80%"></div></div><div class="row sub" style="margin-top:8px"><span>10/24</span><span>11/14</span></div></div>
+       <div class="slab pad tilt layer z2"><h3>生成紀錄</h3><div class="list"><div class="row"><span>11/15 午餐 v2</span><span class="badge b-warn">待決定</span></div><div class="row"><span>11/14 晚餐 v1</span><span class="badge b-ok">已採用</span></div><div class="row"><span>11/12 晚餐 v3</span><span class="badge b-unk">計算不完整</span></div></div></div>
+     </div>
+   </section>
+
+   <!-- 家庭 -->
+   <section class="page" data-page="family" aria-label="家庭">
+     <div class="hd layer z1"><div><div class="eyebrow">林家廚房</div><h2>家庭成員</h2></div><button class="btn press">＋ 成員</button></div>
+     <div class="members layer z2">
+       <div class="slab mem tilt"><div class="ava">👨</div><b>爸爸</b><div class="sub">45 歲・中度活動</div></div>
+       <div class="slab mem tilt"><div class="ava">👩</div><b>媽媽</b><div class="sub">43 歲・輕度活動</div></div>
+       <div class="slab mem tilt"><div class="ava">👧</div><b>小米</b><div class="sub">9 歲・中度活動</div></div>
+       <div class="slab mem tilt"><div class="ava">👵</div><b>阿嬤</b><div class="sub">78 歲・<span class="unk">活動量未填</span></div></div>
+     </div>
+     <div class="slab pad layer z2" style="margin-top:16px"><h3>設定</h3>
+       <div class="row" style="flex-wrap:wrap"><span>景深效果</span><div class="seg" id="famDepth"><button data-depthset="immersive" aria-pressed="true">沉浸</button><button data-depthset="static" aria-pressed="false">靜態</button><button data-depthset="off" aria-pressed="false">關閉</button></div></div>
+       <div class="row" style="margin-top:12px"><span>服務狀態</span><span class="badge b-ok">辨識・知識 正常</span></div>
+       <div class="row" style="margin-top:12px"><button class="btn ghost press" data-jump="login">登出</button></div>
+     </div>
+   </section>
+  </main>
+
+  <!-- 手機分頁 -->
+  <nav class="tabs" aria-label="主要導覽">
+    <button class="nav-btn" data-go="today"><span class="ic">🏠</span>今日</button>
+    <button class="nav-btn" data-go="plan"><span class="ic">📝</span>規劃</button>
+    <button class="nav-btn" data-go="pick"><span class="ic">📚</span>食譜庫</button>
+    <button class="nav-btn" data-go="records"><span class="ic">📅</span>紀錄</button>
+    <button class="nav-btn" data-go="family"><span class="ic">👨‍👩‍👧</span>家庭</button>
+  </nav>
+
+  <!-- 小幫手 -->
+  <button class="mascot float" id="mascot" aria-label="開啟飲食小幫手"><span class="hat"></span><span class="leaf">🌿</span><span class="body"></span><span class="face"><i></i><i></i></span></button>
+  <div class="chat" id="chat" role="dialog" aria-label="飲食小幫手">
+    <header><span style="font-size:26px">🍅</span><div style="flex:1"><b style="font-family:var(--round)">飲食小幫手</b><div class="sub">只根據檢索到的文章回答</div></div><button aria-label="關閉" id="chatClose" style="font-size:22px">✕</button></header>
+    <div class="msgs">
+      <div class="msg me">晚餐想多吃點蔬菜，有什麼建議？</div>
+      <div class="msg bot">可以把一半的盤子留給深綠色蔬菜，搭配菇類增加口感。烹調時少油快炒或汆燙，能保留較多水溶性維生素。
+        <span class="src">📄 蔬菜怎麼煮最營養？<br><span class="sub">健康醫療網・營養飲食</span></span>
+        <span class="src">📄 每天蔬菜要吃多少？<br><span class="sub">Hello醫師・健康飲食</span></span>
+      </div>
+      <div class="msg bot sub" style="font-size:12px">本服務不提供診斷、處方或劑量建議。</div>
+    </div>
+    <footer><input aria-label="輸入問題" placeholder="問問飲食問題…"><button class="btn press" style="min-height:46px">送出</button></footer>
+  </div>
+
+  <!-- 登入 -->
+  <div class="login" id="login" aria-label="登入">
+    <div class="window layer z0"><div class="sun"></div></div>
+    <div class="counter layer z1"></div>
+    <div class="props layer z2" aria-hidden="true"><span>🍳</span><span>🥕</span><span>🧄</span></div>
+    <form class="slab hi login-card tilt layer z3" onsubmit="event.preventDefault();doLogin()">
+      <div class="brand" style="padding:0 0 4px">🍅 今天吃啥</div>
+      <p class="sub" style="margin-bottom:16px">一家人的每一餐，幫你算好營養與花費。</p>
+      <label class="field"><span>帳號</span><input value="demo@family" autocomplete="off"></label>
+      <label class="field"><span>密碼</span><input type="password" value="••••••••" autocomplete="off"></label>
+      <button class="btn block press" type="submit">登入</button>
+      <p class="sub" style="text-align:center;margin-top:12px">還沒有帳號？<b style="color:var(--tomato-600)">翻面註冊</b></p>
+    </form>
+  </div>
+
+  <div class="toast" id="toast" role="status"></div>
+ </div>
+</div>
+</div>
+<p class="note">假資料、不連後端。移動滑鼠看視差，滑過卡片看傾斜。設計文件：<code>frontend-3d/DESIGN.md</code></p>
+
+<script>
+const $=(s,r=document)=>r.querySelector(s),$$=(s,r=document)=>[...r.querySelectorAll(s)];
+const app=$('#app'),device=$('#device');
+let current='today';
+
+// 食譜卡
+const R=[['🍛','咖哩雞','主食・4人'],['🍤','鹽酥蝦','海鮮'],['🥘','麻婆豆腐','豆類'],['🍲','蘿蔔排骨湯','湯品'],['🥬','炒地瓜葉','蔬菜'],['🍖','滷肉','肉類'],['🐙','三杯小卷','海鮮'],['🍠','地瓜飯','主食']];
+$('#recipes').innerHTML=R.map(([e,n,t])=>`<button class="slab rc tilt layer z2" data-e="${e}"><div class="ph">${e}</div><div class="tx"><b style="font-family:var(--round)">${n}</b><div class="sub">${t}</div></div></button>`).join('');
+const picked=[];
+$$('.rc').forEach(c=>c.onclick=()=>{
+  const i=picked.indexOf(c.dataset.e);
+  if(i>=0){picked.splice(i,1);c.classList.remove('sel')}else if(picked.length<3){picked.push(c.dataset.e);c.classList.add('sel')}
+  $$('#slots span').forEach((s,k)=>s.textContent=picked[k]||'');
+});
+// 日曆
+let cal='日一二三四五六'.split('').map(d=>`<b>${d}</b>`).join('');
+for(let i=0;i<6;i++)cal+='<div style="background:none"></div>';
+for(let d=1;d<=30;d++)cal+=`<div class="${d===14?'has sel':[2,3,5,7,8,10,11,12,13].includes(d)?'has':''}">${d}</div>`;
+$('#cal').innerHTML=cal;
+
+// 導覽
+function go(p){
+  if(p===current){return}
+  const old=$(`[data-page="${current}"]`),nw=$(`[data-page="${p}"]`);
+  if(!nw)return;
+  old.classList.remove('active');old.classList.add('leaving');setTimeout(()=>old.classList.remove('leaving'),380);
+  nw.classList.add('active');nw.scrollTop=0;current=p;
+  const tab={editor:'plan',cook:'plan',result:'plan'}[p]||p;
+  $$('.nav-btn').forEach(b=>{b.dataset.go===tab?b.setAttribute('aria-current','page'):b.removeAttribute('aria-current')});
+  if(p==='cook')runCook();
+}
+document.addEventListener('click',e=>{
+  const t=e.target.closest('[data-go],[data-toast],[data-jump],[data-dev],[data-depthset],[data-rtab]');if(!t)return;
+  if(t.dataset.toast)toast(t.dataset.toast);
+  if(t.dataset.go)go(t.dataset.go);
+  if(t.dataset.jump){const j=t.dataset.jump;if(j==='login'){$('#login').classList.remove('gone')}else{$('#login').classList.add('gone');go(j)}}
+  if(t.dataset.dev){device.className='device '+t.dataset.dev;$$('[data-dev]').forEach(b=>b.setAttribute('aria-pressed',b===t))}
+  if(t.dataset.depthset){const m=t.dataset.depthset;app.dataset.depth=m;$$('[data-depthset]').forEach(b=>b.setAttribute('aria-pressed',b.dataset.depthset===m));$('#railDepth').textContent={immersive:'沉浸',static:'靜態景深',off:'關閉'}[m]}
+  if(t.dataset.rtab){$$('[data-rtab]').forEach(b=>b.setAttribute('aria-selected',b===t));$$('[data-rpanel]').forEach(p=>p.hidden=p.dataset.rpanel!==t.dataset.rtab)}
+});
+$$('.nav-btn').forEach(b=>{if(b.dataset.go==='today')b.setAttribute('aria-current','page')});
+function doLogin(){$('#login').classList.add('gone');toast('歡迎回來，林家廚房')}
+let tt;function toast(m){const t=$('#toast');t.textContent=m;t.classList.add('show');clearTimeout(tt);tt=setTimeout(()=>t.classList.remove('show'),2200)}
+
+// 備料步驟（模擬後端工作狀態）
+let cookTimer;
+function runCook(){
+  clearInterval(cookTimer);let s=0;const rows=$$('#flow div');
+  const paint=()=>rows.forEach((r,i)=>{r.className=i<s?'on':i===s?'run':''});paint();
+  cookTimer=setInterval(()=>{s++;paint();if(s>=rows.length){clearInterval(cookTimer);setTimeout(()=>current==='cook'&&go('result'),700)}},1300);
+}
+
+// 小幫手
+$('#mascot').onclick=()=>$('#chat').classList.add('open');
+$('#chatClose').onclick=()=>$('#chat').classList.remove('open');
+
+// 視差：指標 → --px/--py
+let raf;
+device.addEventListener('pointermove',e=>{
+  if(app.dataset.depth!=='immersive')return;
+  const r=device.getBoundingClientRect();
+  const x=((e.clientX-r.left)/r.width-.5)*2,y=((e.clientY-r.top)/r.height-.5)*2;
+  cancelAnimationFrame(raf);raf=requestAnimationFrame(()=>{app.style.setProperty('--px',x.toFixed(3));app.style.setProperty('--py',y.toFixed(3))});
+});
+device.addEventListener('pointerleave',()=>{app.style.setProperty('--px',0);app.style.setProperty('--py',0)});
+// 卡片傾斜
+document.addEventListener('pointermove',e=>{
+  if(app.dataset.depth!=='immersive')return;
+  const c=e.target.closest('.tilt');
+  $$('.tilt.tilting').forEach(o=>{if(o!==c){o.classList.remove('tilting');o.style.setProperty('--rx','0deg');o.style.setProperty('--ry','0deg')}});
+  if(!c)return;
+  const r=c.getBoundingClientRect(),x=(e.clientX-r.left)/r.width-.5,y=(e.clientY-r.top)/r.height-.5;
+  const max=c.classList.contains('hero')?10:8;
+  c.classList.add('tilting');c.style.setProperty('--rx',(-y*max).toFixed(2)+'deg');c.style.setProperty('--ry',(x*max).toFixed(2)+'deg');
+});
+</script>
+</body>
+</html>

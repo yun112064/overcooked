@@ -1,5 +1,6 @@
 from decimal import Decimal
 from pathlib import Path
+from typing import Literal
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -25,6 +26,11 @@ class Settings(BaseSettings):
     nutrition_rules_path: Path = (
         PROJECT_ROOT / "nutrition_target/rules/hpa-dri8-mvp-0.4.0.json"
     )
+    # T04 營養證據綁定的資料版本：demo 只有 api/t04_data.py 讀取；
+    # 未設定時 T04 證據端點回 422 NUTRITION_VERSION_REQUIRED（使用者確認綁定前的預設）
+    generation_recipe_release_id: str | None = None
+    generation_nutrition_import_id: str | None = None
+    generation_food_mapping_version: str | None = None
 
     # T10 外部服務費用：每月總上限包含主機、模型、備份等全部服務
     monthly_budget_twd: Decimal = Decimal("2000")
@@ -62,6 +68,12 @@ class Settings(BaseSettings):
     knowledge_service_token: str | None = None
     knowledge_timeout_seconds: float = 10.0
     knowledge_limit_per_ingredient: int = 3
+    # 知識說明的生成模型與供應者（ollama 只用於知識說明，不用於 AI 菜單回退）
+    knowledge_explain_model: str = "gpt-5.4-mini-2026-03-17"
+    knowledge_explain_provider: Literal['openai', 'ollama'] = 'openai'
+    knowledge_ollama_url: str | None = None
+    knowledge_ollama_model: str = 'qwen3.5:9b-q4_K_M'
+    knowledge_ollama_timeout_seconds: float = 120.0
     # 未設定 API key 代表付費模型不可用；一律經 T10 額度預留後才呼叫
     openai_api_key: str | None = None
     openai_base_url: str = "https://api.openai.com/v1"
@@ -85,6 +97,24 @@ class Settings(BaseSettings):
     # T17 團隊電腦服務經 Cloudflare Tunnel＋Access：雲端呼叫時附上的 Access 服務權杖（兩個服務共用）
     team_access_client_id: str | None = None
     team_access_client_secret: str | None = None
+
+    # 模擬超市：未設定網址代表超市不可用；預設不允許真實結帳
+    sim_market_url: str | None = None
+    sim_market_handoff_key: str | None = None
+    sim_market_real_checkout_enabled: bool = False
+
+    # R14 飲食小幫手（團隊電腦 assistant_rag 服務）；未設定代表小幫手不可用
+    assistant_service_url: str | None = None
+    assistant_service_token: str | None = None
+    # OpenAI 版小幫手（第二個服務）；未設定時前端不顯示切換
+    assistant_openai_service_url: str | None = None
+    assistant_timeout_seconds: float = 120.0
+    assistant_rate_per_minute: int = 10
+    # T11 營養小知識（付費 embedding／OpenAI 說明）每戶每分鐘上限；0 代表不限制
+    knowledge_tips_rate_per_minute: int = 10
+    # OpenAI 版小幫手經內部 API 請雲端代為生成（T10 額度）；模型須列在 model_pricing.json
+    assistant_openai_model: str = "gpt-5.4-mini-2026-03-17"
+    assistant_openai_max_output_tokens: int = 2000
 
     model_config = SettingsConfigDict(
         env_file=".env",

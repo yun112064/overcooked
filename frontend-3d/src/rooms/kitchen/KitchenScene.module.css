@@ -1,0 +1,364 @@
+/*
+ * 廚房全景。世界裡的尺寸用 cqw（1cqw＝世界寬度的 1%），和插圖一起縮放；字級用 clamp() 保底，手機上才讀得到。
+ * 選擇器寫成 button.xxx：這些都是 <Hotspot>（按鈕），要蓋過 Room 給按鈕的預設樣式（留白、底色、圓角）。
+ * transition 一定要帶 transform 那一段，那是 Room 的視差位移，漏掉會變成瞬間跳動。
+ * transform-origin 設在左上角：Room 把物件往左移了半個寬度，所以版面盒子的左上角正好是畫面上的「上緣中點」。
+ */
+
+/* ---- 單軌上的點菜單 ---- */
+button.ticket {
+  aspect-ratio: 110 / 160;
+  background-size: 100% 100%;
+  border-radius: 0;
+  color: var(--ink-900);
+  font-size: clamp(11px, 0.72cqw, 14px);
+  transform-origin: 0 0;
+  transition: transform 250ms ease-out, rotate var(--dur-base) var(--ease-out), filter var(--dur-base);
+}
+
+/* 掛著的紙被碰到會晃一下 */
+button.ticket:not(:disabled):hover,
+button.ticket:not(:disabled):focus-visible {
+  rotate: -2.5deg;
+  filter: brightness(1.05);
+}
+
+button.ticket:disabled {
+  filter: saturate(0.75);
+}
+
+/* 紙面可以寫字的範圍（紙在圖檔裡偏左，下緣有捲起來的陰影） */
+.ticketText {
+  position: absolute;
+  inset: 15% 12% 12% 7%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.2em;
+  line-height: 1.3;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.ticketText b {
+  font-family: var(--font-round);
+  font-size: 1.25em;
+  line-height: 1.2;
+}
+
+.ticketText > span:not(.sticker) {
+  color: var(--ink-600);
+}
+
+/* 狀態貼紙：StatusChip 預設比周圍的字小一號，貼在這麼小的單上會讀不到 */
+.ticketText .sticker {
+  margin-top: 0.15em;
+  padding: 0.05em 0.45em;
+  font-size: 1em;
+}
+
+/* 最後一個位置：「全部的單」 */
+.pad .ticketText b {
+  font-size: 1.1em;
+  color: var(--brick-800);
+}
+
+.pad .ticketText em {
+  margin-top: auto;
+  padding: 0.1em 0.5em;
+  border: 0.1em dashed var(--brick-700);
+  border-radius: 0.4em;
+  color: var(--brick-800);
+  font-style: normal;
+  font-weight: 700;
+}
+
+/* ---- 物件旁的小標籤：這是什麼、點了會怎樣 ---- */
+.tag {
+  position: absolute;
+  left: 50%;
+  /* 鍋的標籤放在爐子旋鈕下方的檯面邊緣，不擋住鍋與蒸氣 */
+  top: calc(100% + 3cqw);
+  display: grid;
+  justify-items: center;
+  padding: 0.3em 0.9em;
+  transform: translateX(-50%);
+  border-radius: 1em;
+  background: rgba(255, 253, 247, 0.94);
+  box-shadow: 0 0.3em 0.8em rgba(15, 8, 25, 0.4);
+  color: var(--ink-900);
+  font-size: clamp(12px, 0.8cqw, 15px);
+  line-height: 1.35;
+  white-space: nowrap;
+}
+
+.tagNear {
+  top: calc(100% + 0.4cqw);
+}
+
+/* 標籤前的小紅點：提示這個東西可以點 */
+.tag b::before {
+  content: '';
+  display: inline-block;
+  width: 0.55em;
+  height: 0.55em;
+  margin-right: 0.4em;
+  border-radius: 50%;
+  background: var(--tomato-500);
+  box-shadow: 0 0 0 0.2em rgba(232, 96, 63, 0.3);
+}
+
+.tag small {
+  color: var(--ink-600);
+  font-size: 0.9em;
+}
+
+/* ---- 瓦斯爐上的鍋 ---- */
+button.pot {
+  transition: transform 250ms ease-out, filter var(--dur-base);
+}
+
+/* 光暈沿著鍋的輪廓，不是一個方框 */
+button.pot:not(:disabled):hover,
+button.pot:not(:disabled):focus-visible {
+  filter: brightness(1.06) drop-shadow(0 0 0.5cqw rgba(255, 210, 122, 0.9));
+}
+
+/* ---- 闔上的食譜書：可點的範圍蓋在插圖上，平常透明 ---- */
+button.book {
+  aspect-ratio: 264 / 112;
+  border-radius: 0.4cqw;
+  transition: transform 250ms ease-out, box-shadow var(--dur-base) var(--ease-out), background var(--dur-base);
+}
+
+button.book:hover,
+button.book:focus-visible {
+  background: rgba(255, 210, 122, 0.12);
+  box-shadow: 0 0 0 0.25cqw rgba(255, 210, 122, 0.9), 0 0 2cqw 0.6cqw rgba(255, 210, 122, 0.45);
+}
+
+/* ---- 冰箱門上的便利貼 ---- */
+button.note {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2em;
+  padding: 1.3em 0.8em 0.8em;
+  border-radius: 0.15em;
+  box-shadow: 0.1em 0.3em 0.7em rgba(20, 10, 25, 0.35);
+  color: var(--ink-900);
+  font-size: clamp(11px, 0.7cqw, 14px);
+  line-height: 1.45;
+  text-align: left;
+  transform-origin: 0 0;
+  transition: transform 250ms ease-out, rotate var(--dur-base) var(--ease-out), filter var(--dur-base);
+}
+
+button.noteYellow {
+  background: linear-gradient(#fff6b8, #f6e690);
+  rotate: -3deg;
+}
+
+button.noteWhite {
+  background: linear-gradient(#fffefa, #efe8da);
+  rotate: 1.5deg;
+}
+
+button.note:hover,
+button.note:focus-visible {
+  rotate: 0deg;
+  filter: brightness(1.04);
+}
+
+.note > b {
+  font-family: var(--font-round);
+  font-size: 1.1em;
+  color: var(--brick-800);
+}
+
+.note small {
+  color: var(--ink-600);
+  font-size: 0.9em;
+  line-height: 1.4;
+}
+
+.noteDay {
+  font-weight: 700;
+}
+
+/* 一餐最多兩行，再長就省略（完整內容在冰箱門那一景，讀屏唸的是完整的） */
+.noteLine {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+}
+
+.noteLine em {
+  margin-right: 0.4em;
+  color: var(--ink-600);
+  font-style: normal;
+  font-weight: 700;
+}
+
+.stat {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.6em;
+  border-bottom: 0.08em solid rgba(110, 90, 76, 0.25);
+}
+
+.stat > span:first-child {
+  color: var(--ink-600);
+}
+
+.stat strong {
+  font-family: var(--font-round);
+  font-size: 1.15em;
+}
+
+/* 熱量超過目標 110%：除了顏色，一定寫出「超出」兩個字 */
+.stat em {
+  margin-left: 0.4em;
+  padding: 0 0.4em;
+  border-radius: 0.4em;
+  background: var(--mustard-100);
+  color: var(--mustard-700);
+  font-size: 0.8em;
+  font-style: normal;
+}
+
+.magnet {
+  position: absolute;
+  left: 50%;
+  top: -0.5em;
+  width: 1.3em;
+  height: 1.3em;
+  margin-left: -0.65em;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #ff9a7c, #c8331c 60%, #6e170b);
+  box-shadow: 0.05em 0.15em 0.3em rgba(20, 10, 25, 0.5);
+}
+
+.magnetGreen {
+  background: radial-gradient(circle at 35% 30%, #b5db8e, #4e8a45 60%, #27422c);
+}
+
+/* ---- 上方訊息裡的兩顆按鈕 ---- */
+.noticeActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+/* ---- 「我的問卷」面板（不在世界裡，用 px） ---- */
+.heroDate {
+  margin: 0;
+  color: var(--ink-600);
+  font-size: 13px;
+  letter-spacing: 0.08em;
+}
+
+.heroTitle {
+  margin: 2px 0 6px;
+  font-family: var(--font-round);
+  font-size: 20px;
+  font-weight: 800;
+  line-height: 1.3;
+  overflow-wrap: anywhere;
+}
+
+.heroText,
+.heroMembers,
+.listHint {
+  margin: 0 0 10px;
+  color: var(--ink-600);
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.heroMembers {
+  color: var(--ink-900);
+}
+
+.heroMembers span {
+  margin-right: 0.6em;
+  color: var(--ink-600);
+  font-size: 13px;
+}
+
+.listHint {
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid var(--cream-200);
+}
+
+.list {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.list button {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  min-height: 60px;
+  padding: 8px 12px;
+  border: 1px solid var(--paper-edge);
+  border-radius: 12px;
+  background: var(--cream-50);
+  text-align: left;
+}
+
+.list button:hover:not(:disabled) {
+  background: var(--cream-200);
+}
+
+.list button:disabled {
+  cursor: default;
+  opacity: 0.6;
+}
+
+.rowDate,
+.rowMain {
+  display: grid;
+  line-height: 1.3;
+}
+
+.rowDate {
+  flex: none;
+  width: 58px;
+  padding-right: 10px;
+  border-right: 1px solid var(--cream-200);
+  text-align: center;
+}
+
+.rowDate b {
+  font-family: var(--font-round);
+  font-size: 18px;
+}
+
+.rowMain {
+  flex: 1;
+  min-width: 0;
+}
+
+.rowDate small,
+.rowMain small {
+  color: var(--ink-600);
+  font-size: 12px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  button.ticket,
+  button.pot,
+  button.book,
+  button.note {
+    transition: none;
+  }
+}

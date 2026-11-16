@@ -12,6 +12,8 @@ COPY nutrition_target /app/nutrition_target
 # 共用設定（全是非機密的資料檔：模型價格、主食、同義詞、調味料、營養與食材修正表…）。
 # 整個目錄複製：逐檔列出曾漏掉計算必需的檔（nutrition_as_is_categories 等），demo 生成因此全部失敗。
 COPY config /app/config
+# API 匯入 knowledge_rag.explain（知識說明）
+COPY knowledge_rag /app/knowledge_rag
 ENV PYTHONPATH=/app
 COPY alembic.ini /app/alembic.ini
 COPY migrations /app/migrations

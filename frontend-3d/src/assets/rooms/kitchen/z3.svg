@@ -1,0 +1,48 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 1000" preserveAspectRatio="xMidYMid slice">
+  <!-- 廚房 z3：前景——上方失焦的吊燈、下緣失焦的中島與一碗番茄、暗角 -->
+  <defs>
+    <filter id="kz3-b8" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="8"/></filter>
+    <filter id="kz3-b12" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="12"/></filter>
+    <linearGradient id="kz3-shade" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#17141C"/><stop offset=".45" stop-color="#4A4652"/><stop offset="1" stop-color="#1C1922"/>
+    </linearGradient>
+    <linearGradient id="kz3-island" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#8E6844"/><stop offset=".2" stop-color="#5A3D24"/><stop offset="1" stop-color="#2A1A10"/>
+    </linearGradient>
+    <radialGradient id="kz3-tom" cx=".36" cy=".3" r=".75">
+      <stop offset="0" stop-color="#F58468"/><stop offset=".45" stop-color="#C8331C"/><stop offset="1" stop-color="#6E170B"/>
+    </radialGradient>
+    <linearGradient id="kz3-bowl" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#8E877A"/><stop offset=".5" stop-color="#E4DDCF"/><stop offset="1" stop-color="#9A9386"/>
+    </linearGradient>
+    <radialGradient id="kz3-glow" cx=".5" cy=".5" r=".5">
+      <stop offset="0" stop-color="#FFEDBE" stop-opacity=".8"/><stop offset="1" stop-color="#FFD48A" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="kz3-vig" cx=".5" cy=".46" r=".8">
+      <stop offset=".55" stop-color="#150F1E" stop-opacity="0"/><stop offset="1" stop-color="#150F1E" stop-opacity=".55"/>
+    </radialGradient>
+  </defs>
+
+  <!-- 吊燈（失焦） -->
+  <g filter="url(#kz3-b8)">
+    <path d="M1130 -20 V40" stroke="#17141C" stroke-width="6"/>
+    <path d="M1056 110 Q1062 36 1130 34 Q1198 36 1204 110Z" fill="url(#kz3-shade)"/>
+    <ellipse cx="1130" cy="112" rx="74" ry="12" fill="#FFF3CC"/>
+  </g>
+  <circle cx="1130" cy="150" r="170" fill="url(#kz3-glow)" opacity=".5"/>
+
+  <!-- 中島邊緣與一碗番茄（失焦） -->
+  <g filter="url(#kz3-b12)">
+    <rect x="-60" y="952" width="1720" height="90" fill="url(#kz3-island)"/>
+    <rect x="-60" y="952" width="1720" height="6" fill="#C39A66" opacity=".8"/>
+    <g>
+      <circle cx="150" cy="900" r="38" fill="url(#kz3-tom)"/><circle cx="214" cy="890" r="40" fill="url(#kz3-tom)"/><circle cx="278" cy="904" r="36" fill="url(#kz3-tom)"/>
+      <circle cx="186" cy="862" r="34" fill="url(#kz3-tom)"/><circle cx="246" cy="858" r="32" fill="url(#kz3-tom)"/>
+      <path d="M88 910 h252 q-8 70 -70 70 h-112 q-62 0 -70 -70Z" fill="url(#kz3-bowl)"/>
+      <ellipse cx="214" cy="910" rx="126" ry="12" fill="#6E675A" opacity=".6"/>
+    </g>
+  </g>
+
+  <!-- 暗角 -->
+  <rect x="-80" y="-60" width="1760" height="1120" fill="url(#kz3-vig)"/>
+</svg>

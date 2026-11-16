@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 1000" preserveAspectRatio="xMidYMid slice">
+  <!-- 餐桌 z2：轉盤正中的小花瓶（俯視）。其餘桌上的東西都是依資料擺放的元件。 -->
+  <defs>
+    <filter id="tz2-b3"><feGaussianBlur stdDeviation="3"/></filter>
+    <radialGradient id="tz2-vase" cx=".4" cy=".35" r=".8">
+      <stop offset="0" stop-color="#FFFFFF"/><stop offset=".7" stop-color="#E9E2D4"/><stop offset="1" stop-color="#A9A296"/>
+    </radialGradient>
+    <radialGradient id="tz2-flower" cx=".4" cy=".35" r=".8">
+      <stop offset="0" stop-color="#FF9A7C"/><stop offset="1" stop-color="#B2301A"/>
+    </radialGradient>
+  </defs>
+  <circle cx="804" cy="505" r="26" fill="#0E0A14" opacity=".5" filter="url(#tz2-b3)"/>
+  <circle cx="800" cy="500" r="22" fill="url(#tz2-vase)"/><circle cx="800" cy="500" r="12" fill="#3A2A20"/>
+  <g fill="#4E8A45"><ellipse cx="786" cy="486" rx="12" ry="5" transform="rotate(40 786 486)"/><ellipse cx="816" cy="512" rx="12" ry="5" transform="rotate(40 816 512)"/><ellipse cx="814" cy="486" rx="10" ry="4" transform="rotate(-40 814 486)"/></g>
+  <g fill="url(#tz2-flower)"><circle cx="796" cy="494" r="9"/><circle cx="808" cy="502" r="8"/><circle cx="797" cy="508" r="7"/></g>
+  <g fill="#FFD27A"><circle cx="796" cy="494" r="3"/><circle cx="808" cy="502" r="2.500"/><circle cx="797" cy="508" r="2.200"/></g>
+</svg>

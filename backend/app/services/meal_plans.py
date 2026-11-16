@@ -22,7 +22,7 @@ from sqlalchemy.orm import Session, object_session
 from app.api.errors import ApiError, not_found, version_conflict
 from app.db.models import AdoptedMealPlan, GenerationResult, MealRequest, MealResultDecision
 from app.models import Recipe, SourceArchive
-from app.services import idempotency, meal_history, meal_results, meal_validation
+from app.services import idempotency, meal_history, meal_results, meal_validation, recipe_retrieval, t12_planning
 from app.services.generation import MODE_LABELS
 
 SNAPSHOT_VERSION = "meal_plan_snapshot/v1"
@@ -70,6 +70,28 @@ def _price_exception(db: Session, result: GenerationResult, evaluation: dict, de
     return accepted
 
 
+def require_adoptable(evaluation: dict) -> None:
+    """兩種採用路徑共用：meal_validation.evaluate 的結果不可採用就拒絕（預算、缺價、版本等同一張決策表）。"""
+    if not evaluation["adoptable"]:
+        raise _reject_blocks(evaluation["blocks"])
+
+
+def require_previous_day(db: Session, context: dict, dishes: list[dict]) -> dict:
+    """兩種採用路徑共用：採用前重讀前一日（與同日其他餐）已採用紀錄，撞菜就拒絕過時的菜單。"""
+    recheck = meal_history.recheck_previous_day(db, context, dishes)
+    if recheck["status"] == "conflict":
+        raise ApiError(409, meal_history.CONFLICT_CODE, "生成後昨日或同一天其他餐的已採用紀錄有變動，此菜單有重複的菜，請重新生成。",
+                       {"conflicting_dishes": [d["dish_name"] for d in recheck["conflicting_dishes"]],
+                        "previous_date": recheck["context"]["previous_date"]})
+    return recheck
+
+
+def previous_day_snapshot(at_generation: dict, recheck: dict) -> dict:
+    return {"at_generation": copy.deepcopy(at_generation),
+            "at_adoption": copy.deepcopy(recheck.get("context") or at_generation),
+            "history_changed": bool(recheck.get("history_changed"))}
+
+
 def _recipe_sources(db: Session, dishes: list[dict]) -> dict:
     """資料庫菜的來源快照（名稱、網址、匯入批次與內容雜湊）；AI 菜沒有來源食譜。"""
     ids = [d["recipe_id"] for d in dishes if d.get("recipe_id")]
@@ -104,9 +126,7 @@ def _snapshot(db: Session, request: MealRequest, result: GenerationResult, evalu
         "missing": {"price_food_ids": meal_validation.missing_price_food_ids(payload),
                     "price_exception_accepted": evaluation["price_exception_accepted"],
                     "nutrients": copy.deepcopy(final.get("missing_nutrients") or {})},
-        "previous_day": {"at_generation": copy.deepcopy(payload.get("previous_day") or {}),
-                         "at_adoption": copy.deepcopy(recheck.get("context") or payload.get("previous_day") or {}),
-                         "history_changed": bool(recheck.get("history_changed"))},
+        "previous_day": previous_day_snapshot(payload.get("previous_day") or {}, recheck),
         "versions": {"result_schema_version": payload.get("schema_version"),
                      "snapshot_schema_version": SNAPSHOT_VERSION, "adoption_rule_version": ADOPTION_RULE_VERSION,
                      "nutrition_rule_version": (payload.get("targets") or {}).get("rule_version"),
@@ -154,14 +174,9 @@ def adopt(db: Session, *, household_id, user_id, meal_request_id, result_version
         raise not_found("找不到此結果版本。")
 
     evaluation = meal_results.eligibility(db, request, result)
-    if not evaluation["adoptable"]:
-        raise _reject_blocks(evaluation["blocks"])
+    require_adoptable(evaluation)
     accepted = _price_exception(db, result, evaluation, price_exception_decision_id)
-    recheck = meal_history.recheck_previous_day(db, result.payload["previous_day"], result.payload["dishes"])
-    if recheck["status"] == "conflict":
-        raise ApiError(409, meal_history.CONFLICT_CODE, "生成後昨日或同一天其他餐的已採用紀錄有變動，此菜單有重複的菜，請重新生成。",
-                       {"conflicting_dishes": [d["dish_name"] for d in recheck["conflicting_dishes"]],
-                        "previous_date": recheck["context"]["previous_date"]})
+    recheck = require_previous_day(db, result.payload["previous_day"], result.payload["dishes"])
 
     draft = request.payload
     plan = meal_history.record_adopted(db, household_id, date.fromisoformat(draft["meal_date"]), draft["meal_type"],
@@ -178,6 +193,16 @@ def adopt(db: Session, *, household_id, user_id, meal_request_id, result_version
 
 # ---- 讀取（只讀快照，不回頭讀來源或結果表） ----
 
+def _plan_totals(snap: dict) -> dict:
+    """整餐熱量與蛋白質（取自採用當下快照；未知為 None）：生成結果在 result.calculation.final，
+    資料庫菜單（營養預覽採用）在 nutrition.totals。"""
+    if "result" in snap:
+        final = ((snap.get("result") or {}).get("calculation") or {}).get("final") or {}
+    else:
+        final = (snap.get("nutrition") or {}).get("totals") or {}
+    return {"energy_kcal": final.get("energy_kcal"), "protein_g": final.get("protein_g")}
+
+
 def summary(plan: AdoptedMealPlan) -> dict:
     snap = plan.snapshot or {}
     return {
@@ -187,9 +212,14 @@ def summary(plan: AdoptedMealPlan) -> dict:
         "meal_request_id": str(plan.meal_request_id) if plan.meal_request_id else
         (snap.get("adopted_versions") or {}).get("meal_request_id"),
         "result_version": plan.result_version, "request_version": plan.request_version,
+        "status": plan.status,
         "price_exception_accepted": plan.price_exception_accepted,
         "dishes": [{"standard_dish_id": d["standard_dish_id"], "dish_name": d["dish_name"],
-                    "aliases": d.get("aliases", []), "source": d.get("source")} for d in plan.dishes],
+                    "aliases": d.get("aliases", []), "source": d.get("source"), "recipe_id": d.get("recipe_id")}
+                   for d in plan.dishes],
+        **_plan_totals(snap),
+        # 資料庫菜單（食譜庫選菜）採用時保存的缺料快照，供模擬購物
+        "market_shortages_available": "market_shortages" in snap,
     }
 
 
@@ -197,8 +227,8 @@ def detail(plan: AdoptedMealPlan) -> dict:
     out = summary(plan)
     snap = plan.snapshot or {}
     payload = snap.get("result")
-    if not payload:  # T11 的最小紀錄（沒有完整快照）
-        return {**out, "snapshot_available": False}
+    if not payload:  # 資料庫菜單（營養預覽採用）的快照；T11 的最小紀錄沒有快照
+        return {**out, "snapshot_available": bool(snap), "snapshot": snap}
     sources = snap.get("recipe_sources") or {}
     dishes = meal_results._dishes(payload)
     for d in dishes:
@@ -247,16 +277,27 @@ def trend(db: Session, household_id, since: date, until: date) -> list[dict]:
     rows = _ordered(db.scalars(select(AdoptedMealPlan).where(
         AdoptedMealPlan.household_id == household_id, AdoptedMealPlan.meal_date >= since,
         AdoptedMealPlan.meal_date <= until, AdoptedMealPlan.status == "adopted")).all())
+    from app.services.database_menu_plans import _number
     out = []
     for plan in rows:
-        payload = (plan.snapshot or {}).get("result") or {}
-        nutrition = meal_results._nutrition(payload) if payload else {}
-        prices = meal_results._prices(payload) if payload else {}
-        target = nutrition.get("target") or {}
+        snap = plan.snapshot or {}
+        payload = snap.get("result") or {}
+        if payload:
+            nutrition = meal_results._nutrition(payload)
+            prices = meal_results._prices(payload)
+            target = nutrition.get("target") or {}
+            energy, protein = nutrition.get("energy_kcal"), nutrition.get("protein_g")
+            target_energy, target_protein = target.get("energy_kcal"), target.get("protein_g")
+        else:  # 資料庫菜單（營養預覽採用）或 T11 最小紀錄：同一組欄位，成本取自採用當下的 cost 區，沒有就是未知
+            totals = _plan_totals(snap)
+            target = snap.get("targets") or {}
+            prices = meal_results._prices({"cost": snap["cost"]}) if snap.get("cost") else {}
+            energy, protein = _number(totals["energy_kcal"]), _number(totals["protein_g"])
+            target_energy, target_protein = _number(target.get("energy_kcal")), _number(target.get("protein_g"))
         out.append({
             "meal_date": plan.meal_date.isoformat(), "meal_type": plan.meal_type,
-            "energy_kcal": nutrition.get("energy_kcal"), "protein_g": nutrition.get("protein_g"),
-            "target_energy_kcal": target.get("energy_kcal"), "target_protein_g": target.get("protein_g"),
+            "energy_kcal": energy, "protein_g": protein,
+            "target_energy_kcal": target_energy, "target_protein_g": target_protein,
             "cost_total": prices.get("cost_total"), "known_cost_total": prices.get("known_cost_total"),
             "budget": prices.get("budget"),
         })

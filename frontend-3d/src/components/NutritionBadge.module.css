@@ -1,0 +1,44 @@
+/* em 單位：在世界裡或面板裡都跟著周圍的字縮放 */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35em;
+  padding: 0.1em 0.65em;
+  border: 0.1em solid transparent;
+  border-radius: 99em;
+  font-size: 0.85em;
+  font-weight: 700;
+  line-height: 1.5;
+  white-space: nowrap;
+}
+
+.badge i {
+  font-style: normal;
+}
+
+.badge span {
+  font-variant-numeric: tabular-nums;
+}
+
+.badge em {
+  font-style: normal;
+  font-weight: 500;
+}
+
+.pass {
+  background: var(--basil-100);
+  color: var(--basil-700);
+}
+
+.fail {
+  background: var(--mustard-100);
+  color: var(--mustard-700);
+}
+
+/* 計算不完整：虛線外框、不填色，和已知的兩態明顯不同 */
+.unknown {
+  border-style: dashed;
+  border-color: var(--unknown);
+  background: rgba(255, 253, 247, 0.6);
+  color: var(--ink-600);
+}

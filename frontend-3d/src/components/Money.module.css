@@ -1,0 +1,5 @@
+/* 數字等寬，直排對齊時位數才不會跳 */
+.money {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}

@@ -1,0 +1,90 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 1000" preserveAspectRatio="xMidYMid slice">
+  <!-- 客廳 z2：編織地毯、胡桃木橢圓茶几、白瓷大盤（菜色由介面疊上）、筷子與筷架、熱茶、遙控器 -->
+  <defs>
+    <filter id="lz2-weave" x="0" y="0" width="100%" height="100%">
+      <feTurbulence type="fractalNoise" baseFrequency="1.4 .9" numOctaves="2" seed="23"/>
+      <feColorMatrix type="matrix" values="0 0 0 0 .3  0 0 0 0 .22  0 0 0 0 .14  1.4 0 0 0 -.5"/>
+      <feComposite in2="SourceGraphic" operator="in"/>
+    </filter>
+    <filter id="lz2-woodh" x="0" y="0" width="100%" height="100%">
+      <feTurbulence type="fractalNoise" baseFrequency=".006 .4" numOctaves="3" seed="31"/>
+      <feColorMatrix type="matrix" values="0 0 0 0 .12  0 0 0 0 .06  0 0 0 0 .02  1.7 0 0 0 -.62"/>
+      <feComposite in2="SourceGraphic" operator="in"/>
+    </filter>
+    <filter id="lz2-b3"><feGaussianBlur stdDeviation="3"/></filter>
+    <filter id="lz2-b6"><feGaussianBlur stdDeviation="6"/></filter>
+    <filter id="lz2-b12"><feGaussianBlur stdDeviation="12"/></filter>
+    <linearGradient id="lz2-rug" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#CFC4AE"/><stop offset="1" stop-color="#E9E0CE"/>
+    </linearGradient>
+    <linearGradient id="lz2-top" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#A47A4E"/><stop offset=".5" stop-color="#84603C"/><stop offset="1" stop-color="#6B4A2C"/>
+    </linearGradient>
+    <linearGradient id="lz2-leg" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#3E2A18"/><stop offset=".5" stop-color="#6B4A2C"/><stop offset="1" stop-color="#3E2A18"/>
+    </linearGradient>
+    <radialGradient id="lz2-plate" cx=".4" cy=".3" r=".9">
+      <stop offset="0" stop-color="#FFFFFF"/><stop offset=".7" stop-color="#F1ECE2"/><stop offset="1" stop-color="#CFC8BA"/>
+    </radialGradient>
+    <linearGradient id="lz2-cup" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#B9B2A6"/><stop offset=".55" stop-color="#FAF6EE"/><stop offset="1" stop-color="#CFC8BA"/>
+    </linearGradient>
+    <radialGradient id="lz2-sheen" cx=".3" cy=".3" r=".6">
+      <stop offset="0" stop-color="#FFE9C0" stop-opacity=".35"/><stop offset="1" stop-color="#FFE9C0" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  <!-- 地毯（透視梯形） -->
+  <path d="M470 756 H1130 Q1150 756 1158 772 L1250 948 Q1258 966 1238 966 H362 Q342 966 350 948 L442 772 Q450 756 470 756Z" fill="#0E0A14" opacity=".35" filter="url(#lz2-b6)" transform="translate(0 6)"/>
+  <path d="M470 756 H1130 Q1150 756 1158 772 L1250 948 Q1258 966 1238 966 H362 Q342 966 350 948 L442 772 Q450 756 470 756Z" fill="url(#lz2-rug)"/>
+  <path d="M470 756 H1130 Q1150 756 1158 772 L1250 948 Q1258 966 1238 966 H362 Q342 966 350 948 L442 772 Q450 756 470 756Z" fill="#000" filter="url(#lz2-weave)" opacity=".55"/>
+  <path d="M492 776 H1108 L1196 940 H404Z" fill="none" stroke="#A8402A" stroke-width="7" opacity=".8"/>
+  <path d="M514 792 H1086 L1160 924 H440Z" fill="none" stroke="#A8402A" stroke-width="2.5" stroke-dasharray="14 10" opacity=".7"/>
+
+  <!-- 茶几：陰影與桌腳 -->
+  <ellipse cx="800" cy="900" rx="270" ry="34" fill="#0E0A14" opacity=".5" filter="url(#lz2-b12)"/>
+  <g>
+    <path d="M664 820 h20 l-8 54 h-8Z" fill="#2A1A10"/><path d="M916 820 h20 l-4 54 h-8Z" fill="#2A1A10"/>
+    <path d="M612 824 h24 l-10 82 h-8Z" fill="url(#lz2-leg)"/><path d="M964 824 h24 l-6 82 h-8Z" fill="url(#lz2-leg)"/>
+  </g>
+  <!-- 桌板厚度與桌面 -->
+  <ellipse cx="800" cy="812" rx="252" ry="62" fill="#3E2A18"/>
+  <ellipse cx="800" cy="798" rx="252" ry="62" fill="url(#lz2-top)"/>
+  <ellipse cx="800" cy="798" rx="252" ry="62" fill="#000" filter="url(#lz2-woodh)"/>
+  <ellipse cx="800" cy="798" rx="252" ry="62" fill="url(#lz2-sheen)"/>
+  <path d="M552 790 a252 62 0 0 1 496 0" fill="none" stroke="#E2BE8C" stroke-width="2" opacity=".6"/>
+
+  <!-- 白瓷大盤 -->
+  <ellipse cx="804" cy="800" rx="134" ry="32" fill="#0E0A14" opacity=".5" filter="url(#lz2-b3)"/>
+  <ellipse cx="800" cy="792" rx="132" ry="32" fill="#BDB6A8"/>
+  <ellipse cx="800" cy="788" rx="132" ry="32" fill="url(#lz2-plate)"/>
+  <ellipse cx="800" cy="790" rx="100" ry="22" fill="#E9E3D7"/>
+  <ellipse cx="800" cy="792" rx="96" ry="20" fill="#F7F3EA"/>
+  <path d="M672 782 a132 32 0 0 1 256 0" fill="none" stroke="#FFFFFF" stroke-width="2" opacity=".9"/>
+
+  <!-- 筷子與筷架 -->
+  <ellipse cx="962" cy="808" rx="16" ry="5" fill="#0E0A14" opacity=".45" filter="url(#lz2-b3)"/>
+  <path d="M948 802 q14 -8 28 0 v5 q-14 -8 -28 0Z" fill="#E9E3D7"/>
+  <path d="M952 800 L1030 776" stroke="#3E2412" stroke-width="5" stroke-linecap="round"/>
+  <path d="M958 806 L1036 786" stroke="#4A2C16" stroke-width="5" stroke-linecap="round"/>
+  <path d="M1016 780 L1030 776 M1022 790 L1036 786" stroke="#D9472B" stroke-width="5" stroke-linecap="round"/>
+
+  <!-- 熱茶 -->
+  <ellipse cx="622" cy="804" rx="44" ry="11" fill="#0E0A14" opacity=".45" filter="url(#lz2-b3)"/>
+  <ellipse cx="620" cy="800" rx="42" ry="10" fill="#EFEADF"/><ellipse cx="620" cy="799" rx="30" ry="6" fill="#D9D2C5"/>
+  <path d="M594 770 q0 26 12 30 h28 q12 -4 12 -30Z" fill="url(#lz2-cup)"/>
+  <ellipse cx="620" cy="770" rx="26" ry="7" fill="#F7F3EA"/><ellipse cx="620" cy="771" rx="21" ry="5" fill="#A87A2E"/>
+  <ellipse cx="614" cy="769" rx="8" ry="2" fill="#E0B25E" opacity=".8"/>
+  <path d="M646 776 q16 2 12 14 q-4 8 -14 6" fill="none" stroke="#DAD3C6" stroke-width="5" stroke-linecap="round"/>
+  <g fill="none" stroke="#FFFFFF" stroke-width="5" stroke-linecap="round" opacity=".5" filter="url(#lz2-b3)">
+    <path d="M612 756 q-8 -14 2 -26 q8 -12 0 -24"/><path d="M628 754 q8 -12 -2 -24 q-8 -12 2 -22"/>
+  </g>
+
+  <!-- 遙控器 -->
+  <g transform="rotate(-14 716 828)">
+    <rect x="682" y="824" width="72" height="16" rx="5" fill="#0E0A14" opacity=".5" filter="url(#lz2-b3)" transform="translate(2 4)"/>
+    <rect x="680" y="820" width="72" height="16" rx="5" fill="#26242C"/>
+    <rect x="680" y="820" width="72" height="4" rx="2" fill="#4A4652"/>
+    <circle cx="694" cy="829" r="3" fill="#D9472B"/><g fill="#6E6A76"><circle cx="708" cy="829" r="2"/><circle cx="718" cy="829" r="2"/><circle cx="728" cy="829" r="2"/><circle cx="738" cy="829" r="2"/></g>
+  </g>
+</svg>

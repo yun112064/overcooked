@@ -1,0 +1,159 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 1000" preserveAspectRatio="xMidYMid slice">
+  <!-- 玄關 z0：粉刷牆、腰牆板、木地板與落塵區石磚、通往客廳的內門、吊燈 -->
+  <defs>
+    <filter id="gz0-grain" x="0" y="0" width="100%" height="100%">
+      <feTurbulence type="fractalNoise" baseFrequency=".9" numOctaves="3" seed="4"/>
+      <feColorMatrix type="matrix" values="0 0 0 0 .16  0 0 0 0 .12  0 0 0 0 .1  1.5 0 0 0 -.55"/>
+      <feComposite in2="SourceGraphic" operator="in"/>
+    </filter>
+    <filter id="gz0-woodh" x="0" y="0" width="100%" height="100%">
+      <feTurbulence type="fractalNoise" baseFrequency=".008 .55" numOctaves="3" seed="8"/>
+      <feColorMatrix type="matrix" values="0 0 0 0 .22  0 0 0 0 .12  0 0 0 0 .05  1.6 0 0 0 -.6"/>
+      <feComposite in2="SourceGraphic" operator="in"/>
+    </filter>
+    <filter id="gz0-woodv" x="0" y="0" width="100%" height="100%">
+      <feTurbulence type="fractalNoise" baseFrequency=".45 .01" numOctaves="3" seed="6"/>
+      <feColorMatrix type="matrix" values="0 0 0 0 .18  0 0 0 0 .1  0 0 0 0 .05  1.6 0 0 0 -.62"/>
+      <feComposite in2="SourceGraphic" operator="in"/>
+    </filter>
+    <filter id="gz0-b3"><feGaussianBlur stdDeviation="3"/></filter>
+    <filter id="gz0-b6"><feGaussianBlur stdDeviation="6"/></filter>
+    <filter id="gz0-b14"><feGaussianBlur stdDeviation="14"/></filter>
+
+    <linearGradient id="gz0-wall" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#CDBFA8"/><stop offset=".3" stop-color="#E4D7C0"/><stop offset="1" stop-color="#D8C9B0"/>
+    </linearGradient>
+    <radialGradient id="gz0-pool" gradientUnits="userSpaceOnUse" cx="780" cy="300" r="680">
+      <stop offset="0" stop-color="#FFEBC0" stop-opacity=".75"/><stop offset=".45" stop-color="#FFE0A8" stop-opacity=".28"/><stop offset="1" stop-color="#FFE0A8" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="gz0-sides" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#241C2C" stop-opacity=".42"/><stop offset=".18" stop-color="#241C2C" stop-opacity="0"/>
+      <stop offset=".86" stop-color="#241C2C" stop-opacity="0"/><stop offset="1" stop-color="#241C2C" stop-opacity=".3"/>
+    </linearGradient>
+    <linearGradient id="gz0-ceil" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#241C2C" stop-opacity=".5"/><stop offset="1" stop-color="#241C2C" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="gz0-wains" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#EDE4D4"/><stop offset="1" stop-color="#D9CDB8"/>
+    </linearGradient>
+    <pattern id="gz0-boards" width="72" height="220" patternUnits="userSpaceOnUse">
+      <rect width="72" height="220" fill="url(#gz0-wains)"/>
+      <rect x="0" width="3" height="220" fill="#9E927E"/><rect x="3" width="2" height="220" fill="#FBF6EC"/>
+    </pattern>
+    <linearGradient id="gz0-rail" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#FAF5EA"/><stop offset=".6" stop-color="#E6DCCB"/><stop offset="1" stop-color="#A89C88"/>
+    </linearGradient>
+    <linearGradient id="gz0-floor" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#A97C4E"/><stop offset="1" stop-color="#C39A66"/>
+    </linearGradient>
+    <linearGradient id="gz0-riser" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#5E3F24"/><stop offset="1" stop-color="#3E2A18"/>
+    </linearGradient>
+    <linearGradient id="gz0-tile" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#8F8577"/><stop offset="1" stop-color="#B5AB9B"/>
+    </linearGradient>
+    <linearGradient id="gz0-frame" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#4A321E"/><stop offset=".5" stop-color="#6B4A2C"/><stop offset="1" stop-color="#553A22"/>
+    </linearGradient>
+    <linearGradient id="gz0-room" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#E9D3A8"/><stop offset="1" stop-color="#F3DDB0"/>
+    </linearGradient>
+    <linearGradient id="gz0-dusk" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#6676AE"/><stop offset=".6" stop-color="#D99A8C"/><stop offset="1" stop-color="#F6C58A"/>
+    </linearGradient>
+    <radialGradient id="gz0-glow" cx=".5" cy=".5" r=".5">
+      <stop offset="0" stop-color="#FFE9B4" stop-opacity=".95"/><stop offset=".4" stop-color="#FFD48A" stop-opacity=".4"/><stop offset="1" stop-color="#FFD48A" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="gz0-shade" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#17141C"/><stop offset=".45" stop-color="#4A4652"/><stop offset="1" stop-color="#1C1922"/>
+    </linearGradient>
+    <linearGradient id="gz0-pic" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#F3C99A"/><stop offset=".6" stop-color="#E8A27C"/><stop offset="1" stop-color="#7C8C5E"/>
+    </linearGradient>
+    <clipPath id="gz0-open"><rect x="1094" y="164" width="302" height="630"/></clipPath>
+  </defs>
+  <g transform="translate(0 -44)">
+
+  <!-- 牆 -->
+  <rect width="1600" height="560" fill="url(#gz0-wall)"/>
+  <rect width="1600" height="560" fill="#000" filter="url(#gz0-grain)" opacity=".14"/>
+  <rect width="1600" height="800" fill="url(#gz0-pool)"/>
+  <rect width="1600" height="110" fill="url(#gz0-ceil)"/>
+
+  <!-- 牆上的小畫 -->
+  <rect x="132" y="250" width="150" height="124" fill="#17121C" opacity=".4" filter="url(#gz0-b6)"/>
+  <rect x="122" y="238" width="150" height="124" fill="#4A321E"/>
+  <rect x="122" y="238" width="150" height="124" fill="#000" filter="url(#gz0-woodh)"/>
+  <path d="M122 238 h150 v124" fill="none" stroke="#8E6A46" stroke-width="2"/>
+  <rect x="134" y="250" width="126" height="100" fill="#F6F0E4"/>
+  <rect x="148" y="264" width="98" height="72" fill="url(#gz0-pic)"/>
+  <circle cx="218" cy="290" r="10" fill="#FFE9B4"/>
+  <path d="M148 322 q26 -20 50 -6 t48 -8 v28 h-98Z" fill="#5E7A4A"/>
+
+  <!-- 腰牆板 -->
+  <rect y="566" width="1600" height="214" fill="url(#gz0-boards)"/>
+  <rect y="566" width="1600" height="26" fill="#2A2238" opacity=".14"/>
+  <rect y="546" width="1600" height="22" fill="url(#gz0-rail)"/>
+  <rect y="546" width="1600" height="3" fill="#FFFDF6"/>
+  <!-- 踢腳板 -->
+  <rect y="768" width="1600" height="28" fill="url(#gz0-rail)"/>
+  <rect y="768" width="1600" height="3" fill="#FFFDF6" opacity=".9"/>
+
+  <!-- 架高木地板 -->
+  <rect y="796" width="1600" height="78" fill="url(#gz0-floor)"/>
+  <rect y="796" width="1600" height="78" fill="#000" filter="url(#gz0-woodh)"/>
+  <g stroke="#6E4A2A" stroke-width="1.5" opacity=".6"><path d="M0 820 H1600 M0 846 H1600 M210 796 V820 M640 820 V846 M980 796 V820 M1310 846 V874 M430 846 V874 M1180 820 V846"/></g>
+  <rect y="796" width="1600" height="14" fill="#1A1420" opacity=".3"/>
+  <!-- 客廳透進來的光 -->
+  <path d="M1094 796 H1396 L1560 874 H940Z" fill="#FFDCA0" opacity=".34" filter="url(#gz0-b6)"/>
+  <!-- 段差：收邊與立面 -->
+  <rect y="868" width="1600" height="8" fill="#E2BE8C"/>
+  <rect y="876" width="1600" height="28" fill="url(#gz0-riser)"/>
+  <rect y="876" width="1600" height="28" fill="#000" filter="url(#gz0-woodh)"/>
+
+  <!-- 落塵區石磚 -->
+  <rect y="904" width="1600" height="160" fill="url(#gz0-tile)"/>
+  <rect y="904" width="1600" height="160" fill="#000" filter="url(#gz0-grain)" opacity=".8"/>
+  <rect y="904" width="1600" height="22" fill="#17121C" opacity=".4" filter="url(#gz0-b3)"/>
+  <g stroke="#6B6356" stroke-width="2.5" opacity=".7"><path d="M0 956 H1600 M0 1022 H1600 M130 904 L24 1060 M420 904 L359 1060 M700 904 L685 1060 M980 904 L1012 1060 M1260 904 L1340 1060 M1500 904 L1626 1060"/></g>
+
+  <!-- 內門：門框 -->
+  <rect x="1066" y="136" width="358" height="660" fill="url(#gz0-frame)"/>
+  <rect x="1066" y="136" width="358" height="660" fill="#000" filter="url(#gz0-woodv)"/>
+  <path d="M1066 796 V136 H1424" fill="none" stroke="#9A7650" stroke-width="3" opacity=".7"/>
+  <!-- 門洞裡的客廳（失焦） -->
+  <g clip-path="url(#gz0-open)">
+    <rect x="1094" y="164" width="302" height="630" fill="url(#gz0-room)"/>
+    <g filter="url(#gz0-b6)">
+      <rect x="1120" y="250" width="120" height="200" fill="#F6F0E4"/>
+      <rect x="1130" y="260" width="100" height="180" fill="url(#gz0-dusk)"/>
+      <path d="M1180 260 V440 M1130 350 H1230" stroke="#F6F0E4" stroke-width="7"/>
+      <rect x="1094" y="716" width="302" height="80" fill="#B98A58"/>
+      <ellipse cx="1260" cy="760" rx="150" ry="22" fill="#C9B79A"/>
+      <rect x="1080" y="560" width="250" height="110" rx="34" fill="#4E6B4A"/>
+      <rect x="1070" y="610" width="280" height="110" rx="30" fill="#5F8058"/>
+      <rect x="1120" y="590" width="80" height="60" rx="14" fill="#D9A93F"/>
+      <rect x="1346" y="400" width="7" height="320" fill="#2A2630"/>
+      <path d="M1316 400 l14 -70 h40 l14 70Z" fill="#FFE2A6"/>
+    </g>
+    <circle cx="1350" cy="380" r="170" fill="url(#gz0-glow)"/>
+    <rect x="1094" y="164" width="40" height="630" fill="#17121C" opacity=".35" filter="url(#gz0-b14)"/>
+    <rect x="1094" y="164" width="302" height="30" fill="#17121C" opacity=".4" filter="url(#gz0-b6)"/>
+  </g>
+  <rect x="1094" y="164" width="302" height="630" fill="none" stroke="#2A1A10" stroke-width="3"/>
+
+  <!-- 吊燈（在木軌與內門之間） -->
+  <g transform="translate(384 0)">
+  <circle cx="600" cy="176" r="230" fill="url(#gz0-glow)" opacity=".75"/>
+  <path d="M600 -80 V98" stroke="#17141C" stroke-width="4"/>
+  <path d="M548 156 Q552 98 600 96 Q648 98 652 156Z" fill="url(#gz0-shade)"/>
+  <path d="M556 150 Q560 106 600 102" fill="none" stroke="#8E8A96" stroke-width="2" opacity=".6"/>
+  <ellipse cx="600" cy="157" rx="52" ry="9" fill="#FFF3CC"/>
+  <ellipse cx="600" cy="160" rx="30" ry="6" fill="#FFFFFF" filter="url(#gz0-b3)"/>
+
+  </g>
+
+  <!-- 兩側壓暗 -->
+  <rect width="1600" height="1100" fill="url(#gz0-sides)"/>
+  </g>
+</svg>

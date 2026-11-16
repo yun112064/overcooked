@@ -39,10 +39,10 @@ jobs:
           cache: pip
 
       - name: Install dependencies
-        run: pip install -r requirements.txt
+        run: pip install -r requirements-dev.txt
 
       - name: Check Python syntax
-        run: python -m compileall -q backend migrations tests nutrition_target nutrition_model knowledge_rag ops
+        run: python -m compileall -q backend migrations tests nutrition_target nutrition_model knowledge_rag ops assistant_rag scripts
 
       - name: Run T03 nutrition target tests
         run: python -m unittest discover -s nutrition_target/tests -t . -p 'test_*.py' -v
@@ -59,6 +59,23 @@ jobs:
           # T07 API 測試以 Alembic 在此資料庫重建資料表
           TEST_DATABASE_URL: postgresql+psycopg://postgres:ci_placeholder@localhost:5432/meal_planner
         run: python -m unittest discover -s tests -p 'test_*.py' -v
+
+      # pytest 風格的測試（模組層級 test_ 函式，unittest discover 不會收集）。刻意不設 TEST_DATABASE_URL（意同 env: {}）：
+      # 同模組內的 @requires_db TestCase 在這裡略過，已由上一步 unittest 對 CI 資料庫執行，不會對資料庫重複跑兩次。
+      - name: Run pytest-style demo-3d tests (no database)
+        env:
+          PYTHONPATH: backend:tests
+          PYTHONUTF8: "1"
+        run: >-
+            python -m pytest -q
+            tests/test_assistant_answer.py tests/test_assistant_crawl.py tests/test_assistant_eval.py
+            tests/test_assistant_index.py tests/test_assistant_questions.py tests/test_assistant_retrieval.py
+            tests/test_assistant_proxy.py tests/test_assistant_openai.py tests/test_assistant_recipes.py
+            tests/test_market_handoff.py tests/test_sim_market_catalog.py tests/test_t04_data_feedback.py
+            tests/test_release_bundle_loader.py tests/test_t11_explain.py tests/test_t11_knowledge_tips.py
+            tests/test_t11_allergen_groups.py tests/test_result_extras.py tests/test_t12_preview_adapter.py
+            tests/test_meal_plan_summary_unit.py tests/test_meal_plans.py tests/test_menu_rejections.py
+            tests/test_demo3d_routes.py
 
       - name: Apply Alembic migrations
         run: |
@@ -101,11 +118,29 @@ jobs:
       - name: Run inference service tests
         run: python -m unittest discover -s inference -p 'test_*.py' -v
 
+  sim-supermarket-build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: sim-supermarket
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: sim-supermarket/package-lock.json
+      - run: npm ci
+      - run: npm run lint
+      - run: npm test
+      - run: npm run build
+
+  # compose 的 frontend 服務建置 frontend-3d；舊版 frontend/ 不再建置
   frontend-build:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: frontend
+        working-directory: frontend-3d
 
     steps:
       - name: Checkout code
@@ -116,13 +151,16 @@ jobs:
         with:
           node-version: "24"
           cache: npm
-          cache-dependency-path: frontend/package-lock.json
+          cache-dependency-path: frontend-3d/package-lock.json
 
       - name: Install dependencies
         run: npm ci
 
       - name: Lint
         run: npm run lint
+
+      - name: Test
+        run: npm test
 
       - name: Build
         run: npm run build

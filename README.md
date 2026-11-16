@@ -75,6 +75,56 @@ clone 後第一次執行 `start-dev.cmd`（建立資料庫、套用 migration、
 
 整套系統放在這台 Windows 電腦（Docker Desktop），經 Cloudflare 快速通道對外，不需網域與 Cloudflare 帳號。在 repo 根目錄的 PowerShell 執行 `.\scripts\demo-up.ps1`：第一次會產生 `.env.demo`（隨機密碼與內部權杖，`OPENAI_API_KEY` 從 `.env.dev` 帶入；不進 Git）、建置映像、套用 migration、匯入食譜與資料種子、在主機啟動 YOLO（沿用 `start-dev` 建好的 `.venv-yolo`，沒有就略過）、建立知識索引，最後印出 `https://<隨機>.trycloudflare.com` 網址。`-SkipYolo`、`-SkipKnowledgeIndex` 可略過對應步驟，`-NoTunnel` 只在本機啟動、不開對外網址。關閉用 `.\scripts\demo-down.ps1`（資料保留在 `overcooked-demo_*` volume；`-Purge` 才刪除，會要求確認）。注意：網址每次執行 `demo-up` 都會變，要重新分享；電腦關機、睡眠或執行 `demo-down` 即離線（重開機後不會自動上線，要再執行 `demo-up`）。主機不開任何連入埠，只有前端經 cloudflared 對外，`/api/internal/*` 對外一律 404；demo 與開發環境（`overcooked-dev-db`）資料完全分開。費用：快速通道免費；第一次建知識索引約 NT$0.1，之後只有使用者觸發的菜單生成與知識查詢會呼叫 OpenAI（一律經 T10 額度預留）。
 
+
+### 場景式前端（frontend-3d）移植說明
+
+demo 與 compose 的 `frontend` 服務改為建置 `./frontend-3d`（場景式偽 3D 前端）；舊版 `frontend/` 保留在 repo，但不再建置。本機開發：`frontend-3d` 在 http://localhost:5173 （`npm run dev`；`npm run dev:fake` 使用假資料 API），模擬超市 `sim-supermarket` 在 http://localhost:5174 。驗證狀態與尚未執行的項目見 [DEMO-3D-VALIDATION.md](DEMO-3D-VALIDATION.md)；**下列功能只做過離線測試，尚未在真實資料庫或容器上執行。**
+
+新增的後端端點（A–G）：
+
+- A 資料庫菜單：`POST /meal-requests/{id}/nutrition-preview` 預覽食譜庫選菜的營養；採用沿用 `POST /meal-plans`（帶 `recipe_ids` 時改走預覽採用），`/meal-plans` 摘要多了方案欄位。
+- B 換一份：`POST /meal-requests/{id}/menu-rejections` 記錄被換掉的菜（204）。
+- C 小知識：`POST /meal-requests/{id}/knowledge-tips` 依菜單食材產生營養小知識。
+- D T04 營養證據：`POST /meal-requests/{id}/t04-data`（**預設關閉**，見下方）。
+- E 模擬超市：`POST /sim-market/handoffs`、`POST /sim-market/checkout`、`GET /sim-market/catalog`。
+- F 飲食小幫手：`POST /assistant/chat`（SSE）、`POST /assistant/recipes`；OpenAI 版經 `/internal/assistant/*`（對外 404）。
+- G 結果補充：`prices.unquantified_items`、`dishes[].cover_url` 與 `GET /recipe-covers/{release_id}/{recipe_id}`、`volume_ml`。
+
+與 main 分支刻意不同之處：
+
+- 預覽以 DEMO 原生轉接層（`backend/app/services/t12_planning.py`，建在 DEMO 的 `calculate_meal` 上）實作 main 的 HTTP 合約；每人份量依各成員熱量目標占比分配（不是 main 的 portion_fit），並另外套用 DEMO 原本只在生成工作中檢查的主食過敏／飲食衝突與主食營養防護。
+- 沒有容量計價：`volume_ml` 只是透傳，一律為 `null`。
+- 模擬超市沒有真實結帳（無 `/sim-market/orders`、無 `sim_market_orders`）；目錄識別固定為 `recipe_dataset_1027`。
+- 小知識使用 DEMO 自己的知識服務，並以 v1 關鍵字清單（`config/nutrition_keywords.json`）作為依據；只出現在 v2 清單的關鍵字所產生的小知識會被捨棄（不顯示沒有依據的內容）。
+- 過敏原群組排除只套用在 `/assistant/recipes`；菜單生成的限制條件未擴充（較保守的方向，但兩邊不一致）。
+- 有未定量食材的結果，總價與營養總量顯示為未知（`null`、`price_complete: false`），不當成 0。
+
+**T04 營養證據端點預設關閉。** `GENERATION_RECIPE_RELEASE_ID`、`GENERATION_NUTRITION_IMPORT_ID`、`GENERATION_FOOD_MAPPING_VERSION` 三個值預設留空，此時 `POST /t04-data` 一律回 422 `NUTRITION_VERSION_REQUIRED`（畫面顯示為提醒）。`release_data/nutrition-v1` 隨附的版本（`recipe-1103-v3-dd4f75c13772` 等，見 `.env.example` 註解）綁定的是 `recipe_dataset_1103_V3.xlsx` 工作簿，不是 demo 使用的 `recipe_dataset_1027`，因此只能在使用者決定綁定方式後，才在 `.env.demo` 填入三個值並重建 backend。啟用後回應會標示 `recipe_source: recipe_dataset_1027`、`binding: food_id_only`（只依 food_id 對應，不代表食譜版本相符）、`weight_basis: null`（weight_g 不視為已確認的整份烹調前重量）。注意：載入器以 `active = false` 寫入 bundle 的食譜發布版本，而服務要求它為啟用，所以**只填這三個值仍會回 422 `RECIPE_NUTRITION_RELEASE_MISMATCH`**；把那筆紀錄改為啟用等於宣稱它描述 demo 食譜，必須由使用者決定（或另建 demo 專用發布版本）。
+
+新的設定鍵與 demo 參數：
+
+- `.env.demo` 舊檔由 `python -m ops.demo ensure-keys` 只補上缺少的鍵（既有值逐位元組保留，只印鍵名）：`SIM_MARKET_URL`、`SIM_MARKET_HANDOFF_KEY`、`ASSISTANT_SERVICE_TOKEN`、`ASSISTANT_DB_PASSWORD`、`ASSISTANT_DATA_DIR`、`ASSISTANT_RERANKER_MODEL_DIR`、三個 `GENERATION_*`；`DEMO_BACKUP_ROOT` 可選。開發用的鍵見 `.env.example`、`.env.dev.example`（`KNOWLEDGE_EXPLAIN_*`、`ASSISTANT_*`、`RAG_*` 等）。
+- `demo-up.ps1` 新增 `-SkipMarket`（不啟動模擬超市與其通道）、`-SkipAssistant`（不建置、不啟動飲食小幫手）、`-BackupRoot <目錄>`。
+- `SIM_MARKET_URL` 每次 `demo-up` 都會先清空，再寫入新的第二條快速通道網址；留空時（`-SkipMarket`、`-NoTunnel` 或通道沒起來）超市交接回 503 `MARKET_UNAVAILABLE`，不會發出失效連結。
+- 小幫手的兩個主機目錄未設定時預設指向不存在的路徑，`up` 會失敗而不會把 repo 掛成資料目錄。
+
+飲食小幫手前提（缺任一項時小幫手顯示不可用）：
+
+- 語料放在 `ASSISTANT_DATA_DIR`（Data Root 之下、Git 之外）；建立語料需由操作者自行執行爬取（`scripts/assistant-data-demo.ps1`），demo-up 不會爬取。
+- 本機 Ollama 需有 `bge-m3`、`embeddinggemma`、`qwen3.5:9b`；重排模型 `bge-reranker-v2-m3` 權重放在 `ASSISTANT_RERANKER_MODEL_DIR`。
+- OpenAI 版回答只經後端 T10 額度控制呼叫。
+- 回答一律顯示出處（健康醫療網、Hello醫師），只使用檢索到的參考內容，不做診斷、不開處方、不給劑量。
+
+資料庫 migration：
+
+- 只新增一個 revision `e1115demo3d01`（接在 DEMO 的 `d4e8a2c7f913` 之後，不改 T01／T02 資料表）；revision 編號與 main 分支不同，日後改用 main 的鏈需手動 stamp。
+- 既有 volume 的資料庫版本落後時，`demo-up` 先以 `ops.backup` 做部署前備份並驗證，失敗即中止，之後才 `alembic upgrade head`。
+- **絕對不要在有資料的 volume 上執行 `alembic downgrade`**：這個 revision 的 downgrade 會無條件刪除已載入的 T04 營養證據、食譜封面與換菜紀錄。出錯時以部署前備份還原（`ops.restore`）到新資料庫。
+- 在 CI 或經授權的拋棄式測試資料庫跑過這個 migration 之前，不要對現有 demo volume 執行 `demo-up`。
+- `demo-down -Purge` 也會刪除飲食小幫手的索引 volume（之後要重新向量化）；語料主機目錄不受影響。
+
+未知的營養值或價格一律保持未知，絕不補 0。
+
 ## 系統啟動（T06–T10）
 
 `docker compose up -d --build` 會啟動資料庫、後端 API（啟動時自動執行 Alembic 遷移）、生成工作程序 `worker`、單一排程程序 `scheduler` 與前端。先依 `.env.example` 建立 `.env`，至少設定 `POSTGRES_PASSWORD`。

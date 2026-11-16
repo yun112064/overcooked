@@ -2,6 +2,7 @@
 #
 #   .\scripts\demo-up.ps1        啟動（產生 .env.demo、migration、匯入種子、YOLO、通道）
 #   .\scripts\demo-down.ps1      關閉（資料保留）
+#   .\scripts\assistant-data-demo.ps1   飲食小幫手：爬取語料並建索引（操作者明確執行；robots.txt、每次請求間隔 ≥2 秒）
 #   docker compose -p overcooked-demo --env-file .env.demo -f compose.yaml -f compose.demo.yaml config   檢查合併結果
 #
 # - 主機不開任何連入埠：所有容器的 ports 清空；只有 cloudflared 主動連出，公開網址只轉到 frontend:80
@@ -9,7 +10,19 @@
 # - 資料全在本 project 的具名 volume（overcooked-demo_*），不碰開發用的 overcooked-dev-db 與其 volume。
 # - 知識資料庫與知識 RAG 服務在同一個內部網路；YOLO 需要 GPU，留在主機原生執行（綁 127.0.0.1，
 #   容器經 host.docker.internal 連線）。知識管理指令經內部網路直接呼叫 backend:8000 的內部 API，不需要 Access 權杖。
-# - 秘密只放 .env.demo（不進 Git），由 demo-up 產生。
+# - 秘密只放 .env.demo（不進 Git），由 demo-up 產生；新版加入的鍵由 ops.demo ensure-keys 補上。
+# - 本檔新增的鍵一律用 ${VAR:-} 預設（不用必填的問號語法），舊的 .env.demo 缺鍵時 demo-down 與 compose config 仍可執行；
+#   缺值時對應功能顯示不可用（超市交接 503、小幫手未啟用、T04 證據 422），不會用假值頂替。
+# - 模擬超市（profile sim-market）經第二條快速通道 cloudflared-market 對外；超市網址絕不加入 ALLOWED_ORIGINS。
+# - 飲食小幫手（profile assistant）：assistant-db／重排／兩份 assistant-rag（地端 Ollama 與經 backend T10 額度的 OpenAI）；
+#   原文語料在 ASSISTANT_DATA_DIR（Git 之外的主機目錄），未設定時掛載一個不存在的路徑，容器啟動失敗而不是誤掛 repo。
+
+x-demo-assistant-environment: &demo-assistant-environment
+  ASSISTANT_DATABASE_URL: postgresql://postgres:${ASSISTANT_DB_PASSWORD:-}@assistant-db:5432/overcooked_assistant
+  ASSISTANT_DATA_DIR: /assistant-data
+  RAG_OLLAMA_URL: http://host.docker.internal:11434
+  RAG_RERANK_URL: http://assistant-reranker:80
+  RAG_LLM_MODEL: ${ASSISTANT_LLM_MODEL:-qwen3.5:9b-q4_K_M}
 
 name: overcooked-demo
 
@@ -35,6 +48,19 @@ services:
       KNOWLEDGE_SERVICE_URL: http://knowledge-rag:8766
       KNOWLEDGE_SERVICE_TOKEN: ${KNOWLEDGE_SERVICE_TOKEN:?Set KNOWLEDGE_SERVICE_TOKEN in .env.demo}
       INTERNAL_API_TOKEN: ${INTERNAL_API_TOKEN:?Set INTERNAL_API_TOKEN in .env.demo}
+      # 模擬超市：留空時交接回 503 MARKET_UNAVAILABLE；demo-up 只寫入真實的快速通道網址，絕不放佔位主機
+      SIM_MARKET_URL: ${SIM_MARKET_URL:-}
+      SIM_MARKET_HANDOFF_KEY: ${SIM_MARKET_HANDOFF_KEY:-}
+      ASSISTANT_SERVICE_URL: http://assistant-rag:8093
+      ASSISTANT_SERVICE_TOKEN: ${ASSISTANT_SERVICE_TOKEN:-}
+      ASSISTANT_OPENAI_SERVICE_URL: http://assistant-rag-openai:8093
+      # T04 營養證據綁定：預設留空（422 NUTRITION_VERSION_REQUIRED）；release_data/nutrition-v1 的值見 .env.demo 註解，
+      # 綁定的是 1103_V3 工作簿而不是 recipe_dataset_1027，使用者確認後才填入
+      # 只填這三個值仍回 422 RECIPE_NUTRITION_RELEASE_MISMATCH：load_release_bundle 匯入的食譜版本 active=false，待使用者決定綁定方式，不自動啟用
+      GENERATION_RECIPE_RELEASE_ID: ${GENERATION_RECIPE_RELEASE_ID:-}
+      GENERATION_NUTRITION_IMPORT_ID: ${GENERATION_NUTRITION_IMPORT_ID:-}
+      GENERATION_FOOD_MAPPING_VERSION: ${GENERATION_FOOD_MAPPING_VERSION:-}
+      KNOWLEDGE_EXPLAIN_PROVIDER: ${KNOWLEDGE_EXPLAIN_PROVIDER:-openai}
     volumes: !override
       - demo_data:/app/data
       - demo_runtime:/app/runtime
@@ -131,9 +157,136 @@ services:
     # 不自動重啟：電腦重開後不會帶著新網址（與舊的 ALLOWED_ORIGINS 不符）自行上線，要重新執行 demo-up
     restart: "no"
 
+  # 模擬超市（compose.yaml 的 profile sim-market）：不開主機埠，只經下面的 cloudflared-market 對外
+  sim-supermarket:
+    image: overcooked-demo-sim-supermarket
+    container_name: overcooked-demo-sim-supermarket
+    ports: !reset []
+    restart: unless-stopped
+
+  # 第二條快速通道只轉到模擬超市；不設 depends_on（只開 tunnel profile 時 compose 設定仍成立），由 demo-up 先啟動超市
+  cloudflared-market:
+    image: cloudflare/cloudflared:2026.9.0
+    container_name: overcooked-demo-cloudflared-market
+    profiles: ["tunnel"]
+    command: ["tunnel", "--no-autoupdate", "--url", "http://sim-supermarket:80"]
+    restart: "no"
+
+  # ---- R14 飲食小幫手：語料／索引在 assistant-db，原文在 ASSISTANT_DATA_DIR（Git 之外） ----
+  assistant-db:
+    image: pgvector/pgvector:0.8.6-pg17
+    container_name: overcooked-demo-assistant-db
+    profiles: ["assistant"]
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${ASSISTANT_DB_PASSWORD:-}
+      POSTGRES_DB: overcooked_assistant
+    volumes:
+      - demo_assistant_pg:/var/lib/postgresql/data
+      - ./assistant_rag/schema.sql:/docker-entrypoint-initdb.d/10-assistant-schema.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d overcooked_assistant"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+  assistant-reranker:
+    # RTX 40 系列（Ada）用 89-*；RTX 50 系列改 TEI_IMAGE_TAG=120-1.9.4
+    image: ghcr.io/huggingface/text-embeddings-inference:${TEI_IMAGE_TAG:-89-1.9.4}
+    container_name: overcooked-demo-assistant-reranker
+    profiles: ["assistant"]
+    command: ["--model-id", "/model"]
+    volumes:
+      # 官方 BAAI/bge-reranker-v2-m3 權重預先放在主機目錄，唯讀掛載，不在容器內下載；未設定時路徑不存在、啟動失敗
+      - type: bind
+        source: ${ASSISTANT_RERANKER_MODEL_DIR:-/overcooked-demo-unset/assistant-reranker-model}
+        target: /model
+        read_only: true
+        bind:
+          create_host_path: false
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    restart: unless-stopped
+
+  assistant-rag:
+    build:
+      context: .
+      dockerfile: deploy/team/assistant.Dockerfile
+    image: overcooked-demo-assistant-rag
+    container_name: overcooked-demo-assistant-rag
+    profiles: ["assistant"]
+    command: ["python", "-m", "assistant_rag.server", "--host", "0.0.0.0", "--port", "8093"]
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    environment:
+      <<: *demo-assistant-environment
+      # 回答在本機以 Ollama 生成，不呼叫付費 API
+      RAG_LLM_PROVIDER: ollama
+      ASSISTANT_SERVICE_TOKEN: ${ASSISTANT_SERVICE_TOKEN:-}
+    volumes: &demo-assistant-data-ro
+      - type: bind
+        source: ${ASSISTANT_DATA_DIR:-/overcooked-demo-unset/assistant-data}
+        target: /assistant-data
+        read_only: true
+        bind:
+          create_host_path: false
+    depends_on:
+      assistant-db:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # 同一份檢索、只換回答模型：經內部網路的 backend /internal/assistant/chat 呼叫 OpenAI（T10 額度），不持有 OPENAI_API_KEY
+  assistant-rag-openai:
+    image: overcooked-demo-assistant-rag
+    container_name: overcooked-demo-assistant-rag-openai
+    profiles: ["assistant"]
+    command: ["python", "-m", "assistant_rag.server", "--host", "0.0.0.0", "--port", "8093"]
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    environment:
+      <<: *demo-assistant-environment
+      RAG_LLM_PROVIDER: openai
+      CLOUD_INTERNAL_URL: http://backend:8000
+      CLOUD_INTERNAL_TOKEN: ${INTERNAL_API_TOKEN:-}
+      ASSISTANT_SERVICE_TOKEN: ${ASSISTANT_SERVICE_TOKEN:-}
+    volumes: *demo-assistant-data-ro
+    depends_on:
+      assistant-db:
+        condition: service_healthy
+      backend:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # 一次性工具（小幫手爬取與建索引）：scripts/assistant-data-demo.ps1 以 --profile assistant --profile assistant-tools 執行；
+  # 獨立 profile，`--profile assistant up` 不會把它當常駐服務啟動
+  rag-tools:
+    image: overcooked-demo-assistant-rag
+    profiles: ["assistant-tools"]
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    environment:
+      <<: *demo-assistant-environment
+      PYTHONUNBUFFERED: "1"
+    volumes:
+      - type: bind
+        source: ${ASSISTANT_DATA_DIR:-/overcooked-demo-unset/assistant-data}
+        target: /assistant-data
+        bind:
+          create_host_path: false
+    depends_on:
+      assistant-db:
+        condition: service_healthy
+
 volumes:
   demo_pg:
   demo_data:
   demo_runtime:
   demo_backups:
   demo_knowledge_pg:
+  demo_assistant_pg:

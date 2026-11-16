@@ -1,0 +1,52 @@
+/* 可點的範圍蓋在插圖的物件上；平常透明，滑過或取得焦點時亮起外框 */
+.spot {
+  border-radius: 0.4cqw;
+  /* transform 那一段是 Room 的視差位移，這裡要一起寫才不會被蓋掉 */
+  transition: transform 250ms ease-out, box-shadow var(--dur-base) var(--ease-out), background var(--dur-base);
+}
+
+.spot:hover,
+.spot:focus-visible {
+  background: rgba(255, 210, 122, 0.12);
+  box-shadow: 0 0 0 0.25cqw rgba(255, 210, 122, 0.9), 0 0 2cqw 0.6cqw rgba(255, 210, 122, 0.45);
+}
+
+/* 高度照插圖裡的畫框與門洞（畫稿單位） */
+.frame {
+  aspect-ratio: 220 / 186;
+}
+
+.doorway {
+  aspect-ratio: 308 / 558;
+}
+
+/* 物件上的小標籤：告訴人這個東西可以點、點了去哪裡 */
+.tag {
+  position: absolute;
+  left: 50%;
+  padding: 0.25em 0.8em;
+  transform: translateX(-50%);
+  border-radius: 99em;
+  background: rgba(255, 253, 247, 0.94);
+  box-shadow: 0 0.3em 0.8em rgba(15, 8, 25, 0.4);
+  color: var(--ink-900);
+  font-size: clamp(12px, 0.8cqw, 15px);
+  font-weight: 700;
+  line-height: 1.5;
+  white-space: nowrap;
+}
+
+.frame .tag {
+  top: 100%;
+  margin-top: 0.4em;
+}
+
+.doorway .tag {
+  top: 4%;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .spot {
+    transition: none;
+  }
+}

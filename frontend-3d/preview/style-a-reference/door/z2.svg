@@ -1,0 +1,85 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 1000" preserveAspectRatio="xMidYMid slice">
+  <!-- 大門 z2：門口的東西——踏墊、番茄盆栽、高盆栽、澆水壺、信箱、睡著的貓 -->
+  <defs>
+    <linearGradient id="dz2-pot" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#D2744A"/><stop offset="1" stop-color="#B85C36"/>
+    </linearGradient>
+    <linearGradient id="dz2-box" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#EE7150"/><stop offset="1" stop-color="#D9472B"/>
+    </linearGradient>
+  </defs>
+
+  <!-- 踏墊 -->
+  <rect x="668" y="858" width="264" height="36" rx="10" fill="#3F7D4E"/>
+  <rect x="680" y="866" width="240" height="20" rx="6" fill="none" stroke="#7CC47F" stroke-width="3" stroke-dasharray="10 8"/>
+
+  <!-- 左：番茄盆栽 -->
+  <ellipse cx="500" cy="866" rx="70" ry="10" fill="#3A2A20" opacity=".15"/>
+  <path d="M446 782 h108 l-14 82 h-80Z" fill="url(#dz2-pot)"/>
+  <rect x="438" y="770" width="124" height="20" rx="8" fill="#DC8259"/>
+  <path d="M500 772 V640" stroke="#8A6236" stroke-width="6" stroke-linecap="round"/>
+  <g fill="#3F7D4E">
+    <ellipse cx="462" cy="724" rx="40" ry="26" transform="rotate(-24 462 724)"/>
+    <ellipse cx="540" cy="716" rx="42" ry="26" transform="rotate(22 540 716)"/>
+    <ellipse cx="500" cy="664" rx="46" ry="30"/>
+    <ellipse cx="456" cy="672" rx="30" ry="20" transform="rotate(-40 456 672)"/>
+    <ellipse cx="548" cy="664" rx="30" ry="20" transform="rotate(40 548 664)"/>
+  </g>
+  <g fill="#4C9160">
+    <ellipse cx="486" cy="700" rx="28" ry="18" transform="rotate(-10 486 700)"/>
+    <ellipse cx="522" cy="650" rx="24" ry="16" transform="rotate(16 522 650)"/>
+  </g>
+  <g fill="#E8603F"><circle cx="470" cy="746" r="13"/><circle cx="534" cy="742" r="12"/><circle cx="506" cy="704" r="11"/></g>
+  <g fill="#F59C82" opacity=".85"><circle cx="466" cy="741" r="4"/><circle cx="530" cy="738" r="4"/><circle cx="502" cy="700" r="3.5"/></g>
+
+  <!-- 澆水壺 -->
+  <ellipse cx="386" cy="866" rx="46" ry="7" fill="#3A2A20" opacity=".13"/>
+  <rect x="356" y="800" width="60" height="64" rx="10" fill="#5B8DD9"/>
+  <rect x="356" y="800" width="60" height="12" rx="6" fill="#7BA6E6"/>
+  <path d="M356 834 L318 806" stroke="#5B8DD9" stroke-width="10" stroke-linecap="round"/>
+  <ellipse cx="314" cy="803" rx="10" ry="6" fill="#4674BF" transform="rotate(36 314 803)"/>
+  <path d="M416 812 q30 6 22 34 q-6 14 -22 12" fill="none" stroke="#4674BF" stroke-width="8" stroke-linecap="round"/>
+
+  <!-- 右：高盆栽 -->
+  <ellipse cx="1140" cy="866" rx="62" ry="9" fill="#3A2A20" opacity=".15"/>
+  <path d="M1094 790 h92 l-12 74 h-68Z" fill="#F3E0C3"/>
+  <rect x="1086" y="778" width="108" height="18" rx="8" fill="#FFFDF7"/>
+  <path d="M1100 822 h80" stroke="#E8603F" stroke-width="8"/>
+  <g fill="#3F7D4E">
+    <path d="M1140 784 C1110 700 1104 610 1132 520 C1160 610 1166 700 1140 784Z"/>
+    <path d="M1140 784 C1110 700 1104 610 1132 520 C1160 610 1166 700 1140 784Z" transform="rotate(-26 1140 784)"/>
+    <path d="M1140 784 C1110 700 1104 610 1132 520 C1160 610 1166 700 1140 784Z" transform="rotate(26 1140 784)"/>
+  </g>
+  <g fill="#4C9160">
+    <path d="M1140 784 C1120 720 1116 650 1136 580 C1156 650 1160 720 1140 784Z" transform="rotate(-48 1140 784)"/>
+    <path d="M1140 784 C1120 720 1116 650 1136 580 C1156 650 1160 720 1140 784Z" transform="rotate(48 1140 784)"/>
+  </g>
+  <g stroke="#2E5E3A" stroke-width="3" fill="none" opacity=".5">
+    <path d="M1140 780 Q1134 650 1132 540"/>
+    <path d="M1140 780 Q1134 650 1132 540" transform="rotate(-26 1140 784)"/>
+    <path d="M1140 780 Q1134 650 1132 540" transform="rotate(26 1140 784)"/>
+  </g>
+
+  <!-- 信箱 -->
+  <ellipse cx="1352" cy="872" rx="40" ry="7" fill="#3A2A20" opacity=".14"/>
+  <rect x="1344" y="690" width="16" height="180" rx="4" fill="#8A6236"/>
+  <path d="M1290 640 a62 50 0 0 1 124 0 v64 h-124Z" fill="url(#dz2-box)"/>
+  <path d="M1290 640 a62 50 0 0 1 124 0" fill="none" stroke="#F59C82" stroke-width="5" opacity=".7"/>
+  <rect x="1306" y="652" width="92" height="12" rx="6" fill="#8C2E18"/>
+  <rect x="1322" y="630" width="56" height="30" rx="3" fill="#FFFDF7" transform="rotate(-8 1350 645)"/>
+  <path d="M1326 636 l24 14 l24 -18" fill="none" stroke="#E6CBA3" stroke-width="3" transform="rotate(-8 1350 645)"/>
+  <rect x="1410" y="604" width="8" height="56" rx="3" fill="#8A6236"/>
+  <path d="M1418 604 h34 l-10 14 l10 14 h-34Z" fill="#FFD27A"/>
+
+  <!-- 睡著的貓 -->
+  <ellipse cx="1004" cy="858" rx="62" ry="7" fill="#3A2A20" opacity=".16"/>
+  <path d="M1052 846 q34 -6 26 -34 q-4 -12 -14 -8" fill="none" stroke="#E79250" stroke-width="12" stroke-linecap="round"/>
+  <ellipse cx="1010" cy="836" rx="52" ry="24" fill="#F0A56B"/>
+  <g stroke="#D9803F" stroke-width="5" stroke-linecap="round"><path d="M1004 816 v14 M1022 816 v16 M1040 820 v14"/></g>
+  <circle cx="962" cy="832" r="24" fill="#F0A56B"/>
+  <path d="M942 822 l-2 -22 l18 10Z" fill="#F0A56B"/><path d="M970 808 l14 -14 l4 22Z" fill="#F0A56B"/>
+  <path d="M945 818 l0 -10 l8 5Z" fill="#F8C9B5"/><path d="M973 808 l8 -7 l2 11Z" fill="#F8C9B5"/>
+  <path d="M948 834 q5 5 10 0 M966 834 q5 5 10 0" fill="none" stroke="#3A2A20" stroke-width="2.5" stroke-linecap="round"/>
+  <path d="M959 842 l3 3 l3 -3Z" fill="#D9472B"/>
+  <ellipse cx="960" cy="852" rx="16" ry="6" fill="#FBEFDD"/>
+</svg>

@@ -1,0 +1,88 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 1000" preserveAspectRatio="xMidYMid slice">
+  <!-- 翻開的食譜書 z1：俯視——綠色精裝書攤開在檯面上；左右兩頁的內容由介面疊上。
+       右緣六個分類書籤標籤（文字由介面疊上）、書溝垂下的紅緞帶。 -->
+  <defs>
+    <filter id="bz1-cloth" x="0" y="0" width="100%" height="100%">
+      <feTurbulence type="fractalNoise" baseFrequency="1.3" numOctaves="2" seed="17"/>
+      <feColorMatrix type="matrix" values="0 0 0 0 .06  0 0 0 0 .12  0 0 0 0 .06  1.5 0 0 0 -.52"/>
+      <feComposite in2="SourceGraphic" operator="in"/>
+    </filter>
+    <filter id="bz1-paper" x="0" y="0" width="100%" height="100%">
+      <feTurbulence type="fractalNoise" baseFrequency=".8" numOctaves="2" seed="3"/>
+      <feColorMatrix type="matrix" values="0 0 0 0 .35  0 0 0 0 .28  0 0 0 0 .16  1.2 0 0 0 -.56"/>
+      <feComposite in2="SourceGraphic" operator="in"/>
+    </filter>
+    <filter id="bz1-b3"><feGaussianBlur stdDeviation="3"/></filter>
+    <filter id="bz1-b12"><feGaussianBlur stdDeviation="12"/></filter>
+    <linearGradient id="bz1-cover" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#5B8A62"/><stop offset=".6" stop-color="#3F6B45"/><stop offset="1" stop-color="#2E5236"/>
+    </linearGradient>
+    <linearGradient id="bz1-left" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#EFE7D6"/><stop offset=".06" stop-color="#FBF6EA"/><stop offset=".8" stop-color="#F8F2E4"/>
+      <stop offset=".95" stop-color="#E2D8C4"/><stop offset="1" stop-color="#C4B8A0"/>
+    </linearGradient>
+    <linearGradient id="bz1-right" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#C4B8A0"/><stop offset=".05" stop-color="#E2D8C4"/><stop offset=".2" stop-color="#F8F2E4"/>
+      <stop offset=".94" stop-color="#FBF6EA"/><stop offset="1" stop-color="#EFE7D6"/>
+    </linearGradient>
+    <linearGradient id="bz1-gutter" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#3A2A20" stop-opacity="0"/><stop offset=".5" stop-color="#3A2A20" stop-opacity=".45"/><stop offset="1" stop-color="#3A2A20" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="bz1-ribbon" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#8C2413"/><stop offset=".5" stop-color="#D2482C"/><stop offset="1" stop-color="#96281A"/>
+    </linearGradient>
+    <linearGradient id="bz1-fold" x1="0" y1="1" x2="1" y2="0">
+      <stop offset="0" stop-color="#FFFEFA"/><stop offset="1" stop-color="#CFC4AE"/>
+    </linearGradient>
+    <g id="bz1-tab">
+      <rect x="2" y="4" width="84" height="84" rx="8" fill="#0E0A14" opacity=".35" filter="url(#bz1-b3)"/>
+      <path d="M0 0 H72 q12 0 12 12 V72 q0 12 -12 12 H0Z"/>
+      <path d="M0 0 H72 q12 0 12 12" fill="none" stroke="#FFFFFF" stroke-width="2" opacity=".5"/>
+    </g>
+  </defs>
+
+  <!-- 書的陰影 -->
+  <rect x="196" y="126" width="1248" height="796" rx="18" fill="#0E0A14" opacity=".5" filter="url(#bz1-b12)"/>
+
+  <!-- 分類書籤（壓在封面與書頁之間，從右緣露出） -->
+  <g>
+    <use href="#bz1-tab" x="1394" y="150" fill="#D9472B"/>
+    <use href="#bz1-tab" x="1394" y="246" fill="#E7A72E"/>
+    <use href="#bz1-tab" x="1394" y="342" fill="#B07A45"/>
+    <use href="#bz1-tab" x="1394" y="438" fill="#5B8DD9"/>
+    <use href="#bz1-tab" x="1394" y="534" fill="#3F7D4E"/>
+    <use href="#bz1-tab" x="1394" y="630" fill="#B48AD1"/>
+  </g>
+
+  <!-- 封面（布面精裝，比書頁大一圈） -->
+  <rect x="176" y="104" width="1248" height="792" rx="16" fill="url(#bz1-cover)"/>
+  <rect x="176" y="104" width="1248" height="792" rx="16" fill="#000" filter="url(#bz1-cloth)" opacity=".6"/>
+  <path d="M176 880 V120 q0 -16 16 -16 H1408" fill="none" stroke="#9BCB9E" stroke-width="2" opacity=".7"/>
+
+  <!-- 書頁厚度 -->
+  <g fill="#D9CFBC">
+    <rect x="192" y="118" width="606" height="764" rx="4"/><rect x="802" y="118" width="606" height="764" rx="4"/>
+  </g>
+  <g fill="#E9E0CE">
+    <rect x="198" y="122" width="600" height="756" rx="3"/><rect x="802" y="122" width="600" height="756" rx="3"/>
+  </g>
+  <g stroke="#B9AD96" stroke-width="1" opacity=".8">
+    <path d="M194 130 V870 M197 128 V872 M200 126 V874 M1406 130 V870 M1403 128 V872 M1400 126 V874"/>
+  </g>
+
+  <!-- 左右兩頁 -->
+  <rect x="204" y="126" width="594" height="748" fill="url(#bz1-left)"/>
+  <rect x="802" y="126" width="594" height="748" fill="url(#bz1-right)"/>
+  <rect x="204" y="126" width="1192" height="748" fill="#000" filter="url(#bz1-paper)" opacity=".16"/>
+  <!-- 書溝 -->
+  <rect x="770" y="126" width="60" height="748" fill="url(#bz1-gutter)"/>
+  <path d="M800 126 V874" stroke="#3A2A20" stroke-width="1.500" opacity=".5"/>
+  <!-- 翻頁角 -->
+  <path d="M204 874 V826 L252 874Z" fill="#B9AD96"/><path d="M204 826 L252 874 L212 866Z" fill="url(#bz1-fold)"/>
+  <path d="M1396 874 V826 L1348 874Z" fill="#B9AD96"/><path d="M1396 826 L1348 874 L1388 866Z" fill="url(#bz1-fold)"/>
+
+  <!-- 紅緞帶書籤 -->
+  <path d="M790 874 h22 l6 92 l-17 -14 l-17 14Z" fill="url(#bz1-ribbon)"/>
+  <path d="M790 874 h22 v10 h-22Z" fill="#5E170B" opacity=".5"/>
+  <path d="M792 110 h18 v18 h-18Z" fill="url(#bz1-ribbon)"/>
+</svg>

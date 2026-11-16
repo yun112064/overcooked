@@ -1,0 +1,269 @@
+.viewport {
+  position: fixed;
+  inset: 0;
+  /* clip 而不是 hidden：世界比畫面寬，hidden 仍可被程式捲動（例如輸入框取得焦點時），畫面會整個歪掉 */
+  overflow: clip;
+  background: var(--night);
+  /* 橫向拖曳留給換停靠點；pinch-zoom 一定要留著：世界裡的字在手機上最小到 10–13px，要能用雙指放大看 */
+  touch-action: pan-y pinch-zoom;
+  --px: 0;
+  --py: 0;
+  /* 物件列與吉祥物要讓開底部的東西（分頁或動作列）；Room.tsx 依 HUD 與 bottomInset 設定 */
+  --bottom-inset: 0px;
+  /* 桌機側欄佔掉的左邊；左側的邊緣提示要讓開 */
+  --left-inset: 0px;
+}
+
+/* 已經雙指放大：橫向拖曳改成移動放大的畫面（Room.tsx 這時不換停靠點） */
+.viewport[data-zoomed] {
+  touch-action: pan-x pan-y pinch-zoom;
+}
+
+.world {
+  position: absolute;
+  left: 0;
+  top: 0;
+  container-type: inline-size;
+  transition: transform var(--cam-same-room) var(--ease-out);
+  will-change: transform;
+  /* 換房間：新的房間淡入（沉浸與靜態景深都有；關閉模式沒有轉場） */
+  animation: enter var(--cam-cross-room) var(--ease-out);
+}
+
+@keyframes enter {
+  from {
+    opacity: 0;
+  }
+}
+
+:global(html[data-depth='off']) .world {
+  animation: none;
+}
+
+/* 比世界大一圈（1.06 倍）；和 framing.ts 的 LAYER_BLEED 是同一個數字 */
+.layer {
+  position: absolute;
+  left: -3%;
+  top: -3%;
+  width: 106%;
+  height: 106%;
+  object-fit: cover;
+  pointer-events: none;
+  user-select: none;
+  transform: translate(calc(var(--px) * var(--k) * -1.2cqw), calc(var(--py) * var(--k) * -0.8cqw));
+  transition: transform 250ms ease-out;
+}
+
+.placed {
+  position: absolute;
+  transform: translateX(-50%) translate(calc(var(--px) * var(--k) * -1.2cqw), calc(var(--py) * var(--k) * -0.8cqw));
+  transition: transform 250ms ease-out;
+}
+
+/* 靜態景深與關閉：保留分層，但什麼都不跟著動 */
+:global(html[data-depth='static']) .layer,
+:global(html[data-depth='off']) .layer {
+  transform: none;
+}
+
+:global(html[data-depth='static']) .placed,
+:global(html[data-depth='off']) .placed {
+  transform: translateX(-50%);
+}
+
+:global(html[data-depth='static']) .world,
+:global(html[data-depth='off']) .world {
+  transition: none;
+}
+
+.hotspot {
+  padding: 0;
+  border: 0;
+  background: none;
+  text-align: inherit;
+  border-radius: 0.6cqw;
+}
+
+.hotspot:disabled {
+  cursor: default;
+}
+
+.flash {
+  animation: flash 900ms ease-out;
+}
+
+/* 靜態景深與關閉：不閃光，用外框標出來 */
+:global(html[data-depth='static']) .flash,
+:global(html[data-depth='off']) .flash {
+  animation: none;
+  outline: 3px solid var(--mustard-500);
+  outline-offset: 2px;
+}
+
+@keyframes flash {
+  0%,
+  60% {
+    box-shadow: 0 0 0 0.5cqw rgba(255, 210, 122, 0.95), 0 0 2.4cqw 1cqw rgba(255, 210, 122, 0.7);
+  }
+  100% {
+    box-shadow: 0 0 0 0.5cqw rgba(255, 210, 122, 0);
+  }
+}
+
+/* ---- 手機：停靠點指示、邊緣提示、物件列 ---- */
+.dots {
+  position: absolute;
+  left: 50%;
+  top: max(12px, env(safe-area-inset-top));
+  transform: translateX(-50%);
+  display: flex;
+  gap: 6px;
+  padding: 5px 8px;
+  border-radius: 999px;
+  background: rgba(30, 20, 35, 0.4);
+}
+
+.dots i {
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.5);
+  transition: width var(--dur-base);
+}
+
+.dots .dotOn {
+  width: 22px;
+  background: #fff;
+}
+
+.edge {
+  position: absolute;
+  /* 場景可以用 <Room edgeTop> 改到自己空著的那一條 */
+  top: var(--edge-top, 42%);
+  max-width: 96px;
+  min-height: 44px;
+  padding: 8px 10px;
+  border: 0;
+  background: rgba(30, 20, 35, 0.6);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+.edgeLeft {
+  left: var(--left-inset);
+  border-radius: 0 10px 10px 0;
+  text-align: left;
+}
+
+.edgeRight {
+  right: 0;
+  border-radius: 10px 0 0 10px;
+  text-align: right;
+}
+
+.dock {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: calc(12px + var(--bottom-inset) + env(safe-area-inset-bottom));
+  display: flex;
+  gap: 8px;
+  padding: 6px 12px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.dock::-webkit-scrollbar {
+  display: none;
+}
+
+/*
+ * 寬螢幕：清單平常視覺隱藏（世界裡的物件本身就能點，這份是給讀屏的）。
+ * 鍵盤走進來時整列浮出來，和手機的物件列同一個樣子，焦點才不會落在看不見的按鈕上。
+ */
+.viewport[data-layout='wide'] > [data-dock]:focus-within {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: calc(12px + var(--bottom-inset) + env(safe-area-inset-bottom));
+  /* 浮出來時蓋在吉祥物跑道上面，每一顆都看得到 */
+  z-index: var(--z-hud);
+  display: flex;
+  gap: 8px;
+  width: auto;
+  height: auto;
+  padding: 6px 12px 6px calc(12px + var(--left-inset));
+  overflow-x: auto;
+  clip-path: none;
+  scrollbar-width: none;
+}
+
+.viewport > [data-dock] button {
+  flex: none;
+  min-height: 44px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 999px;
+  background: rgba(255, 253, 247, 0.95);
+  box-shadow: 0 4px 10px rgba(15, 8, 25, 0.4);
+  font-size: 14px;
+  font-weight: 700;
+  white-space: nowrap;
+  opacity: 0.82;
+}
+
+.viewport > [data-dock] button small {
+  margin-left: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--ink-600);
+}
+
+.viewport > [data-dock] .dockHere {
+  opacity: 1;
+  box-shadow: 0 0 0 2px var(--tomato-500), 0 4px 10px rgba(15, 8, 25, 0.4);
+}
+
+.viewport > [data-dock] .dockHere small {
+  color: var(--tomato-600);
+}
+
+/* 現在不能按（送出中）：看得出來，但留在原位、焦點不掉 */
+.viewport > [data-dock] button[aria-disabled='true'] {
+  opacity: 0.5;
+  cursor: default;
+}
+
+/*
+ * 系統開了「減少動態」：鏡頭直接換位、不做視差、物件不閃光（改成不會動的外框）。
+ * 景深設定不會自動改（只問一次），所以不能只靠 html[data-depth]；還沒回答提示的人也要先停下來。
+ * 放在檔案最後：和上面的規則同樣權重，要排在後面才蓋得過。
+ */
+@media (prefers-reduced-motion: reduce) {
+  .world {
+    animation: none;
+    transition: none;
+  }
+
+  .layer {
+    transform: none;
+    transition: none;
+  }
+
+  .placed {
+    transform: translateX(-50%);
+    transition: none;
+  }
+
+  .flash {
+    animation: none;
+    outline: 3px solid var(--mustard-500);
+    outline-offset: 2px;
+  }
+
+  .dots i {
+    transition: none;
+  }
+}

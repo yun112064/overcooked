@@ -45,13 +45,34 @@ class TeamStatusTests(unittest.TestCase):
         def get(url, **kwargs):
             calls.append(url)
             return httpx.Response(200, request=httpx.Request("GET", url))
-        clock = iter([0.0, 0.0, 10.0, 10.0, 40.0, 40.0, 40.0, 40.0])
-        with patch.multiple("app.core.config.settings", recognition_service_url=None, knowledge_service_url=URL):
+        # 四個服務：第一輪各取一次時間，10 秒時各一次（快取），40 秒時各兩次（過期重探）
+        clock = iter([0.0] * 4 + [10.0] * 4 + [40.0] * 8)
+        with patch.multiple("app.core.config.settings", recognition_service_url=None, knowledge_service_url=URL,
+                            assistant_service_url=None, assistant_openai_service_url=None):
             for _ in range(3):
                 status = team_status(now=lambda: next(clock), get=get)
         self.assertEqual(status["knowledge"]["status"], "online")
         self.assertEqual(status["recognition"]["status"], "not_configured")
         self.assertEqual(len(calls), 2)  # 0 秒與 40 秒各探測一次；10 秒時用快取
+
+    def test_payload_lists_both_assistant_engines(self):
+        # frontend-3d chatLogic.ts 讀 assistant 與 assistant_openai（未設定時不顯示 OpenAI 切換）
+        from fastapi import FastAPI
+        from fastapi.testclient import TestClient
+
+        from app.api import health
+        from app.api.deps import current_auth
+        app = FastAPI()
+        app.include_router(health.router)
+        app.dependency_overrides[current_auth] = lambda: None
+        with patch.multiple("app.core.config.settings", recognition_service_url=None, knowledge_service_url=None,
+                            assistant_service_url=None, assistant_openai_service_url=None):
+            res = TestClient(app).get("/health/team")
+        self.assertEqual(res.status_code, 200, res.text)
+        status = res.json()
+        self.assertEqual(set(status), {"recognition", "knowledge", "assistant", "assistant_openai"})
+        self.assertEqual(status["assistant"]["status"], "not_configured")
+        self.assertEqual(status["assistant_openai"]["status"], "not_configured")
 
 
 if __name__ == "__main__":

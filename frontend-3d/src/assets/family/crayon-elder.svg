@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 200">
+  <!-- 蠟筆人物：elder -->
+  <defs>
+    <filter id="cr-wobble" x="-10%" y="-10%" width="120%" height="120%">
+      <feTurbulence type="fractalNoise" baseFrequency=".06" numOctaves="2" seed="11" result="n"/>
+      <feDisplacementMap in="SourceGraphic" in2="n" scale="7"/>
+    </filter>
+    <pattern id="cr-fill" width="9" height="9" patternUnits="userSpaceOnUse" patternTransform="rotate(-35)">
+      <rect width="9" height="9" fill="#9A6CC2" opacity=".5"/><rect width="9" height="5" fill="#9A6CC2"/>
+    </pattern>
+  </defs>
+  <g filter="url(#cr-wobble)" fill="none" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M50 144 v40 M70 144 v40 M42 186 h14 M64 186 h14" stroke="#3A2A20" stroke-width="6"/><path d="M48 98 l-22 26 M72 98 l24 24 M98 120 v66 M90 122 q8 -8 16 0" stroke="#3A2A20" stroke-width="6"/><path d="M60 76 l-30 68 h60Z" fill="url(#cr-fill)" stroke="#9A6CC2" stroke-width="6"/><circle cx="60" cy="44" r="27" fill="#FFE2C8" stroke="#E0705A" stroke-width="5"/><path d="M32 44 q-4 -34 28 -34 q32 0 28 34" stroke="#A9A9B4" stroke-width="9"/><circle cx="60" cy="8" r="9" fill="#C9C9D2" stroke="#A9A9B4" stroke-width="4"/><path d="M44 34 q6 -4 12 0 M64 34 q6 -4 12 0" stroke="#A9A9B4" stroke-width="3"/><circle cx="50" cy="42" r="3.4" fill="#3A2A20"/><circle cx="70" cy="42" r="3.4" fill="#3A2A20"/><path d="M48 54 q12 12 24 0" stroke="#D9472B" stroke-width="4"/><circle cx="42" cy="52" r="5" fill="#F4A8A0" opacity=".7" stroke="none"/><circle cx="78" cy="52" r="5" fill="#F4A8A0" opacity=".7" stroke="none"/>
+  </g>
+</svg>

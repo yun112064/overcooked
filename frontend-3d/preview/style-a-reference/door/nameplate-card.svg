@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 440">
+  <!-- 掛在大門上的名牌卡：登入／註冊表單的底圖，文字與欄位由 HTML 疊上 -->
+  <defs>
+    <linearGradient id="npc-paper" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#FFFEFA"/><stop offset="1" stop-color="#FFF6E8"/>
+    </linearGradient>
+  </defs>
+  <!-- 掛繩 -->
+  <path d="M160 16 L62 82 M160 16 L258 82" stroke="#B07A45" stroke-width="4" stroke-linecap="round" fill="none"/>
+  <!-- 卡片陰影與本體 -->
+  <rect x="16" y="76" width="296" height="360" rx="20" fill="#3A2A20" opacity=".16"/>
+  <rect x="8" y="66" width="304" height="360" rx="20" fill="url(#npc-paper)" stroke="#E6CBA3" stroke-width="4"/>
+  <rect x="20" y="78" width="280" height="336" rx="12" fill="none" stroke="#F3E0C3" stroke-width="2" stroke-dasharray="6 6"/>
+  <!-- 穿繩孔 -->
+  <circle cx="62" cy="88" r="7" fill="#E6CBA3"/><circle cx="62" cy="88" r="3.5" fill="#B07A45"/>
+  <circle cx="258" cy="88" r="7" fill="#E6CBA3"/><circle cx="258" cy="88" r="3.5" fill="#B07A45"/>
+  <!-- 銅釘 -->
+  <circle cx="160" cy="16" r="11" fill="#D9A93F"/><circle cx="156" cy="12" r="4" fill="#FFF3C4"/>
+</svg>

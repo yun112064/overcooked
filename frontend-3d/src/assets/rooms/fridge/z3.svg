@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 1000" preserveAspectRatio="xMidYMid slice">
+  <!-- 冰箱門 z3：前景——暗角 -->
+  <defs>
+    <radialGradient id="fz3-vig" cx=".5" cy=".48" r=".8">
+      <stop offset=".6" stop-color="#150F1E" stop-opacity="0"/><stop offset="1" stop-color="#150F1E" stop-opacity=".5"/>
+    </radialGradient>
+  </defs>
+  <rect x="-80" y="-60" width="1760" height="1120" fill="url(#fz3-vig)"/>
+</svg>

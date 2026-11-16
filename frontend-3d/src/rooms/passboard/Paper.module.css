@@ -1,0 +1,1012 @@
+/*
+ * 問卷內容的樣式：欄位、標籤、按鈕、摘要、營養預覽、階段列。
+ * 同一份內容會放在紙上（桌機，字級跟著世界縮放）或抽屜裡（手機，15px），所以大小多半用 em。
+ * 輸入框的字一律不小於 16px（iOS 小於 16px 會自動放大畫面）；可以點的東西高度至少 44px。
+ */
+
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: 0.7em;
+  min-width: 0;
+}
+
+.stack p,
+.stack h4,
+.stack h5 {
+  margin: 0;
+}
+
+.stack h4 {
+  font-family: var(--font-round);
+  font-size: 1.05em;
+}
+
+.rule {
+  width: 100%;
+  margin: 0.2em 0;
+  border: 0;
+  border-top: 1px dashed var(--paper-edge);
+}
+
+/* ---- 欄位 ---- */
+.fields {
+  display: flex;
+  flex-direction: column;
+  gap: 0.9em;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25em;
+  min-width: 0;
+  flex: 1;
+}
+
+.field label {
+  font-size: 0.9em;
+  font-weight: 700;
+}
+
+.field input,
+.field select,
+.field textarea,
+.inlineSelect select {
+  width: 100%;
+  min-height: 44px;
+  padding: 8px 10px;
+  border: 1px solid var(--paper-edge);
+  border-radius: 8px;
+  background: rgba(255, 253, 247, 0.85);
+  font-size: max(16px, 1em);
+  line-height: 1.4;
+}
+
+.field textarea {
+  resize: vertical;
+}
+
+.field input:disabled,
+.field select:disabled,
+.field textarea:disabled {
+  background: rgba(243, 224, 195, 0.35);
+  color: var(--ink-600);
+}
+
+.field [aria-invalid='true'] {
+  border-color: var(--brick-700);
+  box-shadow: 0 0 0 1px var(--brick-700);
+}
+
+.fieldHint,
+.footnote {
+  margin: 0;
+  color: var(--ink-600);
+  font-size: 0.85em;
+  line-height: 1.5;
+}
+
+.fieldError {
+  margin: 0;
+  color: var(--brick-800);
+  font-size: 0.88em;
+  font-weight: 700;
+  line-height: 1.5;
+}
+
+.fieldHint a,
+.footnote a,
+.source a,
+.sources a {
+  color: var(--brick-700);
+  font-weight: 700;
+}
+
+.inputWithButton {
+  display: flex;
+  gap: 0.4em;
+}
+
+.inputWithButton input {
+  flex: 1;
+  min-width: 0;
+}
+
+/* ---- 按鈕（畫在紙上的，不用浮動介面的 <Button>） ---- */
+.smallButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 0 0.9em;
+  border: 1px solid var(--paper-edge);
+  border-radius: 10px;
+  background: var(--cream-100);
+  color: var(--ink-900);
+  font-size: 0.95em;
+  font-weight: 700;
+  line-height: 1.2;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.smallButton:hover:not(:disabled) {
+  background: var(--cream-200);
+}
+
+.smallButton:disabled,
+.chipButton:disabled {
+  cursor: default;
+  opacity: 0.55;
+}
+
+.smallPrimary {
+  border-color: var(--brick-700);
+  background: var(--brick-700);
+  box-shadow: 0 0.2em 0.5em rgba(40, 10, 5, 0.3);
+  color: #fff;
+}
+
+.smallPrimary:hover:not(:disabled) {
+  background: var(--brick-800);
+}
+
+.linkButton {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 0.4em;
+  border: 0;
+  background: none;
+  color: var(--brick-700);
+  font-size: 0.9em;
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+}
+
+.linkButton:disabled {
+  cursor: default;
+  opacity: 0.55;
+}
+
+.cookActions,
+.inlineActions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5em;
+}
+
+.inlineActions {
+  margin-top: 0.4em;
+}
+
+/* ---- 小標籤與一排排的膠囊 ---- */
+.tag {
+  display: inline-block;
+  padding: 0.1em 0.6em;
+  border: 1px solid transparent;
+  border-radius: 99em;
+  font-size: 0.82em;
+  font-weight: 700;
+  line-height: 1.6;
+}
+
+.tagPlain {
+  border-color: var(--paper-edge);
+  background: var(--cream-100);
+}
+
+.tagOk {
+  background: var(--basil-100);
+  color: var(--basil-700);
+}
+
+.tagWarn {
+  background: var(--mustard-100);
+  color: var(--mustard-700);
+}
+
+.tagDanger {
+  border-color: var(--brick-700);
+  background: var(--tomato-100);
+  color: var(--brick-800);
+}
+
+/* 不太確定：虛線外框（和未知值同一種語言） */
+.tagUnsure {
+  border: 1px dashed var(--mustard-700);
+  background: var(--mustard-100);
+  color: var(--mustard-700);
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4em;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.chipButton {
+  min-height: 44px;
+  padding: 0 0.9em;
+  border: 1px solid var(--basil-600);
+  border-radius: 99em;
+  background: var(--cream-50);
+  color: var(--basil-700);
+  font-size: 0.92em;
+  font-weight: 700;
+}
+
+.chipButton:hover:not(:disabled) {
+  background: var(--basil-100);
+}
+
+.chipSuggested {
+  background: var(--basil-100);
+  box-shadow: 0 0 0 1px var(--basil-600);
+}
+
+.pickedChip {
+  display: inline-flex;
+  align-items: center;
+  padding-left: 0.8em;
+  border-radius: 99em;
+  background: var(--basil-100);
+  color: var(--basil-700);
+  font-size: 0.92em;
+  font-weight: 700;
+}
+
+.pickedChip button {
+  width: 44px;
+  height: 44px;
+  border: 0;
+  border-radius: 50%;
+  background: none;
+  color: inherit;
+  font-size: 0.9em;
+}
+
+/* ---- 第 2 步：成員 ---- */
+.members {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5em;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.members li {
+  border: 1px solid var(--paper-edge);
+  border-radius: 10px;
+  background: rgba(255, 253, 247, 0.5);
+}
+
+.members .memberOn {
+  border-color: var(--basil-600);
+  background: rgba(221, 239, 217, 0.55);
+  box-shadow: inset 4px 0 0 var(--basil-600);
+}
+
+.members fieldset {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0 0.9em;
+  min-width: 0;
+  margin: 0;
+  padding: 0.3em 0.8em 0.4em;
+  border: 0;
+}
+
+.members legend {
+  float: left;
+  width: 100%;
+  padding: 0.2em 0 0;
+  font-family: var(--font-round);
+  font-size: 1.05em;
+  font-weight: 800;
+}
+
+.members legend small {
+  margin-left: 0.6em;
+  color: var(--ink-600);
+  font-family: var(--font-body);
+  font-size: 0.78em;
+  font-weight: 500;
+}
+
+.check {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45em;
+  min-height: 44px;
+  font-weight: 700;
+}
+
+.check input {
+  width: 22px;
+  height: 22px;
+  accent-color: var(--brick-700);
+}
+
+.inlineSelect {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5em;
+  font-size: 0.9em;
+  font-weight: 700;
+}
+
+.inlineSelect select {
+  width: auto;
+}
+
+/* ---- 第 3 步：相機框與辨識結果 ---- */
+.capture {
+  display: flex;
+  flex-direction: column;
+  gap: 0.7em;
+  padding: 0.8em;
+  border: 1px solid #e6cba3;
+  border-radius: 10px;
+  background: rgba(255, 246, 224, 0.7);
+}
+
+.captureTop {
+  display: flex;
+  align-items: center;
+  gap: 0.8em;
+}
+
+.camera {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4em;
+  width: 8.5em;
+  min-height: 88px;
+  aspect-ratio: 4 / 3;
+  border-radius: 8px;
+  background: #26242c;
+  outline: 2px dashed #ffd27a;
+  outline-offset: -7px;
+  color: #fff6e0;
+  font-size: 0.9em;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.camera:focus-within {
+  box-shadow: 0 0 0 3px var(--mustard-500);
+}
+
+.cameraOff {
+  cursor: default;
+  opacity: 0.6;
+}
+
+/* 相機圖示：機身＋鏡頭 */
+.camera i {
+  position: relative;
+  width: 2.4em;
+  height: 1.7em;
+  border: 0.2em solid #fff6e0;
+  border-radius: 0.35em;
+}
+
+.camera i::after {
+  content: '';
+  position: absolute;
+  inset: 18%;
+  border: 0.2em solid #fff6e0;
+  border-radius: 50%;
+}
+
+.captureResult {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.7em;
+}
+
+.captureResult img {
+  flex: none;
+  width: 80px;
+  height: 80px;
+  border: 1px solid var(--paper-edge);
+  border-radius: 8px;
+  object-fit: cover;
+}
+
+.captureResult > div {
+  flex: 1;
+  min-width: 0;
+}
+
+.suggestion {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5em;
+  padding: 0.6em;
+  border: 1px solid var(--paper-edge);
+  border-radius: 8px;
+  background: var(--cream-50);
+}
+
+.suggestion p {
+  margin: 0;
+}
+
+.suggestionHead {
+  display: flex;
+  align-items: flex-end;
+  gap: 0.5em;
+}
+
+.suggestionDone {
+  display: flex;
+  align-items: center;
+  gap: 0.4em;
+  min-height: 44px;
+}
+
+/* ---- 第 5 步：摘要 ---- */
+.summary {
+  margin: 0;
+}
+
+.row {
+  display: grid;
+  grid-template-columns: 5em minmax(0, 1fr);
+  gap: 0.6em;
+  padding: 0.55em 0;
+  border-bottom: 1px dashed var(--paper-edge);
+}
+
+.row dt {
+  padding-top: 0.15em;
+  color: var(--ink-600);
+  font-size: 0.82em;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+}
+
+.row dd {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4em;
+  min-width: 0;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.row dd p {
+  margin: 0;
+}
+
+.issueList {
+  margin: 0;
+  padding-left: 1.2em;
+}
+
+.issueList li {
+  overflow-wrap: anywhere;
+}
+
+.teamStatus {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4em;
+  margin: 0;
+}
+
+.teamStatus small,
+.aside {
+  color: var(--ink-600);
+  font-size: 0.82em;
+}
+
+.aside {
+  margin-left: 0.6em;
+}
+
+/* ---- 可收合的段落 ---- */
+.fold {
+  border: 1px solid var(--paper-edge);
+  border-radius: 10px;
+  background: rgba(255, 253, 247, 0.5);
+}
+
+.fold summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0 0.6em;
+  min-height: 44px;
+  padding: 0.55em 0.8em;
+  cursor: pointer;
+  font-family: var(--font-round);
+}
+
+.fold summary small {
+  color: var(--ink-600);
+  font-family: var(--font-body);
+  font-size: 0.8em;
+}
+
+.foldBody {
+  padding: 0 0.8em 0.8em;
+}
+
+/* ---- 資料庫菜單與營養預覽 ---- */
+.sectionHead {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4em;
+}
+
+.sectionHead h4 {
+  flex: 1;
+  min-width: 6em;
+}
+
+.menuNames {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3em 1em;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-family: var(--font-round);
+  font-size: 1.05em;
+  font-weight: 700;
+}
+
+.menuNames li {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4em;
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.8em;
+  padding: 0.8em;
+  border: 1px solid var(--paper-edge);
+  border-radius: 10px;
+  background: var(--cream-50);
+}
+
+.stats {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.8em;
+  margin: 0;
+}
+
+.stats dt {
+  color: var(--ink-600);
+  font-size: 0.8em;
+  font-weight: 700;
+}
+
+.stats dd {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.2em;
+  margin: 0;
+}
+
+.stats dd b {
+  font-family: var(--font-round);
+  font-size: 1.3em;
+  line-height: 1.2;
+}
+
+.stats dd small {
+  color: var(--ink-600);
+  font-size: 0.8em;
+}
+
+.totals {
+  margin: 0;
+}
+
+.totals div {
+  display: flex;
+  align-items: baseline;
+  gap: 0.8em;
+  padding: 0.3em 0;
+  border-bottom: 1px dashed var(--paper-edge);
+}
+
+.totals dt {
+  flex: none;
+  min-width: 5.5em;
+  color: var(--ink-600);
+  font-size: 0.9em;
+}
+
+.totals dd {
+  min-width: 0;
+  margin: 0;
+}
+
+.verdict {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5em;
+  padding-top: 0.7em;
+  border-top: 1px solid var(--paper-edge);
+}
+
+.verdict p,
+.verdict ul {
+  margin: 0;
+}
+
+.verdict ul {
+  padding-left: 1.2em;
+}
+
+/* 判定的顏色只是輔助；通過與否一定寫成字 */
+.good {
+  color: var(--basil-700);
+  font-weight: 700;
+}
+
+.warnText {
+  color: var(--mustard-700);
+  font-weight: 700;
+}
+
+.badText {
+  color: var(--brick-800);
+  font-weight: 700;
+}
+
+.dishes {
+  display: flex;
+  flex-direction: column;
+  gap: 0.9em;
+  margin: 0;
+  padding-left: 1.4em;
+}
+
+.dishes > li::marker {
+  color: var(--brick-700);
+  font-weight: 700;
+}
+
+.dishes p {
+  margin: 0;
+}
+
+.dishHead {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.5em;
+}
+
+.dishHead b {
+  font-family: var(--font-round);
+  font-size: 1.05em;
+}
+
+.dishHead small {
+  color: var(--ink-600);
+  font-size: 0.82em;
+}
+
+.ingredients {
+  margin-top: 0.4em;
+  border: 1px solid var(--paper-edge);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.ingredients h5 {
+  margin: 0;
+  padding: 0.25em 0.7em;
+  background: var(--cream-200);
+  color: var(--ink-600);
+  font-size: 0.82em;
+  letter-spacing: 0.1em;
+}
+
+.ingredients ul {
+  margin: 0;
+  padding: 0.2em 0.7em;
+  list-style: none;
+}
+
+.ingredients li {
+  display: flex;
+  justify-content: space-between;
+  gap: 1em;
+  padding: 0.25em 0;
+  border-bottom: 1px dashed var(--paper-edge);
+}
+
+.ingredients li:last-child {
+  border-bottom: 0;
+}
+
+.ingredients li span:last-child {
+  color: var(--ink-600);
+  white-space: nowrap;
+}
+
+.cookSteps {
+  margin: 0.4em 0 0;
+  padding-left: 1.4em;
+}
+
+/* ---- 每人營養 ---- */
+.people {
+  display: flex;
+  flex-direction: column;
+  gap: 0.7em;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.person {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5em;
+  padding: 0.7em;
+  border: 1px solid var(--paper-edge);
+  border-radius: 10px;
+  background: var(--cream-50);
+}
+
+.person p {
+  margin: 0;
+}
+
+.personHead {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4em;
+}
+
+.personHead b {
+  font-family: var(--font-round);
+  font-size: 1.1em;
+}
+
+.personHead small {
+  color: var(--ink-600);
+  font-size: 0.82em;
+}
+
+.bento {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5em;
+  padding-top: 0.6em;
+  border-top: 1px dashed var(--paper-edge);
+}
+
+.nutrients {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55em;
+  margin: 0;
+}
+
+.nutrient {
+  display: grid;
+  grid-template-columns: 5.2em minmax(0, 1fr);
+  gap: 0.6em;
+  align-items: start;
+}
+
+.nutrient dt {
+  font-size: 0.92em;
+}
+
+.strong {
+  font-weight: 700;
+}
+
+.nutrient dd {
+  min-width: 0;
+  margin: 0;
+}
+
+.nutrientLine {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0 0.6em;
+}
+
+.nutrientLine small {
+  margin-left: auto;
+  color: var(--ink-600);
+  font-size: 0.8em;
+}
+
+/* 長條：底是每日建議的 100%；i 是這一餐吃到的；u 是這一餐應占比例的刻度。缺值不畫這個長條 */
+.bar {
+  position: relative;
+  height: 6px;
+  margin-top: 0.35em;
+  border-radius: 3px;
+  background: var(--cream-200);
+}
+
+.bar i {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  border-radius: 3px;
+  background: var(--basil-600);
+}
+
+.bar .barHigh {
+  background: var(--mustard-500);
+}
+
+.bar .barOver {
+  background: var(--brick-700);
+}
+
+/* 超過時配合顏色的那行字 */
+.barNote {
+  display: block;
+  margin-top: 0.25em;
+  font-size: 0.8em;
+}
+
+.bar u {
+  position: absolute;
+  top: -3px;
+  bottom: -3px;
+  width: 2px;
+  margin-left: -1px;
+  background: var(--ink-900);
+  opacity: 0.6;
+}
+
+/* ---- 小知識：來源固定在內容下面 ---- */
+.tips {
+  display: flex;
+  flex-direction: column;
+  gap: 0.9em;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.tips li {
+  padding-left: 0.8em;
+  border-left: 3px solid var(--cream-200);
+}
+
+.tips p {
+  margin: 0.2em 0 0;
+}
+
+.source {
+  color: var(--ink-600);
+  font-size: 0.85em;
+}
+
+/* ---- 營養來源檢查 ---- */
+.sourceItem {
+  padding: 0.5em 0;
+  border-bottom: 1px dashed var(--paper-edge);
+}
+
+.sourceItem p,
+.sources p {
+  margin: 0;
+}
+
+.sources {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5em;
+  margin-top: 0.4em;
+}
+
+.sources > div {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3em;
+  padding-left: 0.6em;
+  border-left: 2px solid var(--paper-edge);
+  overflow-wrap: anywhere;
+}
+
+/* ---- 生成階段列 ---- */
+.stages {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15em;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.stages li {
+  display: flex;
+  align-items: center;
+  gap: 0.6em;
+  min-height: 2em;
+  color: var(--ink-600);
+}
+
+.stages i {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 1.5em;
+  height: 1.5em;
+  border: 1px dashed var(--unknown);
+  border-radius: 50%;
+  font-size: 0.8em;
+  font-style: normal;
+}
+
+.stages li[data-state='done'] {
+  color: var(--basil-700);
+}
+
+.stages li[data-state='done'] i {
+  border: 0;
+  background: var(--basil-600);
+  color: #fff;
+}
+
+.stages li[data-state='current'] {
+  color: var(--brick-800);
+  font-weight: 700;
+}
+
+.stages li[data-state='current'] i {
+  border: 0;
+  background: var(--brick-700);
+  color: #fff;
+  animation: stage-pulse 1.4s ease-in-out infinite;
+}
+
+@keyframes stage-pulse {
+  50% {
+    box-shadow: 0 0 0 0.45em rgba(217, 71, 43, 0.22);
+  }
+}
+
+:global(html[data-depth='static']) .stages i,
+:global(html[data-depth='off']) .stages i {
+  animation: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .stages i {
+    animation: none !important;
+  }
+}

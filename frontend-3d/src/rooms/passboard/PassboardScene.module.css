@@ -1,0 +1,375 @@
+/* 單板＋鍋：場景層級的版面（紙、抽屜、步驟條、鍋的小牌）。問卷內容的樣式在 Paper.module.css。 */
+
+/* ---- 左上角：回廚房 ---- */
+.back {
+  position: absolute;
+  left: calc(var(--left-inset) + max(12px, env(safe-area-inset-left)));
+  top: max(12px, env(safe-area-inset-top));
+  z-index: var(--z-hud);
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 14px;
+  border-radius: 999px;
+  background: rgba(255, 253, 247, 0.95);
+  box-shadow: 0 4px 10px rgba(15, 8, 25, 0.4);
+  color: var(--ink-900);
+  font-size: 14px;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.back:hover {
+  background: var(--cream-200);
+}
+
+/* ---- 鍋的狀態小牌 ---- */
+.potTag {
+  padding: 0.3em 0.9em;
+  border-radius: 99em;
+  background: rgba(30, 20, 35, 0.78);
+  box-shadow: 0 0.3em 0.8em rgba(15, 8, 25, 0.4);
+  color: #fff6e0;
+  font-size: clamp(13px, 1cqw, 17px);
+  font-weight: 700;
+  line-height: 1.5;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+/* ---- 生成中：貼在鍋旁（右爐口上）的階段卡，一張便條紙 ---- */
+.stageCard {
+  color: var(--ink-900);
+  font-size: clamp(13px, 0.95cqw, 16px);
+  line-height: 1.5;
+}
+
+.stageCard section {
+  padding: 0.7em 0.8em 0.8em;
+  border-radius: 0.3em;
+  background: linear-gradient(#fffdf2, #f6ecd2);
+  box-shadow: 0 0.5em 1.2em rgba(15, 8, 25, 0.5);
+  transform: rotate(1.2deg);
+}
+
+.stageCard h3 {
+  margin: 0 0 0.45em;
+  padding-bottom: 0.3em;
+  border-bottom: 1px dashed var(--paper-edge);
+  font-family: var(--font-round);
+  font-size: 1.05em;
+}
+
+/* ---- 桌機：問卷寫在紙上（紙本身是插圖，這裡不再畫底） ---- */
+.paper {
+  display: flex;
+  /* 字跟著世界縮放，但不小於 14px */
+  font-size: clamp(14px, 1.02cqw, 17px);
+}
+
+.paperInner {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+}
+
+/* ---- 問卷的骨架：標題與步驟條固定在上、內容可捲、按鈕固定在下 ---- */
+.form {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  color: var(--ink-900);
+  line-height: 1.6;
+}
+
+.head {
+  flex: none;
+  padding: 0 0.4em 0.5em;
+  border-bottom: 0.14em solid #c2553a;
+}
+
+.headLine {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.6em;
+}
+
+.headLine h2 {
+  margin: 0;
+  font-family: var(--font-round);
+  font-size: 1.45em;
+  line-height: 1.3;
+}
+
+.headLine small {
+  flex: none;
+  color: var(--ink-600);
+  font-size: 0.82em;
+  font-weight: 700;
+}
+
+.rail {
+  display: flex;
+  gap: 0.3em;
+  margin: 0.4em 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.rail li {
+  flex: 1;
+  min-width: 0;
+}
+
+.rail button {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  width: 100%;
+  min-height: 48px;
+  padding: 4px 2px;
+  border: 0;
+  border-bottom: 4px solid #e4dac6;
+  border-radius: 8px 8px 0 0;
+  background: none;
+  color: var(--ink-600);
+  font-size: 0.78em;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.rail button:hover:not(:disabled) {
+  background: rgba(243, 224, 195, 0.6);
+}
+
+.rail button:disabled {
+  cursor: default;
+}
+
+.rail button i {
+  display: grid;
+  place-items: center;
+  width: 1.7em;
+  height: 1.7em;
+  border-radius: 50%;
+  background: #e4dac6;
+  font-style: normal;
+}
+
+.rail button > span {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* 做過的：綠；目前這一步：紅（另有 aria-current 與粗底線，不只靠顏色） */
+.rail button[data-state='done'] {
+  border-bottom-color: var(--basil-600);
+  color: var(--basil-700);
+}
+
+.rail button[data-state='done'] i {
+  background: var(--basil-600);
+  color: #fff;
+}
+
+.rail button[data-state='current'] {
+  border-bottom-color: var(--tomato-600);
+  color: var(--brick-800);
+}
+
+.rail button[data-state='current'] i {
+  background: var(--brick-700);
+  color: #fff;
+}
+
+/* 還有要補的：右上角紅點（文字在視覺隱藏的 span 裡） */
+.rail button em {
+  position: absolute;
+  top: 4px;
+  right: calc(50% - 1.5em);
+  width: 0.7em;
+  height: 0.7em;
+  border: 2px solid var(--cream-50);
+  border-radius: 50%;
+  background: var(--tomato-600);
+}
+
+.scroll {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.8em;
+  padding: 0.8em 0.4em;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+}
+
+.scroll > * {
+  flex: none;
+}
+
+.scroll h3 {
+  margin: 0;
+  font-family: var(--font-round);
+  font-size: 1.2em;
+  line-height: 1.35;
+}
+
+.scroll h3:focus {
+  outline: none;
+}
+
+.scroll h3 small {
+  display: block;
+  color: var(--brick-700);
+  font-family: var(--font-body);
+  font-size: 0.68em;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+}
+
+.foot {
+  flex: none;
+  display: flex;
+  gap: 0.5em;
+  padding: 0.6em 0.4em 0;
+  border-top: 1px solid var(--paper-edge);
+}
+
+.foot .next {
+  flex: 1.6;
+}
+
+/* ---- 手機：問卷是下方的抽屜（也用在視窗扁到紙放不下的時候） ---- */
+.sheet {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: var(--z-hud);
+  display: flex;
+  flex-direction: column;
+  height: 54vh;
+  height: 54dvh;
+  padding-bottom: env(safe-area-inset-bottom);
+  border-radius: 18px 18px 0 0;
+  background: linear-gradient(#fffefa, #f1eadb);
+  box-shadow: 0 -8px 24px rgba(15, 8, 25, 0.45);
+  font-size: 15px;
+  transition: height var(--dur-base) var(--ease-out);
+}
+
+/* 68px 和 PassboardScene.tsx 的 PEEK_PX 是同一個數字 */
+.sheet[data-size='peek'] {
+  height: calc(68px + env(safe-area-inset-bottom));
+}
+
+.sheet[data-size='full'] {
+  height: calc(100vh - 64px);
+  height: calc(100dvh - 64px);
+}
+
+:global([data-layout='wide']) .sheet {
+  left: calc(var(--left-inset) + 12px);
+  right: auto;
+  width: min(480px, calc(100vw - 24px));
+}
+
+/* ---- HUD 外面那一層：不佔版面，只把變數傳給吉祥物的跑道（Mascot.module.css 讀 --mascot-inset） ---- */
+.hud {
+  display: contents;
+}
+
+/* 手機、抽屜半開：吉祥物站到抽屜上緣。54 和上面 .sheet 的高度是同一個數字 */
+.hud[data-mascot='lifted'] {
+  --mascot-inset: 54vh;
+}
+
+/* 自訂變數不會像 height 那樣自動退回前一行，所以分開寫 */
+@supports (height: 100dvh) {
+  .hud[data-mascot='lifted'] {
+    --mascot-inset: 54dvh;
+  }
+}
+
+.sheetBar {
+  flex: none;
+  display: flex;
+  align-items: stretch;
+  gap: 4px;
+  padding: 0 8px;
+}
+
+.grip {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 56px;
+  padding: 8px 4px 6px;
+  border: 0;
+  border-radius: 18px 18px 0 0;
+  background: none;
+  color: var(--ink-600);
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.3;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.grip i {
+  flex: none;
+  width: 48px;
+  height: 5px;
+  border-radius: 99px;
+  background: var(--paper-edge);
+}
+
+.sheetSize {
+  flex: none;
+  min-width: 56px;
+  min-height: 44px;
+  align-self: center;
+  border: 1px solid var(--paper-edge);
+  border-radius: 10px;
+  background: var(--cream-100);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.sheetBody {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  padding: 0 12px 10px;
+}
+
+.sheetBody[hidden] {
+  display: none;
+}
+
+:global(html[data-depth='off']) .sheet {
+  transition: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sheet {
+    transition: none;
+  }
+}

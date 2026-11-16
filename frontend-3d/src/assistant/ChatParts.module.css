@@ -1,0 +1,587 @@
+/* 對話的零件。懸浮視窗（compact）與展開頁共用；字級用 px，因為它們是浮在場景上的介面，不跟世界縮放。 */
+
+/* ---- 訊息列表 ---- */
+.log {
+  --avatar: 40px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-height: 0;
+  padding: 16px;
+  overflow-y: auto;
+  /* 食譜卡片依這一塊的寬度決定直排或橫排 */
+  container-type: inline-size;
+  overscroll-behavior: contain;
+  font-size: 16px;
+  line-height: 1.8;
+}
+
+.compact {
+  --avatar: 30px;
+  gap: 12px;
+  padding: 12px;
+  font-size: 15px;
+  line-height: 1.7;
+}
+
+/* ---- 還沒開始時的招呼與範例問題 ---- */
+.hello {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 18px;
+}
+
+.helloMascot {
+  flex: none;
+  width: 96px;
+}
+
+.helloBubble {
+  position: relative;
+  padding: 10px 16px;
+  border: 1px solid var(--paper-edge);
+  border-radius: 14px;
+  background: var(--cream-50);
+}
+
+/* 指向吉祥物的小尖角 */
+.helloBubble::before {
+  content: '';
+  position: absolute;
+  left: -7px;
+  top: 50%;
+  width: 12px;
+  height: 12px;
+  border-left: 1px solid var(--paper-edge);
+  border-bottom: 1px solid var(--paper-edge);
+  background: var(--cream-50);
+  transform: translateY(-50%) rotate(45deg);
+}
+
+.helloTitle {
+  margin: 0;
+  font-family: var(--font-round);
+  font-weight: 700;
+}
+
+.helloText {
+  margin: 0 0 10px;
+  color: var(--ink-600);
+  font-size: 0.92em;
+}
+
+.helloBubble .helloText {
+  margin-bottom: 0;
+}
+
+.examples {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.examples button {
+  min-height: 44px;
+  padding: 6px 14px;
+  border: 1px solid var(--paper-edge);
+  border-radius: 999px;
+  background: var(--cream-50);
+  font-size: 14px;
+  line-height: 1.4;
+  text-align: left;
+}
+
+.examples button:hover:not(:disabled) {
+  background: var(--cream-200);
+}
+
+.examples button:disabled {
+  cursor: default;
+  opacity: 0.55;
+}
+
+/* ---- 泡泡 ---- */
+.question {
+  align-self: flex-end;
+  max-width: 85%;
+  margin: 0;
+  padding: 0.5em 0.9em;
+  border-radius: 14px 14px 4px 14px;
+  background: var(--brick-700);
+  color: #fff;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.answerRow {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.avatar {
+  flex: none;
+  width: var(--avatar);
+}
+
+.answer {
+  flex: 1;
+  min-width: 0;
+  padding: 0.7em 0.95em;
+  border: 1px solid var(--paper-edge);
+  border-radius: 4px 14px 14px 14px;
+  background: var(--cream-50);
+}
+
+.text {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.cite {
+  position: relative;
+  padding: 0 0.2em;
+  color: var(--brick-700);
+  font-size: 0.72em;
+  font-weight: 700;
+  line-height: 0;
+  vertical-align: super;
+  text-decoration: none;
+}
+
+.cite:hover {
+  text-decoration: underline;
+}
+
+/* 上標數字本身只有十來 px，手指點不準。可以點的範圍用看不見的一塊撐大（高 44px、左右各多 7px），
+   不佔位置，所以行距、字距和焦點框都跟原本一樣 */
+.cite::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  right: -7px;
+  left: -7px;
+  height: 44px;
+  margin-top: -22px;
+}
+
+/* 兩個引用連在一起（1,3）時，相鄰的那一側不往外擴，才不會蓋到隔壁的數字 */
+.citeJoined::after {
+  left: 0;
+}
+
+.citeFollowed::after {
+  right: 0;
+}
+
+/* 生成中的游標 */
+.caret {
+  display: inline-block;
+  width: 0.5em;
+  height: 1em;
+  margin-left: 0.25em;
+  background: var(--ink-600);
+  vertical-align: text-bottom;
+  animation: blink 1s step-end infinite;
+}
+
+@keyframes blink {
+  50% {
+    opacity: 0;
+  }
+}
+
+.badge {
+  display: inline-block;
+  margin-bottom: 6px;
+  padding: 1px 10px;
+  border: 1px solid;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.6;
+}
+
+.info {
+  border-color: var(--basil-600);
+  background: var(--basil-100);
+  color: var(--basil-700);
+}
+
+.warn {
+  border-color: var(--mustard-500);
+  background: var(--mustard-100);
+  color: var(--mustard-700);
+}
+
+.error {
+  border-color: var(--brick-700);
+  background: var(--tomato-100);
+  color: var(--brick-800);
+}
+
+.quiet {
+  color: var(--ink-600);
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.fine {
+  margin: 6px 0 0;
+  color: var(--ink-600);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.engineNote {
+  text-align: right;
+}
+
+.gap {
+  margin-top: 10px;
+}
+
+/* ---- 回答下方的區塊：參考資料、食譜建議 ---- */
+.block {
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid var(--cream-200);
+}
+
+.blockTitle {
+  margin: 0 0 6px;
+  color: var(--ink-600);
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0.1em;
+}
+
+.refs {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.refs li {
+  display: flex;
+  gap: 8px;
+  border-radius: 6px;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+/* 點回答裡的引用數字會把焦點移到這一筆。那是程式移的焦點，:focus-visible 不一定成立，
+   所以這裡自己畫外框；只換底色的話，看不清顏色差別的人分不出是哪一筆 */
+.refs li:focus {
+  outline: 2px solid var(--brick-700);
+  outline-offset: 3px;
+  background: var(--mustard-100);
+}
+
+.refNumber {
+  min-width: 18px;
+  color: var(--brick-700);
+  font-weight: 700;
+}
+
+.refs a {
+  color: var(--ink-900);
+  overflow-wrap: anywhere;
+  text-decoration-color: var(--paper-edge);
+  text-underline-offset: 3px;
+}
+
+.refs a:hover {
+  text-decoration-color: currentColor;
+}
+
+.byline {
+  margin: 0;
+  color: var(--ink-600);
+  font-size: 13px;
+}
+
+.recipeTitle {
+  margin: 0 0 8px;
+  font-family: var(--font-round);
+  font-size: 15px;
+}
+
+.recipes {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.recipes li {
+  display: flex;
+  gap: 10px;
+  min-width: 0;
+  padding: 10px;
+  border: 1px solid var(--cream-200);
+  border-radius: 12px;
+  background: var(--mustard-100);
+}
+
+.cover {
+  flex: none;
+  width: 72px;
+  height: 72px;
+  border-radius: 8px;
+  background: var(--cream-200);
+  object-fit: cover;
+}
+
+.coverEmpty {
+  display: grid;
+  place-items: center;
+}
+
+.coverEmpty svg {
+  width: 34px;
+  height: 34px;
+  fill: none;
+  stroke: var(--paper-edge);
+  stroke-width: 1.6;
+}
+
+.recipeText {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.recipeText b {
+  font-size: 15px;
+  line-height: 1.35;
+}
+
+.foods {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.foods i {
+  padding: 0 8px;
+  border: 1px solid var(--cream-200);
+  border-radius: 999px;
+  background: #fff;
+  color: var(--mustard-700);
+  font-size: 12px;
+  font-style: normal;
+  line-height: 1.7;
+}
+
+/* 理由最多三行，卡片才不會一張比一張高 */
+.reason {
+  display: -webkit-box;
+  overflow: hidden;
+  color: var(--ink-600);
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
+}
+
+.recipeText a {
+  /* 連結雖然是小字，可以點的高度還是留到 44px */
+  display: inline-flex;
+  align-items: center;
+  align-self: flex-start;
+  min-height: 44px;
+  margin-top: auto;
+  color: var(--mustard-700);
+  font-weight: 700;
+}
+
+/* 展開頁夠寬時食譜卡片橫排，圖在上面 */
+@container (min-width: 560px) {
+  .recipesWide {
+    grid-auto-columns: minmax(0, 1fr);
+    grid-auto-flow: column;
+  }
+
+  .recipesWide li {
+    flex-direction: column;
+  }
+
+  .recipesWide .cover {
+    width: 100%;
+    height: 120px;
+  }
+}
+
+/* ---- 模型切換 ---- */
+.engines {
+  display: flex;
+  flex: none;
+  padding: 2px;
+  border: 1px solid var(--paper-edge);
+  border-radius: 10px;
+  background: var(--cream-50);
+}
+
+.engines label {
+  position: relative;
+  display: flex;
+}
+
+/* 真的 radio 蓋在整顆選項上但看不見：點擊和鍵盤（方向鍵換選項）都由它處理，樣子畫在後面的 span 上 */
+.engines input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.engines span {
+  display: flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 10px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.engines input:checked + span {
+  background: var(--tomato-100);
+  color: var(--brick-800);
+  box-shadow: inset 0 0 0 1px var(--brick-700);
+}
+
+/* radio 本身看不見，焦點框畫在 span 上 */
+.engines input:focus-visible + span {
+  outline: 3px solid var(--mustard-500);
+  outline-offset: 1px;
+}
+
+.engines input:disabled {
+  cursor: default;
+}
+
+.engines input:disabled + span {
+  opacity: 0.6;
+}
+
+/* ---- 輸入框 ---- */
+.composer {
+  display: grid;
+  gap: 4px;
+}
+
+.inputRow {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  padding: 6px 6px 6px 14px;
+  border: 1px solid var(--paper-edge);
+  border-radius: 14px;
+  background: #fff;
+}
+
+/* 焦點框畫在整個輸入列上，裡面的 textarea 自己不再畫一圈 */
+.inputRow:focus-within {
+  outline: 3px solid var(--mustard-500);
+  outline-offset: 1px;
+}
+
+.inputRow textarea {
+  flex: 1;
+  min-width: 0;
+  min-height: 44px;
+  max-height: 8.5em;
+  padding: 9px 0;
+  border: 0;
+  background: none;
+  /* 16px 以上，iOS 才不會在點輸入框時把整頁放大 */
+  font-size: 16px;
+  line-height: 1.6;
+  resize: none;
+}
+
+.inputRow textarea:focus-visible {
+  outline: none;
+}
+
+.send,
+.stop {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border: 0;
+  border-radius: 12px;
+}
+
+.send {
+  background: var(--brick-700);
+  color: #fff;
+}
+
+.send:hover:not(:disabled) {
+  background: var(--brick-800);
+}
+
+.send:disabled {
+  background: var(--cream-200);
+  color: var(--ink-600);
+  cursor: default;
+}
+
+.stop {
+  background: var(--cream-200);
+  color: var(--ink-900);
+}
+
+.send svg,
+.stop svg {
+  width: 24px;
+  height: 24px;
+}
+
+.send svg {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.stop svg {
+  fill: currentColor;
+}
+
+.disclaimer {
+  margin: 0;
+  color: var(--ink-600);
+  font-size: 12px;
+  line-height: 1.5;
+  text-align: center;
+}
+
+/* 靜態景深、關閉、系統減少動態：游標不閃 */
+:global(html[data-depth='static']) .caret,
+:global(html[data-depth='off']) .caret {
+  animation: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .caret {
+    animation: none;
+  }
+}

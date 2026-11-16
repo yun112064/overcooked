@@ -1,0 +1,207 @@
+/*
+ * 疊在圖畫紙上的東西要像蠟筆畫的一部分：手寫感的字、紙色的光暈讓字壓在草地筆觸上也讀得到。
+ * 尺寸用 cqw（跟著世界縮放）加 clamp：手機上世界縮得很小，字不能跟著小到看不見。
+ */
+.person,
+.title {
+  --paper: #fffdf7;
+  font-family: 'Chalkboard SE', 'Comic Sans MS', var(--font-round);
+  text-shadow: 0 0 0.25em var(--paper), 0 0 0.25em var(--paper), 0 0 0.5em var(--paper);
+}
+
+/* ---- 畫裡的人 ---- */
+.person {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-height: 44px;
+  padding-bottom: 0.2cqw;
+  color: var(--ink-900);
+}
+
+.person:hover,
+.person:focus-visible {
+  background: rgba(255, 210, 122, 0.28);
+}
+
+/* 正在看的那一位：蠟筆紅圈起來（不只靠放大來分辨）。用 box-shadow，把 outline 留給鍵盤焦點框 */
+.selected {
+  box-shadow: 0 0 0 max(2px, 0.18cqw) #e0483a;
+}
+
+.figure {
+  display: block;
+  height: auto;
+  pointer-events: none;
+  user-select: none;
+  transform-origin: 50% 100%;
+  transition: transform var(--dur-base) var(--ease-out);
+}
+
+/* 滑過或選到時，人物往前站一步 */
+.person:hover .figure,
+.person:focus-visible .figure,
+.selected .figure {
+  transform: scale(1.08) rotate(-2deg);
+}
+
+/* 確認刪除時：像被橡皮擦擦到一半 */
+.erasing .figure,
+.erasing .caption {
+  opacity: 0.35;
+}
+
+.mound {
+  display: block;
+  width: 100%;
+  margin-top: -0.35cqw;
+  fill: none;
+  stroke: #5daa5a;
+  stroke-width: 5;
+  stroke-linecap: round;
+}
+
+.caption {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  max-width: 100%;
+  margin-top: 0.2cqw;
+  line-height: 1.25;
+  text-align: center;
+}
+
+.caption b {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: clamp(13px, 1.05cqw, 19px);
+  color: #2f5aa8;
+}
+
+/* 一行放不下時整段換行（手機一格只有六、七十 px 寬），不從字中間斷開 */
+.summary {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0 0.5em;
+  font-size: clamp(11px, 0.74cqw, 13px);
+  font-weight: 500;
+  color: var(--ink-600);
+}
+
+.summary span {
+  white-space: nowrap;
+}
+
+/* 鉛筆底線：沒有資料或算不出來的地方照實標出來 */
+.pencil {
+  border-bottom: 0.14em solid var(--unknown);
+  font-weight: 700;
+}
+
+.addPerson .caption b {
+  font-size: clamp(12px, 0.86cqw, 15px);
+  color: var(--ink-600);
+}
+
+/* ---- 圖畫紙上的標題 ---- */
+.title {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  line-height: 1.2;
+  white-space: nowrap;
+  color: var(--ink-600);
+}
+
+.title b {
+  font-size: clamp(15px, 1.5cqw, 26px);
+  letter-spacing: 0.08em;
+  color: #b8452c;
+}
+
+.title i {
+  font-style: normal;
+}
+
+.title span {
+  font-size: clamp(11px, 0.8cqw, 14px);
+  font-weight: 500;
+}
+
+.titleButton {
+  min-height: 44px;
+  padding: 0.2cqw 0.9cqw;
+}
+
+.titleButton:hover,
+.titleButton:focus-visible {
+  background: rgba(255, 210, 122, 0.28);
+}
+
+/* ---- 黃銅名牌 ---- */
+.plate {
+  --h: max(44px, 2.65cqw);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: var(--h);
+  /* 座標給的是名牌中心；高度在手機上會撐到 44px，所以往上移半個高度來置中 */
+  margin-top: calc(var(--h) / -2);
+  padding: 0 1.3cqw;
+  border-radius: 0.4cqw;
+  font-family: var(--font-round);
+  font-size: clamp(12px, 0.95cqw, 18px);
+  font-weight: 800;
+  color: #4a3610;
+  text-shadow: 0 0.06em 0 rgba(255, 246, 200, 0.7);
+}
+
+.plate:hover,
+.plate:focus-visible {
+  background: rgba(255, 240, 184, 0.25);
+  box-shadow: 0 0 0 0.25cqw rgba(255, 210, 122, 0.9), 0 0 2cqw 0.6cqw rgba(255, 210, 122, 0.45);
+}
+
+.plateName {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  letter-spacing: 0.2em;
+  /* 字距會在最後一個字後面多出一段，前面補回來才置中 */
+  text-indent: 0.2em;
+}
+
+/* 名牌下的小標籤：告訴人這塊牌子可以點 */
+.tag {
+  position: absolute;
+  left: 50%;
+  top: 100%;
+  margin-top: 0.3em;
+  padding: 0.2em 0.8em;
+  transform: translateX(-50%);
+  border-radius: 99em;
+  background: rgba(255, 253, 247, 0.94);
+  box-shadow: 0 0.3em 0.8em rgba(15, 8, 25, 0.4);
+  color: var(--ink-900);
+  font-family: var(--font-body);
+  font-size: clamp(12px, 0.8cqw, 15px);
+  font-weight: 700;
+  line-height: 1.5;
+  letter-spacing: 0;
+  text-shadow: none;
+  white-space: nowrap;
+}
+
+:global(html[data-depth='off']) .figure {
+  transition: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .figure {
+    transition: none;
+  }
+}

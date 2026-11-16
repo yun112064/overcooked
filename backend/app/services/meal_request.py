@@ -15,7 +15,7 @@ from sqlalchemy.orm import Session
 
 from app.db.models import Member
 from app.services import household as household_service
-from app.services import ingredients, synonyms
+from app.services import allergen_groups, ingredients, synonyms
 from nutrition_target import TargetInputError
 
 MealType = Literal["breakfast", "lunch", "dinner"]
@@ -213,6 +213,23 @@ def staple_issue(text: str | None) -> dict | None:
     else:
         message = f"主食「{staple.label}」目前沒有營養資料，整餐營養無法計算，請改選其他主食。"
     return _issue("staple", "STAPLE_NOT_SUPPORTED", message)
+
+
+def household_excluded_food_ids(members) -> set[str]:
+    """不分本餐：全家所有成員過敏與禁吃的食材，含同義食材與過敏原群組（與 restrictions 相同的展開）。
+
+    飲食小幫手推薦食譜用；過敏原群組設定讀不到時丟出 AllergenGroupsInvalid，呼叫端應不推薦。
+    """
+    excluded = {i for m in members for i in (*m.allergen_ingredient_ids, *m.avoided_ingredient_ids)}
+    allergy_ids = [i for m in members for i in m.allergen_ingredient_ids]
+    expansions = synonyms.restriction_expansion(list(excluded))
+    group_path = allergen_groups.default_path()
+    if allergy_ids and group_path.is_file():
+        for base_id, extras in allergen_groups.expansion(allergy_ids, group_path).items():
+            expansions.setdefault(base_id, []).extend(extras)
+    for extras in expansions.values():
+        excluded.update(extra["food_id"] for extra in extras)
+    return excluded
 
 
 def restrictions(db: Session, draft: MealRequestDraft, members: dict) -> dict:

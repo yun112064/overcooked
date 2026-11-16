@@ -1,0 +1,1334 @@
+/*
+ * 食譜書。書頁、書籤、托盤上的東西用 em（字級跟著世界寬度 cqw 縮放，手機有下限）；
+ * 面板裡的東西用 px（面板不在世界裡）。
+ */
+
+/* 從物件列被點到時閃一下（和 Room 的可點物件同一種光） */
+.flash {
+  animation: flash 900ms ease-out;
+}
+
+@keyframes flash {
+  0%,
+  60% {
+    box-shadow: 0 0 0 0.5cqw rgba(255, 210, 122, 0.95), 0 0 2.4cqw 1cqw rgba(255, 210, 122, 0.7);
+  }
+  100% {
+    box-shadow: 0 0 0 0.5cqw rgba(255, 210, 122, 0);
+  }
+}
+
+/* ---- 書上方的檯面：闔上書、步驟 ---- */
+
+/* 高度 0、內容往上長：按鈕的下緣固定貼在封面上方，手機上按鈕比較高也不會蓋到書 */
+.topSlot {
+  height: 0;
+  font-size: clamp(13px, 0.95cqw, 16px);
+}
+
+.topSlot > * {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+}
+
+.closeTag {
+  min-height: 44px;
+  padding: 0 1em;
+  border: 0;
+  border-radius: 99em;
+  background: rgba(255, 253, 247, 0.95);
+  box-shadow: 0 0.3em 0.8em rgba(15, 8, 25, 0.4);
+  color: var(--ink-900);
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.closeTag:hover {
+  background: #fff;
+}
+
+.stepRail {
+  right: 0;
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 0.35em;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.stepRail li > * {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 0.8em;
+  border: 0;
+  border-radius: 99em;
+  background: rgba(255, 253, 247, 0.72);
+  box-shadow: 0 0.3em 0.8em rgba(15, 8, 25, 0.35);
+  color: var(--ink-600);
+  font-weight: 700;
+}
+
+/* 走過的步驟可以點回去 */
+.stepRail button {
+  background: rgba(255, 253, 247, 0.95);
+  color: var(--ink-900);
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+}
+
+.stepRail li[aria-current='step'] > * {
+  background: var(--brick-700);
+  color: #fff;
+}
+
+/* ---- 書頁 ---- */
+.page {
+  color: var(--ink-900);
+  font-size: clamp(13px, 1.02cqw, 17px);
+  line-height: 1.55;
+}
+
+/* 高度由場景依畫稿算好寫在 style 上：左頁到紙的下緣，右頁到托盤上緣為止 */
+.pageBody {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5em;
+  /* 靠書溝的那一邊留多一點（插圖在那裡有陰影） */
+  padding: 2.4% 5.5% 2% 4.5%;
+}
+
+.pageRight .pageBody {
+  padding: 2.4% 4.5% 1.6% 6.5%;
+}
+
+/* 焦點是從物件列帶過來的起點，不畫整頁的外框 */
+.pageBody:focus {
+  outline: none;
+}
+
+.pageBody a:not(.ink):not(.trayGo) {
+  color: var(--brick-700);
+  font-weight: 700;
+}
+
+.pageHead h2 {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5em;
+  margin: 0;
+  padding-bottom: 0.15em;
+  border-bottom: 0.12em solid #c2553a;
+  font-family: var(--font-round);
+  font-size: 1.45em;
+  line-height: 1.3;
+  color: var(--brick-800);
+}
+
+.pageHead p {
+  margin: 0.35em 0 0;
+  color: var(--ink-600);
+  font-size: 0.92em;
+}
+
+.headTools {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0 0.5em;
+  margin-top: 0.2em;
+}
+
+/* 頁面內容太長時在頁內上下捲動 */
+.scroll {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6em;
+  padding-right: 0.3em;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  scrollbar-color: #c4b8a0 transparent;
+}
+
+.scroll > * {
+  flex: none;
+}
+
+.scroll h3 {
+  margin: 0.4em 0 0.2em;
+  font-family: var(--font-round);
+  font-size: 1.02em;
+  color: var(--brick-700);
+}
+
+.scroll h3 small {
+  margin-left: 0.6em;
+  font-weight: 500;
+  color: var(--ink-600);
+}
+
+.scroll p {
+  margin: 0;
+}
+
+.pageFoot {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.4em 0.6em;
+  color: var(--ink-600);
+  font-size: 0.92em;
+}
+
+/* 左頁左下角是插圖的翻頁角，頁腳讓開 */
+.pageLeft .pageFoot {
+  padding-left: 7%;
+}
+
+.pageFoot > span:first-child {
+  margin-right: auto;
+}
+
+.caption,
+.muted {
+  color: var(--ink-600);
+}
+
+.caption {
+  font-size: 0.92em;
+}
+
+.good {
+  color: var(--basil-700);
+}
+
+.warn {
+  color: var(--mustard-700);
+}
+
+.paperNote {
+  padding: 0.5em 0.7em;
+  border: 0.1em dashed var(--paper-edge);
+  border-radius: 0.5em;
+  background: rgba(255, 253, 247, 0.7);
+}
+
+/* 不能選、失敗：一定有文字，虛線框只是輔助 */
+.conflict {
+  margin: 0;
+  padding: 0.5em 0.7em;
+  border: 0.1em dashed var(--brick-700);
+  border-radius: 0.5em;
+  background: var(--tomato-100);
+  color: var(--brick-800);
+  font-weight: 700;
+}
+
+/* ---- 紙上的按鈕 ---- */
+.ink {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4em;
+  min-height: 44px;
+  padding: 0 0.9em;
+  border: 0.1em solid var(--paper-edge);
+  border-radius: 0.45em;
+  background: var(--cream-100);
+  color: var(--ink-900);
+  font-size: 1em;
+  font-weight: 700;
+  line-height: 1.2;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.ink:hover:not(:disabled) {
+  background: var(--cream-200);
+}
+
+.ink:disabled {
+  cursor: default;
+  opacity: 0.55;
+}
+
+.ink small {
+  color: var(--ink-600);
+  font-size: 0.85em;
+  font-weight: 500;
+}
+
+/* 已選幾項的小圓點 */
+.ink em {
+  min-width: 1.6em;
+  padding: 0 0.35em;
+  border-radius: 99em;
+  background: var(--brick-700);
+  color: #fff;
+  font-size: 0.8em;
+  font-style: normal;
+  line-height: 1.6;
+  text-align: center;
+}
+
+.inkPrimary,
+.inkPrimary:hover:not(:disabled) {
+  border-color: var(--brick-700);
+  background: var(--brick-700);
+  color: #fff;
+}
+
+.inkOn,
+.inkOn:hover:not(:disabled) {
+  border-color: var(--basil-700);
+  background: var(--basil-700);
+  color: #fff;
+}
+
+.textButton,
+.linkButton {
+  min-height: 44px;
+  padding: 0 0.4em;
+  border: 0;
+  background: none;
+  color: var(--brick-700);
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+}
+
+.textButton:disabled {
+  cursor: default;
+  opacity: 0.55;
+}
+
+.linkButton {
+  margin-left: auto;
+}
+
+/* ---- 第一步：誰要吃 ---- */
+.mealField {
+  display: flex;
+  align-items: center;
+  gap: 0.8em;
+  font-weight: 700;
+}
+
+.mealField select {
+  min-height: 44px;
+  padding: 0 0.8em;
+  border: 0.12em solid var(--paper-edge);
+  border-radius: 0.45em;
+  background: var(--cream-50);
+  /* 小於 16px 的表單欄位在手機上會讓整個畫面放大 */
+  font-size: max(16px, 1em);
+}
+
+.people {
+  display: grid;
+  gap: 0.4em;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.people li {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0 0.6em;
+  padding: 0 0.7em;
+  border: 0.08em solid #e4dac6;
+  border-radius: 0.5em;
+}
+
+.people .personOn {
+  border-color: var(--basil-600);
+  background: rgba(221, 239, 217, 0.75);
+}
+
+.personName {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5em;
+  margin-right: auto;
+}
+
+.personName b {
+  font-family: var(--font-round);
+  font-size: 1.08em;
+}
+
+.personName small {
+  color: var(--ink-600);
+}
+
+.tick {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35em;
+  min-height: 44px;
+  padding: 0 0.3em;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.tick input,
+.rowCheck input {
+  width: 1.35em;
+  height: 1.35em;
+  min-width: 20px;
+  min-height: 20px;
+  margin: 0;
+  accent-color: var(--basil-600);
+}
+
+.guide {
+  display: grid;
+  gap: 0.6em;
+  margin: 0;
+  padding-left: 1.4em;
+}
+
+.guide b {
+  display: block;
+  font-family: var(--font-round);
+  color: var(--brick-800);
+}
+
+/* ---- 第二步：清單 ---- */
+.listHead {
+  display: grid;
+  gap: 0.3em;
+}
+
+.searchRow {
+  display: flex;
+  align-items: center;
+  gap: 0.5em;
+}
+
+.search {
+  flex: 1;
+  min-width: 0;
+}
+
+/* 頁首手寫的那一行：只有一條虛線的底線 */
+.search input {
+  width: 100%;
+  min-height: 44px;
+  padding: 0 0.3em;
+  border: 0;
+  border-bottom: 0.12em dashed #b9ad96;
+  border-radius: 0;
+  background: transparent;
+  font-size: max(16px, 1em);
+  font-style: italic;
+}
+
+.search input::placeholder {
+  color: var(--ink-600);
+  opacity: 0.85;
+}
+
+.search input:focus-visible {
+  outline-offset: 0;
+}
+
+/* 看不到右緣書籤的版面（手機、平板、視窗太扁），頁首多一排類型按鈕 */
+.filterRow {
+  display: flex;
+  gap: 0.4em;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.filterRow::-webkit-scrollbar {
+  display: none;
+}
+
+.filterRow button,
+.facet button {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35em;
+  min-height: 44px;
+  padding: 0 0.85em;
+  border: 0.1em solid var(--paper-edge);
+  border-radius: 99em;
+  background: #efe7d6;
+  color: var(--ink-900);
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.filterRow button small,
+.facet button small {
+  font-size: 0.85em;
+  font-weight: 500;
+}
+
+/* 選中：換底色之外再加一個勾，不只靠顏色分辨 */
+.filterRow button[aria-pressed='true'],
+.facet button[aria-pressed='true'] {
+  border-color: var(--brick-700);
+  background: var(--brick-700);
+  color: #fff;
+}
+
+.filterRow button[aria-pressed='true']::before,
+.facet button[aria-pressed='true']::before {
+  content: '✓';
+}
+
+.filterRow button:focus-visible {
+  outline-offset: -3px;
+}
+
+.count {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0 0.4em;
+  min-height: 1.6em;
+  margin: 0;
+  color: var(--ink-600);
+  font-size: 0.88em;
+}
+
+.rows {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.row {
+  display: flex;
+  align-items: stretch;
+  border-bottom: 0.08em solid #e4dac6;
+  border-radius: 0.4em;
+}
+
+.rowPicked {
+  border-bottom-color: transparent;
+  background: rgba(221, 239, 217, 0.9);
+}
+
+.rowCheck {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  min-height: 44px;
+  cursor: pointer;
+}
+
+.rowMain {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.6em;
+  min-height: 44px;
+  padding: 0 0.5em 0 0;
+  border: 0;
+  border-radius: 0.4em;
+  background: none;
+  text-align: left;
+}
+
+.rowMain:hover {
+  background: rgba(255, 253, 247, 0.6);
+}
+
+.rowMain:focus-visible,
+.rowCheck input:focus-visible {
+  outline-offset: -3px;
+}
+
+/* 右頁正在看的那一道：右邊一條紅線，菜名加底線 */
+.rowMain[aria-current='true'] {
+  box-shadow: inset -0.3em 0 0 var(--brick-700);
+}
+
+.rowMain[aria-current='true'] b {
+  text-decoration: underline;
+  text-underline-offset: 0.25em;
+}
+
+.rowNo {
+  flex: none;
+  width: 1.7em;
+  color: var(--ink-600);
+  font-size: 0.85em;
+  font-weight: 700;
+  text-align: right;
+}
+
+.rowMain b {
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  font-size: 1.05em;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rowMain small {
+  flex: 1 1 0;
+  min-width: 0;
+  overflow: hidden;
+  color: var(--ink-600);
+  font-size: 0.82em;
+  text-align: right;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rowBlocked b {
+  color: var(--ink-600);
+}
+
+.rowMain .rowWarn {
+  color: var(--brick-800);
+  font-weight: 700;
+}
+
+.pager {
+  justify-content: space-between;
+}
+
+.pager > span:first-child {
+  margin-right: 0;
+}
+
+/* ---- 右緣的書籤 ---- */
+.tabSlot {
+  aspect-ratio: 70 / 84;
+}
+
+.tab {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  /* 按鈕左邊約四分之一蓋在封面上；字要對準露在外面的那一段 */
+  padding: 0 0 0 23%;
+  border: 0;
+  border-radius: 0 0.7cqw 0.7cqw 0;
+  background: none;
+  font-size: clamp(12px, 1cqw, 17px);
+  font-weight: 700;
+}
+
+/* 六個書籤顏色不同，字放在奶油色的小牌子上才都看得清楚 */
+.tab span {
+  max-height: 92%;
+  padding: 0.45em 0.2em;
+  overflow: hidden;
+  border-radius: 0.4em;
+  background: rgba(255, 253, 247, 0.94);
+  color: var(--ink-900);
+  letter-spacing: 0.12em;
+  line-height: 1.2;
+  writing-mode: vertical-rl;
+}
+
+.tab:hover span {
+  background: #fff;
+}
+
+/* 選中：深色底、白字，外加一圈白框 */
+.tab[aria-pressed='true'] {
+  box-shadow: inset 0 0 0 0.18cqw #fff;
+}
+
+.tab[aria-pressed='true'] span {
+  background: var(--ink-900);
+  color: #fff;
+}
+
+.tab i {
+  position: absolute;
+  right: 6%;
+  top: 6%;
+  min-width: 1.6em;
+  border-radius: 99em;
+  background: var(--brick-700);
+  color: #fff;
+  font-size: 0.8em;
+  font-style: normal;
+  line-height: 1.6;
+  text-align: center;
+}
+
+.tab:focus-visible {
+  outline-offset: -3px;
+}
+
+/* ---- 托盤 ---- */
+.tray {
+  /* 托盤內側 504×118（畫稿單位） */
+  aspect-ratio: 504 / 118;
+  border-radius: 0.6cqw;
+  font-size: clamp(13px, 0.92cqw, 16px);
+}
+
+.trayInner {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.5em;
+  /* --tray-clear：手機上吉祥物站在托盤右端時，場景算出要讓多少（bookFraming 的 trayClear） */
+  padding: 0 max(0.8em, var(--tray-clear, 0px)) 0 0.8em;
+}
+
+.trayHint {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  color: #f4e9d6;
+  font-weight: 700;
+  line-height: 1.4;
+  text-shadow: 0 0.06em 0.2em rgba(0, 0, 0, 0.6);
+}
+
+.trayCards {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  gap: 0.45em;
+  margin: 0;
+  padding: 0.3em 0.2em;
+  overflow-x: auto;
+  list-style: none;
+  scrollbar-width: none;
+}
+
+.trayCards::-webkit-scrollbar {
+  display: none;
+}
+
+/* 托盤裡的每張食譜卡，點一下拿出來 */
+.trayCards button {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4em;
+  min-height: 44px;
+  padding: 0 0.7em;
+  border: 0;
+  border-radius: 0.3em;
+  background: linear-gradient(#fffefa, #efe8da);
+  box-shadow: 0 0.2em 0.5em rgba(10, 5, 10, 0.5);
+  color: var(--ink-900);
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.trayCards button:disabled {
+  cursor: default;
+}
+
+.trayCards i {
+  color: var(--ink-600);
+  font-size: 0.85em;
+  font-style: normal;
+}
+
+.trayCards .cardWarn {
+  background: var(--tomato-100);
+  color: var(--brick-800);
+}
+
+.trayCards .cardWarn::before {
+  content: '⚠';
+}
+
+.trayGo,
+.trayAlt {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 0 1em;
+  border: 0;
+  border-radius: 0.45em;
+  box-shadow: 0 0.2em 0.5em rgba(10, 5, 10, 0.5);
+  font-weight: 700;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.trayGo {
+  background: var(--brick-700);
+  color: #fff;
+}
+
+.trayAlt {
+  background: var(--cream-100);
+  color: var(--ink-900);
+}
+
+.trayGo:disabled,
+.trayAlt:disabled {
+  background: #75655a;
+  box-shadow: none;
+  color: #efe6d8;
+  cursor: default;
+}
+
+.trayGo:focus-visible,
+.trayAlt:focus-visible,
+.trayCards button:focus-visible {
+  outline-offset: 1px;
+}
+
+.stamp {
+  display: inline-block;
+  margin-right: 0.6em;
+  padding: 0 0.5em;
+  border: 0.14em solid #ffc2b0;
+  border-radius: 0.3em;
+  color: #ffc2b0;
+  font-family: var(--font-round);
+  rotate: -4deg;
+}
+
+/* ---- 第三步：菜單 ---- */
+.adopted {
+  padding: 0.6em 0.8em;
+  border-left: 0.3em solid var(--basil-600);
+  border-radius: 0.5em;
+  background: var(--basil-100);
+}
+
+.adoptedTools {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5em;
+  margin-top: 0.5em;
+}
+
+.dishes {
+  display: grid;
+  gap: 0.8em;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.dishes > li {
+  display: flex;
+  gap: 0.7em;
+  padding-bottom: 0.7em;
+  border-bottom: 0.08em solid #e4dac6;
+}
+
+.dishes > li > div {
+  flex: 1;
+  min-width: 0;
+}
+
+.dishNo {
+  flex: none;
+  width: 1.6em;
+  color: var(--brick-700);
+  font-family: var(--font-round);
+  font-weight: 800;
+}
+
+.dishNoStaple {
+  color: var(--ink-600);
+}
+
+.dishName {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 0.2em 0.5em;
+  margin: 0;
+  font-family: var(--font-round);
+  font-size: 1.1em;
+}
+
+.dishName small {
+  color: var(--ink-600);
+  font-size: 0.8em;
+  font-weight: 500;
+}
+
+.ingredients {
+  margin: 0.4em 0;
+  overflow: hidden;
+  border: 0.08em solid #e4dac6;
+  border-radius: 0.4em;
+  background: rgba(255, 253, 247, 0.7);
+}
+
+.ingredients h4 {
+  margin: 0;
+  padding: 0.2em 0.7em;
+  background: #efe7d6;
+  color: var(--ink-600);
+  font-size: 0.88em;
+  letter-spacing: 0.1em;
+}
+
+.ingredients dl {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(11em, 1fr));
+  column-gap: 1.4em;
+  margin: 0;
+  padding: 0.2em 0.7em;
+}
+
+.ingredients dl > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.8em;
+  padding: 0.25em 0;
+  border-bottom: 0.08em dashed #e4dac6;
+}
+
+.ingredients dd {
+  margin: 0;
+  color: var(--ink-600);
+  white-space: nowrap;
+}
+
+.cookSteps {
+  margin: 0.3em 0 0;
+  padding-left: 1.5em;
+}
+
+/* ---- 第三步：整餐營養 ---- */
+.stats {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5em;
+  margin: 0;
+}
+
+.stat {
+  padding: 0.35em 0.6em;
+  border: 0.08em solid #e4dac6;
+  border-radius: 0.5em;
+  background: rgba(255, 253, 247, 0.7);
+}
+
+.stat dt {
+  color: var(--ink-600);
+  font-size: 0.85em;
+}
+
+.stat dd {
+  margin: 0;
+}
+
+.stat dd b {
+  font-family: var(--font-round);
+  font-size: 1.5em;
+  line-height: 1.25;
+}
+
+.stat dd small {
+  display: block;
+  color: var(--ink-600);
+  font-size: 0.82em;
+}
+
+.stat dd small.good {
+  color: var(--basil-700);
+}
+
+.stat dd small.warn {
+  color: var(--mustard-700);
+}
+
+.badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4em;
+}
+
+.nutrients {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(13em, 1fr));
+  column-gap: 1.2em;
+  margin: 0;
+}
+
+.nutrients > div {
+  display: flex;
+  align-items: baseline;
+  gap: 0.8em;
+  padding: 0.25em 0;
+  border-bottom: 0.08em dashed #d8ccb4;
+}
+
+.nutrients dt {
+  flex: none;
+  min-width: 5.5em;
+  color: var(--ink-600);
+}
+
+.nutrients dd {
+  margin: 0;
+  font-weight: 700;
+}
+
+/* 後端判定的說明：通過（綠）、超出或不足（黃）、計算不完整（虛線框） */
+.verdict {
+  padding: 0.5em 0.7em;
+  border-left: 0.3em solid;
+  border-radius: 0.5em;
+}
+
+.verdict ul {
+  margin: 0.3em 0 0;
+  padding-left: 1.3em;
+}
+
+.verdictPass {
+  border-color: var(--basil-600);
+  background: var(--basil-100);
+  color: var(--basil-700);
+}
+
+.verdictWarn {
+  border-color: var(--mustard-500);
+  background: var(--mustard-100);
+  color: var(--mustard-700);
+}
+
+.verdictUnknown {
+  border: 0.1em dashed var(--unknown);
+  background: rgba(255, 253, 247, 0.7);
+}
+
+.tools .ink {
+  flex: 1 1 auto;
+}
+
+/* ---- 面板共用（px；面板不在世界裡） ---- */
+.stack {
+  display: grid;
+  gap: 10px;
+}
+
+.stack p {
+  margin: 0;
+}
+
+.panelLead {
+  margin: 0;
+  color: var(--ink-600);
+  font-size: 14px;
+}
+
+.facet {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.facet legend {
+  margin-bottom: 6px;
+  padding: 0;
+  color: var(--brick-800);
+  font-family: var(--font-round);
+  font-weight: 700;
+}
+
+.stack a {
+  color: var(--brick-700);
+  font-weight: 700;
+}
+
+.footnote {
+  color: var(--ink-600);
+  font-size: 13px;
+}
+
+/* ---- 每人營養 ---- */
+.person {
+  display: grid;
+  gap: 8px;
+  padding: 12px;
+  border: 1px solid var(--cream-200);
+  border-radius: 12px;
+  background: var(--cream-50);
+}
+
+.personHead {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px 8px;
+  margin: 0;
+}
+
+h3.personHead {
+  font-family: var(--font-round);
+  font-size: 17px;
+}
+
+.personHead small {
+  font-family: var(--font-body);
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.personRows {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+}
+
+.personRows > div {
+  display: grid;
+  grid-template-columns: 5.6em minmax(0, 1fr);
+  gap: 8px;
+  align-items: start;
+}
+
+.personRows dt {
+  font-weight: 700;
+}
+
+.personRows dd {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+  margin: 0;
+}
+
+.personValue {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 2px 8px;
+}
+
+.personValue small {
+  margin-left: auto;
+  color: var(--ink-600);
+  font-size: 13px;
+}
+
+/* 長條：這一餐占每日建議的比例；直線是這一餐建議占的比例 */
+.bar {
+  position: relative;
+  display: block;
+  height: 8px;
+  border-radius: 4px;
+  background: var(--cream-200);
+}
+
+.bar i {
+  position: absolute;
+  inset: 0 auto 0 0;
+  border-radius: 4px;
+}
+
+.plain {
+  background: #44679c;
+}
+
+.overMeal {
+  background: var(--mustard-500);
+}
+
+.overDay {
+  background: var(--brick-700);
+}
+
+.bar u {
+  position: absolute;
+  top: -3px;
+  bottom: -3px;
+  width: 2px;
+  margin-left: -1px;
+  background: var(--ink-900);
+  opacity: 0.6;
+}
+
+/* 長條變色時配的字（超過這一餐的份額／超過每日上限） */
+.barNote,
+.barNoteOver {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--mustard-700);
+}
+
+.barNoteOver {
+  color: var(--brick-700);
+}
+
+/* 未知：只有虛線的空框，不填色 */
+.barUnknown {
+  border: 1px dashed var(--unknown);
+  background: none;
+}
+
+.bento {
+  display: grid;
+  gap: 8px;
+  padding-top: 10px;
+  border-top: 1px dashed var(--paper-edge);
+}
+
+/* ---- 小知識 ---- */
+.tips {
+  display: grid;
+  gap: 14px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.tips li {
+  padding-left: 12px;
+  border-left: 3px solid var(--cream-200);
+}
+
+.tips h3 {
+  margin: 0 0 2px;
+  font-family: var(--font-round);
+  font-size: 16px;
+}
+
+.tips .tipSource {
+  margin-top: 4px;
+  color: var(--ink-600);
+  font-size: 13px;
+}
+
+/* ---- 送出生成 ---- */
+.potRow {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  /* 開蓋的鍋會往上超出自己的框，上面留一點空間 */
+  margin-top: 30px;
+}
+
+.pot {
+  flex: none;
+  width: 96px;
+}
+
+.progress {
+  position: relative;
+  display: block;
+  height: 6px;
+  margin: 8px 0 4px;
+  overflow: hidden;
+  border-radius: 3px;
+  background: var(--cream-200);
+}
+
+.progress::after {
+  content: '';
+  position: absolute;
+  inset: 0 60% 0 0;
+  border-radius: 3px;
+  background: var(--brick-700);
+  animation: progress 1.4s ease-in-out infinite alternate;
+}
+
+@keyframes progress {
+  to {
+    transform: translateX(150%);
+  }
+}
+
+.tableLink {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 14px;
+  border-radius: 10px;
+  background: var(--basil-700);
+  text-decoration: none;
+}
+
+.stack a.tableLink {
+  color: #fff;
+}
+
+.team {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.sourceCheck {
+  display: grid;
+  gap: 10px;
+  padding-top: 12px;
+  border-top: 1px solid var(--cream-200);
+}
+
+.sourceCheck h3 {
+  margin: 4px 0 0;
+  font-size: 15px;
+}
+
+.sourceItem {
+  margin-top: 8px;
+}
+
+.sources {
+  display: grid;
+  gap: 8px;
+  margin: 6px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.sources li {
+  display: grid;
+  gap: 4px;
+  padding-left: 10px;
+  border-left: 2px solid var(--cream-200);
+}
+
+/* 靜態景深、關閉、系統「減少動態」：不閃、進度條不跑 */
+:global(html[data-depth='static']) .progress::after,
+:global(html[data-depth='off']) .progress::after {
+  animation: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .flash,
+  .progress::after {
+    animation: none;
+  }
+}

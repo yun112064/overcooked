@@ -1,0 +1,147 @@
+/* 名牌卡：掛在門上的厚紙卡，尺寸跟著世界縮放 */
+.card {
+  /* 跟著門一起縮放，但不能小到表單塞不下，也不能比手機畫面寬 */
+  width: min(max(21.875cqw, 300px), 88vw);
+  aspect-ratio: 320 / 440;
+  background-size: 100% 100%;
+  font-size: clamp(13px, 1cqw, 16px);
+  transform-origin: 50% 4%;
+  animation: flipIn var(--dur-base) var(--ease-out);
+}
+
+/* 翻面：內容換成註冊，卡片轉半圈 */
+.back {
+  animation: flipBack 420ms var(--ease-out);
+}
+
+@keyframes flipIn {
+  from { rotate: y 90deg; }
+  to { rotate: y 0deg; }
+}
+
+@keyframes flipBack {
+  from { rotate: y -90deg; }
+  to { rotate: y 0deg; }
+}
+
+.shake {
+  animation: shake 360ms ease-in-out;
+}
+
+@keyframes shake {
+  20% { rotate: z -2.5deg; }
+  40% { rotate: z 2.5deg; }
+  60% { rotate: z -1.5deg; }
+  80% { rotate: z 1.5deg; }
+}
+
+.form {
+  position: absolute;
+  inset: 21% 11% 4% 11%;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5em;
+}
+
+.title {
+  margin: 0;
+  font-family: var(--font-round);
+  font-size: 1.6em;
+  font-weight: 800;
+  line-height: 1.2;
+  text-align: center;
+  color: var(--brick-800);
+}
+
+.lead {
+  margin: 0 0 0.2em;
+  font-size: 0.82em;
+  line-height: 1.45;
+  text-align: center;
+  color: var(--ink-600);
+}
+
+.alert {
+  margin: 0;
+  padding: 0.4em 0.6em;
+  border-radius: 0.4em;
+  background: var(--tomato-100);
+  color: var(--brick-800);
+  font-size: 0.82em;
+  font-weight: 700;
+  line-height: 1.4;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2em;
+  font-size: 0.82em;
+  font-weight: 700;
+  color: var(--ink-600);
+}
+
+.field input {
+  width: 100%;
+  min-height: 44px;
+  padding: 0 0.7em;
+  border: 0.12em solid var(--paper-edge);
+  border-radius: 0.4em;
+  background: var(--cream-100);
+  /* 小於 16px 的輸入框在 iOS 會自動放大頁面 */
+  font-size: max(16px, 1.2em);
+  font-weight: 400;
+  color: var(--ink-900);
+}
+
+.field input[aria-invalid='true'] {
+  border-color: var(--tomato-600);
+}
+
+.field em {
+  font-style: normal;
+  font-weight: 700;
+  color: var(--tomato-600);
+}
+
+.field small {
+  font-weight: 400;
+}
+
+.submit {
+  min-height: 44px;
+  margin-top: 0.3em;
+  border: 0;
+  border-radius: 0.45em;
+  background: var(--brick-700);
+  color: #fff;
+  font-size: 1.05em;
+  font-weight: 700;
+  box-shadow: 0 0.2em 0.5em rgba(40, 10, 5, 0.45);
+}
+
+.submit:disabled {
+  opacity: 0.7;
+}
+
+.switch {
+  margin: 0;
+  font-size: 0.8em;
+  text-align: center;
+  color: var(--ink-600);
+}
+
+.switch button {
+  min-height: 32px;
+  padding: 0 0.3em;
+  border: 0;
+  background: none;
+  font-weight: 700;
+  color: var(--brick-800);
+  text-decoration: underline;
+}
+
+:global(html[data-depth='static']) .card,
+:global(html[data-depth='off']) .card {
+  animation: none;
+}

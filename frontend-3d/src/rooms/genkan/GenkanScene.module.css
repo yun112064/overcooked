@@ -1,0 +1,226 @@
+.wallTitle {
+  font-family: var(--font-round);
+  font-size: clamp(14px, 1.5cqw, 26px);
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  white-space: nowrap;
+  color: #5a4632;
+  text-shadow: 0 0.06em 0 rgba(255, 246, 224, 0.6);
+}
+
+.wallAlert {
+  display: flex;
+  align-items: center;
+  gap: 0.6em;
+  padding: 0.4em 0.8em;
+  border-radius: 0.6em;
+  background: var(--tomato-100);
+  color: var(--brick-800);
+  font-size: clamp(12px, 0.9cqw, 16px);
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.wallAlert button {
+  min-height: 32px;
+  padding: 0 0.8em;
+  border: 0;
+  border-radius: 0.4em;
+  background: var(--brick-700);
+  color: #fff;
+  font-weight: 700;
+}
+
+/* 門牌：掛在銅鉤上的小屋形木牌 */
+.plate {
+  aspect-ratio: 160 / 220;
+  background-size: 100% 100%;
+  font-size: clamp(10px, 0.86cqw, 15px);
+  transform-origin: 50% 4%;
+  transition: transform 250ms ease-out, rotate var(--dur-base) var(--ease-out), filter var(--dur-base);
+}
+
+.plate:not(:disabled):hover,
+.plate:not(:disabled):focus-visible {
+  rotate: -3deg;
+  filter: brightness(1.06);
+}
+
+.plate:disabled {
+  filter: saturate(0.7);
+}
+
+.plateText {
+  position: absolute;
+  inset: 50% 10% 8% 10%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.3em;
+  text-align: center;
+  line-height: 1.25;
+}
+
+.plateText b {
+  font-family: var(--font-round);
+  font-size: 1.15em;
+  color: #4a321e;
+  text-shadow: 0 0.06em 0 rgba(255, 246, 224, 0.7);
+  overflow-wrap: anywhere;
+}
+
+.plateText em {
+  padding: 0.1em 0.5em;
+  border-radius: 0.3em;
+  background: var(--brick-700);
+  box-shadow: 0 0.1em 0.3em rgba(40, 10, 5, 0.4);
+  color: #fff6e0;
+  font-size: 0.7em;
+  font-style: normal;
+  font-weight: 700;
+}
+
+.empty svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.empty path {
+  fill: rgba(255, 250, 240, 0.16);
+  stroke: #fff6e0;
+  stroke-width: 3;
+  stroke-dasharray: 9 7;
+}
+
+.empty .plateText b {
+  font-size: 1.8em;
+  color: #fff6e0;
+  text-shadow: 0 0.05em 0.2em rgba(20, 10, 20, 0.6);
+}
+
+.empty .plateText i {
+  font-style: normal;
+  font-size: 0.8em;
+  font-weight: 700;
+  color: #fff6e0;
+  text-shadow: 0 0.05em 0.2em rgba(20, 10, 20, 0.7);
+}
+
+/* 門牌對話框：建立家庭、或家庭多到木軌掛不下時的完整清單 */
+.panel {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  z-index: 5;
+  width: min(360px, calc(100vw - 32px));
+  max-height: calc(100dvh - 48px);
+  overflow-y: auto;
+  padding: 20px;
+  transform: translate(-50%, -50%);
+  border-radius: 14px;
+  background: linear-gradient(#fffefa, #f1eadb);
+  box-shadow: var(--shadow-float);
+}
+
+.panel h2 {
+  margin: 0 0 10px;
+  font-family: var(--font-round);
+  font-size: 18px;
+  color: var(--brick-800);
+}
+
+.close {
+  position: absolute;
+  right: 6px;
+  top: 6px;
+  width: 44px;
+  height: 44px;
+  border: 0;
+  background: none;
+  font-size: 18px;
+  color: var(--ink-600);
+}
+
+.all {
+  margin: 0 0 18px;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 6px;
+}
+
+.all button {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  min-height: 44px;
+  padding: 0 12px;
+  border: 1px solid var(--paper-edge);
+  border-radius: 10px;
+  background: var(--cream-100);
+  font-weight: 700;
+  text-align: left;
+}
+
+.all small {
+  font-weight: 500;
+  color: var(--brick-700);
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--ink-600);
+}
+
+.field input {
+  min-height: 44px;
+  padding: 0 12px;
+  border: 2px solid var(--paper-edge);
+  border-radius: 10px;
+  background: var(--cream-100);
+  font-size: 16px;
+  font-weight: 400;
+  color: var(--ink-900);
+}
+
+.field input[aria-invalid='true'] {
+  border-color: var(--tomato-600);
+}
+
+.field em {
+  font-style: normal;
+  color: var(--tomato-600);
+}
+
+.alert {
+  margin: 10px 0 0;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: var(--tomato-100);
+  color: var(--brick-800);
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.primary {
+  width: 100%;
+  min-height: 44px;
+  margin-top: 12px;
+  border: 0;
+  border-radius: 10px;
+  background: var(--brick-700);
+  color: #fff;
+  font-weight: 700;
+}
+
+.primary:disabled {
+  opacity: 0.7;
+}

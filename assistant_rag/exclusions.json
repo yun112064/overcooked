@@ -1,0 +1,2016 @@
+{
+ "note": "R14 語料排除名單：健康醫療網「營養飲食」頻道中主題不是飲食的文章。原始資料保留不刪，建索引時略過。2026-11-09 依使用者同意的做法（標題關鍵字＋逐篇判斷）擬定 208 篇，評估後以關鍵字重掃新增 6 篇；同日使用者確認（共 214 篇）。 2026-11-09 使用者決定疾病相關內容先不處理：以標題疾病詞找出候選並逐篇判斷，再排除 188 篇以疾病為主題的文章（食物安全、以食物為主角的文章、喉嚨痛等症狀照護與得舒／地中海飲食介紹保留）。",
+ "status": "approved",
+ "articles": [
+  {
+   "article_key": "healthnews:41973",
+   "title": "大腿抽脂竟凹陷 音波搶救「橘皮腿」",
+   "reason": "醫美、整形與皮膚美容"
+  },
+  {
+   "article_key": "healthnews:41845",
+   "title": "層層切下伊比利火腿 雷射體雕削出亮線條",
+   "reason": "醫美、整形與皮膚美容"
+  },
+  {
+   "article_key": "healthnews:41847",
+   "title": "減脂新體驗 嘉義醫師引進二極體雷射溶脂",
+   "reason": "醫美、整形與皮膚美容"
+  },
+  {
+   "article_key": "healthnews:41573",
+   "title": "鍛鍊腹肌難消腰間肉 局部雕塑可解決",
+   "reason": "醫美、整形與皮膚美容"
+  },
+  {
+   "article_key": "healthnews:41345",
+   "title": "送女友隆乳變E奶！ 網友：了不起，負責",
+   "reason": "醫美、整形與皮膚美容"
+  },
+  {
+   "article_key": "healthnews:49211",
+   "title": "年後減脂靠這兩款 送走雙下巴、腰腹肉",
+   "reason": "醫美、整形與皮膚美容"
+  },
+  {
+   "article_key": "healthnews:38170",
+   "title": "「染料+皮秒」雙機出擊！讓你跟痘疤說Bye-Bye",
+   "reason": "醫美、整形與皮膚美容"
+  },
+  {
+   "article_key": "healthnews:37908",
+   "title": "媽媽的難處誰人知 小陰唇修整手術解困擾",
+   "reason": "醫美、整形與皮膚美容"
+  },
+  {
+   "article_key": "healthnews:37831",
+   "title": "夏季美顏抗痘 專家：做好正確皮膚管理才是正道",
+   "reason": "醫美、整形與皮膚美容"
+  },
+  {
+   "article_key": "healthnews:37754",
+   "title": "東方人鼻型立體感不足 鼻整形堅挺手術大解析",
+   "reason": "醫美、整形與皮膚美容"
+  },
+  {
+   "article_key": "healthnews:37730",
+   "title": "翻轉雷射花臉宿命 4D皮秒精準除斑、救反黑反白",
+   "reason": "醫美、整形與皮膚美容"
+  },
+  {
+   "article_key": "healthnews:37667",
+   "title": "皮秒雷射+蜂巢透鏡 神助功讓她能擁有素顏美肌",
+   "reason": "醫美、整形與皮膚美容"
+  },
+  {
+   "article_key": "healthnews:37658",
+   "title": "生技BiD250新技術 跨足搶攻醫美市場",
+   "reason": "醫美、整形與皮膚美容"
+  },
+  {
+   "article_key": "healthnews:37597",
+   "title": "積極提升國際競爭力！ 美醫會開辦國際學術研討會",
+   "reason": "醫美、整形與皮膚美容"
+  },
+  {
+   "article_key": "healthnews:37466",
+   "title": "從未過時的青春搖滾 電音雙波拉提",
+   "reason": "醫美、整形與皮膚美容"
+  },
+  {
+   "article_key": "healthnews:37460",
+   "title": "美髮沙龍結合醫美 讓您美麗更加分",
+   "reason": "醫美、整形與皮膚美容"
+  },
+  {
+   "article_key": "healthnews:37424",
+   "title": "如球后戴資穎精準利落！ 看皮秒雷射如何KO問題肌",
+   "reason": "醫美、整形與皮膚美容"
+  },
+  {
+   "article_key": "healthnews:37286",
+   "title": "醫美醫療糾紛多？ 美容外科醫學會駁斥",
+   "reason": "醫美、整形與皮膚美容"
+  },
+  {
+   "article_key": "healthnews:37277",
+   "title": "等30年圓「封胸」夢！ 醫：平胸手術需要堅決意志！",
+   "reason": "醫美、整形與皮膚美容"
+  },
+  {
+   "article_key": "healthnews:37166",
+   "title": "美魔女梁佑南愛用皮秒雷射保養 術後立即上妝好輕鬆",
+   "reason": "醫美、整形與皮膚美容"
+  },
+  {
+   "article_key": "healthnews:37074",
+   "title": "擁有貴婦肌迎新年 4D皮秒雷射鎖住年輕肌齡",
+   "reason": "醫美、整形與皮膚美容"
+  },
+  {
+   "article_key": "healthnews:36981",
+   "title": "年節體態拉警報 凍脂科技拯救水桶腰",
+   "reason": "醫美、整形與皮膚美容"
+  },
+  {
+   "article_key": "healthnews:36874",
+   "title": "護髮產品小心買 不做落髮冤大頭",
+   "reason": "醫美、整形與皮膚美容"
+  },
+  {
+   "article_key": "healthnews:36755",
+   "title": "與男友分隔兩地也不怕？ 花花愛情長跑靠電波交流",
+   "reason": "醫美、整形與皮膚美容"
+  },
+  {
+   "article_key": "healthnews:36717",
+   "title": "高端醫美客製化世代來臨 台灣創新模式引領國際趨勢",
+   "reason": "醫美、整形與皮膚美容"
+  },
+  {
+   "article_key": "healthnews:36652",
+   "title": "韓星御用保養術 4D皮秒雷射拯救六大問題肌",
+   "reason": "醫美、整形與皮膚美容"
+  },
+  {
+   "article_key": "healthnews:36537",
+   "title": "光膜助肌膚鎖住膠原蛋白 工研院研發新科技",
+   "reason": "醫美、整形與皮膚美容"
+  },
+  {
+   "article_key": "healthnews:36488",
+   "title": "醫美迎新春 六要三不有保障",
+   "reason": "醫美、整形與皮膚美容"
+  },
+  {
+   "article_key": "healthnews:36434",
+   "title": "嚴重歪鼻又鼻塞 鼻整形手術一次OK",
+   "reason": "醫美、整形與皮膚美容"
+  },
+  {
+   "article_key": "healthnews:36389",
+   "title": "超越傳統皮秒 第五代4D皮秒精準治療不反黑",
+   "reason": "醫美、整形與皮膚美容"
+  },
+  {
+   "article_key": "healthnews:36355",
+   "title": "別讓細紋洩漏年紀 電波拉皮讓妳舉手投足自信大方",
+   "reason": "醫美、整形與皮膚美容"
+  },
+  {
+   "article_key": "healthnews:36229",
+   "title": "凍脂體雕新科技 午茶減脂成趨勢",
+   "reason": "醫美、整形與皮膚美容"
+  },
+  {
+   "article_key": "healthnews:36059",
+   "title": "凍脂體雕新科技登台 可從L到S客製化理想身形",
+   "reason": "醫美、整形與皮膚美容"
+  },
+  {
+   "article_key": "healthnews:35975",
+   "title": "週年慶如火如荼 醫美電波搶攻美容戰場",
+   "reason": "醫美、整形與皮膚美容"
+  },
+  {
+   "article_key": "healthnews:35908",
+   "title": "終結蝴蝶袖不是夢 美國凍脂新科技客製化精雕",
+   "reason": "醫美、整形與皮膚美容"
+  },
+  {
+   "article_key": "healthnews:35871",
+   "title": "變裝派對靠鬆垂面孔嚇人？ 進廠維修讓電波重拾緊實臉龐",
+   "reason": "醫美、整形與皮膚美容"
+  },
+  {
+   "article_key": "healthnews:35792",
+   "title": "反覆毛囊炎恐禿頭！ 藝人艾偉深受其害",
+   "reason": "醫美、整形與皮膚美容"
+  },
+  {
+   "article_key": "healthnews:35707",
+   "title": "台灣美容外科醫學會接軌國際 與多國簽訂合作備忘錄",
+   "reason": "醫美、整形與皮膚美容"
+  },
+  {
+   "article_key": "healthnews:35631",
+   "title": "打造少女肌秘密武器 新一代4D皮秒雷射正火紅",
+   "reason": "醫美、整形與皮膚美容"
+  },
+  {
+   "article_key": "healthnews:35632",
+   "title": "機器人植髮 藝人艾偉髮力重現",
+   "reason": "醫美、整形與皮膚美容"
+  },
+  {
+   "article_key": "healthnews:35605",
+   "title": "植髮因剃髮怯步！ 「線型剪髮」增添時尚感",
+   "reason": "醫美、整形與皮膚美容"
+  },
+  {
+   "article_key": "healthnews:35424",
+   "title": "植髮也吹台流風 韓國醫師來取經",
+   "reason": "醫美、整形與皮膚美容"
+  },
+  {
+   "article_key": "healthnews:35159",
+   "title": "擔心抽脂後肌膚凹凸不平？ 用對方法就有解",
+   "reason": "醫美、整形與皮膚美容"
+  },
+  {
+   "article_key": "healthnews:35073",
+   "title": "當心救髮不成反禿頭！ 醫師提醒切勿聽信偏方",
+   "reason": "醫美、整形與皮膚美容"
+  },
+  {
+   "article_key": "healthnews:35239",
+   "title": "不明生髮產品遭告 醫提醒切勿輕信偏方",
+   "reason": "醫美、整形與皮膚美容"
+  },
+  {
+   "article_key": "healthnews:34980",
+   "title": "美醫品質再開新局 美醫會國際研討會學術交流",
+   "reason": "醫美、整形與皮膚美容"
+  },
+  {
+   "article_key": "healthnews:34936",
+   "title": "酒糟肌慢性泛紅 可用染料雷射來調理",
+   "reason": "醫美、整形與皮膚美容"
+  },
+  {
+   "article_key": "healthnews:34593",
+   "title": "電波拉皮 為肌膚儲存青春資本",
+   "reason": "醫美、整形與皮膚美容"
+  },
+  {
+   "article_key": "healthnews:34842",
+   "title": "訂做完美曲線 ABC體雕打造窈窕身材放大絕",
+   "reason": "醫美、整形與皮膚美容"
+  },
+  {
+   "article_key": "healthnews:34592",
+   "title": "冷凍減脂新技術 雙下巴BYE BYE",
+   "reason": "醫美、整形與皮膚美容"
+  },
+  {
+   "article_key": "healthnews:34783",
+   "title": "想隆鼻 又沒時間慢慢等恢復？",
+   "reason": "醫美、整形與皮膚美容"
+  },
+  {
+   "article_key": "healthnews:34741",
+   "title": "植髮機器人再進化 AI智慧取髮良率超過９成",
+   "reason": "醫美、整形與皮膚美容"
+  },
+  {
+   "article_key": "healthnews:34704",
+   "title": "名模引領時尚風潮 雕塑曲線So Easy",
+   "reason": "醫美、整形與皮膚美容"
+  },
+  {
+   "article_key": "healthnews:34732",
+   "title": "路嘉欣電波凍齡有方 福爾摩斯也查無破綻",
+   "reason": "醫美、整形與皮膚美容"
+  },
+  {
+   "article_key": "healthnews:34586",
+   "title": "「告別痘疤」 你可以這樣做",
+   "reason": "醫美、整形與皮膚美容"
+  },
+  {
+   "article_key": "healthnews:34656",
+   "title": "告別眼周細紋夢魘 電波拉皮正夯",
+   "reason": "醫美、整形與皮膚美容"
+  },
+  {
+   "article_key": "healthnews:34632",
+   "title": "除斑不是「打怪」 蜂巢式皮秒雷射重塑肌膚",
+   "reason": "醫美、整形與皮膚美容"
+  },
+  {
+   "article_key": "healthnews:34607",
+   "title": "無神大小眼 視樂CL提眼肌手術新選擇",
+   "reason": "醫美、整形與皮膚美容"
+  },
+  {
+   "article_key": "healthnews:34576",
+   "title": "身體的尷尬負擔 男性女乳症手術",
+   "reason": "醫美、整形與皮膚美容"
+  },
+  {
+   "article_key": "healthnews:34566",
+   "title": "縮乳手術 改善巨乳的煩惱",
+   "reason": "醫美、整形與皮膚美容"
+  },
+  {
+   "article_key": "healthnews:34523",
+   "title": "生酮飲食難堅持 凍脂體雕輕鬆擊退頑固脂肪",
+   "reason": "醫美、整形與皮膚美容"
+  },
+  {
+   "article_key": "healthnews:34521",
+   "title": "視覺青春殺手眼袋 擺脫年老幻覺",
+   "reason": "醫美、整形與皮膚美容"
+  },
+  {
+   "article_key": "healthnews:34108",
+   "title": "音波VS.電波 青春緊實不留痕",
+   "reason": "醫美、整形與皮膚美容"
+  },
+  {
+   "article_key": "healthnews:34345",
+   "title": "產後身材瘦不下 體雕還你S曲線",
+   "reason": "醫美、整形與皮膚美容"
+  },
+  {
+   "article_key": "healthnews:34102",
+   "title": "避免削骨風險 四大關鍵",
+   "reason": "醫美、整形與皮膚美容"
+  },
+  {
+   "article_key": "healthnews:34257",
+   "title": "不出門也有光老化！ 皮秒幫助抗暗沉",
+   "reason": "醫美、整形與皮膚美容"
+  },
+  {
+   "article_key": "healthnews:34103",
+   "title": "晚年人生是否安樂？ 從下巴就可看出",
+   "reason": "醫美、整形與皮膚美容"
+  },
+  {
+   "article_key": "healthnews:34101",
+   "title": "擁有神采飛揚的大眼 談雙眼皮手術",
+   "reason": "醫美、整形與皮膚美容"
+  },
+  {
+   "article_key": "healthnews:34241",
+   "title": "皮秒雷射百家爭鳴 聰明選擇攻略",
+   "reason": "醫美、整形與皮膚美容"
+  },
+  {
+   "article_key": "healthnews:34098",
+   "title": "關於肉毒桿菌素 在面部年輕化碰到的問題",
+   "reason": "醫美、整形與皮膚美容"
+  },
+  {
+   "article_key": "healthnews:34168",
+   "title": "雙下巴剋星！ 非侵入式冷凍減脂迷你雕塑手握把問世",
+   "reason": "醫美、整形與皮膚美容"
+  },
+  {
+   "article_key": "healthnews:33672",
+   "title": "緊緻．雕塑．逆齡大作戰",
+   "reason": "醫美、整形與皮膚美容"
+  },
+  {
+   "article_key": "healthnews:34115",
+   "title": "女藝人愛電音波！ 林安之：安全性高、拉提有感！",
+   "reason": "醫美、整形與皮膚美容"
+  },
+  {
+   "article_key": "healthnews:33671",
+   "title": "口內也能做拉提？！ 拉提雷射新趨勢",
+   "reason": "醫美、整形與皮膚美容"
+  },
+  {
+   "article_key": "healthnews:34006",
+   "title": "熟女拉「頸」報 雙波拉提甩火雞脖",
+   "reason": "醫美、整形與皮膚美容"
+  },
+  {
+   "article_key": "healthnews:33886",
+   "title": "董至成搶救掉髮 找上機器人植髮幫忙",
+   "reason": "醫美、整形與皮膚美容"
+  },
+  {
+   "article_key": "healthnews:33891",
+   "title": "夏天到了不敢穿短褲？「三合一抽脂手術」幫你找回纖細大腿",
+   "reason": "醫美、整形與皮膚美容"
+  },
+  {
+   "article_key": "healthnews:36070",
+   "title": "服務業好累！ 提振精神靠這個",
+   "reason": "醫美、整形與皮膚美容"
+  },
+  {
+   "article_key": "healthnews:37391",
+   "title": "這不是胸肌！是乳房！ 男性女乳症到底該怎麼辦？！",
+   "reason": "醫美、整形與皮膚美容"
+  },
+  {
+   "article_key": "healthnews:37376",
+   "title": "家庭事業兩頭燒身材大走樣 三管齊下找回苗條曲線",
+   "reason": "醫美、整形與皮膚美容"
+  },
+  {
+   "article_key": "healthnews:37285",
+   "title": "新素顏白亮美肌崛起！ 隨身自備曝光肌",
+   "reason": "醫美、整形與皮膚美容"
+  },
+  {
+   "article_key": "healthnews:37209",
+   "title": "超奢侈保養態度 幹細胞也拿來抹！",
+   "reason": "醫美、整形與皮膚美容"
+  },
+  {
+   "article_key": "healthnews:37042",
+   "title": "年後剷肥不剷肉 「隔山打牛」一舉兩得",
+   "reason": "醫美、整形與皮膚美容"
+  },
+  {
+   "article_key": "healthnews:36776",
+   "title": "女人的終極追求！ 全身上下完美無瑕",
+   "reason": "醫美、整形與皮膚美容"
+  },
+  {
+   "article_key": "healthnews:36805",
+   "title": "年前懶人保養 複合美肌治療有新招",
+   "reason": "醫美、整形與皮膚美容"
+  },
+  {
+   "article_key": "healthnews:36670",
+   "title": "青春、緊實在臉上 除夕圍爐您最靚",
+   "reason": "醫美、整形與皮膚美容"
+  },
+  {
+   "article_key": "healthnews:36541",
+   "title": "年底開運修修臉 小資女幸福加分",
+   "reason": "醫美、整形與皮膚美容"
+  },
+  {
+   "article_key": "healthnews:35751",
+   "title": "一線之差！ 下顎線決定妳的視覺年齡",
+   "reason": "醫美、整形與皮膚美容"
+  },
+  {
+   "article_key": "healthnews:35552",
+   "title": "拒絕老化！ 體內外凍齡保養新美學正夯",
+   "reason": "醫美、整形與皮膚美容"
+  },
+  {
+   "article_key": "healthnews:35506",
+   "title": "準新娘必備 擁有白拋拋、幼咪咪膚質要趁早！",
+   "reason": "醫美、整形與皮膚美容"
+  },
+  {
+   "article_key": "healthnews:35417",
+   "title": "網紅臉V.S.自然美臉 何者勝出？！",
+   "reason": "醫美、整形與皮膚美容"
+  },
+  {
+   "article_key": "healthnews:35386",
+   "title": "變臉成風潮！ 年底聚會得預約",
+   "reason": "醫美、整形與皮膚美容"
+  },
+  {
+   "article_key": "healthnews:35265",
+   "title": "脂肪惡名昭彰？ 醫：過了青春期就不再增加！",
+   "reason": "醫美、整形與皮膚美容"
+  },
+  {
+   "article_key": "healthnews:35161",
+   "title": "吃出白肌水嫩肌 ── 穀胱甘肽",
+   "reason": "醫美、整形與皮膚美容"
+  },
+  {
+   "article_key": "healthnews:34840",
+   "title": "有老邱比特的垂墜嬰兒肥嗎？ 解決之道報你知",
+   "reason": "醫美、整形與皮膚美容"
+  },
+  {
+   "article_key": "healthnews:34791",
+   "title": "斑自肝來？ 肝好秘笈在這！",
+   "reason": "醫美、整形與皮膚美容"
+  },
+  {
+   "article_key": "healthnews:34591",
+   "title": "自拍零死角 每個視角猶如女神完美呈現",
+   "reason": "醫美、整形與皮膚美容"
+  },
+  {
+   "article_key": "healthnews:34590",
+   "title": "PRF搭配骨粉技術 幫你打好口腔基礎",
+   "reason": "醫美、整形與皮膚美容"
+  },
+  {
+   "article_key": "healthnews:34583",
+   "title": "天生速配好面相 你和他是天生一對嗎？",
+   "reason": "醫美、整形與皮膚美容"
+  },
+  {
+   "article_key": "healthnews:34581",
+   "title": "自體脂肪補臉 別讓栓塞找上你",
+   "reason": "醫美、整形與皮膚美容"
+  },
+  {
+   "article_key": "healthnews:34579",
+   "title": "不同年齡對美的需求有哪些？",
+   "reason": "醫美、整形與皮膚美容"
+  },
+  {
+   "article_key": "healthnews:34615",
+   "title": "打敗年紀 保養教母 寶拉培岡",
+   "reason": "醫美、整形與皮膚美容"
+  },
+  {
+   "article_key": "healthnews:34526",
+   "title": "連生三胎又如何？ 陰部緊實術讓她重返18歲",
+   "reason": "醫美、整形與皮膚美容"
+  },
+  {
+   "article_key": "healthnews:34109",
+   "title": "路嘉怡不美會死！ 時尚教主的愛美哲學",
+   "reason": "醫美、整形與皮膚美容"
+  },
+  {
+   "article_key": "healthnews:34107",
+   "title": "17X淨顏光 散發春日女神般的光彩亮澤",
+   "reason": "醫美、整形與皮膚美容"
+  },
+  {
+   "article_key": "healthnews:34106",
+   "title": "美白一夏 夏日也要白透淨！",
+   "reason": "醫美、整形與皮膚美容"
+  },
+  {
+   "article_key": "healthnews:34407",
+   "title": "看起來很累？ 美感密碼幫助搜查真正原因！",
+   "reason": "醫美、整形與皮膚美容"
+  },
+  {
+   "article_key": "healthnews:34104",
+   "title": "術後肌必須擁有的高規格呵護",
+   "reason": "醫美、整形與皮膚美容"
+  },
+  {
+   "article_key": "healthnews:34322",
+   "title": "改善「很MEN」膚況問題 面試一次就成功",
+   "reason": "醫美、整形與皮膚美容"
+  },
+  {
+   "article_key": "healthnews:33676",
+   "title": "掌握「它」 就能按下時間暫停鍵？",
+   "reason": "醫美、整形與皮膚美容"
+  },
+  {
+   "article_key": "healthnews:33675",
+   "title": "抗老駐顏 解藥就在體內？",
+   "reason": "醫美、整形與皮膚美容"
+  },
+  {
+   "article_key": "healthnews:33674",
+   "title": "自體膠原母細胞 傷痕不留疤痕",
+   "reason": "醫美、整形與皮膚美容"
+  },
+  {
+   "article_key": "healthnews:33896",
+   "title": "黑臉老闆娘變網美，誰說不可能？",
+   "reason": "醫美、整形與皮膚美容"
+  },
+  {
+   "article_key": "healthnews:33895",
+   "title": "終結凶凶老態，像玫瑰般璨爛綻放！",
+   "reason": "醫美、整形與皮膚美容"
+  },
+  {
+   "article_key": "healthnews:34068",
+   "title": "私密整型美陰術 讓她迎來性福第二春",
+   "reason": "醫美、整形與皮膚美容"
+  },
+  {
+   "article_key": "healthnews:33894",
+   "title": "長相超齡又臭臉？ 讓專屬美感密碼，還妳青春甜美！",
+   "reason": "醫美、整形與皮膚美容"
+  },
+  {
+   "article_key": "healthnews:33893",
+   "title": "不能沒有俏皮甜美的蘋果肌！",
+   "reason": "醫美、整形與皮膚美容"
+  },
+  {
+   "article_key": "healthnews:36745",
+   "title": "放寒假沒壓力 為何痘痘大爆發？",
+   "reason": "醫美、整形與皮膚美容"
+  },
+  {
+   "article_key": "healthnews:35705",
+   "title": "戰痘！ 少男少女得長期抗戰？",
+   "reason": "醫美、整形與皮膚美容"
+  },
+  {
+   "article_key": "healthnews:49744",
+   "title": "產後皮膚發黃不一定是變老了 中醫師提可能原因有這幾種",
+   "reason": "醫美、整形與皮膚美容"
+  },
+  {
+   "article_key": "healthnews:70027",
+   "title": "換季皮膚乾癢怎麼辦？醫揭常見原因 保濕、洗澡習慣是關鍵",
+   "reason": "皮膚、眼科、牙科等非飲食診療"
+  },
+  {
+   "article_key": "healthnews:70165",
+   "title": "白內障恐影響行車安全！人工水晶體不是越貴越好 選擇關鍵一次看",
+   "reason": "皮膚、眼科、牙科等非飲食診療"
+  },
+  {
+   "article_key": "healthnews:67319",
+   "title": "近視雷射不只比技術？AI數據如何影響個人化評估成關鍵",
+   "reason": "皮膚、眼科、牙科等非飲食診療"
+  },
+  {
+   "article_key": "healthnews:68482",
+   "title": "藥物不良反應為何常見於皮膚？醫詳解原因！6警訊辨識嚴重症狀",
+   "reason": "皮膚、眼科、牙科等非飲食診療"
+  },
+  {
+   "article_key": "healthnews:40614",
+   "title": "冬天皮膚易乾癢 恐是乾燥性皮膚炎",
+   "reason": "皮膚、眼科、牙科等非飲食診療"
+  },
+  {
+   "article_key": "healthnews:38909",
+   "title": "天熱汗流浹背 這樣做汗斑OUT",
+   "reason": "皮膚、眼科、牙科等非飲食診療"
+  },
+  {
+   "article_key": "healthnews:37363",
+   "title": "嚴重皮膚藥物過敏 生物製劑治療死亡率少一半",
+   "reason": "皮膚、眼科、牙科等非飲食診療"
+  },
+  {
+   "article_key": "healthnews:36749",
+   "title": "守歲晚睡愛熬夜 脂漏性皮膚炎易發作",
+   "reason": "皮膚、眼科、牙科等非飲食診療"
+  },
+  {
+   "article_key": "healthnews:35860",
+   "title": "常跌倒、出車禍 他視力1.0也罹青光眼",
+   "reason": "皮膚、眼科、牙科等非飲食診療"
+  },
+  {
+   "article_key": "healthnews:35168",
+   "title": "3C這樣用 恐提早白內障、青光眼",
+   "reason": "皮膚、眼科、牙科等非飲食診療"
+  },
+  {
+   "article_key": "healthnews:35104",
+   "title": "近視父母育兒後遺症 2成曾角膜受傷",
+   "reason": "皮膚、眼科、牙科等非飲食診療"
+  },
+  {
+   "article_key": "healthnews:34718",
+   "title": "眼後大腫瘤致失明 開顱手術才取出",
+   "reason": "皮膚、眼科、牙科等非飲食診療"
+  },
+  {
+   "article_key": "healthnews:34537",
+   "title": "白內障拖成青光眼 他悔不當初",
+   "reason": "皮膚、眼科、牙科等非飲食診療"
+  },
+  {
+   "article_key": "healthnews:34445",
+   "title": "驚！ 4成白內障熟齡族未就醫",
+   "reason": "皮膚、眼科、牙科等非飲食診療"
+  },
+  {
+   "article_key": "healthnews:34336",
+   "title": "精準皮膚醫學 找到最適合保養方式",
+   "reason": "皮膚、眼科、牙科等非飲食診療"
+  },
+  {
+   "article_key": "healthnews:34300",
+   "title": "白內障患者增多 3大主因推波助瀾！",
+   "reason": "皮膚、眼科、牙科等非飲食診療"
+  },
+  {
+   "article_key": "healthnews:34017",
+   "title": "異位性皮膚炎 嬰兒期就會發病？！",
+   "reason": "皮膚、眼科、牙科等非飲食診療"
+  },
+  {
+   "article_key": "healthnews:33977",
+   "title": "多曬太陽可防近視？！ 烈日時段記得避開",
+   "reason": "皮膚、眼科、牙科等非飲食診療"
+  },
+  {
+   "article_key": "healthnews:33939",
+   "title": "染髮過敏 彩繪刺青是兇手？！",
+   "reason": "皮膚、眼科、牙科等非飲食診療"
+  },
+  {
+   "article_key": "healthnews:33880",
+   "title": "面膜過度使用 恐造成接觸性皮膚炎",
+   "reason": "皮膚、眼科、牙科等非飲食診療"
+  },
+  {
+   "article_key": "healthnews:35127",
+   "title": "戴隱形眼鏡有訣竅 連假出遊不掃興",
+   "reason": "皮膚、眼科、牙科等非飲食診療"
+  },
+  {
+   "article_key": "healthnews:34801",
+   "title": "最新兒童眼睛保健觀念！ 眼科醫師直播分享",
+   "reason": "皮膚、眼科、牙科等非飲食診療"
+  },
+  {
+   "article_key": "healthnews:36405",
+   "title": "保護貼避免藍光傷眼 醫推這招更有效",
+   "reason": "皮膚、眼科、牙科等非飲食診療"
+  },
+  {
+   "article_key": "healthnews:69129",
+   "title": "香港腳夏天特別容易復發？中醫談足癬成因、保養與預防重點",
+   "reason": "皮膚、眼科、牙科等非飲食診療"
+  },
+  {
+   "article_key": "healthnews:69370",
+   "title": "「眼睛曬傷」症狀常延後數小時發作 醫揭常見警訊與夏季護眼重點",
+   "reason": "皮膚、眼科、牙科等非飲食診療"
+  },
+  {
+   "article_key": "healthnews:52838",
+   "title": "眼睛乾澀又常流淚？ 小心是乾眼症惹禍",
+   "reason": "皮膚、眼科、牙科等非飲食診療"
+  },
+  {
+   "article_key": "healthnews:50998",
+   "title": "眼藥水不是點越多好 想要護明這樣做",
+   "reason": "皮膚、眼科、牙科等非飲食診療"
+  },
+  {
+   "article_key": "healthnews:36844",
+   "title": "掃除清潔劑噴眼 眼睛灼傷恐失明",
+   "reason": "皮膚、眼科、牙科等非飲食診療"
+  },
+  {
+   "article_key": "healthnews:36850",
+   "title": "整天追劇眼睛痠澀 舒緩眼睛操改善",
+   "reason": "皮膚、眼科、牙科等非飲食診療"
+  },
+  {
+   "article_key": "healthnews:35490",
+   "title": "小眼症不治療 6歲後恐永久弱視",
+   "reason": "皮膚、眼科、牙科等非飲食診療"
+  },
+  {
+   "article_key": "healthnews:35394",
+   "title": "「想把眼珠挖出來」！ 乾眼症恐引發精神疾病",
+   "reason": "皮膚、眼科、牙科等非飲食診療"
+  },
+  {
+   "article_key": "healthnews:35214",
+   "title": "皮蛇爬上身 她膝蓋、髖關節劇痛",
+   "reason": "皮膚、眼科、牙科等非飲食診療"
+  },
+  {
+   "article_key": "healthnews:53901",
+   "title": "上班看電腦、下班滑手機？ 日常護眼「這樣做」雙管齊下更有效",
+   "reason": "皮膚、眼科、牙科等非飲食診療"
+  },
+  {
+   "article_key": "healthnews:35160",
+   "title": "膝蓋再痛也要穿？ 談高跟鞋的吸引力",
+   "reason": "皮膚、眼科、牙科等非飲食診療"
+  },
+  {
+   "article_key": "healthnews:35624",
+   "title": "搶救前額頭頂落髮危機 雄性禿用藥新選擇",
+   "reason": "皮膚、眼科、牙科等非飲食診療"
+  },
+  {
+   "article_key": "healthnews:68572",
+   "title": "【健保30週年專輯】骨盆腔發炎女性罹患卵巢癌之風險：以人口為基礎之研究",
+   "reason": "醫學研究、醫療政策與醫學會新聞"
+  },
+  {
+   "article_key": "healthnews:68551",
+   "title": "【健保30週年專輯】高、低所得病患之急性心肌梗塞的治療模式與預後之差異－以六國為例",
+   "reason": "醫學研究、醫療政策與醫學會新聞"
+  },
+  {
+   "article_key": "healthnews:68576",
+   "title": "【健保30週年專輯】牙科診斷性 X 光暴露與良性及惡性腦瘤風險之關聯",
+   "reason": "醫學研究、醫療政策與醫學會新聞"
+  },
+  {
+   "article_key": "healthnews:68567",
+   "title": "【健保30週年專輯】臺灣使用 HLA-B*58:01 基因型鑑定預防 allopurinol 引發之嚴重皮膚不良反應：全國性前瞻世代研究",
+   "reason": "醫學研究、醫療政策與醫學會新聞"
+  },
+  {
+   "article_key": "healthnews:68562",
+   "title": "【健保30週年專輯】產前皮質類固醇治療與兒童嚴重感染風險之關聯：全國性世代研究",
+   "reason": "醫學研究、醫療政策與醫學會新聞"
+  },
+  {
+   "article_key": "healthnews:68557",
+   "title": "【健保30週年專輯】非維他命 K 拮抗劑類口服抗凝血劑單獨使用與合併其他藥物使用對非瓣膜性心房顫動患者重大出血風險之關聯性研究",
+   "reason": "醫學研究、醫療政策與醫學會新聞"
+  },
+  {
+   "article_key": "healthnews:68558",
+   "title": "【健保30週年專輯】核苷類似物使用與 B 型肝炎相關肝細胞癌肝切除後復發風險之關聯性",
+   "reason": "醫學研究、醫療政策與醫學會新聞"
+  },
+  {
+   "article_key": "healthnews:68556",
+   "title": "【健保30週年專輯】靜脈曲張病人發生靜脈血栓栓塞症及周邊動脈疾病風險之關聯性",
+   "reason": "醫學研究、醫療政策與醫學會新聞"
+  },
+  {
+   "article_key": "healthnews:68569",
+   "title": "【健保30週年專輯】懷孕早期的孕婦使用苯二氮平類或 Z- 催眠藥物與死產、早產和小於胎齡兒風險的關係：臺灣一項全國性、以人群為基礎的隊列研究",
+   "reason": "醫學研究、醫療政策與醫學會新聞"
+  },
+  {
+   "article_key": "healthnews:68489",
+   "title": "【2026外科醫學會年會】台灣外科醫學會年會再獲突破！建立跨國交流機制 聚焦人才培育與AI應用導入",
+   "reason": "醫學研究、醫療政策與醫學會新聞"
+  },
+  {
+   "article_key": "healthnews:68378",
+   "title": "望聞問AI／中醫仍卡「資料整合」 衛福部啟動標準化計畫拚跨院串接",
+   "reason": "醫學研究、醫療政策與醫學會新聞"
+  },
+  {
+   "article_key": "healthnews:68304",
+   "title": "洪子仁副院長專訪／醫療拼ESG不只減碳！AI浪潮、人力荒、超高齡社會夾擊 台灣如何接招？",
+   "reason": "醫學研究、醫療政策與醫學會新聞"
+  },
+  {
+   "article_key": "healthnews:66674",
+   "title": "跨界合作啟動！探索中草藥在癌症整合與再生醫學的新可能",
+   "reason": "醫學研究、醫療政策與醫學會新聞"
+  },
+  {
+   "article_key": "healthnews:70183",
+   "title": "氣候變遷恐加劇抗生素抗藥性！台灣為何無法置身事外？醫：3大因素添挑戰",
+   "reason": "醫學研究、醫療政策與醫學會新聞"
+  },
+  {
+   "article_key": "healthnews:45740",
+   "title": "為何葉克膜救不了他？ 志村健染疫猝逝醫曝關鍵原因",
+   "reason": "醫學研究、醫療政策與醫學會新聞"
+  },
+  {
+   "article_key": "healthnews:52848",
+   "title": "大肚腩竟藏巨大腫瘤 馬偕跨外科團隊摘22公斤惡性肉癌",
+   "reason": "醫學研究、醫療政策與醫學會新聞"
+  },
+  {
+   "article_key": "healthnews:68425",
+   "title": "女性下腹痛勿輕忽！骨盆腔發炎恐影響生育 性伴侶也要同步治療",
+   "reason": "醫學研究、醫療政策與醫學會新聞"
+  },
+  {
+   "article_key": "healthnews:70217",
+   "title": "刺胳針氣候報告出爐！高溫死亡人數超瘧疾、愛滋病 籲列全球公衛緊急事件",
+   "reason": "醫學研究、醫療政策與醫學會新聞"
+  },
+  {
+   "article_key": "healthnews:68733",
+   "title": "藥物諮詢找AI？藥師：「第二步」必做把關用藥安全 自行停藥有風險",
+   "reason": "用藥、疫苗與藥品"
+  },
+  {
+   "article_key": "healthnews:69208",
+   "title": "年輕中風患者曾用抗精神病藥風險較高？醫：研究僅見關聯 勿自行停藥",
+   "reason": "用藥、疫苗與藥品"
+  },
+  {
+   "article_key": "healthnews:68011",
+   "title": "懷孕要馬上停掉安眠藥？醫揭「自行停藥」也有風險 身心兼顧護母嬰健康",
+   "reason": "用藥、疫苗與藥品"
+  },
+  {
+   "article_key": "healthnews:58081",
+   "title": "「宛如萬用藥」的維生素C注射療法",
+   "reason": "用藥、疫苗與藥品"
+  },
+  {
+   "article_key": "healthnews:57693",
+   "title": "褪黑激素改善失眠？ 哈佛警示：兒童服用過量恐致死",
+   "reason": "用藥、疫苗與藥品"
+  },
+  {
+   "article_key": "healthnews:56582",
+   "title": "懷孕婦女「藥」小心 醫師籲：慎選用藥！別因懷孕停止治療",
+   "reason": "用藥、疫苗與藥品"
+  },
+  {
+   "article_key": "healthnews:56428",
+   "title": "長輩「怕吃藥傷胃、傷腎、有毒！」 醫師教突破用藥盲點",
+   "reason": "用藥、疫苗與藥品"
+  },
+  {
+   "article_key": "healthnews:51578",
+   "title": "秋乏、打疫苗身體疲累？ 中醫師建議「這樣做」改善不適",
+   "reason": "用藥、疫苗與藥品"
+  },
+  {
+   "article_key": "healthnews:59997",
+   "title": "日本「大麻軟糖」致嘔吐、抽搐 食藥署：輸入販售最高罰2億",
+   "reason": "毒品、大麻與檳榔"
+  },
+  {
+   "article_key": "healthnews:59982",
+   "title": "國外嘗試合法大麻，醫警告：若成癮恐難戒斷 影響一次看",
+   "reason": "毒品、大麻與檳榔"
+  },
+  {
+   "article_key": "healthnews:56928",
+   "title": "這不是寶可夢 新興毒品「喵喵」嚴重恐致死！",
+   "reason": "毒品、大麻與檳榔"
+  },
+  {
+   "article_key": "healthnews:55713",
+   "title": "販毒界之花吸毒變大嬸 國衛院證實吸食冰毒導致提前老化",
+   "reason": "毒品、大麻與檳榔"
+  },
+  {
+   "article_key": "healthnews:60073",
+   "title": "吃檳榔「勇」擱有「力」？ 錯！影響精蟲活力恐致不孕",
+   "reason": "毒品、大麻與檳榔"
+  },
+  {
+   "article_key": "healthnews:69272",
+   "title": "知名牙醫、演員相繼猝逝！醫示警：中壯年族群「3原因」易忽略心臟警訊",
+   "reason": "急症與心血管事件新聞"
+  },
+  {
+   "article_key": "healthnews:68958",
+   "title": "臺大醫學院院長驚傳OHCA送醫！炎熱夏季也要警惕心血管風險 醫列高風險族群",
+   "reason": "急症與心血管事件新聞"
+  },
+  {
+   "article_key": "healthnews:67631",
+   "title": "圍爐後胸悶、喘？醫師：這不是吃太飽 當心是心肌梗塞",
+   "reason": "急症與心血管事件新聞"
+  },
+  {
+   "article_key": "healthnews:34069",
+   "title": "沒時間運動？ 6招隨時增加活動量",
+   "reason": "運動、體態與其他非飲食"
+  },
+  {
+   "article_key": "healthnews:33811",
+   "title": "TRX運動好夯 這樣做才能增肌減脂",
+   "reason": "運動、體態與其他非飲食"
+  },
+  {
+   "article_key": "healthnews:36420",
+   "title": "為何運動能變瘦？ 專家：關鍵在肌肉",
+   "reason": "運動、體態與其他非飲食"
+  },
+  {
+   "article_key": "healthnews:36338",
+   "title": "突破減重撞牆期 搭配這運動給力",
+   "reason": "運動、體態與其他非飲食"
+  },
+  {
+   "article_key": "healthnews:59663",
+   "title": "膝關節出問題年輕化 換季膝關節保養有撇步",
+   "reason": "運動、體態與其他非飲食"
+  },
+  {
+   "article_key": "healthnews:69184",
+   "title": "跌倒後推拿恐害更惡化！專家提醒4大骨折警訊 骨鬆長者尤其危險",
+   "reason": "運動、體態與其他非飲食"
+  },
+  {
+   "article_key": "healthnews:70163",
+   "title": "企業捐贈360萬元助聽器 助嘉義弱勢聽損者改善溝通困難",
+   "reason": "運動、體態與其他非飲食"
+  },
+  {
+   "article_key": "healthnews:34550",
+   "title": "媽媽負面身材形象會影響女兒",
+   "reason": "運動、體態與其他非飲食"
+  },
+  {
+   "article_key": "healthnews:36848",
+   "title": "針灸＋中藥雙管齊下 一個月可瘦4公斤",
+   "reason": "運動、體態與其他非飲食"
+  },
+  {
+   "article_key": "healthnews:48227",
+   "title": "44歲女罹糖胖症 減重代謝手術變辣媽",
+   "reason": "運動、體態與其他非飲食"
+  },
+  {
+   "article_key": "healthnews:36361",
+   "title": "胖到手腳麻木 這手術救了傑出青年",
+   "reason": "運動、體態與其他非飲食"
+  },
+  {
+   "article_key": "healthnews:35572",
+   "title": "減重手術找回健康 他脊椎疼痛也改善",
+   "reason": "運動、體態與其他非飲食"
+  },
+  {
+   "article_key": "healthnews:35429",
+   "title": "長生不老不是夢？ 活得健康長壽有法度",
+   "reason": "運動、體態與其他非飲食"
+  },
+  {
+   "article_key": "healthnews:66870",
+   "title": "【黃金安先生】從森林到腳下的每一步：十安以善行健走 展現永續實踐力",
+   "reason": "運動、體態與其他非飲食"
+  },
+  {
+   "article_key": "healthnews:65389",
+   "title": "【黃金安先生】十三年前就布局ESG！資深會計師跨足有機農業 打造永續梅菁酵素",
+   "reason": "運動、體態與其他非飲食"
+  },
+  {
+   "article_key": "healthnews:64713",
+   "title": "台灣營養品牌攜手關渡宮！陪你一起早點開始 為體力存本錢",
+   "reason": "運動、體態與其他非飲食"
+  },
+  {
+   "article_key": "healthnews:63261",
+   "title": "佳格「以愛樂活營養教育計畫」 創造狀態很好的樂齡台灣",
+   "reason": "運動、體態與其他非飲食"
+  },
+  {
+   "article_key": "healthnews:60102",
+   "title": "國際志工日前夕 佳格「營養研習班」以營養衛教助志工回流",
+   "reason": "運動、體態與其他非飲食"
+  },
+  {
+   "article_key": "healthnews:60012",
+   "title": "鈣鐵供應量大跌、癌藥缺原料 竟跟珊瑚礁有關？",
+   "reason": "運動、體態與其他非飲食"
+  },
+  {
+   "article_key": "healthnews:60193",
+   "title": "家裡工作壓力導致夜難眠？ 新研究：調整消化道機能有助舒眠",
+   "reason": "保健品宣傳與助眠"
+  },
+  {
+   "article_key": "healthnews:60163",
+   "title": "現代女性內外壓力包夾成三明治 專利好菌有助改善睡眠品質",
+   "reason": "保健品宣傳與助眠"
+  },
+  {
+   "article_key": "healthnews:57599",
+   "title": "維他命D能治纖維肌痛！ 最新研究證實：可抗抑鬱、焦慮、改善生活品質",
+   "reason": "醫學研究、醫療政策與醫學會新聞"
+  },
+  {
+   "article_key": "healthnews:55894",
+   "title": "易感冒、皮膚癢是「免疫力」變差的警訊！掌握3招找回健康體質",
+   "reason": "皮膚、眼科、牙科等非飲食診療"
+  },
+  {
+   "article_key": "healthnews:37152",
+   "title": "頭皮經絡按摩 改善頂上4大問題",
+   "reason": "運動、體態與其他非飲食"
+  },
+  {
+   "article_key": "healthnews:49509",
+   "title": "鄭文燦曝體重只有79網不信 健身教練：體脂高很危險",
+   "reason": "運動、體態與其他非飲食"
+  },
+  {
+   "article_key": "healthnews:69745",
+   "title": "白天熱、早晚涼更傷心？秋老虎運動注意補水 醫揭心血管警訊",
+   "reason": "疾病相關（病人飲食、疾病管理與預防專題）"
+  },
+  {
+   "article_key": "healthnews:69349",
+   "title": "口渴、頻尿、容易累別只怪天氣熱！醫提醒夏季血糖管理重點",
+   "reason": "疾病相關（病人飲食、疾病管理與預防專題）"
+  },
+  {
+   "article_key": "healthnews:67641",
+   "title": "疫情後「在家洗腎」受關注？從醫療量能到減碳 腹膜透析成焦點",
+   "reason": "疾病相關（病人飲食、疾病管理與預防專題）"
+  },
+  {
+   "article_key": "healthnews:66856",
+   "title": "【控鉀・穩住心與腎】8旬茶農腎友氣喘吁吁確診高血鉀 積極治療助她重返茶園生活！",
+   "reason": "疾病相關（病人飲食、疾病管理與預防專題）"
+  },
+  {
+   "article_key": "healthnews:67088",
+   "title": "治療可在家、醫療更及時！腹膜透析結合遠端管理 讓腎友更安心",
+   "reason": "疾病相關（病人飲食、疾病管理與預防專題）"
+  },
+  {
+   "article_key": "healthnews:70009",
+   "title": "癌症治療需重視腎功能？癌症患者為何會出現輸尿管狹窄？醫解答一次看！",
+   "reason": "疾病相關（病人飲食、疾病管理與預防專題）"
+  },
+  {
+   "article_key": "healthnews:70049",
+   "title": "保健食品吃得勤就健康？醫：先掌握血壓、血糖與血脂",
+   "reason": "疾病相關（病人飲食、疾病管理與預防專題）"
+  },
+  {
+   "article_key": "healthnews:68413",
+   "title": "腎臟病要少吃肉卻怕肌少症？醫揭關鍵平衡：蛋白質「這樣吃」才不傷身",
+   "reason": "疾病相關（病人飲食、疾病管理與預防專題）"
+  },
+  {
+   "article_key": "healthnews:67858",
+   "title": "【控鉀・穩住心與腎】高血鉀風險被低估？醫師：透析族群「兩次治療間」、「週末」最容易出問題",
+   "reason": "疾病相關（病人飲食、疾病管理與預防專題）"
+  },
+  {
+   "article_key": "healthnews:69771",
+   "title": "近八成糖友擔心HbA1c結果！調查揭2大控糖困境 醫籲留意血糖波動",
+   "reason": "疾病相關（病人飲食、疾病管理與預防專題）"
+  },
+  {
+   "article_key": "healthnews:69643",
+   "title": "葡萄糖胺會讓失智惡化？醫：關節保健勿盲目補充 應與醫師討論",
+   "reason": "疾病相關（病人飲食、疾病管理與預防專題）"
+  },
+  {
+   "article_key": "healthnews:68004",
+   "title": "不讓洗腎限制人生！腎友分享親身經歷 用行動把黑白人生寫成彩色",
+   "reason": "疾病相關（病人飲食、疾病管理與預防專題）"
+  },
+  {
+   "article_key": "healthnews:69359",
+   "title": "天熱卻怕冷、疲倦又水腫？醫談甲狀腺低下常見症狀與夏季保養",
+   "reason": "疾病相關（病人飲食、疾病管理與預防專題）"
+  },
+  {
+   "article_key": "healthnews:69143",
+   "title": "AI陪病時代1／患者帶AI建議進診間成趨勢 真實醫病互動為何仍不可取代？",
+   "reason": "疾病相關（病人飲食、疾病管理與預防專題）"
+  },
+  {
+   "article_key": "healthnews:68124",
+   "title": "腹膜透析回到生活場域 醫師談基層醫療如何接住長期照護",
+   "reason": "疾病相關（病人飲食、疾病管理與預防專題）"
+  },
+  {
+   "article_key": "healthnews:68392",
+   "title": "透析和生活品質只能二選一？醫列「這3點」也可納評估 1時機就要提早規劃",
+   "reason": "疾病相關（病人飲食、疾病管理與預防專題）"
+  },
+  {
+   "article_key": "healthnews:69341",
+   "title": "只吃豆漿和蛋 血糖反而不穩？營養師破解糖尿病早餐秘笈",
+   "reason": "疾病相關（病人飲食、疾病管理與預防專題）"
+  },
+  {
+   "article_key": "healthnews:69498",
+   "title": "罹糖尿病癌症風險也增？醫：可能存在共同危險因子 依「1重點」追蹤評估",
+   "reason": "疾病相關（病人飲食、疾病管理與預防專題）"
+  },
+  {
+   "article_key": "healthnews:68109",
+   "title": "兒糖病2／兒童糖尿病會提早洗腎？醫揭關鍵：至少10至20年以上",
+   "reason": "疾病相關（病人飲食、疾病管理與預防專題）"
+  },
+  {
+   "article_key": "healthnews:68960",
+   "title": "女性常見有缺鐵性貧血！「1水果」富含維生素C 研究揭具輔助鐵吸收潛力",
+   "reason": "疾病相關（病人飲食、疾病管理與預防專題）"
+  },
+  {
+   "article_key": "healthnews:68834",
+   "title": "膽結石病患連日吃粽子引發腹痛 醫示警：恐誘發急性膽管炎",
+   "reason": "疾病相關（病人飲食、疾病管理與預防專題）"
+  },
+  {
+   "article_key": "healthnews:68794",
+   "title": "天氣熱狂吃西瓜、芒果 桃園醫院示警：恐增妊娠糖尿病風險",
+   "reason": "疾病相關（病人飲食、疾病管理與預防專題）"
+  },
+  {
+   "article_key": "healthnews:67972",
+   "title": "名模、主播皆癌逝！醫：淋巴瘤非「單一疾病」 有3大警訊應就醫",
+   "reason": "疾病相關（病人飲食、疾病管理與預防專題）"
+  },
+  {
+   "article_key": "healthnews:68281",
+   "title": "別盲目追養生潮！腫瘤醫破解6大營養迷思 「想要活得健康」先抓住1點",
+   "reason": "疾病相關（病人飲食、疾病管理與預防專題）"
+  },
+  {
+   "article_key": "healthnews:68280",
+   "title": "研究：銀髮族吃「植物性飲食」失智風險降 但若為加工食品仍無益健康",
+   "reason": "疾病相關（病人飲食、疾病管理與預防專題）"
+  },
+  {
+   "article_key": "healthnews:67306",
+   "title": "想防糖尿病 生活壞習慣卻改不了？營養師教「從加分開始」更易落實！",
+   "reason": "疾病相關（病人飲食、疾病管理與預防專題）"
+  },
+  {
+   "article_key": "healthnews:67603",
+   "title": "癌友總「吃不下」的背後原因 何謂「癌症惡病質」？營養師提3策略應對",
+   "reason": "疾病相關（病人飲食、疾病管理與預防專題）"
+  },
+  {
+   "article_key": "healthnews:67683",
+   "title": "營養師提醒：春節飲食「停看聽」防三高失控 過年安心吃不踩雷",
+   "reason": "疾病相關（病人飲食、疾病管理與預防專題）"
+  },
+  {
+   "article_key": "healthnews:67399",
+   "title": "挽救腦部生鏽！營養師教戰「麥得飲食」為大腦築起防失智防線",
+   "reason": "疾病相關（病人飲食、疾病管理與預防專題）"
+  },
+  {
+   "article_key": "healthnews:67410",
+   "title": "年末聚餐多！醫示警：小心血糖失控 別以為沒症狀就沒事",
+   "reason": "疾病相關（病人飲食、疾病管理與預防專題）"
+  },
+  {
+   "article_key": "healthnews:67358",
+   "title": "血糖控制穩定「腎功能仍退化」？醫揭糖腎飲食關鍵",
+   "reason": "疾病相關（病人飲食、疾病管理與預防專題）"
+  },
+  {
+   "article_key": "healthnews:67221",
+   "title": "防癌別越做越慌！醫帶你先檢視「生活4毒」 不只管飲食也要學抗壓",
+   "reason": "疾病相關（病人飲食、疾病管理與預防專題）"
+  },
+  {
+   "article_key": "healthnews:66537",
+   "title": "不只抗老！醫：適量補充「硒」助抗癌 降低腫瘤發生率",
+   "reason": "疾病相關（病人飲食、疾病管理與預防專題）"
+  },
+  {
+   "article_key": "healthnews:65706",
+   "title": "糖尿病前期患者每天吃一杯鷹嘴豆 美研究：總膽固醇降",
+   "reason": "疾病相關（病人飲食、疾病管理與預防專題）"
+  },
+  {
+   "article_key": "healthnews:65277",
+   "title": "粽子吃太多會痛風？ 醫揭「這幾種高嘌呤配料」要小心",
+   "reason": "疾病相關（病人飲食、疾病管理與預防專題）"
+  },
+  {
+   "article_key": "healthnews:65209",
+   "title": "美研究：「肉桂」成分可能與藥物起交互作用 罹「這些慢性病」應小心使用",
+   "reason": "疾病相關（病人飲食、疾病管理與預防專題）"
+  },
+  {
+   "article_key": "healthnews:64625",
+   "title": "乳癌治療後更年期提前報到？ 營養師建議可多攝取「這些」營養素舒緩症狀",
+   "reason": "疾病相關（病人飲食、疾病管理與預防專題）"
+  },
+  {
+   "article_key": "healthnews:64926",
+   "title": "患病無法正常進食？食藥署：「特定疾病配方食品」分４類 一般民眾不宜用",
+   "reason": "疾病相關（病人飲食、疾病管理與預防專題）"
+  },
+  {
+   "article_key": "healthnews:64383",
+   "title": "高齡社會的營養新視角！醫師剖析鱈魚肝油與失智關聯",
+   "reason": "疾病相關（病人飲食、疾病管理與預防專題）"
+  },
+  {
+   "article_key": "healthnews:63322",
+   "title": "營養攝取新思維！針對牙口不好、吞嚥困難的飲食調整法",
+   "reason": "疾病相關（病人飲食、疾病管理與預防專題）"
+  },
+  {
+   "article_key": "healthnews:63275",
+   "title": "服用益生菌能逆轉腎病？ 醫警告：正規治療才是關鍵",
+   "reason": "疾病相關（病人飲食、疾病管理與預防專題）"
+  },
+  {
+   "article_key": "healthnews:62947",
+   "title": "吞嚥困難如何進食？ 營養師授「固體、液體食物備製技巧」吃東西不卡卡",
+   "reason": "疾病相關（病人飲食、疾病管理與預防專題）"
+  },
+  {
+   "article_key": "healthnews:62400",
+   "title": "破除癌症的5大迷思 降低患癌風險",
+   "reason": "疾病相關（病人飲食、疾病管理與預防專題）"
+  },
+  {
+   "article_key": "healthnews:62216",
+   "title": "「油包肉」的人愈來愈多！死亡風險激增 營養師教「改善肌少症肥胖」方式",
+   "reason": "疾病相關（病人飲食、疾病管理與預防專題）"
+  },
+  {
+   "article_key": "healthnews:62107",
+   "title": "肺癌發生、死亡人數都佔最多！ 營養師公開「顧肺飲食6大要訣」有效降風險",
+   "reason": "疾病相關（病人飲食、疾病管理與預防專題）"
+  },
+  {
+   "article_key": "healthnews:62083",
+   "title": "台灣洗腎人口居世界之冠！ 營養師揭密飲食攝取關鍵！",
+   "reason": "疾病相關（病人飲食、疾病管理與預防專題）"
+  },
+  {
+   "article_key": "healthnews:61872",
+   "title": "研究：Omega-3含EPA有助預防偏頭痛 還能改善憂鬱及睡眠障礙",
+   "reason": "疾病相關（病人飲食、疾病管理與預防專題）"
+  },
+  {
+   "article_key": "healthnews:61865",
+   "title": "預防失智症 「麥得飲食」護腦有成效！",
+   "reason": "疾病相關（病人飲食、疾病管理與預防專題）"
+  },
+  {
+   "article_key": "healthnews:61770",
+   "title": "乳癌不能吃黃豆、喝牛奶？ 營養師揭「3大階段」營養照護建議",
+   "reason": "疾病相關（病人飲食、疾病管理與預防專題）"
+  },
+  {
+   "article_key": "healthnews:61612",
+   "title": "吃錯害腸道菌失衡！ 醫解析「4種常見慢性腸胃道疾病」如何緩解",
+   "reason": "疾病相關（病人飲食、疾病管理與預防專題）"
+  },
+  {
+   "article_key": "healthnews:61308",
+   "title": "預防巴金森氏症，營養師大推「1飲食法」減緩神經退化 世界公認最健康",
+   "reason": "疾病相關（病人飲食、疾病管理與預防專題）"
+  },
+  {
+   "article_key": "healthnews:61115",
+   "title": "他癌末重生大吃大喝不到1個月胖20公斤！ 提高「1類食物」攝取量瘦得健康",
+   "reason": "疾病相關（病人飲食、疾病管理與預防專題）"
+  },
+  {
+   "article_key": "healthnews:61078",
+   "title": "孕婦「妊娠糖尿病」母嬰健康風險高 專家教你如何輕鬆控糖",
+   "reason": "疾病相關（病人飲食、疾病管理與預防專題）"
+  },
+  {
+   "article_key": "healthnews:60543",
+   "title": "每4人就有1人胃食道逆流！ 如何避免胃酸逆流？營養師籲注意6大重點",
+   "reason": "疾病相關（病人飲食、疾病管理與預防專題）"
+  },
+  {
+   "article_key": "healthnews:60591",
+   "title": "腎友年菜多吃蛋白質還是少吃？ 醫：洗腎前後吃法不同",
+   "reason": "疾病相關（病人飲食、疾病管理與預防專題）"
+  },
+  {
+   "article_key": "healthnews:60437",
+   "title": "他骨質疏鬆狂吃維他命D釀高血鈣症 醫教「正確保骨吃法」防壞腎",
+   "reason": "疾病相關（病人飲食、疾病管理與預防專題）"
+  },
+  {
+   "article_key": "healthnews:60289",
+   "title": "糖友聚餐先吃「這個」 避免血糖失控誘發嚴重併發症",
+   "reason": "疾病相關（病人飲食、疾病管理與預防專題）"
+  },
+  {
+   "article_key": "healthnews:60139",
+   "title": "台灣特有種山葡萄能調節血壓！ 北醫大開發全植萃配方技轉廠商",
+   "reason": "疾病相關（病人飲食、疾病管理與預防專題）"
+  },
+  {
+   "article_key": "healthnews:60047",
+   "title": "癌友申請營養品補助，六成竟達「惡病質」標準！台癌邀：抗癌防惡",
+   "reason": "疾病相關（病人飲食、疾病管理與預防專題）"
+  },
+  {
+   "article_key": "healthnews:59780",
+   "title": "糖尿病患也可以吃漢堡薯條 外食族聰明控糖這樣搭",
+   "reason": "疾病相關（病人飲食、疾病管理與預防專題）"
+  },
+  {
+   "article_key": "healthnews:59730",
+   "title": "【不中風、這樣做】保健食品可以通血路防中風？ 醫師告訴你遠離中風飲食法",
+   "reason": "疾病相關（病人飲食、疾病管理與預防專題）"
+  },
+  {
+   "article_key": "healthnews:59643",
+   "title": "預防產前貧血不只有補鐵！ 4飲食技巧幫助孕媽咪遠離貧血",
+   "reason": "疾病相關（病人飲食、疾病管理與預防專題）"
+  },
+  {
+   "article_key": "healthnews:59585",
+   "title": "飲食是抗癌助力！癌兒營養有4好處不可輕忽 蕭敬騰任公益大使籲社會關注",
+   "reason": "疾病相關（病人飲食、疾病管理與預防專題）"
+  },
+  {
+   "article_key": "healthnews:59603",
+   "title": "「這年齡」是預防骨質疏鬆關鍵期！ 國健署授4招存骨本小撇步",
+   "reason": "疾病相關（病人飲食、疾病管理與預防專題）"
+  },
+  {
+   "article_key": "healthnews:59436",
+   "title": "預防失智不憂心 麥得飲食防退化",
+   "reason": "疾病相關（病人飲食、疾病管理與預防專題）"
+  },
+  {
+   "article_key": "healthnews:59329",
+   "title": "肌少症與糖尿病年輕化 被低估的疾病預防關鍵—「營養」",
+   "reason": "疾病相關（病人飲食、疾病管理與預防專題）"
+  },
+  {
+   "article_key": "healthnews:59176",
+   "title": "不只避免高嘌呤飲食！ 北慈研究：「1飲食法」有效降低高尿酸血症腎病變",
+   "reason": "疾病相關（病人飲食、疾病管理與預防專題）"
+  },
+  {
+   "article_key": "healthnews:58880",
+   "title": "失智樂齡飲食 營養師教你「地中海飲食」怎麼吃",
+   "reason": "疾病相關（病人飲食、疾病管理與預防專題）"
+  },
+  {
+   "article_key": "healthnews:58409",
+   "title": "他患肝病30年多次昏迷 「飲食1改變」有效控制肝腦病變",
+   "reason": "疾病相關（病人飲食、疾病管理與預防專題）"
+  },
+  {
+   "article_key": "healthnews:58233",
+   "title": "收縮壓VS.舒張壓健康影響大不同！ 醫師3建議籲端午節別放「粽」血壓",
+   "reason": "疾病相關（病人飲食、疾病管理與預防專題）"
+  },
+  {
+   "article_key": "healthnews:58240",
+   "title": "不只老人缺鈣 營養師：2大年輕族群暗藏骨鬆危機",
+   "reason": "疾病相關（病人飲食、疾病管理與預防專題）"
+  },
+  {
+   "article_key": "healthnews:58120",
+   "title": "血糖高又怕吃藥傷身 吃苦瓜可以降血糖嗎？",
+   "reason": "疾病相關（病人飲食、疾病管理與預防專題）"
+  },
+  {
+   "article_key": "healthnews:58037",
+   "title": "腎臟疾病水果別亂吃！「楊桃」是最大禁忌水果 國健署曝原因",
+   "reason": "疾病相關（病人飲食、疾病管理與預防專題）"
+  },
+  {
+   "article_key": "healthnews:58025",
+   "title": "術後出現幻覺？ 當心是缺乏「這1種」維生素",
+   "reason": "疾病相關（病人飲食、疾病管理與預防專題）"
+  },
+  {
+   "article_key": "healthnews:57882",
+   "title": "維他命C發泡錠導致腎結石？醫師：發泡錠含「檸檬酸」可減少結石生成",
+   "reason": "疾病相關（病人飲食、疾病管理與預防專題）"
+  },
+  {
+   "article_key": "healthnews:57229",
+   "title": "醫師破解脂肪肝三大迷思！ 當心減肥也會肝包油",
+   "reason": "疾病相關（病人飲食、疾病管理與預防專題）"
+  },
+  {
+   "article_key": "healthnews:57161",
+   "title": "並非貧血就補鐵！ 營養師揭「治療最重要1關鍵」",
+   "reason": "疾病相關（病人飲食、疾病管理與預防專題）"
+  },
+  {
+   "article_key": "healthnews:56946",
+   "title": "痛風發作時該怎麼做？ 營養師建議做這5件事、避免4類食物",
+   "reason": "疾病相關（病人飲食、疾病管理與預防專題）"
+  },
+  {
+   "article_key": "healthnews:56951",
+   "title": "吃香蕉記得看顏色！ 減肥、糖尿病選哪種香蕉？營養師一圖解答",
+   "reason": "疾病相關（病人飲食、疾病管理與預防專題）"
+  },
+  {
+   "article_key": "healthnews:56735",
+   "title": "糖尿病患謹守１原則 義大利麵、壽司和甜食都能吃！",
+   "reason": "疾病相關（病人飲食、疾病管理與預防專題）"
+  },
+  {
+   "article_key": "healthnews:56652",
+   "title": "胃食道逆流、糖尿病如何吃得健康？ 醫師提醒注意「這些」飲食習慣",
+   "reason": "疾病相關（病人飲食、疾病管理與預防專題）"
+  },
+  {
+   "article_key": "healthnews:56605",
+   "title": "想遠離脂肪肝危機 大吃大喝後從調整飲食習慣做起",
+   "reason": "疾病相關（病人飲食、疾病管理與預防專題）"
+  },
+  {
+   "article_key": "healthnews:56569",
+   "title": "每天約有6人因乳癌失去性命 5招抗癌飲食學起來！",
+   "reason": "疾病相關（病人飲食、疾病管理與預防專題）"
+  },
+  {
+   "article_key": "healthnews:56550",
+   "title": "胃酸逆流不治療恐引起食道癌 9招熄滅「火燒心」",
+   "reason": "疾病相關（病人飲食、疾病管理與預防專題）"
+  },
+  {
+   "article_key": "healthnews:56507",
+   "title": "小心！過年吃太多胃食道逆流 該如何緩解？營養師這樣說",
+   "reason": "疾病相關（病人飲食、疾病管理與預防專題）"
+  },
+  {
+   "article_key": "healthnews:56523",
+   "title": "過年氣溫多變化 心血管健康如何維護？營養師教你從飲食著手",
+   "reason": "疾病相關（病人飲食、疾病管理與預防專題）"
+  },
+  {
+   "article_key": "healthnews:56173",
+   "title": "胃食道逆流哪些食物可以吃？ 營養師公開飲食清單把握3原則！",
+   "reason": "疾病相關（病人飲食、疾病管理與預防專題）"
+  },
+  {
+   "article_key": "healthnews:56512",
+   "title": "把高GI食物變成低GI 高血糖4原則聰明吃",
+   "reason": "疾病相關（病人飲食、疾病管理與預防專題）"
+  },
+  {
+   "article_key": "healthnews:56143",
+   "title": "「乖乖牌」糖友忽飆血糖 凶手居然是天然食材",
+   "reason": "疾病相關（病人飲食、疾病管理與預防專題）"
+  },
+  {
+   "article_key": "healthnews:56195",
+   "title": "寒流報到體感僅2°C！ 學日本人飲食3原則避免三高爆表",
+   "reason": "疾病相關（病人飲食、疾病管理與預防專題）"
+  },
+  {
+   "article_key": "healthnews:56120",
+   "title": "抗癌飲食指導真的有用？ 3個月營養師介入改善癌友4指標研究成果曝",
+   "reason": "疾病相關（病人飲食、疾病管理與預防專題）"
+  },
+  {
+   "article_key": "healthnews:55974",
+   "title": "胃食道逆流、腸躁症 「這三招」配清淡飲食效果佳",
+   "reason": "疾病相關（病人飲食、疾病管理與預防專題）"
+  },
+  {
+   "article_key": "healthnews:55880",
+   "title": "研究：蔬食飲食有效降低32%糖尿病、腎病變風險",
+   "reason": "疾病相關（病人飲食、疾病管理與預防專題）"
+  },
+  {
+   "article_key": "healthnews:55853",
+   "title": "國際男人節防三高 國健署：「3餐這樣吃」就對了",
+   "reason": "疾病相關（病人飲食、疾病管理與預防專題）"
+  },
+  {
+   "article_key": "healthnews:55782",
+   "title": "吃太鹹造成高血壓 得舒飲食來改善",
+   "reason": "疾病相關（病人飲食、疾病管理與預防專題）"
+  },
+  {
+   "article_key": "healthnews:55755",
+   "title": "許效舜痛風「吃1隻蝦住院9天」 營養師教你怎麼吃才不會痛？",
+   "reason": "疾病相關（病人飲食、疾病管理與預防專題）"
+  },
+  {
+   "article_key": "healthnews:55795",
+   "title": "後疫情與長新冠共存，BBC建議：從營養補充開始",
+   "reason": "疾病相關（病人飲食、疾病管理與預防專題）"
+  },
+  {
+   "article_key": "healthnews:55585",
+   "title": "糖尿病不只要控醣 營養師提醒：1物吃過量小心身體出問題",
+   "reason": "疾病相關（病人飲食、疾病管理與預防專題）"
+  },
+  {
+   "article_key": "healthnews:55561",
+   "title": "青花菜、大蒜常攝取 可提升癌症治療效果",
+   "reason": "疾病相關（病人飲食、疾病管理與預防專題）"
+  },
+  {
+   "article_key": "healthnews:55491",
+   "title": "Omega-3護心顧腦抗發炎 還能治療長新冠症狀？",
+   "reason": "疾病相關（病人飲食、疾病管理與預防專題）"
+  },
+  {
+   "article_key": "healthnews:55298",
+   "title": "台研究：長者茹素益處多 降低新冠重症率",
+   "reason": "疾病相關（病人飲食、疾病管理與預防專題）"
+  },
+  {
+   "article_key": "healthnews:55079",
+   "title": "長新冠患者應該及不應該吃些什麼",
+   "reason": "疾病相關（病人飲食、疾病管理與預防專題）"
+  },
+  {
+   "article_key": "healthnews:54965",
+   "title": "補充維生素D防失智症？ 國衛院最新研究顛覆認知",
+   "reason": "疾病相關（病人飲食、疾病管理與預防專題）"
+  },
+  {
+   "article_key": "healthnews:54653",
+   "title": "「特定疾病配方食品」不具療效 食藥署：一般人多吃無益",
+   "reason": "疾病相關（病人飲食、疾病管理與預防專題）"
+  },
+  {
+   "article_key": "healthnews:54568",
+   "title": "遠離骨質疏鬆危機 「3大飲食法」跟著吃",
+   "reason": "疾病相關（病人飲食、疾病管理與預防專題）"
+  },
+  {
+   "article_key": "healthnews:54469",
+   "title": "孕婦貧血增加早產、胎兒死亡率 國健署籲補充這四種營養素",
+   "reason": "疾病相關（病人飲食、疾病管理與預防專題）"
+  },
+  {
+   "article_key": "healthnews:54265",
+   "title": "７成膽結石無症狀 該如何「預防」營養師給６重點！",
+   "reason": "疾病相關（病人飲食、疾病管理與預防專題）"
+  },
+  {
+   "article_key": "healthnews:54025",
+   "title": "癌友端午換吃「五穀粽」！ 身體健康無負擔",
+   "reason": "疾病相關（病人飲食、疾病管理與預防專題）"
+  },
+  {
+   "article_key": "healthnews:53903",
+   "title": "【洗腎專題】小心營養素變毒素 腎友選擇營養品之前該知道的8件事",
+   "reason": "疾病相關（病人飲食、疾病管理與預防專題）"
+  },
+  {
+   "article_key": "healthnews:53923",
+   "title": "確診憂後遺症纏身 「地中海飲食」助改善",
+   "reason": "疾病相關（病人飲食、疾病管理與預防專題）"
+  },
+  {
+   "article_key": "healthnews:53926",
+   "title": "代謝症候群罹慢性病風險增！ 危險因子一次看",
+   "reason": "疾病相關（病人飲食、疾病管理與預防專題）"
+  },
+  {
+   "article_key": "healthnews:53774",
+   "title": "確診喉嚨痛吃冰淇淋、布丁？ 營養師列「１物」舒緩還能殺菌",
+   "reason": "疾病相關（病人飲食、疾病管理與預防專題）"
+  },
+  {
+   "article_key": "healthnews:53610",
+   "title": "染疫恐增肌少症風險！營養師提醒優質蛋白質、MCT帶您遠離肌少症風險",
+   "reason": "疾病相關（病人飲食、疾病管理與預防專題）"
+  },
+  {
+   "article_key": "healthnews:53280",
+   "title": "吞嚥困難易嗆到怎辦？ 臺大醫院授「飲食指南」",
+   "reason": "疾病相關（病人飲食、疾病管理與預防專題）"
+  },
+  {
+   "article_key": "healthnews:52895",
+   "title": "腸癌8成與飲食有關！ 營養師公開「防癌6大類食物清單」",
+   "reason": "疾病相關（病人飲食、疾病管理與預防專題）"
+  },
+  {
+   "article_key": "healthnews:52829",
+   "title": "遠離肝癌高風險 高風險因子你中幾個？",
+   "reason": "疾病相關（病人飲食、疾病管理與預防專題）"
+  },
+  {
+   "article_key": "healthnews:52377",
+   "title": "妊娠糖尿病怎麼辦？ 這些飲食原則照做就對了！",
+   "reason": "疾病相關（病人飲食、疾病管理與預防專題）"
+  },
+  {
+   "article_key": "healthnews:52002",
+   "title": "秋冬如何進補？ 癌友要注意的秋冬進補事項",
+   "reason": "疾病相關（病人飲食、疾病管理與預防專題）"
+  },
+  {
+   "article_key": "healthnews:51047",
+   "title": "避免尿路結石復發怎麼做？ 專家建議飲食「這樣吃」",
+   "reason": "疾病相關（病人飲食、疾病管理與預防專題）"
+  },
+  {
+   "article_key": "healthnews:48970",
+   "title": "愛吃甜食、撿菜尾？ 當心「高血脂」有機可乘",
+   "reason": "疾病相關（病人飲食、疾病管理與預防專題）"
+  },
+  {
+   "article_key": "healthnews:48788",
+   "title": "孕媽咪3大營養吃不夠 當心孕期貧血影響胎兒發育",
+   "reason": "疾病相關（病人飲食、疾病管理與預防專題）"
+  },
+  {
+   "article_key": "healthnews:48993",
+   "title": "愛吃甜食、撿菜尾？ 當心「高血脂」有機可乘",
+   "reason": "疾病相關（病人飲食、疾病管理與預防專題）"
+  },
+  {
+   "article_key": "healthnews:48414",
+   "title": "吃釋迦降血糖？ 營養師曝「一天一顆」血糖會失控",
+   "reason": "疾病相關（病人飲食、疾病管理與預防專題）"
+  },
+  {
+   "article_key": "healthnews:45670",
+   "title": "破解抗癌飲食迷思 5大原則讓癌細胞止步",
+   "reason": "疾病相關（病人飲食、疾病管理與預防專題）"
+  },
+  {
+   "article_key": "healthnews:45317",
+   "title": "抗肺炎要有營養 大力提升免疫力",
+   "reason": "疾病相關（病人飲食、疾病管理與預防專題）"
+  },
+  {
+   "article_key": "healthnews:41213",
+   "title": "【健康Live直播】維生素Ｄ3抗慢性病 趙順榮藥師教你這樣吃",
+   "reason": "疾病相關（病人飲食、疾病管理與預防專題）"
+  },
+  {
+   "article_key": "healthnews:40023",
+   "title": "亞東醫院衛教講座活動-頭頸癌病友營養迷思",
+   "reason": "疾病相關（病人飲食、疾病管理與預防專題）"
+  },
+  {
+   "article_key": "healthnews:39086",
+   "title": "胰臟癌患者飲食指南",
+   "reason": "疾病相關（病人飲食、疾病管理與預防專題）"
+  },
+  {
+   "article_key": "healthnews:35647",
+   "title": "他罹患乾癬27年 生物製劑治療未復發",
+   "reason": "疾病相關（病人飲食、疾病管理與預防專題）"
+  },
+  {
+   "article_key": "healthnews:34886",
+   "title": "醫美術後吃花膠調理 挑選有門道！",
+   "reason": "疾病相關（病人飲食、疾病管理與預防專題）"
+  },
+  {
+   "article_key": "healthnews:34461",
+   "title": "男性腰圍超標 6大疾病警訊",
+   "reason": "疾病相關（病人飲食、疾病管理與預防專題）"
+  },
+  {
+   "article_key": "healthnews:33967",
+   "title": "灰指甲不輕忽 恐是乾癬症",
+   "reason": "疾病相關（病人飲食、疾病管理與預防專題）"
+  },
+  {
+   "article_key": "healthnews:33590",
+   "title": "糖友控血糖 9種超級食物報你知",
+   "reason": "疾病相關（病人飲食、疾病管理與預防專題）"
+  },
+  {
+   "article_key": "helloyishi:234711",
+   "title": "術後營養品有哪些？怎麼挑？術後補品推薦、開刀後吃法一次看",
+   "reason": "疾病相關（病人飲食、疾病管理與預防專題）"
+  },
+  {
+   "article_key": "helloyishi:234384",
+   "title": "痛風尿酸過高不能吃什麼？痛風飲食指南＋可吃/不可吃食物表",
+   "reason": "疾病相關（病人飲食、疾病管理與預防專題）"
+  },
+  {
+   "article_key": "helloyishi:232752",
+   "title": "「年老、手術、住院」小心肌肉流失危機！只補蛋白質還不夠，HMB幫助維持肌肉",
+   "reason": "疾病相關（病人飲食、疾病管理與預防專題）"
+  },
+  {
+   "article_key": "helloyishi:222737",
+   "title": "斷食療法能排毒、抗癌？名醫：恐降低免疫力、影響治療｜醫BooK",
+   "reason": "疾病相關（病人飲食、疾病管理與預防專題）"
+  },
+  {
+   "article_key": "helloyishi:222740",
+   "title": "癌症可以吃什麼點心？3種健康食物推薦｜醫BooK",
+   "reason": "疾病相關（病人飲食、疾病管理與預防專題）"
+  },
+  {
+   "article_key": "helloyishi:168092",
+   "title": "甲狀腺亢進原因、症狀？甲亢會好嗎？甲亢飲食禁忌與食物建議",
+   "reason": "疾病相關（病人飲食、疾病管理與預防專題）"
+  },
+  {
+   "article_key": "helloyishi:194334",
+   "title": "補血食物第一名曝！貧血吃什麼鐵質食物？水果能補血嗎？",
+   "reason": "疾病相關（病人飲食、疾病管理與預防專題）"
+  },
+  {
+   "article_key": "helloyishi:147677",
+   "title": "慢性病族群堅果怎麼吃！3 原則教你這樣挑",
+   "reason": "疾病相關（病人飲食、疾病管理與預防專題）"
+  },
+  {
+   "article_key": "helloyishi:194711",
+   "title": "腸胃炎拉肚子可以吃什麼？水果、蛋能吃嗎？腹瀉飲食3重點",
+   "reason": "疾病相關（病人飲食、疾病管理與預防專題）"
+  },
+  {
+   "article_key": "helloyishi:72521",
+   "title": "手術後的飲食怎麼吃？這些食物要多補充！",
+   "reason": "疾病相關（病人飲食、疾病管理與預防專題）"
+  },
+  {
+   "article_key": "helloyishi:93767",
+   "title": "甲狀腺功能低下飲食大補帖！飲食請吃這4種",
+   "reason": "疾病相關（病人飲食、疾病管理與預防專題）"
+  },
+  {
+   "article_key": "helloyishi:69543",
+   "title": "護肝減脂！這12種食物擊退脂肪肝",
+   "reason": "疾病相關（病人飲食、疾病管理與預防專題）"
+  },
+  {
+   "article_key": "helloyishi:203009",
+   "title": "肌少症飲食6大建議 營養師：補充蛋白質 預防肌肉流失",
+   "reason": "疾病相關（病人飲食、疾病管理與預防專題）"
+  },
+  {
+   "article_key": "helloyishi:198036",
+   "title": "醫BooK／真的有對糖尿病有益的水果嗎？名醫教您了解怎麼吃水果保健康",
+   "reason": "疾病相關（病人飲食、疾病管理與預防專題）"
+  },
+  {
+   "article_key": "helloyishi:180313",
+   "title": "吃素反而高血壓？4原則讓你健康茹素",
+   "reason": "疾病相關（病人飲食、疾病管理與預防專題）"
+  },
+  {
+   "article_key": "helloyishi:195958",
+   "title": "糖尿病友放心吃！低糖飲食6大零食建議讓你不嘴饞",
+   "reason": "疾病相關（病人飲食、疾病管理與預防專題）"
+  },
+  {
+   "article_key": "helloyishi:173411",
+   "title": "連假飲食油膩小心高血脂症找上門！一文教你如何健康吃降血脂",
+   "reason": "疾病相關（病人飲食、疾病管理與預防專題）"
+  },
+  {
+   "article_key": "helloyishi:143602",
+   "title": "端午吃粽子也要顧健康！長者和慢性病患這樣挑",
+   "reason": "疾病相關（病人飲食、疾病管理與預防專題）"
+  },
+  {
+   "article_key": "helloyishi:126778",
+   "title": "腸躁症患者有救了！試試低FODMAP飲食改善症狀",
+   "reason": "疾病相關（病人飲食、疾病管理與預防專題）"
+  },
+  {
+   "article_key": "helloyishi:118037",
+   "title": "螺旋藻為何保健抗肝癌？研究這麼說",
+   "reason": "疾病相關（病人飲食、疾病管理與預防專題）"
+  },
+  {
+   "article_key": "helloyishi:67250",
+   "title": "吃蔬果對抗肝癌！紅白蘿蔔等9種最優",
+   "reason": "疾病相關（病人飲食、疾病管理與預防專題）"
+  },
+  {
+   "article_key": "helloyishi:148850",
+   "title": "糖尿病喝無糖豆漿可穩定血糖！連豆渣一起喝會更好",
+   "reason": "疾病相關（病人飲食、疾病管理與預防專題）"
+  },
+  {
+   "article_key": "helloyishi:180727",
+   "title": "手術後一定要吃鱸魚補傷口！了解鱸魚的營養以及如何料理",
+   "reason": "疾病相關（病人飲食、疾病管理與預防專題）"
+  },
+  {
+   "article_key": "helloyishi:168265",
+   "title": "拒當「無腦」人！「心智飲食法」懂吃不老遠離失智",
+   "reason": "疾病相關（病人飲食、疾病管理與預防專題）"
+  },
+  {
+   "article_key": "helloyishi:120409",
+   "title": "麥得飲食防失智！讓頭腦年輕7歲半的補腦飲食",
+   "reason": "疾病相關（病人飲食、疾病管理與預防專題）"
+  },
+  {
+   "article_key": "healthnews:69154",
+   "title": "AI陪病時代2／AI能助力醫病溝通？專家解析如何善用科技 做好就醫準備",
+   "reason": "疾病相關（病人飲食、疾病管理與預防專題）"
+  },
+  {
+   "article_key": "healthnews:66937",
+   "title": "【控鉀・穩住心與腎】50歲男性急性腎損傷 血鉀高達8 心跳險停止",
+   "reason": "疾病相關（病人飲食、疾病管理與預防專題）"
+  },
+  {
+   "article_key": "healthnews:70105",
+   "title": "靜脈曲張糾纏不清？醫師解密：需從根源治療",
+   "reason": "疾病相關（病人飲食、疾病管理與預防專題）"
+  },
+  {
+   "article_key": "healthnews:69135",
+   "title": "AI能幫整理健康資訊？兒科醫：當心病情「愈查愈亂」 揭1使用時機",
+   "reason": "疾病相關（病人飲食、疾病管理與預防專題）"
+  },
+  {
+   "article_key": "healthnews:69109",
+   "title": "經常脹氣、便秘、疲累是腸漏症？這「4問題」自測揪腸道失衡",
+   "reason": "疾病相關（病人飲食、疾病管理與預防專題）"
+  },
+  {
+   "article_key": "healthnews:65825",
+   "title": "家長必看！魚油對治療ADHD有效嗎？ 醫師揭真相",
+   "reason": "疾病相關（病人飲食、疾病管理與預防專題）"
+  },
+  {
+   "article_key": "healthnews:65614",
+   "title": "別只靠藥物！營養師：每天三餐補對營養 ADHD症狀大幅改善",
+   "reason": "疾病相關（病人飲食、疾病管理與預防專題）"
+  },
+  {
+   "article_key": "healthnews:62765",
+   "title": "掌握1日常習慣、留意控制血脂5重點 適度控好膽固醇",
+   "reason": "疾病相關（病人飲食、疾病管理與預防專題）"
+  },
+  {
+   "article_key": "healthnews:61822",
+   "title": "她每餐吃吐司配豆腐乳 缺乏「１維生素」誘發腦部病變",
+   "reason": "疾病相關（病人飲食、疾病管理與預防專題）"
+  },
+  {
+   "article_key": "healthnews:60996",
+   "title": "慢性患病不貪多 避開過甜、高熱量",
+   "reason": "疾病相關（病人飲食、疾病管理與預防專題）"
+  },
+  {
+   "article_key": "healthnews:60665",
+   "title": "打擊壞膽固醇 55最安心 魚油、紅麴可降血脂？ 醫：錯誤迷思",
+   "reason": "疾病相關（病人飲食、疾病管理與預防專題）"
+  },
+  {
+   "article_key": "healthnews:58480",
+   "title": "膽固醇反覆超標怎辦？中醫師破解3迷思 跟吃不吃蛋無關",
+   "reason": "疾病相關（病人飲食、疾病管理與預防專題）"
+  },
+  {
+   "article_key": "healthnews:58275",
+   "title": "貴妃最愛但升糖指數高 糖友留意「一把荔枝三把火」",
+   "reason": "疾病相關（病人飲食、疾病管理與預防專題）"
+  },
+  {
+   "article_key": "healthnews:57731",
+   "title": "「3大飲食」逆轉腎健康！ 營養師：吃米食比吃麵食更好",
+   "reason": "疾病相關（病人飲食、疾病管理與預防專題）"
+  },
+  {
+   "article_key": "healthnews:56492",
+   "title": "陸童吃「牛用退燒劑」肝衰竭 醫示警：無法完全逆轉傷害",
+   "reason": "疾病相關（病人飲食、疾病管理與預防專題）"
+  },
+  {
+   "article_key": "healthnews:56491",
+   "title": "拚酒吐好幾碗公鮮血！ 肝硬化併發食道靜脈瘤險把命拚掉",
+   "reason": "疾病相關（病人飲食、疾病管理與預防專題）"
+  },
+  {
+   "article_key": "healthnews:54101",
+   "title": "不可輕忽的「鎂」－逆轉重症的神來一筆",
+   "reason": "疾病相關（病人飲食、疾病管理與預防專題）"
+  },
+  {
+   "article_key": "healthnews:53848",
+   "title": "腎友端午吃粽 把握６大原則健康無負擔",
+   "reason": "疾病相關（病人飲食、疾病管理與預防專題）"
+  },
+  {
+   "article_key": "healthnews:53088",
+   "title": "肉吃太多腎臟恐壞更快？ 醫：腎友建議低蛋白飲食",
+   "reason": "疾病相關（病人飲食、疾病管理與預防專題）"
+  },
+  {
+   "article_key": "healthnews:48912",
+   "title": "天冷真的會傷「心」！ 這些症狀持續10分鐘恐奪命",
+   "reason": "疾病相關（病人飲食、疾病管理與預防專題）"
+  },
+  {
+   "article_key": "healthnews:43528",
+   "title": "吃磷蝦油助降血脂？ 吃天然食物同樣有效果",
+   "reason": "疾病相關（病人飲食、疾病管理與預防專題）"
+  },
+  {
+   "article_key": "healthnews:36315",
+   "title": "台灣兒童亞洲最胖 小心長大10種病纏身",
+   "reason": "疾病相關（病人飲食、疾病管理與預防專題）"
+  },
+  {
+   "article_key": "healthnews:33957",
+   "title": "腸病毒疫情升溫 首都台北遭襲破千",
+   "reason": "疾病相關（病人飲食、疾病管理與預防專題）"
+  },
+  {
+   "article_key": "helloyishi:224060",
+   "title": "術前補HMB！4大醫學會專家建議：助肌力恢復、縮短住院期、降併發症風險",
+   "reason": "疾病相關（病人飲食、疾病管理與預防專題）"
+  },
+  {
+   "article_key": "helloyishi:71538",
+   "title": "降膽固醇怎麼做？8種生活習慣快follow",
+   "reason": "疾病相關（病人飲食、疾病管理與預防專題）"
+  },
+  {
+   "article_key": "helloyishi:199962",
+   "title": "膽固醇過高不能吃什麼？營養師：小心4大食物，膽固醇恐飆高！",
+   "reason": "疾病相關（病人飲食、疾病管理與預防專題）"
+  },
+  {
+   "article_key": "helloyishi:71540",
+   "title": "別讓旅遊不開心！注意膽固醇5招快學",
+   "reason": "疾病相關（病人飲食、疾病管理與預防專題）"
+  },
+  {
+   "article_key": "helloyishi:71532",
+   "title": "就這5招！降低您膽固醇的替代療法",
+   "reason": "疾病相關（病人飲食、疾病管理與預防專題）"
+  },
+  {
+   "article_key": "helloyishi:71524",
+   "title": "外食擔心膽固醇？挑選菜色3招護健康",
+   "reason": "疾病相關（病人飲食、疾病管理與預防專題）"
+  },
+  {
+   "article_key": "helloyishi:71522",
+   "title": "膽固醇指數這樣顧！不要再過度攝取糖分",
+   "reason": "疾病相關（病人飲食、疾病管理與預防專題）"
+  }
+ ]
+}

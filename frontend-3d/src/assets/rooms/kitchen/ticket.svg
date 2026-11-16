@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 110 160">
+  <!-- 單軌上的點菜單：一張＝一份問卷；日期餐別與狀態貼紙由 HTML 疊上 -->
+  <defs>
+    <filter id="tk-b4" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="4"/></filter>
+    <linearGradient id="tk-paper" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#FFFEFA"/><stop offset="1" stop-color="#EFE8DA"/>
+    </linearGradient>
+    <linearGradient id="tk-curl" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#EFE8DA" stop-opacity="0"/><stop offset="1" stop-color="#B9AD96" stop-opacity=".7"/>
+    </linearGradient>
+  </defs>
+  <path d="M12 6 H104 V150 q-46 10 -92 0Z" fill="#17121C" opacity=".4" filter="url(#tk-b4)"/>
+  <path d="M6 0 H98 V146 q-46 10 -92 0Z" fill="url(#tk-paper)"/>
+  <path d="M6 110 H98 V146 q-46 10 -92 0Z" fill="url(#tk-curl)"/>
+  <path d="M6 0 V146" stroke="#FFFFFF" stroke-width="1.500"/>
+  <path d="M98 0 V146" stroke="#B9AD96" stroke-width="1"/>
+  <!-- 印刷的抬頭線與欄線 -->
+  <path d="M16 20 H88" stroke="#C2553A" stroke-width="2"/>
+  <g stroke="#D9CFBC" stroke-width="1"><path d="M16 62 H88 M16 82 H88 M16 102 H88 M16 122 H88"/></g>
+</svg>

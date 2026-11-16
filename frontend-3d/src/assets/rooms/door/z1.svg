@@ -1,0 +1,224 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 1000" preserveAspectRatio="xMidYMid slice">
+  <!-- 大門（寫實風）z1：草地、石板路、木板外牆、山牆封簷、磚煙囪、側窗、紅木門、壁燈、門階 -->
+  <defs>
+    <!-- 材質雜訊：細顆粒／直木紋／橫木紋 -->
+    <filter id="rz1-grain" x="0" y="0" width="100%" height="100%">
+      <feTurbulence type="fractalNoise" baseFrequency=".9" numOctaves="3" seed="7"/>
+      <feColorMatrix type="matrix" values="0 0 0 0 .16  0 0 0 0 .12  0 0 0 0 .1  1.5 0 0 0 -.55"/>
+      <feComposite in2="SourceGraphic" operator="in"/>
+    </filter>
+    <filter id="rz1-woodv" x="0" y="0" width="100%" height="100%">
+      <feTurbulence type="fractalNoise" baseFrequency=".42 .01" numOctaves="3" seed="11"/>
+      <feColorMatrix type="matrix" values="0 0 0 0 .2  0 0 0 0 .05  0 0 0 0 .02  1.7 0 0 0 -.62"/>
+      <feComposite in2="SourceGraphic" operator="in"/>
+    </filter>
+    <filter id="rz1-woodh" x="0" y="0" width="100%" height="100%">
+      <feTurbulence type="fractalNoise" baseFrequency=".008 .5" numOctaves="3" seed="5"/>
+      <feColorMatrix type="matrix" values="0 0 0 0 .25  0 0 0 0 .2  0 0 0 0 .14  1.5 0 0 0 -.6"/>
+      <feComposite in2="SourceGraphic" operator="in"/>
+    </filter>
+    <filter id="rz1-b3"><feGaussianBlur stdDeviation="3"/></filter>
+    <filter id="rz1-b10"><feGaussianBlur stdDeviation="10"/></filter>
+    <filter id="rz1-b24"><feGaussianBlur stdDeviation="24"/></filter>
+
+    <linearGradient id="rz1-lawn" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#5E7A4A"/><stop offset="1" stop-color="#3C5434"/>
+    </linearGradient>
+    <linearGradient id="rz1-path" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#B7AC9A"/><stop offset="1" stop-color="#8E8576"/>
+    </linearGradient>
+    <linearGradient id="rz1-board" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#FAF2E2"/><stop offset=".74" stop-color="#EDE1CB"/>
+      <stop offset=".88" stop-color="#D3C3A6"/><stop offset="1" stop-color="#8F806A"/>
+    </linearGradient>
+    <pattern id="rz1-clap" width="220" height="34" patternUnits="userSpaceOnUse">
+      <rect width="220" height="34" fill="url(#rz1-board)"/>
+    </pattern>
+    <linearGradient id="rz1-wallshade" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#3D3558" stop-opacity=".3"/><stop offset=".45" stop-color="#3D3558" stop-opacity=".08"/>
+      <stop offset="1" stop-color="#FFB877" stop-opacity=".16"/>
+    </linearGradient>
+    <linearGradient id="rz1-soffit" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#2A2238" stop-opacity=".5"/><stop offset="1" stop-color="#2A2238" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="rz1-trim" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#D9CFC0"/><stop offset=".5" stop-color="#F6EFE2"/><stop offset="1" stop-color="#FFF4DE"/>
+    </linearGradient>
+    <pattern id="rz1-brick" width="44" height="24" patternUnits="userSpaceOnUse">
+      <rect width="44" height="24" fill="#C9B8A0"/>
+      <rect x="1" y="1" width="42" height="10" fill="#9C5B40"/><rect x="-21" y="13" width="42" height="10" fill="#8E4F38"/><rect x="23" y="13" width="42" height="10" fill="#A6644A"/>
+    </pattern>
+    <linearGradient id="rz1-stone" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#B9AF9E"/><stop offset="1" stop-color="#8A8172"/>
+    </linearGradient>
+    <linearGradient id="rz1-frame" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#3E2A18"/><stop offset=".5" stop-color="#5E4228"/><stop offset="1" stop-color="#7A5636"/>
+    </linearGradient>
+    <linearGradient id="rz1-door" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#8C2413"/><stop offset=".55" stop-color="#A93019"/><stop offset="1" stop-color="#B93A1F"/>
+    </linearGradient>
+    <linearGradient id="rz1-panel" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#8A2312"/><stop offset="1" stop-color="#A12C17"/>
+    </linearGradient>
+    <linearGradient id="rz1-warm" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#FFE6A8"/><stop offset="1" stop-color="#F0B25E"/>
+    </linearGradient>
+    <linearGradient id="rz1-skyrefl" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#8E9AD0" stop-opacity=".55"/><stop offset=".5" stop-color="#8E9AD0" stop-opacity=".08"/><stop offset="1" stop-color="#FFFFFF" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="rz1-brass" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#6E5216"/><stop offset=".35" stop-color="#E9CB74"/><stop offset=".6" stop-color="#B38A2C"/><stop offset="1" stop-color="#5E4512"/>
+    </linearGradient>
+    <linearGradient id="rz1-curtain" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#E9B49C"/><stop offset=".25" stop-color="#F7D2BE"/><stop offset=".5" stop-color="#D99D84"/>
+      <stop offset=".75" stop-color="#F4CBB6"/><stop offset="1" stop-color="#D2957C"/>
+    </linearGradient>
+    <radialGradient id="rz1-glow" cx=".5" cy=".5" r=".5">
+      <stop offset="0" stop-color="#FFE3A0" stop-opacity=".9"/><stop offset=".35" stop-color="#FFC978" stop-opacity=".38"/><stop offset="1" stop-color="#FFC978" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="rz1-metal" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#15131A"/><stop offset=".5" stop-color="#3C3944"/><stop offset="1" stop-color="#1B1920"/>
+    </linearGradient>
+    <linearGradient id="rz1-step-top" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#CFC6B6"/><stop offset="1" stop-color="#B9AF9E"/>
+    </linearGradient>
+    <clipPath id="rz1-doorclip"><rect x="646" y="340" width="308" height="518"/></clipPath>
+  </defs>
+
+  <!-- 草地 -->
+  <rect y="850" width="1600" height="150" fill="url(#rz1-lawn)"/>
+  <rect y="850" width="1600" height="150" fill="#000" filter="url(#rz1-grain)" opacity=".6"/>
+  <!-- 房子落在草地上的長影（夕陽在右後方） -->
+  <path d="M360 858 L40 1000 H760 L700 858Z" fill="#1B1730" opacity=".28" filter="url(#rz1-b10)"/>
+  <!-- 石板路 -->
+  <path d="M664 900 H936 L1060 1000 H540Z" fill="url(#rz1-path)"/>
+  <path d="M664 900 H936 L1060 1000 H540Z" fill="#000" filter="url(#rz1-grain)"/>
+  <g stroke="#6F675A" stroke-width="2.5" opacity=".7" fill="none">
+    <path d="M640 920 H962 M612 946 H996 M578 976 H1034"/>
+    <path d="M800 900 V920 M720 920 L712 946 M880 920 L890 946 M800 946 V976 M660 976 L648 1000 M940 976 L954 1000"/>
+  </g>
+
+  <!-- 磚煙囪 -->
+  <rect x="1046" y="92" width="80" height="150" fill="url(#rz1-brick)"/>
+  <rect x="1046" y="92" width="28" height="150" fill="#2A2238" opacity=".3"/>
+  <rect x="1034" y="74" width="104" height="24" fill="#6B6359"/><rect x="1034" y="74" width="104" height="7" fill="#8A8176"/>
+
+  <!-- 外牆：橫向木板 -->
+  <path d="M360 304 L800 84 L1240 304 V858 H360Z" fill="url(#rz1-clap)"/>
+  <path d="M360 304 L800 84 L1240 304 V858 H360Z" fill="#000" filter="url(#rz1-grain)" opacity=".16"/>
+  <path d="M360 304 L800 84 L1240 304 V858 H360Z" fill="url(#rz1-wallshade)"/>
+  <!-- 簷下陰影 -->
+  <path d="M360 304 L800 84 L1240 304 V420 L800 200 L360 420Z" fill="url(#rz1-soffit)"/>
+  <!-- 牆角飾板與落水管 -->
+  <rect x="352" y="300" width="20" height="560" fill="url(#rz1-trim)"/><rect x="1228" y="300" width="20" height="560" fill="url(#rz1-trim)"/>
+  <rect x="1262" y="330" width="14" height="530" rx="6" fill="#CFC8BC"/><rect x="1262" y="330" width="5" height="530" rx="2" fill="#F1ECE2"/>
+
+  <!-- 山牆封簷：瓦緣 + 白色封簷板 -->
+  <path d="M276 330 L800 34 L1324 330 L1314 348 L800 56 L286 348Z" fill="#3E2A26"/>
+  <path d="M286 348 L800 56 L1314 348 L1300 376 L800 92 L300 376Z" fill="url(#rz1-trim)"/>
+  <path d="M300 376 L800 92 L1300 376" fill="none" stroke="#8E8474" stroke-width="3"/>
+  <path d="M286 348 L800 56 L1314 348" fill="none" stroke="#FFFDF6" stroke-width="2" opacity=".8"/>
+
+  <!-- 閣樓圓窗 -->
+  <circle cx="800" cy="226" r="150" fill="url(#rz1-glow)" opacity=".55"/>
+  <circle cx="800" cy="226" r="58" fill="#CFC5B4"/><circle cx="800" cy="226" r="54" fill="url(#rz1-trim)"/>
+  <circle cx="800" cy="226" r="42" fill="url(#rz1-warm)"/>
+  <circle cx="800" cy="226" r="42" fill="url(#rz1-skyrefl)"/>
+  <path d="M758 226 H842 M800 184 V268" stroke="#F3ECDF" stroke-width="7"/>
+  <path d="M758 229 H842 M803 184 V268" stroke="#6E6252" stroke-width="1.5" opacity=".5"/>
+
+  <!-- 石砌牆基 -->
+  <rect x="344" y="812" width="912" height="50" fill="url(#rz1-stone)"/>
+  <rect x="344" y="812" width="912" height="50" fill="#000" filter="url(#rz1-grain)"/>
+  <g stroke="#6B6356" stroke-width="2.5" opacity=".75"><path d="M344 838 H1256 M430 812 V838 M540 838 V862 M610 812 V838 M1010 812 V838 M1090 838 V862 M1170 812 V838 M470 838 V862"/></g>
+  <rect x="344" y="808" width="912" height="8" fill="#D6CDBD"/>
+
+  <!-- 側窗 -->
+  <circle cx="490" cy="530" r="230" fill="url(#rz1-glow)" opacity=".7"/>
+  <rect x="398" y="400" width="184" height="246" fill="#B9AE9C"/>
+  <rect x="402" y="404" width="176" height="238" fill="url(#rz1-trim)"/>
+  <rect x="420" y="422" width="140" height="202" fill="url(#rz1-warm)"/>
+  <!-- 窗簾（有褶） -->
+  <path d="M420 422 h52 q-2 110 -52 176Z" fill="url(#rz1-curtain)"/><path d="M560 422 h-52 q2 110 52 176Z" fill="url(#rz1-curtain)"/>
+  <path d="M420 422 h52 q-2 110 -52 176Z M560 422 h-52 q2 110 52 176Z" fill="#7A3E2A" opacity=".12"/>
+  <rect x="420" y="422" width="140" height="202" fill="url(#rz1-skyrefl)"/>
+  <!-- 窗框內側陰影與窗櫺 -->
+  <path d="M420 422 h140 v202" fill="none" stroke="#3A3040" stroke-width="5" opacity=".28"/>
+  <path d="M490 422 V624 M420 522 H560" stroke="#F3ECDF" stroke-width="9"/>
+  <path d="M495 422 V624 M420 527 H560" stroke="#6E6252" stroke-width="1.5" opacity=".45"/>
+  <!-- 窗台與花台 -->
+  <rect x="386" y="640" width="208" height="16" fill="url(#rz1-trim)"/><rect x="386" y="656" width="208" height="14" fill="#2A2238" opacity=".22"/>
+  <rect x="406" y="662" width="168" height="44" fill="#6B4A2C"/><rect x="406" y="662" width="168" height="44" fill="#000" filter="url(#rz1-woodh)"/>
+  <rect x="406" y="662" width="168" height="6" fill="#8E6A46"/>
+  <g fill="#34573A"><circle cx="430" cy="656" r="18"/><circle cx="462" cy="648" r="20"/><circle cx="500" cy="652" r="19"/><circle cx="536" cy="648" r="19"/><circle cx="560" cy="658" r="14"/></g>
+  <g fill="#4F7E4A"><circle cx="444" cy="646" r="11"/><circle cx="480" cy="640" r="12"/><circle cx="520" cy="642" r="11"/><circle cx="548" cy="644" r="9"/></g>
+  <g fill="#D8492E"><circle cx="438" cy="640" r="6"/><circle cx="474" cy="632" r="6.5"/><circle cx="512" cy="636" r="6"/><circle cx="544" cy="634" r="5.5"/></g>
+  <g fill="#F7C96A"><circle cx="456" cy="650" r="4.5"/><circle cx="494" cy="644" r="4.5"/><circle cx="530" cy="650" r="4"/></g>
+
+  <!-- 門框 -->
+  <rect x="618" y="312" width="364" height="548" fill="url(#rz1-frame)"/>
+  <rect x="618" y="312" width="364" height="548" fill="#000" filter="url(#rz1-woodv)"/>
+  <path d="M618 312 H982 V860" fill="none" stroke="#9A7650" stroke-width="3" opacity=".7"/>
+  <rect x="640" y="334" width="320" height="526" fill="#1E1410"/>
+
+  <!-- 門扇 -->
+  <rect x="646" y="340" width="308" height="518" fill="url(#rz1-door)"/>
+  <rect x="646" y="340" width="308" height="518" fill="#000" filter="url(#rz1-woodv)"/>
+  <!-- 門框落在門上的陰影 -->
+  <g clip-path="url(#rz1-doorclip)">
+    <rect x="636" y="330" width="34" height="540" fill="#120A08" opacity=".5" filter="url(#rz1-b10)"/>
+    <rect x="636" y="322" width="330" height="34" fill="#120A08" opacity=".45" filter="url(#rz1-b10)"/>
+  </g>
+  <!-- 氣窗玻璃 -->
+  <rect x="686" y="368" width="228" height="86" fill="#5E170B"/>
+  <rect x="694" y="376" width="212" height="70" fill="url(#rz1-warm)"/>
+  <rect x="694" y="376" width="212" height="70" fill="url(#rz1-skyrefl)"/>
+  <path d="M764 376 V446 M836 376 V446" stroke="#8C2413" stroke-width="8"/>
+  <path d="M694 376 h212 v70" fill="none" stroke="#2A0C06" stroke-width="3" opacity=".5"/>
+  <!-- 凹板：上右陰影、下左受光 -->
+  <g>
+    <rect x="690" y="484" width="220" height="152" fill="url(#rz1-panel)"/>
+    <rect x="690" y="666" width="220" height="158" fill="url(#rz1-panel)"/>
+    <path d="M690 484 H910 V636 M690 666 H910 V824" fill="none" stroke="#4A1208" stroke-width="5" opacity=".75"/>
+    <path d="M690 484 V636 H910 M690 666 V824 H910" fill="none" stroke="#D56A4E" stroke-width="3" opacity=".7"/>
+    <rect x="706" y="500" width="188" height="120" fill="none" stroke="#C2553A" stroke-width="2" opacity=".5"/>
+    <rect x="706" y="682" width="188" height="126" fill="none" stroke="#C2553A" stroke-width="2" opacity=".5"/>
+  </g>
+  <!-- 黃銅門把 -->
+  <rect x="912" y="566" width="26" height="96" rx="4" fill="#1A0D08" opacity=".45" filter="url(#rz1-b3)"/>
+  <rect x="906" y="558" width="26" height="96" rx="4" fill="url(#rz1-brass)"/>
+  <rect x="872" y="588" width="52" height="14" rx="7" fill="#1A0D08" opacity=".4" filter="url(#rz1-b3)" transform="translate(4 8)"/>
+  <rect x="868" y="586" width="56" height="14" rx="7" fill="url(#rz1-brass)"/>
+  <rect x="872" y="588" width="40" height="3" rx="1.5" fill="#FFF3C4" opacity=".8"/>
+  <circle cx="919" cy="632" r="5" fill="#3A2A12"/><rect x="917.500" y="632" width="3" height="9" fill="#3A2A12"/>
+  <!-- 門檻 -->
+  <rect x="618" y="848" width="364" height="12" fill="#4A3320"/><rect x="618" y="848" width="364" height="3" fill="#8E6A46"/>
+
+  <!-- 壁燈 -->
+  <circle cx="1068" cy="452" r="230" fill="url(#rz1-glow)"/>
+  <ellipse cx="1068" cy="620" rx="110" ry="170" fill="#FFD08A" opacity=".16" filter="url(#rz1-b24)"/>
+  <path d="M1068 392 v-22 h-28" fill="none" stroke="#17151C" stroke-width="7" stroke-linecap="round"/>
+  <path d="M1040 404 h56 l-12 -18 h-32Z" fill="url(#rz1-metal)"/>
+  <rect x="1046" y="404" width="44" height="70" fill="#17151C"/>
+  <rect x="1051" y="409" width="34" height="60" fill="url(#rz1-warm)"/>
+  <rect x="1060" y="420" width="16" height="38" rx="8" fill="#FFF8E0" filter="url(#rz1-b3)"/>
+  <path d="M1068 409 V469" stroke="#17151C" stroke-width="3"/>
+  <path d="M1046 474 h44 l-10 12 h-24Z" fill="url(#rz1-metal)"/>
+
+  <!-- 陶瓷番茄門牌 -->
+  <rect x="1122" y="402" width="84" height="84" rx="6" fill="#1A1420" opacity=".3" filter="url(#rz1-b3)"/>
+  <rect x="1118" y="398" width="84" height="84" rx="6" fill="#F6F0E4"/>
+  <rect x="1118" y="398" width="84" height="84" rx="6" fill="none" stroke="#C9BEA9" stroke-width="3"/>
+  <radialGradient id="rz1-tom" cx=".38" cy=".34" r=".7"><stop offset="0" stop-color="#F58468"/><stop offset=".5" stop-color="#D2391F"/><stop offset="1" stop-color="#8E1F10"/></radialGradient>
+  <circle cx="1160" cy="446" r="24" fill="url(#rz1-tom)"/>
+  <path d="M1160 426 l-13 -7 l9 -3 l4 -10 l4 10 l9 3Z" fill="#3E6B3A"/>
+
+  <!-- 混凝土門階 -->
+  <ellipse cx="800" cy="906" rx="290" ry="16" fill="#120F1C" opacity=".35" filter="url(#rz1-b10)"/>
+  <rect x="552" y="856" width="496" height="22" fill="url(#rz1-step-top)"/>
+  <rect x="552" y="878" width="496" height="26" fill="#958C7D"/>
+  <rect x="552" y="856" width="496" height="48" fill="#000" filter="url(#rz1-grain)"/>
+  <rect x="552" y="876" width="496" height="3" fill="#E2DACB" opacity=".8"/>
+  <!-- 門在門階上的接觸陰影 -->
+  <rect x="610" y="854" width="380" height="14" fill="#120A08" opacity=".35" filter="url(#rz1-b3)"/>
+</svg>

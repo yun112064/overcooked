@@ -1,0 +1,89 @@
+/* 設計 tokens（DESIGN.md 第 3 節）。場景本身是寫實插圖；這些 tokens 給疊在場景上的介面用。 */
+:root {
+  --tomato-600: #d9472b;
+  --tomato-500: #e8603f;
+  --tomato-100: #fce3da;
+  --brick-700: #a93019;
+  --brick-800: #8c2413;
+  --cream-50: #fffdf7;
+  --cream-100: #fbf7ee;
+  --cream-200: #f3e0c3;
+  --paper-edge: #cdbfa3;
+  --basil-700: #2c5c38;
+  --basil-600: #3f7d4e;
+  --basil-100: #ddefd9;
+  --mustard-700: #7a4b00;
+  --mustard-500: #e7a72e;
+  --mustard-100: #fbeed2;
+  --ink-900: #3a2a20;
+  --ink-600: #6e5a4c;
+  --unknown: #9c8e83;
+  --night: #2a2238;
+
+  --font-round: 'M PLUS Rounded 1c', 'Noto Sans TC', system-ui, sans-serif;
+  --font-body: 'Noto Sans TC', system-ui, sans-serif;
+
+  --shadow-float: 0 12px 30px rgba(15, 8, 25, 0.45);
+  --ease-out: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --dur-fast: 120ms;
+  --dur-base: 240ms;
+  --cam-same-room: 400ms;
+  --cam-cross-room: 600ms;
+
+  /* 疊在場景上的介面，由下而上：物件列與吉祥物 → 分頁／側欄／選單 → 面板 → 對話框 */
+  --z-hud: 4;
+  --z-panel: 6;
+  --z-dialog: 8;
+  /* 底部分頁與動作列的高度；和 src/shell/hudLayout.ts 是同一組數字，兩邊要一起改 */
+  --tabbar-h: 56px;
+  --actionbar-h: 64px;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  background: var(--night);
+  color: var(--ink-900);
+  font-family: var(--font-body);
+  font-size: 16px;
+  line-height: 1.65;
+  overflow: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+  color: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+:focus-visible {
+  outline: 3px solid var(--mustard-500);
+  outline-offset: 3px;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}

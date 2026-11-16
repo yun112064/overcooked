@@ -1,0 +1,17 @@
+/* 用 em 當單位：放在世界裡（cqw 字級）或放在面板裡（px 字級）都跟著周圍的字縮放 */
+.unknown {
+  display: inline-block;
+  padding: 0 0.5em;
+  border: 0.1em dashed var(--unknown);
+  border-radius: 0.5em;
+  color: var(--ink-600);
+  font-weight: 700;
+  line-height: 1.5;
+  white-space: nowrap;
+}
+
+.unknown small {
+  font-size: 0.85em;
+  font-weight: 500;
+  white-space: normal;
+}

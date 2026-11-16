@@ -1,0 +1,514 @@
+/* 餐桌各個面板的內容（放在共用的 <Panel> 裡；字級跟著面板的 15px） */
+
+.stack {
+  display: grid;
+  gap: 12px;
+}
+
+.stack p,
+.stack ul,
+.stack ol,
+.stack dl {
+  margin: 0;
+}
+
+.stack h3 {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin: 0 0 6px;
+  font-family: var(--font-round);
+  font-size: 15px;
+  color: var(--brick-800);
+}
+
+.stack h3 small {
+  font-family: var(--font-body);
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--ink-600);
+}
+
+.stack h4 {
+  margin: 8px 0 2px;
+  font-size: 13px;
+  color: var(--ink-600);
+}
+
+.stack a {
+  color: var(--brick-700);
+  font-weight: 700;
+  text-underline-offset: 2px;
+}
+
+.lead {
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.hint,
+.footnote {
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--ink-600);
+}
+
+.problem {
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: var(--tomato-100);
+  color: var(--brick-800);
+  font-weight: 700;
+}
+
+.tags,
+.badges,
+.buttonRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.tags {
+  font-size: 13px;
+  color: var(--ink-600);
+}
+
+.index {
+  font-family: var(--font-round);
+  font-weight: 800;
+  color: var(--brick-700);
+}
+
+.bullets {
+  padding-left: 1.2em;
+}
+
+.linkButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 0 16px;
+  border: 1px solid var(--paper-edge);
+  border-radius: 10px;
+  background: var(--cream-50);
+  color: var(--ink-900);
+  font-weight: 700;
+  text-decoration: none;
+}
+
+/* 其他版本：每一列是一個可以點的連結，高度至少 44px */
+.versions {
+  padding: 0;
+  list-style: none;
+}
+
+.versions li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-height: 44px;
+  border-bottom: 1px dashed var(--paper-edge);
+}
+
+.versions a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding-right: 12px;
+}
+
+.versions small {
+  font-size: 13px;
+  color: var(--ink-600);
+}
+
+/* ---- 菜 ---- */
+.cover {
+  display: block;
+  width: 100%;
+  max-width: 320px;
+  aspect-ratio: 4 / 3;
+  object-fit: contain;
+  border-radius: 10px;
+}
+
+.ingredients {
+  padding: 0;
+  list-style: none;
+}
+
+.ingredients li {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 5px 0;
+  border-bottom: 1px dashed var(--paper-edge);
+}
+
+.ingredients li > :last-child {
+  flex: none;
+  color: var(--ink-600);
+}
+
+.steps {
+  display: grid;
+  gap: 6px;
+  padding-left: 1.4em;
+}
+
+/* ---- 每人營養 ---- */
+.energyLine b {
+  font-size: 1.1em;
+  color: var(--basil-700);
+}
+
+.energyLine small {
+  margin-left: 8px;
+  color: var(--ink-600);
+}
+
+.nutrients {
+  display: grid;
+  gap: 10px;
+}
+
+.nutrient {
+  display: grid;
+  grid-template-columns: 5.6em 1fr;
+  gap: 8px;
+  align-items: start;
+}
+
+.nutrient dt {
+  font-size: 14px;
+}
+
+.nutrient dd {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+  margin: 0;
+}
+
+.required {
+  font-weight: 700;
+}
+
+.nutrientHead {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 2px 8px;
+}
+
+.nutrientHead small {
+  font-size: 12px;
+  color: var(--ink-600);
+}
+
+/* 長條：這一餐占每日建議的比例；刻度線是這一餐應占的比例 */
+.bar {
+  position: relative;
+  display: block;
+  height: 8px;
+  border-radius: 4px;
+  background: var(--cream-200);
+}
+
+.bar i {
+  position: absolute;
+  inset: 0 auto 0 0;
+  border-radius: 4px;
+}
+
+.bar u {
+  position: absolute;
+  top: -3px;
+  bottom: -3px;
+  width: 2px;
+  margin-left: -1px;
+  background: var(--ink-900);
+  opacity: 0.6;
+}
+
+.normal {
+  background: var(--basil-600);
+}
+
+.high {
+  background: var(--mustard-500);
+}
+
+.over {
+  background: var(--brick-700);
+}
+
+.barNote {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--mustard-700);
+}
+
+.bento {
+  display: grid;
+  gap: 8px;
+  padding-top: 12px;
+  border-top: 1px dashed var(--paper-edge);
+}
+
+/* ---- 全家合計 ---- */
+.stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.stats > div {
+  padding: 8px 10px;
+  border: 1px solid var(--cream-200);
+  border-radius: 10px;
+  background: var(--cream-50);
+}
+
+.stats dt {
+  font-size: 12px;
+  color: var(--ink-600);
+}
+
+.stats dd {
+  margin: 0;
+  font-size: 13px;
+}
+
+.stats dd b {
+  font-family: var(--font-round);
+  font-size: 20px;
+  font-variant-numeric: tabular-nums;
+}
+
+.stats .statNote {
+  font-size: 12px;
+  color: var(--ink-600);
+}
+
+.macroBar {
+  display: flex;
+  gap: 2px;
+  height: 12px;
+  overflow: hidden;
+  border-radius: 6px;
+  background: var(--cream-200);
+}
+
+.macroList {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 8px !important;
+  padding: 0;
+  list-style: none;
+}
+
+.macroList b {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 13px;
+}
+
+.macroList b i {
+  flex: none;
+  width: 9px;
+  height: 9px;
+  border-radius: 2px;
+}
+
+.macroList small {
+  display: block;
+  font-size: 12px;
+  color: var(--basil-700);
+}
+
+.macroList .off {
+  color: var(--mustard-700);
+  font-weight: 700;
+}
+
+.carb {
+  background: var(--mustard-500);
+}
+
+.protein {
+  background: #4a6fa5;
+}
+
+.fat {
+  background: var(--basil-600);
+}
+
+.tableWrap {
+  overflow-x: auto;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.table th,
+.table td {
+  padding: 6px 6px 6px 0;
+  border-bottom: 1px solid var(--cream-200);
+  text-align: left;
+  vertical-align: top;
+}
+
+.table thead th {
+  font-size: 12px;
+  color: var(--ink-600);
+}
+
+.table tbody th {
+  font-weight: 400;
+  white-space: nowrap;
+}
+
+.table tbody th.required {
+  font-weight: 700;
+}
+
+/* ---- 收據 ---- */
+.items {
+  display: grid;
+  gap: 8px;
+  padding: 0;
+  list-style: none;
+}
+
+.items li {
+  display: grid;
+  gap: 4px;
+  padding: 10px 12px;
+  border: 1px solid var(--cream-200);
+  border-radius: 10px;
+  background: var(--cream-50);
+}
+
+/* 查無價格：虛線框，和有價格的明顯不同 */
+.items .itemUnknown {
+  border: 2px dashed var(--unknown);
+  background: rgba(255, 253, 247, 0.6);
+}
+
+.itemHead {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.itemHead span,
+.itemPack {
+  font-size: 13px;
+  color: var(--ink-600);
+}
+
+.amounts {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.amounts dt {
+  font-size: 12px;
+  color: var(--ink-600);
+}
+
+.amounts dt small {
+  margin-left: 4px;
+}
+
+.amounts dd {
+  margin: 0;
+  font-weight: 700;
+}
+
+.itemSource {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px 8px;
+  font-size: 12px;
+  color: var(--ink-600);
+}
+
+.itemSource em {
+  font-style: normal;
+  font-weight: 700;
+  color: var(--mustard-700);
+}
+
+.itemMissing {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--brick-800);
+}
+
+.totals {
+  display: grid;
+  gap: 8px;
+  padding-top: 12px;
+  border-top: 2px dashed var(--paper-edge);
+}
+
+.totals .amounts dd {
+  font-family: var(--font-round);
+  font-size: 18px;
+}
+
+.budget {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+/* ---- 小知識卡 ---- */
+.tipCard {
+  display: grid;
+  gap: 8px;
+  padding: 14px 16px;
+  border: 1px solid var(--paper-edge);
+  border-radius: 10px;
+  background: #fffefa;
+  box-shadow: 3px 3px 0 var(--cream-200), 6px 6px 0 #efe7d6;
+}
+
+.tipCard h3 {
+  margin: 0;
+  font-size: 17px;
+}
+
+.tipSource {
+  padding-top: 8px;
+  border-top: 1px dashed var(--paper-edge);
+  font-size: 13px;
+  color: var(--ink-600);
+}
+
+.pager {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  font-variant-numeric: tabular-nums;
+}
+
+.pager button {
+  min-width: 44px;
+  font-size: 20px;
+}

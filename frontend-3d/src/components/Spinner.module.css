@@ -1,0 +1,35 @@
+/* em 單位：跟著周圍的字縮放 */
+.spinner {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5em;
+  font-weight: 700;
+}
+
+.spinner i {
+  flex: none;
+  width: 1.1em;
+  height: 1.1em;
+  border: 0.16em solid var(--cream-200);
+  border-top-color: var(--tomato-500);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* 靜態景深、關閉、系統減少動態：不轉，文字仍然在 */
+:global(html[data-depth='static']) .spinner i,
+:global(html[data-depth='off']) .spinner i {
+  animation: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .spinner i {
+    animation: none;
+  }
+}

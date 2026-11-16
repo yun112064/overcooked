@@ -1,9 +1,10 @@
 ﻿<#
 .SYNOPSIS
-  關閉 start-dev.ps1 啟動的所有服務（後端、worker、排程、查價、知識 RAG、前端、YOLO），並停止資料庫容器（資料保留）。
+  關閉 start-dev.ps1 啟動的所有服務（後端、worker、排程、查價、知識 RAG、前端、YOLO、飲食小幫手 assistant／assistant-openai、
+  模擬超市 sim-supermarket），並停止資料庫容器與 start-dev 啟動的小幫手容器（資料保留）。
 
 .PARAMETER KeepDb
-  只關服務，資料庫容器繼續執行。
+  只關服務，資料庫容器（含小幫手的資料庫與重排容器）繼續執行。
 #>
 param([switch]$KeepDb)
 
@@ -33,4 +34,13 @@ if (-not $KeepDb) {
     }
     docker stop $Db *> $null
     if ($LASTEXITCODE -eq 0) { Write-Host "已停止資料庫容器 $Db（資料保留）" }
+    # 飲食小幫手：只停 start-dev 記錄為由它啟動的容器（pgvector 資料庫與重排服務）
+    $AssistantContainersFile = Join-Path $Root '.dev\assistant-containers.txt'
+    if (Test-Path $AssistantContainersFile) {
+        foreach ($c in (Get-Content $AssistantContainersFile | Where-Object { $_.Trim() } | Sort-Object -Unique)) {
+            docker stop $c *> $null
+            if ($LASTEXITCODE -eq 0) { Write-Host "已停止小幫手容器 $c（資料保留）" }
+        }
+        Remove-Item $AssistantContainersFile
+    }
 }

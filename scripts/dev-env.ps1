@@ -88,10 +88,14 @@ function Set-DevEnvironment($Cfg, [string]$Root) {
     # 知識管理指令（crawl --queued、index build、status）把本機後端當成「雲端內部 API」
     $env:CLOUD_INTERNAL_URL = Get-DevValue $Cfg 'CLOUD_INTERNAL_URL' 'http://127.0.0.1:8000'
     $env:CLOUD_INTERNAL_TOKEN = Get-DevValue $Cfg 'INTERNAL_API_TOKEN'
+    # 模擬超市：有 SIM_MARKET_HANDOFF_KEY 才啟用；沒填網址時指向本機 sim-supermarket 開發伺服器（5174）
+    $simMarket = [bool](Get-DevValue $Cfg 'SIM_MARKET_HANDOFF_KEY')
+    if ($simMarket -and -not (Get-DevValue $Cfg 'SIM_MARKET_URL')) { $env:SIM_MARKET_URL = 'http://127.0.0.1:5174' }
 
     [pscustomobject]@{
         DbPort = $dbPort; DbName = $dbName; DbPassword = $dbPassword
         KnowledgeDbName = $knDbName; KnowledgePort = $knPort; SkipKnowledge = $skipKnowledge
         SkipPrices = (Get-DevValue $Cfg 'DEV_SKIP_PRICES') -eq '1'
+        SimMarket = $simMarket
     }
 }

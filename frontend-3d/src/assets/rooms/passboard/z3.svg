@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 1000" preserveAspectRatio="xMidYMid slice">
+  <!-- 單板＋鍋 z3：前景——抽油煙機燈打下來的光、暗角 -->
+  <defs>
+    <radialGradient id="pz3-light" gradientUnits="userSpaceOnUse" cx="1090" cy="380" r="560">
+      <stop offset="0" stop-color="#FFF3CF" stop-opacity=".22"/><stop offset="1" stop-color="#FFF3CF" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="pz3-vig" cx=".5" cy=".48" r=".8">
+      <stop offset=".55" stop-color="#150F1E" stop-opacity="0"/><stop offset="1" stop-color="#150F1E" stop-opacity=".5"/>
+    </radialGradient>
+  </defs>
+  <rect width="1600" height="1000" fill="url(#pz3-light)"/>
+  <rect x="-80" y="-60" width="1760" height="1120" fill="url(#pz3-vig)"/>
+</svg>

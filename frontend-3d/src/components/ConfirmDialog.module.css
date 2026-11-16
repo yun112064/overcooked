@@ -1,0 +1,50 @@
+.dialog {
+  width: min(380px, calc(100vw - 32px));
+  max-height: calc(100vh - 48px);
+  max-height: calc(100dvh - 48px);
+  padding: 20px;
+  border: 0;
+  border-radius: 16px;
+  background: linear-gradient(#fffefa, #f1eadb);
+  box-shadow: var(--shadow-float);
+  color: var(--ink-900);
+  font-size: 15px;
+  overflow-y: auto;
+}
+
+/* ::backdrop 不一定繼承得到 :root 的變數，顏色直接寫 */
+.dialog::backdrop {
+  background: rgba(26, 18, 34, 0.55);
+}
+
+.dialog h2 {
+  margin: 0 0 8px;
+  font-family: var(--font-round);
+  font-size: 18px;
+  line-height: 1.4;
+  color: var(--brick-800);
+}
+
+.body {
+  margin: 0 0 4px;
+}
+
+.error {
+  margin: 10px 0 0;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: var(--tomato-100);
+  color: var(--brick-800);
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+.actions > * {
+  flex: 1;
+}

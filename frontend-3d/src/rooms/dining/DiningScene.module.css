@@ -1,0 +1,633 @@
+/*
+ * 餐桌。上半是世界裡的東西（跟著鏡頭縮放，字級用 cqw 並夾在看得清楚的範圍），下半是固定在畫面上的介面。
+ * 選擇器寫成 button.xxx 是為了蓋過 Room 的 .hotspot（兩邊都是單一 class，載入順序不保證）。
+ */
+
+.sprite {
+  display: block;
+  width: 100%;
+  pointer-events: none;
+  user-select: none;
+}
+
+/* 目前打開面板的那個物件疊在鄰居上面 */
+.active {
+  z-index: 2;
+}
+
+/* 用自己的 translate 把東西垂直置中在座標上（水平置中是 Room 的 transform 做的，兩者會相加） */
+.centred {
+  translate: 0 -50%;
+}
+
+/* 器皿下方、卡盤下方的深色小標籤 */
+.tag {
+  position: absolute;
+  left: 50%;
+  top: 86%;
+  translate: -50% 0;
+  max-width: max(104%, 5.6em);
+  overflow: hidden;
+  padding: 0.15em 0.6em;
+  border-radius: 99em;
+  background: rgba(30, 20, 35, 0.78);
+  color: #fff;
+  font-weight: 700;
+  line-height: 1.45;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tag em {
+  margin-left: 0.4em;
+  font-style: normal;
+  color: #ffd27a;
+}
+
+/* ---- 座位：餐墊、飯碗、名牌 ---- */
+.seat {
+  aspect-ratio: 1;
+  font-size: clamp(12px, 0.85cqw, 16px);
+}
+
+button.seat {
+  border-radius: 50%;
+}
+
+.setting {
+  position: absolute;
+  left: 0;
+  top: 50%;
+  width: 100%;
+  translate: 0 -50%;
+  pointer-events: none;
+  user-select: none;
+}
+
+.bowl {
+  position: absolute;
+  translate: -50% -50%;
+  border-radius: 50%;
+  pointer-events: none;
+  user-select: none;
+  transition: scale var(--dur-base) var(--ease-out);
+}
+
+.seat:hover .bowl,
+.seat:focus-visible .bowl,
+.seat.active .bowl {
+  scale: 1.1;
+}
+
+/* 超出或不足：碗外加一圈芥末色實線（名牌上同時有文字） */
+.bowl.fail {
+  outline: 0.2cqw solid var(--mustard-500);
+  outline-offset: 0.15cqw;
+}
+
+/* 計算不完整：空碗加虛線框，不畫飯 */
+.bowl.unknown {
+  outline: 0.22cqw dashed #fff6e0;
+  outline-offset: 0.2cqw;
+}
+
+.nameTag {
+  position: absolute;
+  translate: -50% -50%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.15em;
+  padding: 0.3em 0.6em;
+  border-radius: 0.6em;
+  background: rgba(255, 253, 247, 0.95);
+  box-shadow: 0 0.3em 0.8em rgba(15, 8, 25, 0.45);
+  color: var(--ink-900);
+  line-height: 1.3;
+  white-space: nowrap;
+}
+
+.seat.active .nameTag {
+  box-shadow: 0 0 0 0.16em var(--tomato-500), 0 0.3em 0.8em rgba(15, 8, 25, 0.45);
+}
+
+.nameTag b {
+  font-family: var(--font-round);
+  font-size: 1.05em;
+}
+
+.nameTag small {
+  font-size: 0.86em;
+  color: var(--ink-600);
+}
+
+/* 名字與判定：桌機排成一列（名牌矮一點，才不會碰到上方的標題列與下方的動作列），手機疊成兩行（名牌窄一點） */
+.who {
+  display: flex;
+  align-items: center;
+  gap: 0.4em;
+}
+
+:global([data-layout='phone']) .who {
+  flex-direction: column;
+  gap: 0.1em;
+}
+
+.numbers {
+  display: flex;
+  align-items: center;
+  gap: 0.6em;
+}
+
+/* ---- 轉盤上的器皿 ---- */
+.dish {
+  aspect-ratio: 1;
+  font-size: clamp(11px, 0.72cqw, 14px);
+}
+
+button.dish {
+  /* 十道菜排兩圈時器皿很小；手機上至少留 44px 可以按（看不清楚的話物件列也有同一道菜） */
+  min-width: 44px;
+  border-radius: 50%;
+}
+
+.dish img {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  translate: -50% -50%;
+  filter: drop-shadow(0 0.25cqw 0.35cqw rgba(15, 8, 25, 0.45));
+  pointer-events: none;
+  user-select: none;
+  transition: scale var(--dur-base) var(--ease-out), filter var(--dur-base);
+}
+
+/* 抬起來：放大一點、影子拉長 */
+.dish:hover img,
+.dish:focus-visible img,
+.dish.active img {
+  scale: 1.08;
+  filter: drop-shadow(0 0.8cqw 0.9cqw rgba(15, 8, 25, 0.5));
+}
+
+/* ---- 家庭合計立牌 ---- */
+button.tent {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.1em;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0.4em 0.8em;
+  border-radius: 0.3em;
+  background: linear-gradient(#fffefa, #efe8da);
+  box-shadow: 0 0.4em 0.9em rgba(15, 8, 25, 0.45);
+  color: var(--ink-900);
+  font-size: clamp(11px, 0.76cqw, 15px);
+  line-height: 1.35;
+  white-space: nowrap;
+}
+
+.tent b {
+  font-family: var(--font-round);
+  color: var(--brick-700);
+}
+
+button.tent.active {
+  box-shadow: 0 0 0 0.16em var(--tomato-500), 0 0.4em 0.9em rgba(15, 8, 25, 0.45);
+}
+
+/* ---- 小卡盤 ---- */
+.tray {
+  min-width: 44px;
+  min-height: 44px;
+  font-size: clamp(11px, 0.72cqw, 14px);
+}
+
+.tray img {
+  display: block;
+  width: 100%;
+  rotate: -12deg;
+  filter: drop-shadow(0 0.25cqw 0.35cqw rgba(15, 8, 25, 0.45));
+  pointer-events: none;
+  user-select: none;
+  transition: scale var(--dur-base) var(--ease-out);
+}
+
+.tray:hover img,
+.tray:focus-visible img,
+.tray.active img {
+  scale: 1.08;
+}
+
+.tray .tag {
+  top: 92%;
+  max-width: none;
+}
+
+/* ---- 收據 ---- */
+.receipt {
+  min-width: 44px;
+  min-height: 44px;
+  color: var(--ink-900);
+  font-size: clamp(10px, 0.66cqw, 13px);
+}
+
+.paper {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3em;
+  aspect-ratio: 150 / 230;
+  padding: 13% 11% 0 13%;
+  background-size: 100% 100%;
+  rotate: 14deg;
+  filter: drop-shadow(0 0.25cqw 0.35cqw rgba(15, 8, 25, 0.4));
+  line-height: 1.3;
+  text-align: left;
+  transition: scale var(--dur-base) var(--ease-out);
+}
+
+.receipt:hover .paper,
+.receipt:focus-visible .paper,
+.receipt.active .paper {
+  scale: 1.06;
+}
+
+.paper > b {
+  margin-bottom: 0.2em;
+  letter-spacing: 0.2em;
+  text-align: center;
+}
+
+.paper small {
+  font-size: 0.9em;
+  color: var(--ink-600);
+}
+
+/* 查不到價格的食材：名稱＋虛線的「未知」 */
+.paper .missing {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.3em;
+}
+
+.missing > span:first-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.line {
+  display: flex;
+  flex-direction: column;
+  font-size: 1.1em;
+  font-weight: 700;
+}
+
+.line small {
+  font-weight: 500;
+}
+
+/* 印章：預算內綠色、超出預算紅色；兩種都有字。上面一行小字寫比的是哪一個金額（這餐吃掉） */
+.stamp {
+  position: absolute;
+  right: 6%;
+  bottom: 9%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 0.45em 0.4em;
+  border: 0.18em solid currentColor;
+  border-radius: 50%;
+  background: rgba(255, 253, 247, 0.75);
+  font-style: normal;
+  font-weight: 800;
+  line-height: 1.2;
+  rotate: -14deg;
+  white-space: nowrap;
+}
+
+.paper .stamp small {
+  font-size: 0.72em;
+  font-weight: 700;
+  color: inherit;
+}
+
+.stamp.ok {
+  color: var(--basil-700);
+}
+
+.stamp.over {
+  color: var(--brick-700);
+}
+
+/* 紙上寫不下字時（手機、人多）改用收據下面的標籤 */
+.receiptTag {
+  position: absolute;
+  left: 50%;
+  top: 100%;
+  translate: -50% -0.4em;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 0.25em 0.6em;
+  border-radius: 0.6em;
+  background: rgba(255, 253, 247, 0.95);
+  box-shadow: 0 0.3em 0.8em rgba(15, 8, 25, 0.45);
+  font-size: clamp(11px, 0.7cqw, 14px);
+  font-weight: 700;
+  line-height: 1.4;
+  white-space: nowrap;
+}
+
+.receiptTag small {
+  font-weight: 500;
+  color: var(--ink-600);
+}
+
+/* ---- 固定在畫面上的介面 ---- */
+
+/* 左上（手機）或上方中央（桌機）的一列：回上一層、這是哪一版、這桌的狀況 */
+.header {
+  position: absolute;
+  top: max(12px, env(safe-area-inset-top));
+  z-index: var(--z-hud);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+:global([data-layout='phone']) .header {
+  left: max(12px, env(safe-area-inset-left));
+  /* 右上角是家庭選單（最寬 50vw - 52px） */
+  max-width: calc(50vw + 28px);
+}
+
+:global([data-layout='wide']) .header {
+  left: 50%;
+  transform: translateX(-50%);
+  white-space: nowrap;
+}
+
+.back,
+.pill {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 999px;
+  background: rgba(255, 253, 247, 0.95);
+  box-shadow: 0 4px 10px rgba(15, 8, 25, 0.4);
+  color: var(--ink-900);
+  font-size: 14px;
+  font-weight: 700;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.pill {
+  flex: 0 1 auto;
+  min-width: 0;
+  border: 2px solid transparent;
+}
+
+/* 放不下時截斷文字，箭頭留著 */
+.pillText {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* 手機上方很窄（右邊還有家庭選單）：日期不寫在這裡，面板裡有 */
+:global([data-layout='phone']) .when {
+  display: none;
+}
+
+:global([data-layout='phone']) .back,
+:global([data-layout='phone']) .pill {
+  padding: 0 11px;
+}
+
+.tipsChip {
+  border-color: var(--basil-600);
+  color: var(--basil-700);
+}
+
+:global([data-layout='phone']) .tipsChip {
+  display: none;
+}
+
+/* 手機上方放不下模式的標籤（.chips）；AI 生成的菜單在狀態鍵上留一個小記號。桌機有完整的標籤，不重複 */
+.modeMark {
+  flex: none;
+  margin-left: 6px;
+  padding: 1px 6px;
+  border-radius: 6px;
+  background: var(--ink-900);
+  color: #fff;
+  font-size: 11px;
+  letter-spacing: 0.04em;
+}
+
+:global([data-layout='wide']) .modeMark {
+  display: none;
+}
+
+.pill.ok {
+  border-color: var(--basil-600);
+  color: var(--basil-700);
+}
+
+/* 只是告知（問卷已採用但還不知道是不是這一桌、這是舊版）：不用通過的綠色，也不是警告 */
+.pill.info {
+  border-color: var(--paper-edge);
+}
+
+.pill.warn {
+  border-color: var(--mustard-500);
+  color: var(--mustard-700);
+}
+
+.pill.danger {
+  border-color: var(--brick-700);
+  color: var(--brick-800);
+}
+
+.chips {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: rgba(255, 253, 247, 0.95);
+  box-shadow: 0 4px 10px rgba(15, 8, 25, 0.4);
+  font-size: 14px;
+}
+
+/* 手機上方放不下；版本與模式在「這桌的狀況」面板裡看得到 */
+:global([data-layout='phone']) .chips {
+  display: none;
+}
+
+/*
+ * 桌機的面板放在桌子左右的空位，不遮住桌面（DESIGN.md 5.6）。
+ * 共用面板寬 28vw；筆電螢幕上桌子旁邊沒那麼寬，所以這一景依空位再縮（最窄 280px，再窄內容排不下）。
+ * 世界的寬度是 max(100vw, 160vh)（蓋滿畫面），圓桌半徑佔其中 19.875%（300 ÷ 1600 × 圖層放大的 1.06）；
+ * 20px 是面板貼邊的 12px 加上和桌緣之間的空隙。左邊還要再讓開側欄（--left-inset）。
+ * 類別寫兩次是為了蓋過共用面板的寬度（兩邊的選擇器一樣重，載入順序不保證）。
+ */
+:global([data-layout='wide']) .panelLeft.panelLeft,
+:global([data-layout='wide']) .panelRight.panelRight {
+  --beside-table: calc(50vw - max(100vw, 160vh) * 0.19875 - 20px);
+}
+
+:global([data-layout='wide']) .panelRight.panelRight {
+  width: clamp(280px, var(--beside-table), 400px);
+}
+
+:global([data-layout='wide']) .panelLeft.panelLeft {
+  width: clamp(280px, calc(var(--beside-table) - var(--left-inset)), 400px);
+}
+
+/*
+ * 場景層級的提示（桌上有菜之後用這個，不用共用的 <HudNote>）。
+ * 上方中央是坐在上面那位的名牌與桌緣，筆電螢幕（高 720–768px）上會被提示蓋住；
+ * 圓桌的四個角落是空的地板，所以桌機把提示放在角落：預設左上，左邊開著面板時換到右上。
+ * 手機沒有角落可用，仍然放上方中央（和 HudNote 同一個位置）。
+ */
+.notes {
+  position: absolute;
+  z-index: var(--z-hud);
+  display: grid;
+  gap: 8px;
+}
+
+/* 直接放 <Spinner> 時給它一塊底，不然字會壓在插圖上看不清楚（和 HudNote 一樣） */
+.notes > span {
+  justify-self: start;
+  padding: 8px 14px;
+  border-radius: 999px;
+  background: rgba(255, 253, 247, 0.95);
+  box-shadow: 0 4px 10px rgba(15, 8, 25, 0.4);
+  font-size: 14px;
+}
+
+:global([data-layout='phone']) .notes {
+  left: 50%;
+  /* 讓開最上面那一列（回上一層、這桌的狀況、家庭選單） */
+  top: calc(max(12px, env(safe-area-inset-top)) + 54px);
+  width: min(420px, calc(100vw - 32px));
+  transform: translateX(-50%);
+}
+
+:global([data-layout='phone']) .notes > span {
+  justify-self: center;
+}
+
+/*
+ * 手機上桌子只佔畫面中間，提示疊多了會蓋住上面的座位、立牌和菜：
+ * 平常只露出最要緊的一則（見 <NoteStack>）；展開全部時限制高度、在裡面捲，不會一路蓋到桌子下半部。
+ * 只在展開時才裁切：平常不裁，便條的影子才不會被切掉。
+ */
+:global([data-layout='phone']) .notes[data-expanded] {
+  max-height: 46dvh;
+  padding-bottom: 8px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+/* 「還有 N 則提示／收起提示」：只有手機有 */
+.moreNotes {
+  justify-self: center;
+  min-height: 44px;
+  padding: 0 16px;
+  border: 1px solid var(--paper-edge);
+  border-radius: 999px;
+  background: rgba(255, 253, 247, 0.95);
+  box-shadow: 0 4px 10px rgba(15, 8, 25, 0.4);
+  color: var(--ink-900);
+  font-size: 14px;
+  font-weight: 700;
+}
+
+/* 寬度和面板一樣跟著桌子旁邊的空位（算法見上面的 .panelLeft），窄一點、不碰到桌緣 */
+:global([data-layout='wide']) .notes {
+  --beside-table: calc(50vw - max(100vw, 160vh) * 0.19875 - 20px);
+}
+
+:global([data-layout='wide']) .notesLeft {
+  left: calc(var(--left-inset) + max(12px, env(safe-area-inset-left)));
+  top: max(16px, env(safe-area-inset-top));
+  width: clamp(240px, calc(var(--beside-table) - var(--left-inset)), 360px);
+}
+
+:global([data-layout='wide']) .notesRight {
+  right: max(12px, env(safe-area-inset-right));
+  /* 讓開右上角的家庭選單 */
+  top: calc(max(12px, env(safe-area-inset-top)) + 56px);
+  width: clamp(240px, var(--beside-table), 360px);
+}
+
+/* 提示裡的連結：長得像按鈕，高度至少 44px */
+.noteLink {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 0 16px;
+  border: 1px solid var(--paper-edge);
+  border-radius: 10px;
+  background: var(--cream-50);
+  color: var(--ink-900);
+  font-weight: 700;
+  text-decoration: none;
+}
+
+/* 動作列裡的連結（回客廳、看紀錄）：和旁邊的按鈕同一個樣子 */
+.actionLink {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 0 16px;
+  border: 1px solid var(--paper-edge);
+  border-radius: 10px;
+  background: var(--cream-100);
+  color: var(--ink-900);
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1.2;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.actionLink:hover {
+  background: var(--cream-200);
+}
+
+/* 手機的動作列最多會有四顆按鈕，縮一點才排得下 */
+:global([data-layout='phone']) .action {
+  padding: 0 6px;
+  font-size: 14px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bowl,
+  .dish img,
+  .tray img,
+  .paper {
+    transition: none;
+  }
+}
+
+:global(html[data-depth='off']) .bowl,
+:global(html[data-depth='off']) .dish img,
+:global(html[data-depth='off']) .tray img,
+:global(html[data-depth='off']) .paper {
+  transition: none;
+}

@@ -1,0 +1,77 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 1000" preserveAspectRatio="xMidYMid slice">
+  <!-- 全家福 z2：畫框下方的胡桃木矮櫃檯面——盆栽、一盒蠟筆（畫上新成員用的）、相框與書 -->
+  <defs>
+    <filter id="rz2p-woodh" x="0" y="0" width="100%" height="100%">
+      <feTurbulence type="fractalNoise" baseFrequency=".008 .55" numOctaves="3" seed="13"/>
+      <feColorMatrix type="matrix" values="0 0 0 0 .12  0 0 0 0 .06  0 0 0 0 .02  1.7 0 0 0 -.62"/>
+      <feComposite in2="SourceGraphic" operator="in"/>
+    </filter>
+    <filter id="rz2p-b4"><feGaussianBlur stdDeviation="4"/></filter>
+    <filter id="rz2p-b12"><feGaussianBlur stdDeviation="12"/></filter>
+    <linearGradient id="rz2p-top" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#B58A5C"/><stop offset=".25" stop-color="#8E6844"/><stop offset="1" stop-color="#5A3D24"/>
+    </linearGradient>
+    <linearGradient id="rz2p-ceramic" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#A9A296"/><stop offset=".5" stop-color="#EFEADF"/><stop offset=".75" stop-color="#FFFBF2"/><stop offset="1" stop-color="#C9C2B5"/>
+    </linearGradient>
+    <linearGradient id="rz2p-leaf" x1="0" y1="1" x2="1" y2="0">
+      <stop offset="0" stop-color="#27422C"/><stop offset=".6" stop-color="#3F6B45"/><stop offset="1" stop-color="#7BA765"/>
+    </linearGradient>
+    <linearGradient id="rz2p-tin" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#F6D25A"/><stop offset="1" stop-color="#C9952A"/>
+    </linearGradient>
+    <g id="rz2p-crayon">
+      <rect x="0" y="0" width="16" height="92" rx="3"/>
+      <path d="M0 0 h16 l-5 -18 h-6Z"/>
+      <rect x="0" y="26" width="16" height="44" fill="#FFFDF7" opacity=".85"/>
+      <rect x="0" y="34" width="16" height="3" fill="#3A2A20" opacity=".5"/><rect x="0" y="60" width="16" height="3" fill="#3A2A20" opacity=".5"/>
+      <rect x="2" y="0" width="3" height="92" fill="#FFFFFF" opacity=".3"/>
+    </g>
+  </defs>
+
+  <!-- 矮櫃檯面 -->
+  <rect x="120" y="826" width="1360" height="40" fill="#0E0A14" opacity=".45" filter="url(#rz2p-b12)"/>
+  <rect x="100" y="840" width="1400" height="200" fill="url(#rz2p-top)"/>
+  <rect x="100" y="840" width="1400" height="200" fill="#000" filter="url(#rz2p-woodh)"/>
+  <rect x="100" y="840" width="1400" height="5" fill="#E2BE8C" opacity=".9"/>
+
+  <!-- 盆栽 -->
+  <ellipse cx="300" cy="846" rx="80" ry="8" fill="#0E0A14" opacity=".5" filter="url(#rz2p-b4)"/>
+  <g fill="url(#rz2p-leaf)">
+    <path d="M300 760 c-40 -30 -44 -80 -14 -110 c30 30 34 76 14 110Z"/>
+    <path d="M300 760 c-56 -10 -90 -46 -84 -86 c44 0 78 36 84 86Z"/>
+    <path d="M300 760 c52 -14 86 -52 76 -90 c-44 4 -74 42 -76 90Z"/>
+    <path d="M300 770 c-60 4 -100 -24 -104 -60 c46 -8 88 14 104 60Z"/>
+    <path d="M300 770 c58 0 96 -30 96 -66 c-46 -4 -86 20 -96 66Z"/>
+  </g>
+  <path d="M252 760 h96 l-10 84 h-76Z" fill="url(#rz2p-ceramic)"/>
+  <rect x="244" y="750" width="112" height="16" rx="5" fill="url(#rz2p-ceramic)"/>
+  <path d="M256 800 h88" stroke="#3F7D4E" stroke-width="8" opacity=".8"/>
+
+  <!-- 一盒蠟筆（放在名牌左邊，不擋住名牌） -->
+  <g transform="translate(-270 0)">
+  <ellipse cx="800" cy="848" rx="130" ry="8" fill="#0E0A14" opacity=".5" filter="url(#rz2p-b4)"/>
+  <g>
+    <use href="#rz2p-crayon" x="716" y="734" fill="#D9472B"/><use href="#rz2p-crayon" x="738" y="728" fill="#F2B32E"/>
+    <use href="#rz2p-crayon" x="760" y="736" fill="#5DAA5A"/><use href="#rz2p-crayon" x="782" y="726" fill="#3F6FC2"/>
+    <use href="#rz2p-crayon" x="804" y="734" fill="#9A6CC2"/><use href="#rz2p-crayon" x="826" y="730" fill="#8A5A2A"/>
+    <use href="#rz2p-crayon" x="848" y="736" fill="#E88A9A"/><use href="#rz2p-crayon" x="870" y="728" fill="#3A2A20"/>
+  </g>
+  <path d="M700 792 h200 v54 h-200Z" fill="url(#rz2p-tin)"/>
+  <path d="M700 792 h200" stroke="#FFF0B8" stroke-width="3"/>
+  <rect x="724" y="806" width="152" height="26" rx="4" fill="#FFFDF7" opacity=".9"/>
+  <g fill="none" stroke-width="4" stroke-linecap="round"><path d="M736 824 q10 -14 20 0" stroke="#D9472B"/><path d="M764 824 q10 -14 20 0" stroke="#F2B32E"/><path d="M792 824 q10 -14 20 0" stroke="#5DAA5A"/><path d="M820 824 q10 -14 20 0" stroke="#3F6FC2"/><path d="M848 824 q10 -14 16 0" stroke="#9A6CC2"/></g>
+  <!-- 掉在外面的一支 -->
+  <g transform="rotate(74 960 836)"><use href="#rz2p-crayon" x="952" y="790" fill="#D9472B"/></g>
+
+  </g>
+
+  <!-- 相框與書 -->
+  <ellipse cx="1300" cy="848" rx="110" ry="8" fill="#0E0A14" opacity=".5" filter="url(#rz2p-b4)"/>
+  <rect x="1330" y="812" width="110" height="16" rx="3" fill="#3F6B45"/><rect x="1322" y="826" width="124" height="18" rx="3" fill="#A93019"/>
+  <rect x="1334" y="816" width="100" height="3" fill="#FFFFFF" opacity=".4"/>
+  <g transform="rotate(-5 1260 780)">
+    <rect x="1210" y="716" width="100" height="128" rx="4" fill="#3A2A20"/><rect x="1220" y="726" width="80" height="108" fill="#F6F0E4"/>
+    <rect x="1228" y="734" width="64" height="72" fill="#C9D6E6"/><circle cx="1260" cy="760" r="12" fill="#F8C9B5"/><path d="M1240 806 q20 -34 40 0Z" fill="#5E7D57"/>
+  </g>
+</svg>

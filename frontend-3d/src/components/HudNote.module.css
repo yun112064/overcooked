@@ -1,0 +1,21 @@
+.note {
+  position: absolute;
+  left: 50%;
+  /* 讓開最上面的停靠點指示與右上角的選單（平板橫放時也有停靠點指示，所以兩種版面都讓） */
+  top: calc(max(12px, env(safe-area-inset-top)) + 54px);
+  z-index: var(--z-hud);
+  display: grid;
+  gap: 8px;
+  width: min(420px, calc(100vw - 32px));
+  transform: translateX(-50%);
+}
+
+/* 直接放 <Spinner> 時給它一塊底，不然字會直接壓在插圖上看不清楚 */
+.note > span {
+  justify-self: center;
+  padding: 8px 14px;
+  border-radius: 999px;
+  background: rgba(255, 253, 247, 0.95);
+  box-shadow: 0 4px 10px rgba(15, 8, 25, 0.4);
+  font-size: 14px;
+}

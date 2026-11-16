@@ -1,19 +1,21 @@
 ﻿<#
 .SYNOPSIS
-  一鍵啟動本機開發環境：資料庫、後端、worker、排程（含 T02 每日查價）、前端、知識 RAG、YOLO 推論服務。
+  一鍵啟動本機開發環境：資料庫、後端、worker、排程（含 T02 每日查價）、前端（frontend-3d）、知識 RAG、YOLO 推論服務，
+  以及選用的飲食小幫手（assistant_rag）與模擬超市（sim-supermarket）。
 
 .DESCRIPTION
   每次執行都會自動同步，新增功能通常不用改這支腳本：
     - 沒有 .env.dev → 由 .env.dev.example 建立並產生隨機密碼
     - 沒有 .venv → 建立；requirements.txt 有變 → 重新安裝
-    - package-lock.json 有變 → npm ci
+    - frontend-3d（與啟用時的 sim-supermarket）package-lock.json 有變 → npm ci
     - 資料庫容器不存在 → 建立（資料存在具名 volume）；已存在 → 啟動
     - alembic upgrade head 套用新的 migration
     - 資料庫沒有食譜 → 從工作簿匯入
     - .env.dev 缺 KNOWLEDGE_SERVICE_TOKEN／INTERNAL_API_TOKEN → 產生隨機值寫入（不顯示）
     - 知識庫 <DEV_DB_NAME>_knowledge 不存在 → 在同一個容器建立，並套用 knowledge_rag/schema.sql（可重複執行）
     - 今天的全聯查價（run key pxmart-daily-<日期>）還沒完成 → 背景補跑／續跑（T02 限速，約 12～15 分鐘）
-  不需要的服務可在 .env.dev 設 DEV_SKIP_YOLO=1、DEV_SKIP_KNOWLEDGE=1、DEV_SKIP_PRICES=1 略過。
+  不需要的服務可在 .env.dev 設 DEV_SKIP_YOLO=1、DEV_SKIP_KNOWLEDGE=1、DEV_SKIP_PRICES=1、DEV_SKIP_ASSISTANT=1 略過。
+  飲食小幫手只在 Data Root 有 assistant_rag\db.env 且兩個既有容器都在時啟動；模擬超市只在設定 SIM_MARKET_HANDOFF_KEY 時啟動。
   一次性指令（查價、知識抓取／審核／建索引）用 scripts/dev-run.ps1，見 docs/knowledge-source-healthnews.md、docs/T02-pricing.md。
   所有服務都在同一個視窗執行，輸出以 [backend]、[frontend] 等前綴區分；
   在該視窗按 Ctrl+C 或執行 scripts/stop-dev.ps1 全部關閉。
@@ -52,6 +54,8 @@ if ($newKeys) { Info "已在 .env.dev 產生開發用 token：$($newKeys -join '
 $Cfg = Read-DevConfig $EnvFile
 function Cfg($key, $default = '') { Get-DevValue $Cfg $key $default }
 function Resolve-FromRoot($p) { if ([IO.Path]::IsPathRooted($p)) { $p } else { [IO.Path]::GetFullPath((Join-Path $Root $p)) } }
+# Data Root（專案外）：飲食小幫手的 db.env 與索引資料放在這裡；與 dev-env.ps1 的 PROJECT_DATA_ROOT 同一個位置
+$DataRoot = Resolve-FromRoot (Cfg 'PROJECT_DATA_ROOT' '../AIPE04期末專題_data')
 
 # ---------- 2. Python 虛擬環境 ----------
 $Py = Join-Path $Root '.venv\Scripts\python.exe'
@@ -70,15 +74,20 @@ if (-not (Test-Path $ReqStamp) -or (Get-Content $ReqStamp) -ne $ReqHash) {
 }
 
 # ---------- 3. 前端套件 ----------
-$LockStamp = Join-Path $Root 'frontend\node_modules\.overcooked-lock.sha256'
-$LockHash = (Get-FileHash (Join-Path $Root 'frontend\package-lock.json')).Hash
-if (-not (Test-Path $LockStamp) -or (Get-Content $LockStamp) -ne $LockHash) {
-    Step '安裝前端套件（package-lock.json 有更新）'
-    # npm ci 完全照 lock 檔安裝且不改寫它（npm install 會改 lock 檔，造成 Git 出現修改）
-    & npm --prefix frontend ci
-    if ($LASTEXITCODE -ne 0) { Fail 'npm ci 失敗，請確認已安裝 Node.js。' }
-    Set-Content $LockStamp $LockHash
+# 回傳是否成功；npm 輸出直接顯示，不混進回傳值
+function Install-NodePackages($dir) {
+    $LockStamp = Join-Path $Root "$dir\node_modules\.overcooked-lock.sha256"
+    $LockHash = (Get-FileHash (Join-Path $Root "$dir\package-lock.json")).Hash
+    if (-not (Test-Path $LockStamp) -or (Get-Content $LockStamp) -ne $LockHash) {
+        Step "安裝 $dir 套件（package-lock.json 有更新）"
+        # npm ci 完全照 lock 檔安裝且不改寫它（npm install 會改 lock 檔，造成 Git 出現修改）
+        & npm --prefix $dir ci | Out-Host
+        if ($LASTEXITCODE -ne 0) { return $false }
+        Set-Content $LockStamp $LockHash
+    }
+    $true
 }
+if (-not (Install-NodePackages 'frontend-3d')) { Fail 'npm ci 失敗，請確認已安裝 Node.js。' }
 
 # ---------- 4. 資料庫 ----------
 $Db = Cfg 'DEV_DB_CONTAINER' 'overcooked-dev-db'
@@ -185,6 +194,76 @@ if (-not $DevEnv.SkipKnowledge) {
     }
 }
 
+# ---------- 6c. R14 飲食小幫手 ----------
+# 需要 Data Root 的 assistant_rag\db.env（索引已建好）以及兩個既有容器：pgvector 資料庫與 TEI 重排服務。
+# 這裡只啟動既有容器，不建立容器、不建索引、不下載模型；回答模型由本機 Ollama 提供（需自行開啟）。
+# 缺任何一項就不啟動，小幫手頁會顯示離線。
+$UseAssistant = $false
+$AssistantContainersFile = Join-Path $StateDir 'assistant-containers.txt'
+if ((Cfg 'DEV_SKIP_ASSISTANT') -ne '1') {
+    $AssistantDir = if (Cfg 'ASSISTANT_DATA_DIR') { Resolve-FromRoot (Cfg 'ASSISTANT_DATA_DIR') } else { Join-Path $DataRoot 'assistant_rag' }
+    $AssistantEnv = Join-Path $AssistantDir 'db.env'
+    $AssistantContainers = @((Cfg 'DEV_ASSISTANT_DB_CONTAINER' 'overcooked-assistant-db'),
+        (Cfg 'DEV_ASSISTANT_RERANKER_CONTAINER' 'overcooked-assistant-reranker'))
+    $missing = @()
+    if (-not (Test-Path $AssistantEnv) -and -not (Cfg 'ASSISTANT_DATABASE_URL')) { $missing += 'assistant_rag\db.env' }
+    foreach ($c in $AssistantContainers) {
+        if (-not (docker ps -a --filter "name=^$c$" --format '{{.Names}}')) { $missing += "容器 $c" }
+    }
+    if ($missing) {
+        Write-Host "    飲食小幫手未啟動（缺少：$($missing -join '、')；建置方式見 assistant_rag/README.md）。" -ForegroundColor Yellow
+    } else {
+        Step '啟動飲食小幫手的資料庫與重排容器'
+        foreach ($c in $AssistantContainers) {
+            # 已在執行的容器（別人或別的工作階段啟動）不碰也不記錄；docker start 對執行中的容器同樣回 0
+            if (docker ps --filter "name=^$c$" --filter status=running --format '{{.Names}}') { continue }
+            docker start $c | Out-Null
+            # 記下由 start-dev 啟動的容器，stop-dev 只停這些
+            if ($LASTEXITCODE -eq 0) { Add-Content $AssistantContainersFile $c }
+        }
+        $AsStamp = Join-Path $Root '.venv\.assistant-requirements.sha256'
+        $AsHash = (Get-FileHash (Join-Path $Root 'assistant_rag\requirements.txt')).Hash
+        if (-not (Test-Path $AsStamp) -or (Get-Content $AsStamp) -ne $AsHash) {
+            Step '安裝飲食小幫手套件（assistant_rag/requirements.txt 有更新）'
+            & $Py -m pip install --disable-pip-version-check -r assistant_rag/requirements.txt
+            if ($LASTEXITCODE -eq 0) { Set-Content $AsStamp $AsHash }
+        }
+        # 權杖只在本機後端與小幫手服務之間使用，存在 .dev\assistant-token（.dev/ 已在 .gitignore）
+        if (-not (Cfg 'ASSISTANT_SERVICE_TOKEN')) {
+            $AsTokenFile = Join-Path $StateDir 'assistant-token'
+            if (-not (Test-Path $AsTokenFile)) { Set-Content $AsTokenFile ([guid]::NewGuid().ToString('N')) -NoNewline }
+            $Cfg['ASSISTANT_SERVICE_TOKEN'] = (Get-Content $AsTokenFile -Raw).Trim()
+        }
+        $env:ASSISTANT_SERVICE_TOKEN = $Cfg['ASSISTANT_SERVICE_TOKEN']
+        $AssistantPort = Cfg 'ASSISTANT_PORT' '8093'
+        $env:ASSISTANT_SERVICE_URL = "http://127.0.0.1:$AssistantPort"
+        $UseAssistant = $true
+        # OpenAI 版小幫手（選用）：設定 ASSISTANT_OPENAI_PORT（例如 8094）才另外啟動一份。檢索仍在本機，
+        # 回答經本機後端 /internal/assistant/chat 呼叫 OpenAI（T10 額度）；需要 .env.dev 的 OPENAI_API_KEY。
+        # 內部 API 權杖沿用 .env.dev 的 INTERNAL_API_TOKEN（上面已自動產生；dev-env.ps1 已設定 CLOUD_INTERNAL_*）
+        $AssistantOpenAIPort = Cfg 'ASSISTANT_OPENAI_PORT'
+        if ($AssistantOpenAIPort) {
+            if (-not (Cfg 'OPENAI_API_KEY')) {
+                Write-Host '    OpenAI 版小幫手：.env.dev 沒有 OPENAI_API_KEY，回答會失敗。' -ForegroundColor Yellow
+            }
+            $env:ASSISTANT_OPENAI_SERVICE_URL = "http://127.0.0.1:$AssistantOpenAIPort"
+        }
+    }
+}
+
+# ---------- 6d. 模擬超市（選用） ----------
+# 只在 .env.dev 設定 SIM_MARKET_HANDOFF_KEY 時啟動；網址預設 http://127.0.0.1:5174（見 scripts/dev-env.ps1）
+$UseSimMarket = $DevEnv.SimMarket
+if ($UseSimMarket) {
+    if ([Text.Encoding]::UTF8.GetByteCount((Cfg 'SIM_MARKET_HANDOFF_KEY')) -lt 32) {
+        Write-Host '    SIM_MARKET_HANDOFF_KEY 少於 32 bytes，後端會回 MARKET_UNAVAILABLE。' -ForegroundColor Yellow
+    }
+    if (-not (Install-NodePackages 'sim-supermarket')) {
+        Write-Host '    sim-supermarket 的 npm ci 失敗，先不啟動模擬超市。' -ForegroundColor Yellow
+        $UseSimMarket = $false
+    }
+}
+
 # ---------- 7. 啟動各服務 ----------
 $Running = @{}
 if (Test-Path $PidFile) {
@@ -231,7 +310,20 @@ if ($DevEnv.SkipPrices) {
     $Today = [TimeZoneInfo]::ConvertTimeBySystemTimeZoneId([DateTime]::UtcNow, 'Taipei Standard Time').ToString('yyyy-MM-dd')
     Start-Service-Here 'prices' $null "& '$Py' -m app.pricing_scheduler --run-once --run-key pxmart-daily-$Today"
 }
-Start-Service-Here 'frontend' 5173 'npm --prefix frontend run dev -- --host 127.0.0.1 --port 5173 --strictPort'
+# 埠號 5173 與 --strictPort 由 frontend-3d/package.json 的 dev 指令決定
+Start-Service-Here 'frontend' 5173 'npm --prefix frontend-3d run dev -- --host 127.0.0.1'
+if ($UseAssistant) {
+    Start-Service-Here 'assistant' $AssistantPort "& '$Py' -m assistant_rag.server --port $AssistantPort"
+    if ($AssistantOpenAIPort) {
+        # 同一份程式、只換回答模型；權杖從環境變數帶入，不寫在指令列
+        Start-Service-Here 'assistant-openai' $AssistantOpenAIPort ("`$env:RAG_LLM_PROVIDER = 'openai'; " +
+            "& '$Py' -m assistant_rag.server --port $AssistantOpenAIPort")
+    }
+}
+if ($UseSimMarket) {
+    # 埠號 5174 與 strictPort 由 sim-supermarket/vite.config.ts 決定
+    Start-Service-Here 'sim-supermarket' 5174 'npm --prefix sim-supermarket run dev -- --host 127.0.0.1'
+}
 if ($UseYolo) {
     Start-Service-Here 'yolo' $YoloPort "& '$YoloPy' inference/server.py"
 } else {
@@ -249,6 +341,12 @@ Write-Host ''
 Write-Host '開發環境已啟動：http://localhost:5173' -ForegroundColor Green
 if (-not $DevEnv.SkipKnowledge) {
     Write-Host "知識 RAG：http://127.0.0.1:$($DevEnv.KnowledgePort)（尚未抓取／審核／建索引前，知識說明仍顯示不可用；步驟見 docs/knowledge-source-healthnews.md）"
+}
+if ($UseAssistant) {
+    Write-Host "飲食小幫手：http://127.0.0.1:$AssistantPort（回答模型需本機 Ollama 已開啟）"
+}
+if ($UseSimMarket) {
+    Write-Host "模擬超市：$env:SIM_MARKET_URL"
 }
 if (-not $DevEnv.SkipPrices) {
     Write-Host '全聯查價在背景執行（[prices]，T02 限速約 12～15 分鐘）；進度：.\scripts\dev-run.ps1 -m app.pricing_scheduler --show-runs 3'

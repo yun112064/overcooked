@@ -1,0 +1,111 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 1000" preserveAspectRatio="xMidYMid slice">
+  <!-- 大門 z1：房子正面、屋頂、窗、紅色大門、門燈、門階 -->
+  <defs>
+    <pattern id="dz1-siding" width="60" height="36" patternUnits="userSpaceOnUse">
+      <rect width="60" height="36" fill="#FBEFDD"/><rect y="33" width="60" height="3" fill="#F1DDBE"/>
+    </pattern>
+    <linearGradient id="dz1-roof" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#C9643D"/><stop offset="1" stop-color="#A94B2B"/>
+    </linearGradient>
+    <linearGradient id="dz1-door" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#E4613F"/><stop offset="1" stop-color="#C8401F"/>
+    </linearGradient>
+    <linearGradient id="dz1-glass" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#FFEDB8"/><stop offset="1" stop-color="#FFD98A"/>
+    </linearGradient>
+    <radialGradient id="dz1-glow" cx=".5" cy=".5" r=".5">
+      <stop offset="0" stop-color="#FFE8B0" stop-opacity=".85"/><stop offset="1" stop-color="#FFE8B0" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="dz1-shade" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#3A2A20" stop-opacity=".16"/><stop offset="1" stop-color="#3A2A20" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+
+  <!-- 地面陰影 -->
+  <ellipse cx="800" cy="872" rx="520" ry="26" fill="#3A2A20" opacity=".12"/>
+
+  <!-- 煙囪 -->
+  <rect x="1046" y="96" width="76" height="140" fill="#D39A62"/>
+  <rect x="1046" y="96" width="20" height="140" fill="#C0874F"/>
+  <rect x="1034" y="80" width="100" height="22" rx="5" fill="#8A6236"/>
+
+  <!-- 山牆與牆面 -->
+  <path d="M360 300 L800 80 L1240 300 Z" fill="url(#dz1-siding)"/>
+  <rect x="360" y="296" width="880" height="560" fill="url(#dz1-siding)"/>
+  <!-- 屋簷在牆上的陰影 -->
+  <path d="M360 300 L800 80 L1240 300 V360 L800 140 L360 360 Z" fill="url(#dz1-shade)"/>
+  <!-- 牆角線 -->
+  <rect x="360" y="296" width="14" height="560" fill="#F1DDBE"/><rect x="1226" y="296" width="14" height="560" fill="#E9D2AE"/>
+
+  <!-- 屋頂 -->
+  <path d="M290 318 L800 46 L1310 318 L1270 338 L800 92 L330 338 Z" fill="url(#dz1-roof)"/>
+  <path d="M330 338 L800 92 L1270 338" fill="none" stroke="#8C3B20" stroke-width="8" stroke-linejoin="round" opacity=".55"/>
+  <path d="M304 314 L800 50 L1296 314" fill="none" stroke="#DB7B55" stroke-width="5" stroke-linejoin="round" opacity=".8"/>
+
+  <!-- 閣樓圓窗 -->
+  <circle cx="800" cy="216" r="120" fill="url(#dz1-glow)" opacity=".7"/>
+  <circle cx="800" cy="216" r="52" fill="#FFFDF7"/>
+  <circle cx="800" cy="216" r="40" fill="url(#dz1-glass)"/>
+  <path d="M760 216 H840 M800 176 V256" stroke="#FFFDF7" stroke-width="8"/>
+
+  <!-- 牆基 -->
+  <rect x="348" y="816" width="904" height="46" rx="4" fill="#D9B98C"/>
+  <rect x="348" y="816" width="904" height="8" rx="4" fill="#E9D2AE"/>
+  <g stroke="#C9A77C" stroke-width="3"><path d="M470 824 V862 M640 824 V862 M1000 824 V862 M1150 824 V862"/></g>
+
+  <!-- 側窗 -->
+  <circle cx="490" cy="530" r="190" fill="url(#dz1-glow)"/>
+  <rect x="408" y="410" width="164" height="226" rx="12" fill="#FFFDF7"/>
+  <rect x="422" y="424" width="136" height="198" rx="5" fill="url(#dz1-glass)"/>
+  <!-- 窗簾 -->
+  <path d="M422 424 h46 q-4 90 -46 150Z" fill="#F6C3AC"/><path d="M558 424 h-46 q4 90 46 150Z" fill="#F6C3AC"/>
+  <path d="M490 424 V622 M422 524 H558" stroke="#FFFDF7" stroke-width="8"/>
+  <rect x="396" y="630" width="188" height="18" rx="7" fill="#E6CBA3"/>
+  <!-- 花台 -->
+  <rect x="412" y="648" width="156" height="40" rx="8" fill="#B07A45"/><rect x="412" y="648" width="156" height="10" rx="5" fill="#C98A4B"/>
+  <g fill="#3F7D4E"><circle cx="440" cy="644" r="16"/><circle cx="470" cy="638" r="18"/><circle cx="505" cy="642" r="17"/><circle cx="538" cy="640" r="16"/></g>
+  <g fill="#E8603F"><circle cx="446" cy="632" r="7"/><circle cx="482" cy="626" r="7"/><circle cx="520" cy="630" r="7"/></g>
+  <g fill="#FFD27A"><circle cx="462" cy="640" r="5"/><circle cx="500" cy="634" r="5"/><circle cx="542" cy="630" r="5"/></g>
+
+  <!-- 門框 -->
+  <rect x="624" y="318" width="352" height="540" rx="16" fill="#8A6236"/>
+  <rect x="624" y="318" width="352" height="14" rx="7" fill="#A4794B"/>
+  <!-- 門扇 -->
+  <rect x="646" y="340" width="308" height="518" rx="8" fill="url(#dz1-door)"/>
+  <rect x="646" y="340" width="16" height="518" fill="#3A2A20" opacity=".14"/>
+  <!-- 門上玻璃 -->
+  <rect x="690" y="372" width="220" height="78" rx="12" fill="#B0361D"/>
+  <rect x="698" y="380" width="204" height="62" rx="8" fill="url(#dz1-glass)"/>
+  <path d="M766 380 V442 M834 380 V442" stroke="#C8401F" stroke-width="8"/>
+  <!-- 門板飾條 -->
+  <g fill="none" stroke-width="6" stroke-linejoin="round">
+    <rect x="690" y="482" width="220" height="150" rx="10" stroke="#B0361D"/>
+    <rect x="690" y="662" width="220" height="158" rx="10" stroke="#B0361D"/>
+    <path d="M696 626 V492 q0 -4 4 -4 H904" stroke="#EE8262" opacity=".6"/>
+    <path d="M696 814 V672 q0 -4 4 -4 H904" stroke="#EE8262" opacity=".6"/>
+  </g>
+  <!-- 門把與鎖孔 -->
+  <rect x="908" y="560" width="28" height="92" rx="12" fill="#D9A93F"/>
+  <circle cx="922" cy="584" r="15" fill="#FFD27A"/><circle cx="917" cy="579" r="5" fill="#FFF3C4"/>
+  <rect x="919" y="620" width="6" height="16" rx="3" fill="#8A6236"/>
+  <!-- 門檻 -->
+  <rect x="624" y="846" width="352" height="12" fill="#6F4E2A"/>
+
+  <!-- 門燈 -->
+  <circle cx="1068" cy="452" r="170" fill="url(#dz1-glow)"/>
+  <path d="M1040 404 h56 l-10 -22 h-36Z" fill="#3A2A20"/>
+  <rect x="1046" y="404" width="44" height="66" rx="8" fill="#3A2A20"/>
+  <rect x="1053" y="411" width="30" height="52" rx="5" fill="#FFE8B0"/>
+  <rect x="1062" y="470" width="12" height="10" fill="#3A2A20"/>
+
+  <!-- 番茄門牌 -->
+  <rect x="1118" y="398" width="84" height="84" rx="16" fill="#FFFDF7" stroke="#E6CBA3" stroke-width="5"/>
+  <circle cx="1160" cy="446" r="24" fill="#E8603F"/>
+  <circle cx="1152" cy="438" r="6" fill="#F59C82" opacity=".8"/>
+  <path d="M1160 424 l-12 -8 l10 -2 l2 -10 l2 10 l10 2Z" fill="#3F7D4E"/>
+
+  <!-- 門階 -->
+  <rect x="556" y="852" width="488" height="50" rx="10" fill="#C9A77C"/>
+  <rect x="556" y="852" width="488" height="12" rx="6" fill="#E5C99E"/>
+  <rect x="556" y="890" width="488" height="12" rx="6" fill="#B08E63"/>
+</svg>

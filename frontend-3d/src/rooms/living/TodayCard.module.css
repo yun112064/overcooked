@@ -1,0 +1,70 @@
+/* 一張靠在電視櫃前的紙卡；字級跟著場景縮放，但不小於 13px */
+.card {
+  padding: 0.55em 0.85em 0.65em;
+  border: 1px solid var(--paper-edge);
+  border-radius: 0.45em;
+  background: linear-gradient(var(--cream-50), #fbf3e2);
+  box-shadow: 0 0.5em 1.2em rgba(15, 8, 25, 0.45);
+  color: var(--ink-900);
+  font-size: clamp(13px, 0.85cqw, 16px);
+  line-height: 1.45;
+  /* 紙卡微微歪一點；用 rotate 屬性才不會蓋掉 Room 寫在 transform 上的視差位移 */
+  rotate: -0.6deg;
+}
+
+.body {
+  display: grid;
+  gap: 0.35em;
+}
+
+.head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.15em 0.6em;
+}
+
+.head b {
+  font-family: var(--font-round);
+  font-size: 1.08em;
+}
+
+.head small {
+  color: var(--ink-600);
+  font-size: 0.9em;
+}
+
+/* 菜名最多兩行，卡片才不會蓋到茶几上的盤子 */
+.dishes {
+  display: -webkit-box;
+  margin: 0;
+  overflow: hidden;
+  font-weight: 700;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+}
+
+.badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35em;
+}
+
+.hint,
+.more {
+  margin: 0;
+  color: var(--ink-600);
+}
+
+.more {
+  font-size: 0.9em;
+}
+
+/* 茶几盤子上的菜（裝飾） */
+.food {
+  display: block;
+  width: 100%;
+  pointer-events: none;
+  user-select: none;
+}

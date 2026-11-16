@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 200">
+  <!-- 蠟筆人物：還沒畫上的新成員（鉛筆虛線輪廓＋加號） -->
+  <g fill="none" stroke="#9C8E83" stroke-width="4" stroke-linecap="round" stroke-dasharray="7 9">
+    <circle cx="60" cy="44" r="27"/><path d="M38 78 h44 v62 h-44Z M50 140 v44 M70 140 v44 M38 88 l-20 34 M82 88 l20 34"/>
+  </g>
+  <path d="M60 30 v28 M46 44 h28" stroke="#9C8E83" stroke-width="6" stroke-linecap="round"/>
+</svg>

@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 1000" preserveAspectRatio="xMidYMid slice">
+  <!-- 冰箱門 z0：冰箱兩側露出的廚房磁磚牆 -->
+  <defs>
+    <filter id="fz0-b10"><feGaussianBlur stdDeviation="10"/></filter>
+    <linearGradient id="fz0-tileg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#FAF6EE"/><stop offset=".2" stop-color="#F1EBDF"/><stop offset="1" stop-color="#E4DCCB"/>
+    </linearGradient>
+    <pattern id="fz0-tile" width="120" height="120" patternUnits="userSpaceOnUse">
+      <rect width="120" height="120" fill="#B9AE9B"/>
+      <rect x="2" y="2" width="116" height="56" rx="3" fill="url(#fz0-tileg)"/>
+      <rect x="-58" y="62" width="116" height="56" rx="3" fill="url(#fz0-tileg)"/><rect x="62" y="62" width="116" height="56" rx="3" fill="url(#fz0-tileg)"/>
+      <rect x="6" y="4" width="108" height="3" fill="#FFFFFF" opacity=".8"/><rect x="66" y="64" width="50" height="3" fill="#FFFFFF" opacity=".8"/><rect x="0" y="64" width="54" height="3" fill="#FFFFFF" opacity=".8"/>
+    </pattern>
+    <linearGradient id="fz0-dark" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#17121C" stop-opacity=".55"/><stop offset=".14" stop-color="#17121C" stop-opacity=".25"/>
+      <stop offset=".86" stop-color="#17121C" stop-opacity=".25"/><stop offset="1" stop-color="#17121C" stop-opacity=".55"/>
+    </linearGradient>
+  </defs>
+  <rect width="1600" height="1000" fill="url(#fz0-tile)"/>
+  <!-- 冰箱在牆上的影子 -->
+  <rect x="150" y="-40" width="1320" height="1100" rx="60" fill="#0E0A14" opacity=".55" filter="url(#fz0-b10)"/>
+  <rect width="1600" height="1000" fill="url(#fz0-dark)"/>
+</svg>

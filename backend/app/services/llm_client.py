@@ -109,6 +109,34 @@ class OpenAIResponder:
         return StructuredResponse("completed", output_text=text), usage
 
 
+    def chat_text(self, *, model: str, messages: list[dict], max_output_tokens: int,
+                  json_mode: bool = False) -> tuple[StructuredResponse, dict]:
+        """R14 飲食小幫手 OpenAI 版：多輪訊息 → 純文字（json_mode 時要求 JSON 物件）。"""
+        payload = {"model": model, "input": messages, "max_output_tokens": max_output_tokens, "store": False}
+        if json_mode:
+            payload["text"] = {"format": {"type": "json_object"}}
+        res = _post(f"{self.base_url}/responses", api_key=self.api_key, payload=payload, timeout=self.timeout)
+        try:
+            body = res.json()
+            status = body["status"]
+            usage = {"input_tokens": int(body["usage"]["input_tokens"]),
+                     "output_tokens": int(body["usage"]["output_tokens"])}
+            content = [c for item in body.get("output") or [] if item.get("type") == "message"
+                       for c in item.get("content") or []]
+        except (KeyError, TypeError, ValueError, AttributeError):
+            raise ProviderError("INVALID_RESPONSE") from None
+        refusal = next((c.get("refusal") for c in content if c.get("type") == "refusal"), None)
+        text = "".join(c.get("text") or "" for c in content if c.get("type") == "output_text")
+        if refusal is not None:
+            return StructuredResponse("refused", refusal=refusal), usage
+        if status == "incomplete":
+            reason = (body.get("incomplete_details") or {}).get("reason") or "unknown"
+            return StructuredResponse("incomplete", incomplete_reason=reason), usage
+        if status != "completed":
+            raise ProviderError(f"STATUS_{status}")
+        return StructuredResponse("completed", output_text=text), usage
+
+
 def default_responder() -> OpenAIResponder | None:
     if not settings.openai_api_key:
         return None

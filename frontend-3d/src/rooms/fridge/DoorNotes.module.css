@@ -1,0 +1,752 @@
+/* 貼在冰箱門上的便利貼。字級用 cqw（跟著世界縮放）並夾在可讀的範圍內；按鈕至少 44px 高。 */
+
+.note {
+  position: relative;
+  padding: 1.1em 0.7em 0.7em;
+  border-radius: 0.25em;
+  box-shadow: 0 0.15em 0.2em rgba(40, 28, 20, 0.25), 0 0.6em 1.2em rgba(40, 28, 20, 0.28);
+  color: var(--ink-900);
+  font-size: clamp(12.5px, 0.92cqw, 15.5px);
+  line-height: 1.5;
+  /* 在欄（直向 flex）裡預設不縮 */
+  flex: none;
+}
+
+.note:focus {
+  outline: none;
+}
+
+/* 欄太高時由這張便利貼讓出高度，裡面的清單捲動；沒標的（月曆、圖表）維持完整 */
+.shrink {
+  display: flex;
+  flex: 0 1 auto;
+  flex-direction: column;
+  min-height: 9.5em;
+}
+
+.shrink > * {
+  flex: none;
+}
+
+/*
+ * 手機：欄本身會上下捲（FridgeScene 的 .column），便利貼就維持完整的高度。
+ * 縮短的話清單只剩一列高，要在那麼小的框裡再捲一次，手指很難操作。
+ */
+:global([data-layout='phone']) .shrink {
+  flex: none;
+  min-height: 0;
+}
+
+/* 鍵盤從清單跳過來時要看得出落在哪一張 */
+.note:focus-visible {
+  outline: 3px solid var(--mustard-500);
+  outline-offset: 3px;
+}
+
+.white {
+  background: linear-gradient(#fffefa, #f6f0e2);
+  rotate: -0.5deg;
+}
+
+.yellow {
+  background: linear-gradient(#fdf3bd, #f8e594);
+  rotate: 0.6deg;
+}
+
+.green {
+  background: linear-gradient(#e9f4dd, #d6e9c6);
+  rotate: -0.4deg;
+}
+
+/* 物件列點到這張便利貼時閃一下（和 Room 的可點物件同一種光） */
+.flash {
+  animation: flash 900ms ease-out;
+}
+
+@keyframes flash {
+  0%,
+  60% {
+    box-shadow: 0 0 0 0.35em rgba(255, 210, 122, 0.95), 0 0 1.8em 0.8em rgba(255, 210, 122, 0.7);
+  }
+}
+
+.magnet {
+  position: absolute;
+  left: 50%;
+  top: -0.7em;
+  width: 1.5em;
+  height: 1.5em;
+  margin-left: -0.75em;
+  border-radius: 50%;
+  box-shadow: 0.1em 0.2em 0.3em rgba(20, 12, 10, 0.45);
+}
+
+.magnet-red {
+  background: radial-gradient(circle at 36% 30%, #ff9a7c, #dc4426 45%, #861c0e);
+}
+
+.magnet-green {
+  background: radial-gradient(circle at 36% 30%, #a9d8a5, #3f7d4e 45%, #1f4a2a);
+}
+
+.magnet-blue {
+  background: radial-gradient(circle at 36% 30%, #b9d0f2, #3f6fc2 45%, #20407e);
+}
+
+.head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5em;
+  min-height: 1.8em;
+  margin-bottom: 0.3em;
+}
+
+.head h3 {
+  margin: 0;
+  font-family: var(--font-round);
+  font-size: 1.12em;
+  line-height: 1.3;
+  color: var(--brick-800);
+}
+
+.hint {
+  margin: 0.5em 0 0;
+  color: var(--ink-600);
+  font-size: 0.86em;
+  line-height: 1.45;
+}
+
+.empty {
+  margin: 0.2em 0 0;
+  color: var(--ink-600);
+}
+
+.empty p {
+  margin: 0 0 0.5em;
+}
+
+.error {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5em;
+  margin: 0.4em 0 0;
+  padding: 0.4em 0.6em;
+  border-left: 0.25em solid var(--brick-700);
+  border-radius: 0.4em;
+  background: var(--tomato-100);
+  color: var(--brick-800);
+  font-weight: 700;
+}
+
+/* 便利貼上的小按鈕（今天、再試一次、全部…）與同樣外觀的連結 */
+.small {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 0 0.9em;
+  border: 1px solid var(--paper-edge);
+  border-radius: 0.7em;
+  background: rgba(255, 253, 247, 0.85);
+  color: var(--ink-900);
+  font-weight: 700;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.small:hover:not(:disabled) {
+  background: var(--cream-200);
+}
+
+.small:disabled {
+  cursor: default;
+  opacity: 0.55;
+}
+
+.icon {
+  width: 44px;
+  height: 44px;
+  border: 0;
+  border-radius: 0.7em;
+  background: none;
+  color: var(--brick-800);
+  font-size: 1.5em;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.icon:hover {
+  background: var(--cream-200);
+}
+
+.monthNav {
+  display: inline-flex;
+  flex: none;
+}
+
+/* ---- 月曆 ---- */
+.calendar {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+}
+
+.calendar u {
+  padding-bottom: 0.15em;
+  color: var(--ink-600);
+  font-size: 0.82em;
+  font-weight: 700;
+  text-align: center;
+  text-decoration: none;
+}
+
+.day {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1px;
+  min-height: 44px;
+  padding: 0;
+  border: 0;
+  border-radius: 0.6em;
+  background: none;
+  font-variant-numeric: tabular-nums;
+}
+
+.day b {
+  font-weight: 500;
+  line-height: 1.2;
+}
+
+.day:hover {
+  background: rgba(58, 42, 32, 0.07);
+}
+
+.day:focus-visible {
+  outline-offset: -2px;
+}
+
+/* 今天：外框；選到的那天：磚紅底白字（兩個狀態都另外寫在名稱裡，不只靠顏色） */
+.day[aria-current='date'] {
+  box-shadow: inset 0 0 0 2px var(--mustard-500);
+}
+
+.day[aria-current='date'] b {
+  font-weight: 800;
+}
+
+.day[aria-pressed='true'] {
+  background: var(--brick-700);
+  color: #fff;
+}
+
+.stickers {
+  display: flex;
+  gap: 2px;
+  height: 0.5em;
+}
+
+/* 餐盤貼紙：白盤子加一圈邊 */
+.stickers i,
+.legendSticker {
+  width: 0.5em;
+  height: 0.5em;
+  border: 0.12em solid var(--basil-600);
+  border-radius: 50%;
+  background: #fff;
+}
+
+.day[aria-pressed='true'] .stickers i {
+  border-color: #fff;
+  background: var(--mustard-500);
+}
+
+.legendSticker {
+  display: inline-block;
+  margin-right: 0.35em;
+}
+
+.calendarFoot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5em;
+  margin-top: 0.3em;
+}
+
+.jump {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4em;
+  min-width: 0;
+  color: var(--ink-600);
+  font-weight: 700;
+}
+
+/* 輸入框的字至少 16px，手機點進去才不會自動放大畫面 */
+.jump input {
+  min-width: 0;
+  min-height: 44px;
+  padding: 0 0.4em;
+  border: 1px solid var(--paper-edge);
+  border-radius: 0.7em;
+  background: rgba(255, 253, 247, 0.85);
+  font-size: 16px;
+}
+
+/* ---- 當日餐單 ---- */
+/* 一天通常一到三餐；更多、或畫面不夠高時在便利貼裡上下捲 */
+.shrink > .meals,
+.shrink > .requests {
+  flex: 0 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.shrink > .meals {
+  max-height: 15.5em;
+}
+
+/* 手機上由整欄來捲，清單不另外捲（一個手勢只捲一層） */
+:global([data-layout='phone']) .shrink > .meals,
+:global([data-layout='phone']) .shrink > .requests {
+  max-height: none;
+  overflow-y: visible;
+}
+
+/* 便利貼和「當日餐單」面板共用這份清單；高度上限只在便利貼裡才有 */
+.meals {
+  display: grid;
+  gap: 0.4em;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.meals li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: stretch;
+  gap: 0.4em;
+}
+
+.meal {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  column-gap: 0.6em;
+  flex: 1 1 60%;
+  min-width: 0;
+  min-height: 44px;
+  padding: 0.35em 0.55em;
+  border: 0;
+  border-radius: 0.5em;
+  background: rgba(255, 255, 255, 0.5);
+  text-align: left;
+}
+
+.meal:hover {
+  background: rgba(255, 255, 255, 0.85);
+}
+
+.meal b {
+  grid-row: span 2;
+  align-self: center;
+  padding: 0.1em 0.5em;
+  border-radius: 0.4em;
+  background: var(--brick-700);
+  color: #fff;
+  font-family: var(--font-round);
+  white-space: nowrap;
+}
+
+.dishes {
+  display: -webkit-box;
+  overflow: hidden;
+  font-weight: 700;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+}
+
+.meal small {
+  color: var(--ink-600);
+  font-size: 0.86em;
+}
+
+.buy {
+  flex: none;
+  min-height: 44px;
+  padding: 0 0.8em;
+  border: 0;
+  border-radius: 0.6em;
+  background: var(--brick-700);
+  color: #fff;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.buy:hover:not(:disabled) {
+  background: var(--brick-800);
+}
+
+.buy:disabled {
+  cursor: default;
+  opacity: 0.6;
+}
+
+.meals .error {
+  flex: 1 1 100%;
+}
+
+/* 手機上一列放不下三個按鈕：這個連結只留在明細面板底部（「到餐桌看這一桌」） */
+.tableLink {
+  flex: none;
+}
+
+:global([data-layout='phone']) .tableLink {
+  display: none;
+}
+
+/* ---- 趨勢 ---- */
+.switches {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 0.4em;
+  margin-bottom: 0.4em;
+}
+
+.seg {
+  display: inline-flex;
+  overflow: hidden;
+  border: 1px solid var(--paper-edge);
+  border-radius: 0.7em;
+  background: rgba(255, 253, 247, 0.85);
+}
+
+.seg button {
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0 0.7em;
+  border: 0;
+  background: none;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.seg button + button {
+  border-left: 1px solid var(--paper-edge);
+}
+
+.seg button[aria-pressed='true'] {
+  background: var(--brick-700);
+  color: #fff;
+}
+
+/* 外框被圓角裁掉，所以焦點框畫在裡面 */
+.seg button:focus-visible {
+  outline-offset: -3px;
+}
+
+.chart {
+  margin: 0;
+}
+
+.chart figcaption {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 0.2em 0.8em;
+  color: var(--ink-600);
+  font-size: 0.82em;
+}
+
+.legend {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3em;
+}
+
+.legend i {
+  display: inline-block;
+  margin-left: 0.5em;
+}
+
+.legendBar {
+  width: 0.7em;
+  height: 0.7em;
+  border-radius: 2px;
+  background: var(--ink-600);
+}
+
+.legendTick {
+  width: 1em;
+  height: 2px;
+  background: var(--brick-700);
+}
+
+.legendUnknown {
+  width: 0.7em;
+  height: 0.7em;
+  border: 1px dashed var(--unknown);
+}
+
+.bars {
+  display: flex;
+  align-items: stretch;
+  gap: 2px;
+  height: clamp(76px, 6.6cqw, 116px);
+  margin-top: 0.2em;
+  border-top: 1px dashed var(--paper-edge);
+  border-bottom: 2px solid var(--ink-600);
+}
+
+.bars[data-dense] {
+  gap: 0;
+}
+
+/* 手機上便利貼窄：圖表左右貼齊便利貼邊緣，看一週時每根長條才有 44px 寬可以點 */
+:global([data-layout='phone']) .bars {
+  margin-inline: -0.7em;
+}
+
+:global([data-layout='phone']) .bars:not([data-dense]) {
+  gap: 1px;
+}
+
+.slot {
+  position: relative;
+  display: flex;
+  flex: 1 1 0;
+  align-items: flex-end;
+  justify-content: center;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+}
+
+button.slot:hover {
+  background: rgba(58, 42, 32, 0.08);
+}
+
+/* 目前選的那一天：底色加上方的小三角（不只靠顏色）。30／90 天的長條不是按鈕，一樣要標出來 */
+.slot[data-current] {
+  background: rgba(231, 167, 46, 0.3);
+}
+
+.slot[data-current]::before {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 0;
+  margin-left: -4px;
+  border: 4px solid transparent;
+  border-top-color: var(--brick-700);
+}
+
+button.slot:focus-visible {
+  outline-offset: -2px;
+}
+
+.bar {
+  display: block;
+  width: 72%;
+  max-width: 26px;
+  min-height: 2px;
+  border-radius: 2px 2px 0 0;
+}
+
+.cost {
+  background: var(--basil-600);
+  color: var(--basil-600);
+}
+
+.energy {
+  background: var(--tomato-500);
+  color: var(--tomato-500);
+}
+
+/* 只算了已知的部分：虛線框、淡底，和算完整的實心長條明顯不同 */
+.partial {
+  border: 1.5px dashed currentcolor;
+  border-bottom: 0;
+  background: color-mix(in srgb, currentcolor 22%, transparent);
+}
+
+/* 圖例裡的「部分已知」：和上面同一個樣子的小方塊（顏色跟著成本／熱量） */
+.legend .legendPartial {
+  width: 0.7em;
+  height: 0.7em;
+  border: 1.5px dashed currentcolor;
+  background: color-mix(in srgb, currentcolor 22%, transparent);
+}
+
+/* 完全未知：沒有高度的長條，只在底線上放一個虛線框 */
+.barUnknown {
+  display: grid;
+  place-items: center;
+  width: 72%;
+  max-width: 26px;
+  height: 1.5em;
+  border: 1px dashed var(--unknown);
+  border-bottom: 0;
+  border-radius: 2px 2px 0 0;
+  color: var(--ink-600);
+  font-size: 0.8em;
+  font-style: normal;
+  font-weight: 700;
+  overflow: hidden;
+}
+
+/* 90 天時每格只有幾 px 寬，放不下問號，只留虛線框 */
+.bars[data-dense] .barUnknown {
+  font-size: 0;
+  height: 10px;
+}
+
+.tick {
+  position: absolute;
+  left: 6%;
+  right: 6%;
+  height: 2px;
+  margin-bottom: -1px;
+  background: var(--brick-700);
+  pointer-events: none;
+}
+
+.axis {
+  display: flex;
+  justify-content: space-between;
+  color: var(--ink-600);
+  font-size: 0.8em;
+  font-variant-numeric: tabular-nums;
+}
+
+/* 7 天時每個標籤對齊自己的長條 */
+.axis span {
+  flex: 1 1 0;
+  text-align: center;
+}
+
+.axis span:first-child:nth-last-child(3) {
+  text-align: left;
+}
+
+.axis span:last-child:nth-child(3) {
+  text-align: right;
+}
+
+/* 30／90 天：長條太細不能點，改用選單選日期（選項裡也寫著每一天的數字） */
+.dayPick {
+  display: flex;
+  align-items: center;
+  gap: 0.5em;
+  margin-top: 0.4em;
+  color: var(--ink-600);
+  font-weight: 700;
+}
+
+.dayPick span {
+  flex: none;
+}
+
+/* 輸入元件的字至少 16px，手機點進去才不會自動放大畫面 */
+.dayPick select {
+  flex: 1 1 0;
+  min-width: 0;
+  min-height: 44px;
+  padding: 0 0.4em;
+  border: 1px solid var(--paper-edge);
+  border-radius: 0.7em;
+  background: rgba(255, 253, 247, 0.85);
+  color: var(--ink-900);
+  font-size: 16px;
+}
+
+.stats {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.2em 0.9em;
+  margin: 0.4em 0 0;
+}
+
+.stats b {
+  font-variant-numeric: tabular-nums;
+}
+
+.unknownNote {
+  padding: 0 0.5em;
+  border: 1px dashed var(--unknown);
+  border-radius: 0.5em;
+  color: var(--ink-600);
+  font-weight: 700;
+}
+
+/* ---- 生成紀錄 ---- */
+.requests {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.requests li + li {
+  border-top: 1px dashed rgba(58, 42, 32, 0.3);
+}
+
+.request {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6em;
+  min-height: 48px;
+  padding: 0.25em 0.3em;
+  border-radius: 0.4em;
+  color: inherit;
+  text-decoration: none;
+}
+
+.request:hover {
+  background: rgba(255, 255, 255, 0.6);
+}
+
+.request:focus-visible {
+  outline-offset: -2px;
+}
+
+.request > span:first-child {
+  display: grid;
+  min-width: 0;
+}
+
+.request b {
+  line-height: 1.3;
+}
+
+.request small {
+  color: var(--ink-600);
+  font-size: 0.86em;
+}
+
+/* 靜態景深、關閉模式與系統減少動態：便利貼不歪、不閃 */
+:global(html[data-depth='off']) .note {
+  rotate: none;
+}
+
+:global(html[data-depth='off']) .flash,
+:global(html[data-depth='static']) .flash {
+  animation: none;
+  outline: 3px solid var(--mustard-500);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .flash {
+    animation: none;
+    outline: 3px solid var(--mustard-500);
+  }
+}

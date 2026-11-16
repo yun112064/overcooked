@@ -1,0 +1,148 @@
+/* 這裡的高度與寬度和 hudLayout.ts 的常數是同一組數字，兩邊要一起改 */
+
+.item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  min-height: 44px;
+  color: var(--ink-600);
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.2;
+  text-decoration: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.item svg {
+  width: 24px;
+  height: 24px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.7;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  transition: transform var(--dur-fast) var(--ease-out);
+}
+
+.item[aria-current='page'] {
+  color: var(--brick-700);
+}
+
+/* 焦點框畫在裡面，才不會被列的邊緣切掉 */
+.item:focus-visible {
+  outline-offset: -3px;
+  border-radius: 10px;
+}
+
+/* ---- 手機：底部分頁 ---- */
+.tabs {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: var(--z-hud);
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  height: calc(var(--tabbar-h) + env(safe-area-inset-bottom));
+  padding-bottom: env(safe-area-inset-bottom);
+  border-top: 1px solid var(--paper-edge);
+  background: var(--cream-50);
+  box-shadow: 0 -6px 18px rgba(15, 8, 25, 0.35);
+}
+
+.tabs .item {
+  position: relative;
+}
+
+/* 選中的分頁：圖示上浮帶投影，上緣再加一條線（不只靠顏色分辨） */
+.tabs .item[aria-current='page'] svg {
+  transform: translateY(-2px);
+  filter: drop-shadow(0 3px 2px rgba(169, 48, 25, 0.3));
+}
+
+.tabs .item[aria-current='page']::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 28%;
+  right: 28%;
+  height: 3px;
+  border-radius: 0 0 3px 3px;
+  background: var(--brick-700);
+}
+
+/* ---- 桌機與平板：左側浮動側欄 ---- */
+.rail {
+  position: absolute;
+  left: max(12px, env(safe-area-inset-left));
+  top: 50%;
+  z-index: var(--z-hud);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  width: 64px;
+  padding: 6px 4px;
+  transform: translateY(-50%);
+  border-radius: 18px;
+  background: rgba(255, 253, 247, 0.94);
+  box-shadow: var(--shadow-float);
+}
+
+.rail .item {
+  min-height: 56px;
+  border-radius: 12px;
+}
+
+.rail .item:hover {
+  background: var(--cream-200);
+}
+
+.rail .item[aria-current='page'] {
+  background: var(--tomato-100);
+  box-shadow: inset 3px 0 0 var(--brick-700);
+}
+
+/* ---- 動作列 ---- */
+.actions {
+  position: absolute;
+  z-index: var(--z-hud);
+  display: flex;
+  align-items: stretch;
+  gap: 8px;
+}
+
+:global([data-layout='phone']) .actions {
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: calc(var(--actionbar-h) + env(safe-area-inset-bottom));
+  padding: 8px 12px calc(8px + env(safe-area-inset-bottom));
+  border-top: 1px solid var(--paper-edge);
+  background: var(--cream-50);
+  box-shadow: 0 -6px 18px rgba(15, 8, 25, 0.35);
+}
+
+/* 手機上按鈕平分寬度，拇指好按 */
+:global([data-layout='phone']) .actions > * {
+  flex: 1;
+  min-width: 0;
+}
+
+:global([data-layout='wide']) .actions {
+  left: 50%;
+  bottom: calc(16px + env(safe-area-inset-bottom));
+  height: 56px;
+  padding: 6px;
+  transform: translateX(-50%);
+  border-radius: 16px;
+  background: rgba(255, 253, 247, 0.96);
+  box-shadow: var(--shadow-float);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .item svg {
+    transition: none;
+  }
+}

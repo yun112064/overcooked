@@ -1,0 +1,88 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 1000" preserveAspectRatio="xMidYMid slice">
+  <!-- 全家福 z1：黃銅畫燈、橡木畫框、襯紙、圖畫紙與蠟筆畫的背景（天空、太陽、草地、小房子）、畫框下的黃銅名牌。
+       畫裡的人物＝家庭成員，由介面依資料疊上；名牌文字也由介面疊上。 -->
+  <defs>
+    <filter id="rz1p-woodh" x="0" y="0" width="100%" height="100%">
+      <feTurbulence type="fractalNoise" baseFrequency=".01 .5" numOctaves="3" seed="14"/>
+      <feColorMatrix type="matrix" values="0 0 0 0 .3  0 0 0 0 .18  0 0 0 0 .08  1.6 0 0 0 -.62"/>
+      <feComposite in2="SourceGraphic" operator="in"/>
+    </filter>
+    <filter id="rz1p-paper" x="0" y="0" width="100%" height="100%">
+      <feTurbulence type="fractalNoise" baseFrequency=".8" numOctaves="3" seed="3"/>
+      <feColorMatrix type="matrix" values="0 0 0 0 .4  0 0 0 0 .34  0 0 0 0 .24  1.2 0 0 0 -.54"/>
+      <feComposite in2="SourceGraphic" operator="in"/>
+    </filter>
+    <filter id="rz1p-crayon" x="-5%" y="-5%" width="110%" height="110%">
+      <feTurbulence type="fractalNoise" baseFrequency=".05" numOctaves="2" seed="2" result="n"/>
+      <feDisplacementMap in="SourceGraphic" in2="n" scale="9"/>
+    </filter>
+    <filter id="rz1p-b4"><feGaussianBlur stdDeviation="4"/></filter>
+    <filter id="rz1p-b12"><feGaussianBlur stdDeviation="12"/></filter>
+    <linearGradient id="rz1p-oak" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#E2C59A"/><stop offset=".5" stop-color="#C9A56E"/><stop offset="1" stop-color="#A9824F"/>
+    </linearGradient>
+    <linearGradient id="rz1p-brass" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#FFF0B8"/><stop offset=".45" stop-color="#D9B04E"/><stop offset="1" stop-color="#6E5216"/>
+    </linearGradient>
+    <linearGradient id="rz1p-beam" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#FFF3CF" stop-opacity=".5"/><stop offset="1" stop-color="#FFF3CF" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+
+  <!-- 畫框的影子 -->
+  <rect x="452" y="126" width="720" height="624" fill="#0E0A14" opacity=".45" filter="url(#rz1p-b12)"/>
+  <!-- 橡木畫框 -->
+  <rect x="440" y="110" width="720" height="620" fill="url(#rz1p-oak)"/>
+  <rect x="440" y="110" width="720" height="620" fill="#000" filter="url(#rz1p-woodh)" opacity=".8"/>
+  <path d="M440 730 V110 H1160" fill="none" stroke="#F6E6C4" stroke-width="3" opacity=".9"/>
+  <path d="M1160 110 V730 H440" fill="none" stroke="#7A5C36" stroke-width="3" opacity=".8"/>
+  <path d="M440 110 L470 140 M1160 110 L1130 140 M440 730 L470 700 M1160 730 L1130 700" stroke="#7A5C36" stroke-width="1.500" opacity=".6"/>
+  <!-- 襯紙 -->
+  <rect x="470" y="140" width="660" height="560" fill="#F6F0E4"/>
+  <path d="M470 700 V140 H1130" fill="none" stroke="#3A3040" stroke-width="4" opacity=".2"/>
+  <!-- 圖畫紙 -->
+  <rect x="510" y="180" width="580" height="480" fill="#FFFDF7"/>
+  <rect x="510" y="180" width="580" height="480" fill="#000" filter="url(#rz1p-paper)" opacity=".14"/>
+  <path d="M510 660 V180 H1090" fill="none" stroke="#3A3040" stroke-width="3" opacity=".16"/>
+
+  <!-- 蠟筆畫的背景 -->
+  <g filter="url(#rz1p-crayon)" fill="none" stroke-linecap="round" stroke-linejoin="round">
+    <!-- 天空 -->
+    <g stroke="#8FC1E8" stroke-width="10" opacity=".55">
+      <path d="M530 206 H820 M540 226 H900 M528 246 H780 M560 266 H860"/>
+    </g>
+    <!-- 太陽 -->
+    <circle cx="1030" cy="240" r="34" stroke="#F2B32E" stroke-width="12" fill="#F6D25A" fill-opacity=".6"/>
+    <g stroke="#F2B32E" stroke-width="7"><path d="M1030 190 v-8 M1072 204 l8 -6 M1082 240 h8 M1072 278 l8 6 M988 204 l-8 -6 M978 240 h-8"/></g>
+    <!-- 雲 -->
+    <path d="M600 300 q16 -26 40 -8 q26 -22 44 6 q26 4 16 26 h-104 q-18 -10 4 -24Z" stroke="#B9C6D6" stroke-width="6" fill="#FFFFFF" fill-opacity=".8"/>
+    <!-- 小房子 -->
+    <g stroke-width="7">
+      <path d="M534 560 V470 H614 V560" stroke="#C2553A" fill="#F6C9BA" fill-opacity=".6"/>
+      <path d="M524 474 L574 424 L624 474" stroke="#8C2413"/>
+      <path d="M562 560 V520 H586 V560" stroke="#8A5A2A"/>
+    </g>
+    <!-- 草地 -->
+    <g stroke="#5DAA5A" stroke-width="12">
+      <path d="M522 600 q14 -12 28 0 t28 0 t28 0 t28 0 t28 0 t28 0 t28 0 t28 0 t28 0 t28 0 t28 0 t28 0 t28 0 t28 0 t28 0 t28 0 t28 0 t28 0 t28 0 t22 0"/>
+      <path d="M526 626 H1076 M534 646 H1066" opacity=".6"/>
+    </g>
+    <!-- 花 -->
+    <g stroke-width="6"><circle cx="1050" cy="580" r="8" stroke="#E0483A"/><path d="M1050 588 v18" stroke="#5DAA5A"/><circle cx="640" cy="584" r="7" stroke="#9A6CC2"/><path d="M640 591 v16" stroke="#5DAA5A"/></g>
+  </g>
+
+  <!-- 黃銅畫燈 -->
+  <path d="M640 110 H960 L1060 400 H540Z" fill="url(#rz1p-beam)" filter="url(#rz1p-b12)"/>
+  <path d="M800 40 V66" stroke="url(#rz1p-brass)" stroke-width="10"/>
+  <rect x="784" y="24" width="32" height="22" rx="6" fill="url(#rz1p-brass)"/>
+  <rect x="664" y="66" width="272" height="24" rx="12" fill="#17121C" opacity=".4" filter="url(#rz1p-b4)" transform="translate(4 6)"/>
+  <rect x="660" y="62" width="280" height="24" rx="12" fill="url(#rz1p-brass)"/>
+  <rect x="672" y="66" width="256" height="5" rx="2.500" fill="#FFF8DC" opacity=".8"/>
+  <rect x="676" y="84" width="248" height="6" rx="3" fill="#FFF3CF"/>
+
+  <!-- 黃銅名牌 -->
+  <rect x="704" y="746" width="200" height="40" rx="6" fill="#17121C" opacity=".4" filter="url(#rz1p-b4)" transform="translate(3 4)"/>
+  <rect x="700" y="742" width="200" height="40" rx="6" fill="url(#rz1p-brass)"/>
+  <rect x="704" y="745" width="192" height="5" rx="2.500" fill="#FFF8DC" opacity=".7"/>
+  <circle cx="712" cy="762" r="3" fill="#6E5216"/><circle cx="888" cy="762" r="3" fill="#6E5216"/>
+</svg>

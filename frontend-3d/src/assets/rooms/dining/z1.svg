@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 1000" preserveAspectRatio="xMidYMid slice">
+  <!-- 餐桌 z1：俯視——胡桃木圓桌與中央的轉盤。菜、餐墊、飯碗、椅子、收據都由介面依資料疊上。 -->
+  <defs>
+    <filter id="tz1-woodh" x="0" y="0" width="100%" height="100%">
+      <feTurbulence type="fractalNoise" baseFrequency=".006 .35" numOctaves="3" seed="31"/>
+      <feColorMatrix type="matrix" values="0 0 0 0 .12  0 0 0 0 .06  0 0 0 0 .02  1.7 0 0 0 -.62"/>
+      <feComposite in2="SourceGraphic" operator="in"/>
+    </filter>
+    <filter id="tz1-woodr" x="0" y="0" width="100%" height="100%">
+      <feTurbulence type="fractalNoise" baseFrequency=".3 .008" numOctaves="3" seed="11"/>
+      <feColorMatrix type="matrix" values="0 0 0 0 .12  0 0 0 0 .06  0 0 0 0 .02  1.7 0 0 0 -.64"/>
+      <feComposite in2="SourceGraphic" operator="in"/>
+    </filter>
+    <filter id="tz1-b4"><feGaussianBlur stdDeviation="4"/></filter>
+    <filter id="tz1-b16"><feGaussianBlur stdDeviation="16"/></filter>
+    <radialGradient id="tz1-top" cx=".42" cy=".38" r=".75">
+      <stop offset="0" stop-color="#A47A4E"/><stop offset=".6" stop-color="#84603C"/><stop offset="1" stop-color="#5E4026"/>
+    </radialGradient>
+    <radialGradient id="tz1-susan" cx=".42" cy=".38" r=".75">
+      <stop offset="0" stop-color="#C39A66"/><stop offset=".7" stop-color="#A47A4E"/><stop offset="1" stop-color="#7A5636"/>
+    </radialGradient>
+    <radialGradient id="tz1-sheen" cx=".36" cy=".3" r=".5">
+      <stop offset="0" stop-color="#FFE9C0" stop-opacity=".32"/><stop offset="1" stop-color="#FFE9C0" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  <!-- 桌子的影子 -->
+  <circle cx="812" cy="520" r="306" fill="#0E0A14" opacity=".55" filter="url(#tz1-b16)"/>
+  <!-- 桌板側緣與桌面 -->
+  <circle cx="800" cy="506" r="300" fill="#3E2A18"/>
+  <circle cx="800" cy="500" r="300" fill="url(#tz1-top)"/>
+  <circle cx="800" cy="500" r="300" fill="#000" filter="url(#tz1-woodh)"/>
+  <circle cx="800" cy="500" r="300" fill="url(#tz1-sheen)"/>
+  <circle cx="800" cy="500" r="297" fill="none" stroke="#C39A66" stroke-width="2" opacity=".6"/>
+  <circle cx="800" cy="500" r="286" fill="none" stroke="#3E2A18" stroke-width="2" opacity=".35"/>
+
+  <!-- 轉盤 -->
+  <circle cx="805" cy="508" r="178" fill="#0E0A14" opacity=".5" filter="url(#tz1-b4)"/>
+  <circle cx="800" cy="503" r="176" fill="#5E4026"/>
+  <circle cx="800" cy="500" r="176" fill="url(#tz1-susan)"/>
+  <circle cx="800" cy="500" r="176" fill="#000" filter="url(#tz1-woodr)"/>
+  <circle cx="800" cy="500" r="173" fill="none" stroke="#E9CFA0" stroke-width="2" opacity=".7"/>
+  <circle cx="800" cy="500" r="160" fill="none" stroke="#5E4026" stroke-width="1.500" opacity=".4"/>
+</svg>

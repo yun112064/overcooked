@@ -1,0 +1,69 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 1000" preserveAspectRatio="xMidYMid slice">
+  <!-- 大門 z0：傍晚天空、遠處街屋、街道 -->
+  <defs>
+    <linearGradient id="dz0-sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#F2A983"/>
+      <stop offset=".42" stop-color="#F8CFA8"/>
+      <stop offset=".8" stop-color="#FDEBD3"/>
+    </linearGradient>
+    <radialGradient id="dz0-sun" cx=".5" cy=".5" r=".5">
+      <stop offset="0" stop-color="#FFE9A8" stop-opacity=".95"/>
+      <stop offset="1" stop-color="#FFE9A8" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="dz0-road" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#E2C09A"/>
+      <stop offset="1" stop-color="#CFA67C"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="1600" height="1000" fill="url(#dz0-sky)"/>
+
+  <!-- 夕陽 -->
+  <circle cx="1380" cy="330" r="260" fill="url(#dz0-sun)"/>
+  <circle cx="1380" cy="330" r="62" fill="#FFF1C2"/>
+
+  <!-- 雲 -->
+  <g fill="#FFF6EA" opacity=".7">
+    <ellipse cx="210" cy="170" rx="120" ry="30"/><ellipse cx="290" cy="150" rx="80" ry="30"/><ellipse cx="150" cy="150" rx="60" ry="22"/>
+    <ellipse cx="1180" cy="120" rx="110" ry="24"/><ellipse cx="1250" cy="104" rx="70" ry="24"/>
+    <ellipse cx="620" cy="60" rx="90" ry="18"/>
+  </g>
+
+  <!-- 遠山 -->
+  <path d="M0 640 Q160 540 330 610 T680 590 T1040 600 T1380 570 T1600 620 V800 H0Z" fill="#EDBE98" opacity=".75"/>
+
+  <!-- 遠處街屋剪影 -->
+  <g fill="#E0A77F">
+    <path d="M0 600 h130 v-60 l50 -40 l50 40 v60 h40 v190 H0Z"/>
+    <rect x="270" y="620" width="90" height="170"/>
+    <path d="M1300 640 l60 -50 l60 50 v150 h-120Z"/>
+    <rect x="1420" y="590" width="110" height="200"/>
+    <path d="M1530 610 l40 -34 l40 34 v180 h-80Z"/>
+  </g>
+  <g fill="#FFE9B8">
+    <rect x="30" y="640" width="26" height="34" rx="3"/><rect x="80" y="640" width="26" height="34" rx="3"/>
+    <rect x="166" y="560" width="28" height="30" rx="3"/><rect x="292" y="650" width="22" height="30" rx="3"/>
+    <rect x="1346" y="650" width="26" height="32" rx="3"/><rect x="1446" y="620" width="24" height="30" rx="3"/><rect x="1490" y="620" width="24" height="30" rx="3"/>
+    <rect x="1446" y="680" width="24" height="30" rx="3"/><rect x="1558" y="640" width="24" height="30" rx="3"/>
+  </g>
+
+  <!-- 遠樹 -->
+  <g fill="#D6A078">
+    <circle cx="250" cy="720" r="46"/><circle cx="210" cy="740" r="34"/><rect x="244" y="750" width="10" height="50"/>
+    <circle cx="1300" cy="730" r="40"/><circle cx="1262" cy="748" r="28"/><rect x="1294" y="756" width="10" height="44"/>
+  </g>
+
+  <!-- 電線桿與電線 -->
+  <g stroke="#C99472" fill="none" stroke-linecap="round">
+    <path d="M118 440 V800" stroke-width="8"/><path d="M92 470 H144" stroke-width="6"/>
+    <path d="M94 470 Q420 560 760 470" stroke-width="2"/><path d="M142 470 Q460 580 800 480" stroke-width="2"/>
+  </g>
+
+  <!-- 街道 -->
+  <rect y="780" width="1600" height="220" fill="url(#dz0-road)"/>
+  <rect y="780" width="1600" height="10" fill="#EBD0AC"/>
+  <g fill="#F1DDBF" opacity=".8">
+    <rect x="40" y="930" width="120" height="10" rx="5"/><rect x="300" y="930" width="120" height="10" rx="5"/>
+    <rect x="1180" y="930" width="120" height="10" rx="5"/><rect x="1440" y="930" width="120" height="10" rx="5"/>
+  </g>
+</svg>

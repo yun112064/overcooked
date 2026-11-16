@@ -45,6 +45,24 @@ services:
       KNOWLEDGE_SERVICE_URL: ${KNOWLEDGE_SERVICE_URL:-}
       KNOWLEDGE_SERVICE_TOKEN: ${KNOWLEDGE_SERVICE_TOKEN:-}
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      # T11 小知識說明的生成模型與供應者；留空沿用後端預設（OpenAI 固定版本模型）
+      KNOWLEDGE_EXPLAIN_MODEL: ${KNOWLEDGE_EXPLAIN_MODEL:-gpt-5.4-mini-2026-03-17}
+      KNOWLEDGE_EXPLAIN_PROVIDER: ${KNOWLEDGE_EXPLAIN_PROVIDER:-openai}
+      KNOWLEDGE_OLLAMA_URL: ${KNOWLEDGE_OLLAMA_URL:-}
+      KNOWLEDGE_OLLAMA_MODEL: ${KNOWLEDGE_OLLAMA_MODEL:-qwen3.5:9b-q4_K_M}
+      # T04 營養證據綁定的資料版本；預設留空（POST /t04-data 回 422 NUTRITION_VERSION_REQUIRED），使用者確認綁定後才設定
+      GENERATION_RECIPE_RELEASE_ID: ${GENERATION_RECIPE_RELEASE_ID:-}
+      GENERATION_NUTRITION_IMPORT_ID: ${GENERATION_NUTRITION_IMPORT_ID:-}
+      GENERATION_FOOD_MAPPING_VERSION: ${GENERATION_FOOD_MAPPING_VERSION:-}
+      # 模擬超市；未設定時交接回 503 MARKET_UNAVAILABLE（不開放真實結帳）
+      SIM_MARKET_URL: ${SIM_MARKET_URL:-}
+      SIM_MARKET_HANDOFF_KEY: ${SIM_MARKET_HANDOFF_KEY:-}
+      # R14 團隊電腦飲食小幫手；未設定時小幫手頁顯示未啟用
+      ASSISTANT_SERVICE_URL: ${ASSISTANT_SERVICE_URL:-}
+      ASSISTANT_SERVICE_TOKEN: ${ASSISTANT_SERVICE_TOKEN:-}
+      # OpenAI 版小幫手（選用）：回答經 /internal/assistant/chat 由後端呼叫 OpenAI（T10 額度）
+      ASSISTANT_OPENAI_SERVICE_URL: ${ASSISTANT_OPENAI_SERVICE_URL:-}
+      ASSISTANT_OPENAI_MODEL: ${ASSISTANT_OPENAI_MODEL:-gpt-5.4-mini-2026-03-17}
 
     ports:
       - "127.0.0.1:8000:8000"
@@ -116,9 +134,10 @@ services:
       backend:
         condition: service_healthy
 
+  # 場景式前端（frontend-3d）；舊版 frontend/ 保留在 repo 但不再建置
   frontend:
     build:
-      context: ./frontend
+      context: ./frontend-3d
       dockerfile: Dockerfile
 
     container_name: meal-planner-frontend
@@ -126,6 +145,17 @@ services:
     ports:
       - "127.0.0.1:8080:80"
 
+    depends_on:
+      backend:
+        condition: service_healthy
+
+  # 模擬超市（選用）：docker compose --profile sim-market up；後端需設定 SIM_MARKET_URL=http://127.0.0.1:8081 與 SIM_MARKET_HANDOFF_KEY
+  sim-supermarket:
+    profiles: [sim-market]
+    build:
+      context: ./sim-supermarket
+    ports:
+      - "127.0.0.1:8081:80"
     depends_on:
       backend:
         condition: service_healthy

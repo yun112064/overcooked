@@ -11,6 +11,7 @@
 import uuid
 from datetime import datetime, timezone
 from decimal import Decimal
+from urllib.parse import quote
 
 from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
@@ -18,6 +19,7 @@ from sqlalchemy.orm import Session
 
 from app.api.errors import ApiError, idempotency_conflict, version_conflict
 from app.db.models import GenerationResult, MealRequest, MealResultDecision, Member
+from app.models.recipe import RecipeCover
 from app.services import idempotency, jobs, meal_history, meal_validation, per_person_nutrition, seasonings
 from app.services.meal_calculation import display_count
 
@@ -93,6 +95,8 @@ def _ingredient(r: dict) -> dict:
             "weight_basis_source": r.get("weight_basis_source"),
             "whole_meal_grams": r.get("whole_meal_grams"), "display_grams": r.get("display_grams"),
             **_shown(r),
+            # 液體體積（毫升）：DEMO 不做體積計價，只透傳；舊結果與 DEMO 生成皆為 None
+            "volume_ml": r.get("volume_ml"),
             # decisions #19：克數或烹調係數來自 LLM 推估時標示；estimates 保留模型、版本與覆核狀態供追溯
             "llm_estimated": bool(r.get("llm_estimated")),
             "estimate_label": LLM_ESTIMATE_LABEL if r.get("llm_estimated") else None,
@@ -174,6 +178,7 @@ def staple_view(payload: dict) -> dict | None:
             "review_status": staple.get("review_status"), "unresolved_reason": staple.get("unresolved_reason"),
             "whole_meal_grams": row.get("whole_meal_grams"), "display_amount": row.get("display_amount"),
             "display_unit": row.get("display_unit"), "display_text": row.get("display_text"),
+            "volume_ml": row.get("volume_ml"),
             "counts_for_price": False, "llm_estimated": bool(row.get("llm_estimated"))}
 
 
@@ -242,12 +247,17 @@ def _source_name(quote: dict) -> str | None:
 
 
 def _prices(payload: dict) -> dict:
+    """價格區。unquantified_items：用量無法換算的食材（無法計價）；有任何一項時整餐合計未知，
+    不以 0 代替：price_complete 為 False、purchase_total／cost_total 為 None，預算判定 OK 改為未知。"""
     cost = payload.get("cost") or {}
+    names = {r["food_id"]: r["name"] for r in (payload.get("calculation") or {}).get("ingredients") or []}
+    unquantified = [{"food_id": food_id, "name": names.get(food_id, food_id)}
+                    for food_id in cost.get("unquantified_food_ids") or []]
     if cost.get("status") != "computed":
         return {"status": cost.get("status", "not_computed"), "reason": cost.get("reason"), "budget": None,
                 "budget_status": None, "price_complete": False, "purchase_total": None, "cost_total": None,
-                "known_purchase_total": None, "known_cost_total": None, "items": []}
-    names = {r["food_id"]: r["name"] for r in (payload.get("calculation") or {}).get("ingredients") or []}
+                "known_purchase_total": None, "known_cost_total": None, "items": [],
+                "unquantified_items": unquantified}
     items = []
     for ln in cost["lines"]:
         if ln["price_status"] not in ("known", "unknown"):
@@ -257,10 +267,17 @@ def _prices(payload: dict) -> dict:
                       "shortage_grams": ln["shortage_grams"], "price_status": ln["price_status"],
                       "packs": ln.get("packs"), "purchase_price": ln.get("purchase_price"), "cost": ln.get("cost"),
                       "missing_reason": ln.get("missing_reason"), "source_name": _source_name(quote),
+                      # DEMO 不做體積計價，shortage_ml 一律為 None（保留欄位供前端共用）
+                      "shortage_ml": ln.get("shortage_ml"),
                       **{k: quote.get(k) for k in QUOTE_FIELDS}})
-    return {"status": "computed", **{k: cost.get(k) for k in (
+    out = {"status": "computed", **{k: cost.get(k) for k in (
         "budget", "budget_status", "price_complete", "purchase_total", "cost_total", "known_purchase_total",
-        "known_cost_total")}, "items": items}
+        "known_cost_total")}, "items": items, "unquantified_items": unquantified}
+    if unquantified:
+        out.update(price_complete=False, purchase_total=None, cost_total=None)
+        if out["budget_status"] == "OK":
+            out["budget_status"] = None
+    return out
 
 
 def _previous_day(payload: dict) -> dict:
@@ -287,6 +304,23 @@ def nutrition_with_people(db: Session, household_id, payload: dict) -> dict:
             "daily_reference": per_person_nutrition.reference_meta()}
 
 
+def dishes_with_covers(db: Session, dishes: list[dict]) -> list[dict]:
+    """資料庫菜附封面網址（cover_url，鍵一定存在）；AI 菜與沒有封面的資料庫菜為 None。
+    DEMO 的菜沒有 recipe_release_id，以 recipe_id 查封面；同一食譜有多個發布版本時取版本代碼最小者。"""
+    ids = sorted({d["recipe_id"] for d in dishes if d.get("source") == "database" and d.get("recipe_id")})
+    covers: dict[str, str] = {}
+    if ids:
+        for recipe_id, release_id in db.execute(
+                select(RecipeCover.recipe_id, RecipeCover.recipe_release_id)
+                .where(RecipeCover.recipe_id.in_(ids)).order_by(RecipeCover.recipe_release_id)):
+            covers.setdefault(recipe_id, release_id)
+    for dish in dishes:
+        release_id = covers.get(dish.get("recipe_id")) if dish.get("source") == "database" else None
+        dish["cover_url"] = (f"/recipe-covers/{quote(release_id, safe='')}/{quote(dish['recipe_id'], safe='')}"
+                             if release_id else None)
+    return dishes
+
+
 def view(db: Session, request: MealRequest, result: GenerationResult) -> dict:
     p = result.payload
     derived = db.get(GenerationResult, result.derived_from_result_id) if result.derived_from_result_id else None
@@ -301,7 +335,7 @@ def view(db: Session, request: MealRequest, result: GenerationResult) -> dict:
         "sodium_adjustment": p.get("sodium_adjustment"),
         "fallback_message": FALLBACK_MESSAGES.get(result.fallback_reason, "食譜資料庫沒有可行組合，已自動改由 AI 生成。")
         if result.fallback_reason else None,
-        "dishes": _dishes(p), "staple": staple_view(p), "nutrition": nutrition_with_people(db, request.household_id, p), "prices": _prices(p),
+        "dishes": dishes_with_covers(db, _dishes(p)), "staple": staple_view(p), "nutrition": nutrition_with_people(db, request.household_id, p), "prices": _prices(p),
         "knowledge": {**(p.get("explanation") or {"status": "not_found", "items": []}),
                       "retry_available": knowledge_retry_available(p)},
         "knowledge_retry": p.get("knowledge_retry"), "price_retry": p.get("price_retry"),

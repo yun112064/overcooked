@@ -1,0 +1,76 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 140">
+  <!-- 個人餐墊：亞麻餐墊、筷子與筷架、湯匙。飯碗疊在左側圓位（俯視，座位朝下方） -->
+  <defs>
+    <filter id="tw-b3" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="3"/></filter>
+    <filter id="tw-b6" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="6"/></filter>
+    <filter id="tw-grain" x="0" y="0" width="100%" height="100%">
+      <feTurbulence type="fractalNoise" baseFrequency="1.1" numOctaves="2" seed="7"/>
+      <feColorMatrix type="matrix" values="0 0 0 0 .4  0 0 0 0 .34  0 0 0 0 .24  1.3 0 0 0 -.56"/>
+      <feComposite in2="SourceGraphic" operator="in"/>
+    </filter>
+    <filter id="tw-wood" x="0" y="0" width="100%" height="100%">
+      <feTurbulence type="fractalNoise" baseFrequency=".02 .4" numOctaves="3" seed="12"/>
+      <feColorMatrix type="matrix" values="0 0 0 0 .2  0 0 0 0 .1  0 0 0 0 .04  1.6 0 0 0 -.62"/>
+      <feComposite in2="SourceGraphic" operator="in"/>
+    </filter>
+    <radialGradient id="tw-china" cx=".4" cy=".35" r=".8">
+      <stop offset="0" stop-color="#FFFFFF"/><stop offset=".7" stop-color="#F1ECE2"/><stop offset="1" stop-color="#BDB6A8"/>
+    </radialGradient>
+    <radialGradient id="tw-well" cx=".6" cy=".65" r=".8">
+      <stop offset="0" stop-color="#FBF8F1"/><stop offset="1" stop-color="#DCD5C7"/>
+    </radialGradient>
+    <radialGradient id="tw-rice" cx=".4" cy=".35" r=".8">
+      <stop offset="0" stop-color="#FFFFFF"/><stop offset=".7" stop-color="#F3EEE2"/><stop offset="1" stop-color="#CFC6B4"/>
+    </radialGradient>
+    <linearGradient id="tw-tub" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#E6CBA0"/><stop offset="1" stop-color="#A9824F"/>
+    </linearGradient>
+    <linearGradient id="tw-leaf" x1="0" y1="1" x2="1" y2="0">
+      <stop offset="0" stop-color="#2F5236"/><stop offset=".6" stop-color="#4E8A45"/><stop offset="1" stop-color="#9BCB78"/>
+    </linearGradient>
+    <radialGradient id="tw-broc" cx=".4" cy=".3" r=".8">
+      <stop offset="0" stop-color="#8FBF6A"/><stop offset=".6" stop-color="#4E8A45"/><stop offset="1" stop-color="#2A5230"/>
+    </radialGradient>
+    <linearGradient id="tw-fish" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#E6E0D2"/><stop offset=".5" stop-color="#B9B4A8"/><stop offset="1" stop-color="#8E8A80"/>
+    </linearGradient>
+    <linearGradient id="tw-pork" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#B56A3A"/><stop offset=".5" stop-color="#8A4622"/><stop offset="1" stop-color="#5E2C12"/>
+    </linearGradient>
+    <radialGradient id="tw-broth" cx=".42" cy=".38" r=".75">
+      <stop offset="0" stop-color="#FBE9C4"/><stop offset=".6" stop-color="#EBCB8E"/><stop offset="1" stop-color="#C9A25E"/>
+    </radialGradient>
+    <radialGradient id="tw-sauce" cx=".4" cy=".35" r=".8">
+      <stop offset="0" stop-color="#8A5A2A"/><stop offset="1" stop-color="#3E2412"/>
+    </radialGradient>
+    <linearGradient id="tw-linen" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#EFE7D6"/><stop offset="1" stop-color="#D2C6AE"/>
+    </linearGradient>
+    <linearGradient id="tw-seat" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#6B8B63"/><stop offset="1" stop-color="#3F5A3C"/>
+    </linearGradient>
+    <linearGradient id="tw-walnut" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#8E6844"/><stop offset="1" stop-color="#4A321E"/>
+    </linearGradient>
+    <linearGradient id="tw-paper" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#FFFFFF"/><stop offset="1" stop-color="#ECE6DA"/>
+    </linearGradient>
+    <linearGradient id="tw-steel" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#AEB6BD"/><stop offset=".4" stop-color="#F4F7F9"/><stop offset="1" stop-color="#8A9198"/>
+    </linearGradient>
+  </defs>
+
+  <rect x="10" y="12" width="204" height="124" rx="12" fill="#0E0A14" opacity=".4" filter="url(#tw-b3)"/>
+  <rect x="6" y="6" width="204" height="124" rx="12" fill="url(#tw-linen)"/>
+  <rect x="6" y="6" width="204" height="124" rx="12" fill="#000" filter="url(#tw-grain)" opacity=".4"/>
+  <rect x="14" y="14" width="188" height="108" rx="7" fill="none" stroke="#B9AD96" stroke-width="1.5" stroke-dasharray="5 5"/>
+  <g>
+    <rect x="150" y="96" width="34" height="12" rx="5" fill="#0E0A14" opacity=".4" filter="url(#tw-b3)" transform="translate(2 3)"/>
+    <rect x="150" y="96" width="34" height="12" rx="5" fill="#FBF8F1"/>
+    <rect x="158" y="18" width="6" height="96" rx="3" fill="#3E2412"/><rect x="170" y="18" width="6" height="96" rx="3" fill="#4A2C16"/>
+    <rect x="158" y="18" width="6" height="20" rx="3" fill="#D9472B"/><rect x="170" y="18" width="6" height="20" rx="3" fill="#D9472B"/>
+  </g>
+  <g>
+    <rect x="190" y="52" width="9" height="62" rx="4" fill="url(#tw-steel)"/><ellipse cx="194.500" cy="38" rx="11" ry="18" fill="url(#tw-steel)"/><ellipse cx="192" cy="34" rx="4" ry="8" fill="#FFFFFF" opacity=".6"/>
+  </g>
+</svg>
