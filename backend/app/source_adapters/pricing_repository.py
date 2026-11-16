@@ -475,7 +475,7 @@ class PricingRepository:
             if seen is None:
                 seen = {quote["canonical_name"] for quote in quotes}
             usable |= {quote["canonical_name"] for quote in quotes if quote["status"] == "success"
-                       and quote_unusable_reason(materialize_quote(quote), now, allow_volume=True) is None}
+                       and quote_unusable_reason(materialize_quote(quote), now) is None}
             finished = finished and row["status"] in {"completed", "completed_with_errors"}
         lease.connection.commit()
         return (seen or set()) - usable, finished

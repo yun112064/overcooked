@@ -967,3 +967,57 @@ Scope: nested checkout `1111_update_V2`, Docker project `overcooked-1111_update_
 - Limitations:
   - The running prod backend, worker and scheduler still use main's code. Until rebuilt, the daily 03:00 job will not run the confirmed stage, and generation will not apply synonym pricing.
   - Confirmed quotes without a source expiry are usable for 48 h, like other live quotes.
+
+## 2026-11-16 — Price supplements: no unknown prices (user decisions)
+
+User decisions (2026-11-16):
+- 香菇水 / 泡香菇的水 / 高湯水 are priced by 香菇 or 雞湯塊 at a package or soaking ratio, and not counted again when the menu already lists the source.
+- 水煮蛋, 荷包蛋, 帶皮雞腿 and 雞柳條 use the raw egg or chicken price; 蛋黃 uses the yolk share of the egg.
+- 澄粉 / 紅酒 are charged as one whole package.
+- Foods no store sells get a cited estimate.
+- 大白菜 is filled from historical data.
+- Estimates count in cost and budget, but are always labelled 估價 with their source and date.
+
+Implementation:
+- `config/t02_price_supplements.json` holds 8 derived and 14 estimate rules. Each has a basis, source URL and observation date. It is loaded and validated by `backend/app/services/price_supplements.py`.
+  - Figures were researched by web agents, and each was re-fetched by an independent verifier.
+  - No store history existed for 大白菜: every snapshot in prod and in the historical seed release is `not_found` or `out_of_stock`. Its estimate therefore uses the MOA wholesale data republished on twfood.cc.
+  - 米粕 uses a labelled substitute (米豆麴).
+  - 蛤蜊汁 uses clams by weight. It is not derived from the 蛤蜊 store quote, because the current 蛤蜊 quote is a pet treat (汪喵星球 無膠點心罐), an existing matching defect left for follow-up.
+- `meal_cost._price_by_supplements` runs after confirmed synonyms. In order:
+  1. included (cost 0 when the menu already buys the source);
+  2. derived from the source's live quote, with the managed price policy applied to the source;
+  3. the latest user-confirmed market estimate, queried directly so an older expired success cannot hide it;
+  4. historical: the last store success that is only expired and is still TWD;
+  5. the cited estimate.
+- New `price_status` values: `estimated` (has an amount; counts in cost/budget; labelled) and `included` (cost 0, hidden).
+- `_share_packages` rounds a derived food and its source on one quote once, and charges a split whole-package estimate once.
+- Payload changes: `cost_snapshot` and `meal_results._prices` add `price_basis`, `estimate_note`, `estimate_url`, `derived_from_food_id`, `price_estimated` and `estimated_food_ids`. Trend rows carry `price_estimated`.
+- Frontend, both trees (`frontend/src` and `overcooked-frontend/frontend/src/live`): 估價 chip and note with source link per item; 含估價 on the 成本價 stat, the history plan card and the trend caption; the history mapper keeps the new fields.
+- Collection follow-ups from review:
+  - a blocked or rate-limited confirmed host pauses the run so it can be resumed;
+  - stages wait `delay_seconds` between them;
+  - `unpriced_after` uses the gram-only usability test;
+  - the T15 price retry also looks up derived sources and synonyms.
+- Review: 4 reviewer agents, each finding checked by 2 refuting agents; 14 of 17 findings survived. All 14 were addressed. The 香菇水 one was a misreading of "5–10 g" (per mushroom, not total), so its basis wording was clarified and the 0.05 ratio kept.
+
+Checks:
+- Disposable `meal_planner_1102_v3_supplement_test` on a throwaway pgvector container, removed afterwards:
+  - `tests/test_t02_price_supplements.py` and `test_t02_confirmed_products.py` → 36 passed.
+  - Full `tests/` → 1332 passed, 28 skipped. 5 failed and 19 errors are the same environment-only cases as before (no `git`, `jieba`, `opencc` or backup container in the test image). An intermediate run caught 3 regressions (SQLite/stubbed DB reaching the new market-estimate query); they were fixed by querying only foods with a market-estimate rule.
+- `overcooked-frontend/frontend`: `npm run build` and `npm run lint` pass (1 pre-existing warning). `npm test`: 22 + 14 pass. `live-contracts` "every existing API method…" fails on Windows only, because the test compares `relative()` output with `/` while Windows yields `\`. It is unrelated to this change.
+- `frontend`: `tsc -b` and eslint on the changed files pass.
+- Prod coverage, read-only with this code, 100 g / 100 mL per food over the 301 foods of `pxmart-daily-2026-11-16`:
+
+  | Priced by | Count |
+  |---|---|
+  | Store | 206 |
+  | Confirmed page | 70 |
+  | Derived | 8 |
+  | Synonym | 1 |
+  | Market estimate | 1 |
+  | Cited estimate | 13 |
+  | Historical | 2 |
+  | Unknown | 0 |
+
+- Limitation: a day with a new store miss and no rule can still show an unknown price; estimates are static figures dated 2026-11-16.

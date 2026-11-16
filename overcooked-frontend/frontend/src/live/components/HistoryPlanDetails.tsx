@@ -30,22 +30,23 @@ function SavedShopping({ prices }: { prices?: MealResult['prices'] }) {
         <TableHead><TableRow><TableCell>食材</TableCell><TableCell>缺量</TableCell><TableCell>包裝</TableCell>
           <TableCell>整包採購價</TableCell><TableCell>用量成本</TableCell><TableCell>來源</TableCell></TableRow></TableHead>
         <TableBody>{prices.items.map((item, index) => <TableRow key={`${item.food_id}-${index}`}>
-          <TableCell sx={{ whiteSpace: 'nowrap' }}>{item.name}</TableCell>
+          <TableCell sx={{ whiteSpace: 'nowrap' }}>{item.name}{item.price_status === 'estimated' && '（估價）'}</TableCell>
           <TableCell sx={{ whiteSpace: 'nowrap' }}>{item.shortage_ml != null ? `${toNumber(item.shortage_ml) ?? item.shortage_ml} mL`
             : item.shortage_grams != null ? `${toNumber(item.shortage_grams) ?? item.shortage_grams} g` : '未知'}</TableCell>
-          <TableCell>{item.price_status === 'known' && item.packs != null ? `${item.package_description ?? ''} × ${item.packs}` : '待確認'}</TableCell>
+          <TableCell>{item.price_status !== 'unknown' && item.packs != null ? `${item.package_description ?? (item.price_status === 'estimated' ? '估價包裝' : '')} × ${item.packs}` : '待確認'}</TableCell>
           <TableCell sx={{ whiteSpace: 'nowrap' }}>{money(item.purchase_price)}</TableCell><TableCell sx={{ whiteSpace: 'nowrap' }}>{money(item.cost)}</TableCell>
           <TableCell sx={{ minWidth: 150 }}>{item.price_status === 'unknown' ? '查無價格' : item.product_url
             ? <Link href={item.product_url} target="_blank" rel="noreferrer">{item.source_name ?? item.retailer ?? item.source ?? '來源'}</Link>
             : item.source_name ?? item.retailer ?? item.source ?? '未保存來源'}
             {item.queried_at && <Typography component="p" variant="caption">{new Date(item.queried_at).toLocaleString()} 查詢</Typography>}
             {item.missing_reason && <Typography component="p" variant="caption">{item.missing_reason}</Typography>}
+            {item.estimate_note && <Typography component="p" variant="caption" color={item.price_status === 'estimated' ? 'warning.main' : 'text.secondary'}>{item.estimate_note}</Typography>}
           </TableCell>
         </TableRow>)}</TableBody>
       </Table></Box> : <Typography variant="body2">{toNumber(prices.cost_total) === 0 && !incompleteQuantity.length ? '已知用量的食材無需補買。' : '此紀錄沒有可列出的採購品項。'}</Typography>}
       <StatRow>
         <Stat label="整包採購價" value={money(prices.purchase_total)} note={prices.purchase_total === null ? `已知 ${money(prices.known_purchase_total)}` : undefined} />
-        <Stat label="用量成本" value={money(prices.cost_total)} note={prices.cost_total === null ? `已知 ${money(prices.known_cost_total)}` : undefined} />
+        <Stat label="用量成本" value={money(prices.cost_total)} note={prices.cost_total === null ? `已知 ${money(prices.known_cost_total)}` : prices.price_estimated ? '含估價' : undefined} />
         <Stat label="預算" value={money(prices.budget)} />
       </StatRow>
     </Stack>

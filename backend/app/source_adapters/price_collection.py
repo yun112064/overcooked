@@ -144,11 +144,18 @@ class PriceCollectionService:
         primary = self._collect(provider="pxmart", run_key=run_key, adapter_factory=self.adapter_factory,
                                 limit=limit, **common)
         if self.fallback_adapter_factory is not None:
+            self._pause_between_stages()
             fallback = self.run_fallback(run_key=run_key, follow_primary=True, **common)
             primary = replace(primary, fallback=fallback)
         if self.confirmed_adapter_factory is not None:
+            self._pause_between_stages()
             primary = replace(primary, confirmed=self.run_confirmed(run_key=run_key, **common))
         return primary
+
+    def _pause_between_stages(self) -> None:
+        """Stages can hit the same hosts (the confirmed pages include PX Mart and Uni-Prosperity)."""
+        if self.delay_seconds:
+            self.sleep(self.delay_seconds)
 
     def run_confirmed(
         self,

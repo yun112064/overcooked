@@ -1219,7 +1219,12 @@ def cost_snapshot(cost) -> dict:
                        "shortage_ml": str(c.shortage_ml) if c.shortage_ml is not None else None,
                        "shortage_grams": c.shortage_grams, "price_status": c.price_status,
                        "packs": c.packs, "purchase_price": c.purchase_price, "cost": c.cost,
-                       "missing_reason": c.missing_reason, "quote": c.quote} for c in cost.lines]}
+                       "missing_reason": c.missing_reason, "quote": c.quote, "price_basis": c.price_basis,
+                       "derived_from_food_id": c.derived_from_food_id, "estimate_note": c.estimate_note,
+                       "estimate_url": c.estimate_url}
+                      for c in cost.lines],
+            # 2026-11-16：估價計入成本與預算，但要讓畫面標示（不當作當日售價）
+            "price_estimated": bool(cost.estimated_food_ids), "estimated_food_ids": cost.estimated_food_ids}
     managed_releases = {line.quote.recipe_release_id for line in cost.lines
                         if line.quote is not None and line.quote.price_policy_publication_id}
     if len(managed_releases) == 1:

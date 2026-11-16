@@ -119,11 +119,26 @@ def default_price_lookup(food_ids: list[str]) -> dict:
     return outcome
 
 
+def lookup_food_ids(food_ids: list[str]) -> list[str]:
+    """Foods to query for missing prices: a derived food's source food and confirmed synonyms are added,
+    because the derived food itself is never sold (水煮蛋 is priced from 雞蛋)."""
+    from app.services.price_supplements import load_supplements
+    from app.services.synonyms import confirmed_equivalents
+    derived = load_supplements().derived
+    result: list[str] = []
+    for food_id in food_ids:
+        extra = [derived[food_id].source_food_id] if food_id in derived else []
+        for candidate in (food_id, *extra, *sorted(confirmed_equivalents([food_id]) - {food_id})):
+            if candidate not in result:
+                result.append(candidate)
+    return result
+
+
 def make_price_retry_handler(*, price_lookup=None, now=None):
     def handler(ctx) -> dict:
         from app.core.config import settings
         payload = _source(ctx)
-        missing = meal_validation.missing_price_food_ids(payload)[:settings.price_retry_max_foods]
+        missing = lookup_food_ids(meal_validation.missing_price_food_ids(payload))[:settings.price_retry_max_foods]
         ctx.stage("price_lookup")
         try:
             outcome = (price_lookup or default_price_lookup)(missing)

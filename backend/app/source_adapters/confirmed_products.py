@@ -13,6 +13,7 @@ import re
 import time
 import unicodedata
 from dataclasses import dataclass
+from functools import lru_cache
 from datetime import datetime, timezone
 from decimal import Decimal
 from html import unescape
@@ -282,7 +283,12 @@ RETAILERS = {PX: "PX Mart", "pxbox.es.pxmart.com.tw": "PX Mart", "www.pxmart.com
 
 
 def load_confirmed_rules(path: str | Path = CONFIRMED_RULES) -> dict[str, ConfirmedRule]:
-    """The versioned confirmed rules by Food_ID (validated by load_confirmed)."""
+    """The versioned confirmed rules by Food_ID (validated by load_confirmed); cached per path."""
+    return dict(_confirmed_rules(str(path)))
+
+
+@lru_cache(maxsize=4)
+def _confirmed_rules(path: str) -> dict[str, ConfirmedRule]:
     _, rules = load_confirmed(Path(path).read_bytes())
     return {rule.food_id: rule for rule in rules}
 
@@ -324,11 +330,15 @@ class ConfirmedProductAdapter:
         try:
             result = confirmed_observation(rule, self.pages, result)
         except httpx.HTTPError as exc:
+            if self._blocked(rule):
+                return self._paused(query, rule)
             return self._missing(query, rule, QuoteStatus.SOURCE_ERROR,
                                  f"confirmed product page request failed: {exc or type(exc).__name__}")
         except (ValueError, TypeError, KeyError) as exc:
             return self._missing(query, rule, QuoteStatus.SCHEMA_CHANGED,
                                  f"confirmed product page could not be verified: {exc or type(exc).__name__}")
+        if self._blocked(rule):
+            return self._paused(query, rule)
         observed = datetime.fromisoformat(result["at"]) if result.get("at") else datetime.now(timezone.utc)
         if result["reason"] is not None:
             status = (QuoteStatus.OUT_OF_STOCK if result.get("availability") == Availability.OUT_OF_STOCK.value
@@ -341,7 +351,8 @@ class ConfirmedProductAdapter:
             return PriceQuote(**common, status=QuoteStatus.REVIEW_REQUIRED, selection_tier=SelectionTier.ESTIMATE,
                               missing_reason="estimated market price only; not a verified retail price",
                               estimated_product_name=result.get("product") or rule.product,
-                              estimated_price=Decimal(result["estimated_price"]), estimated_currency="TWD")
+                              estimated_price=Decimal(result["estimated_price"]), estimated_currency="TWD",
+                              package_quantity=quantity, package_unit=rule.unit)
         price = Decimal(result["price"])
         return PriceQuote(
             **common, status=QuoteStatus.SUCCESS, selection_tier=SelectionTier.AUTO_ADOPTED,
@@ -352,6 +363,15 @@ class ConfirmedProductAdapter:
             weight_basis="user_confirmed_package", weight_reliability=WeightReliability.EXACT,
             product_url=result.get("url") or rule.url, availability=Availability.IN_STOCK, price_kind="displayed",
             unit_price_per_100=price * 100 / quantity, unit_price_per_1000=price * 1000 / quantity)
+
+    def _blocked(self, rule: ConfirmedRule) -> bool:
+        return (urlsplit(rule.url).hostname or "") in self.pages.blocked
+
+    def _paused(self, query: IngredientQuery, rule: ConfirmedRule) -> PriceQuote:
+        """The collection service stops on this prefix without checkpointing, so a resume retries it."""
+        host = urlsplit(rule.url).hostname or ""
+        return self._missing(query, rule, QuoteStatus.SOURCE_ERROR,
+                             f"source blocked or rate-limited: {host} {self.pages.blocked.get(host, '')}".strip())
 
     def _common(self, query: IngredientQuery, rule: ConfirmedRule, observed: datetime, result: dict) -> dict:
         return dict(

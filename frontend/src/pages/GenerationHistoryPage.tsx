@@ -28,6 +28,8 @@ type TrendItem = {
   energy_kcal: string | null; protein_g: string | null
   target_energy_kcal: string | null; target_protein_g: string | null
   cost_total: string | null; known_cost_total: string | null; budget: string | null
+  /** 2026-11-16：成本含估價 */
+  price_estimated?: boolean
 }
 type DayPoint = {
   date: string; label: string; meals: number
@@ -203,6 +205,7 @@ function Trends({ selected, onPick }: { selected: string; onPick: (date: string)
                   <Typography variant="body2" sx={{ fontWeight: 500, flexGrow: 1 }}>每日成本（元）</Typography>
                   <Legend items={[['成本', tokens.matcha, false], ['預算', tokens.ochre, true]]} />
                   {partialCosts > 0 && <Typography variant="caption" sx={{ width: '100%' }}>虛線框的長條是價格不完整、只計已知部分的日子</Typography>}
+                  {items.some((i) => i.price_estimated) && <Typography variant="caption" sx={{ width: '100%' }}>部分餐次的成本含估價（不是當日售價），僅供參考</Typography>}
                 </Box>
                 <TrendChart data={data} kind="cost" selected={selected} onPick={onPick} />
               </Box>
@@ -229,6 +232,7 @@ function PlanCard({ plan }: { plan: GenerationPlanDetail }) {
           <Chip size="small" color={plan.ai_generated ? 'secondary' : 'default'} variant={plan.ai_generated ? 'outlined' : 'filled'}
             label={plan.mode_label} />
           {plan.price_exception_accepted && <Chip size="small" color="warning" variant="outlined" label="部分價格未知" />}
+          {prices?.price_estimated && <Chip size="small" color="warning" variant="outlined" label="成本含估價" />}
           {plan.result_version !== null && <Chip size="small" label={`結果第 ${plan.result_version} 版`} />}
         </Box>
         {plan.fallback_message && <Alert severity="info">{plan.fallback_message}</Alert>}
