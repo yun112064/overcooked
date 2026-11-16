@@ -603,6 +603,328 @@ Scope: nested checkout `1111_update_V2`, Docker project `overcooked-1111_update_
     - 114 records usable for explanations.
   - Prod knowledge DB, new `apply` → 0 approved, 0 classified, no error.
 
+
+## 2026-11-15：獨立前端結果／辨識版型補齊
+
+- 基底 `b9584d0`。使用者依食譜結果與圖片辨識畫面的差異要求修正；本輪修改獨立前端呈現、一般 Compose 與開發腳本的前端入口，未修改舊 `frontend/`、後端、API 端口、資料庫或外部模型。沒有提交、推送或合併。
+- 結果／預覽改為共用 RecipeBook：菜色選單、配方照片或明確缺圖、食材與步驟；保留後端整餐用量、原食譜未調整提示、主食、未知值、高鈉與採用阻擋。辨識補上大型本機預覽、明確開始辨識、逐項確認及右側已有食材清單。
+- 乾淨 `npm ci` 完成；30 項測試通過，包含 API 方法、URL、請求本文、multipart 欄位、版本／冪等鍵、Cookie／SSE、單側營養界線及用量顯示；TypeScript 與正式 Vite build 通過。lint 無錯誤，既有 react-hooks/incompatible-library 對 form.watch 的 1 項警告保留。
+- 最初 835b4e7 的 frontend 雜湊已被後續 main 更新超越；未覆寫歷史 baseline，改為比對目前 HEAD 的舊 frontend 工作目錄，API 契約仍逐一比對。
+- Chrome 在 localhost:5174，使用 /private/tmp 下的獨立合成 HTTP fixture 驗證：兩道菜切換與用量／步驟同步、未知照片提示、不可採用阻擋、大型照片預覽、模擬離線後重試、多蔬菜加入／略過、手動搜尋、清單移除及草稿版本遞增保存。只上傳專案內蔬果素材，不連真實資料庫或模型；測試分頁已關閉。
+- 實際 YOLO 推論、真實資料端到端與 Windows 程序啟停未重新驗收；本次不宣稱手機實機測試通過。原後端與舊前端受追蹤程式碼的 git diff 為空。
+- 已用合成環境變數實際解析一般 Compose 與正式合併 Compose：兩者均建置 `overcooked-frontend/frontend`；一般前端 8080／後端 8000、正式不發布 host ports 的政策維持。暫時 QA 伺服器已停止，既有容器未操作。
+- 使用者隨後要求提交、推送與開 PR；改以 `codex/frontend-recipe-recognition-layout` 分支交付，不合併 main。
+
+
+## 2026-11-15：新版前端加入 CI（PR #43）
+
+- 新增 `redesigned-frontend-checks`（顯示名稱 Redesigned frontend），明確設定工作目錄與 npm cache lock 為 `overcooked-frontend/frontend`；使用既有 Node.js 24、checkout／setup-node 版本。
+- 每個 PR 與 main 推送會依序執行安裝、30 項測試、lint、正式建置與示範建置。保留原有五個工作，未改前後端程式、部署行為、秘密或權限設定。
+- 本機 Node.js 26.10.0 實際重跑 30 項測試、lint、正式／示範 build 全部成功；lint 保留既有 form.watch 的 1 項警告。Ruby YAML 解析確認六個工作與新版的目錄／命令順序；whitespace 檢查通過。
+- 遠端 Node.js 24 的結果以本次提交的 GitHub Actions run 為準，不沿用上一提交的 CI 結果。使用者要求處理 CI，更新同一 PR 分支；不合併 main。
+
+## 2026-11-15：家庭與成員依原設計合併（本機未提交）
+
+- 使用者逐頁確認並選擇 A：以獨立前端 `src/pages/Members.tsx` 的 FamilyPage 為設計依據，將家庭下拉切換、建立家庭彈窗、成員卡片及開始規劃合為 `/members`；`/households` 保留轉址。尚無家庭的已登入帳號也能進入，不受已有家庭的路由守衛阻擋。
+- 保留家庭與成員的 API 方法、URL、請求本文及既有 MemberFormDialog。成員查詢快取加上家庭識別；切換期間卸載成員區，成功／失敗均重新確認後端選定的家庭。新增、編輯後仍以既有快取前綴重新讀取；沒有更改後端或舊 `frontend/`。
+- 本機 Node.js 26.10.0 實際執行：30 項測試、lint、正式 build 與 demo build 成功；lint 為 0 錯誤、既有 form.watch 的 1 項警告。契約檢查擴充比對 HouseholdPage／MembersPage 的完整 API 呼叫；git diff --check 通過。
+- Chrome 使用 `/private/tmp/overcooked-family-review-20261115.mjs` 的獨立記憶體合成 HTTP fixture（localhost:5174／18010），實際確認舊網址轉址、桌面三欄卡片、家庭切換等待時隱藏舊成員、另一家庭只顯示自身成員、切換失敗後恢復伺服器原家庭、名稱必填、建立失敗後重試、新帳號建立第一家庭、空家庭不能開始規劃、成員新增與編輯後卡片更新，以及開始規劃進入既有 `/plan`。原成員表單版型留待下一頁討論。
+- 未重新驗證真實資料庫端到端、手機實機或遠端 CI；瀏覽器結果僅代表上述合成流程。測試分頁已關閉、暫時服務已停止；本輪沒有提交、推送或合併。
+
+## 2026-11-15：新增／編輯成員採用原設計獨立頁面（本機未提交）
+
+- 使用者選擇 A：新增 `/members/new`、編輯 `/members/:memberId/edit`；原彈窗改為 MemberForm，提供返回家庭成員、基本資料／飲食設定雙欄、下方飲食限制、食量單選及說明。保留出生日期與自動年齡，不由年齡捏造生日；選項仍由既有 `/members/options` 提供。
+- 保留原驗證規則、Decimal 字串、食材 ID 映射、POST／PUT 本文與版本欄位。編輯頁從目前家庭成員列表讀取，編輯快取依家庭與成員區分且離頁即回收；表單固定開始編輯時的版本，背景更新不會替舊內容換上新版號。加入未儲存離開及頁面關閉提示，儲存成功返回列表。
+- 本機 Node.js 26.10.0 實際執行：31 項測試、lint、正式／demo build 成功，git diff --check 通過。新增契約比對涵蓋重命名後的表單、原驗證／資料映射及編輯頁讀取；lint 保留既有 form.watch 的 1 項警告（0 錯誤）。後端、舊 `frontend/`、腳本、Compose 與 CI 檔案本輪無修改。
+- Chrome 使用 `/private/tmp/overcooked-member-editor-review-20261115.mjs` 的記憶體合成 HTTP fixture，實際驗證新增頁直接進入、鍵盤輸入出生日期與年齡顯示、五種食量單選、過敏／禁吃搜尋與標籤、帶小數體重及食材限制的新增保存、完整編輯回填、未滿 19 歲無法選成人目標、未儲存離開後繼續編輯與捨棄、模擬 409 衝突保留表單、重新進入載入新版後正常編輯保存。合成請求紀錄確認 `55.25`／食量字串、兩組食材 ID 與編輯版號。
+- Chrome responsive 390×844 預覽確認基本資料、飲食設定與飲食限制改為單欄，食量選項換行，取消／儲存按鈕仍可見；並非手機實機驗收。未重新執行真實資料庫端到端或遠端 CI。測試分頁及 DevTools 已關閉、暫存服務已停止；未提交、推送或合併。
+
+## 2026-11-15：問卷採用 B，保留分步流程調整版面（本機未提交）
+
+- 使用者選擇 B：保留「用餐資訊 → 成員與便當 → 口味與指定菜 → 已有食材 → 確認」五步。用餐資訊改成餐食安排／餐食設定卡片，成員區加入頭像與食量標籤、卡片排列，口味與指定菜各自分區；統一步驟圖示、紫色導覽及頁尾操作樣式。
+- 本輪程式僅修改獨立前端 MealRequestEditor.tsx 的呈現與 scoped CSS，沒有合併步驟、改變欄位操作或引入示範食譜。驗證、主食選項、草稿版本／請求本文、切換步驟儲存與生成流程維持。後端與舊 `frontend/` 無差異。
+- 本機實際執行：31 項測試、lint、正式 build 與 demo build 成功；lint 為 0 錯誤，保留既有 form.watch 的 1 項警告。既有完整 API 契約比對通過，git diff --check 通過。
+- Chrome 在 localhost:5174 使用 `/private/tmp/overcooked-planner-review-20261115.mjs` 的記憶體合成 HTTP fixture：從第一步走到第五步，確認預算 `333.25`、同時用餐與便當、口味文字及 Enter 加入指定菜保存；版本由 1 遞增至 4，確認摘要完整顯示，再回第一步仍保留預算。只回看未修改的步驟沒有額外保存。桌面卡片與 390×844 單欄／五步導覽預覽確認正常。
+- 未執行真實資料庫端到端、實際生成／模型、手機實機或遠端 CI。測試分頁與 DevTools 已關閉、暫存服務已停止；未提交、推送或合併。
+
+## 2026-11-15：手動食材採用 A，選取後明確加入（本機未提交）
+
+- 使用者選擇 A：問卷的手動食材改為搜尋標準字典、選取、按「加入」後才更新現有食材清單。IngredientPicker 加入預設關閉的 confirmBeforeAdd 選項，僅問卷啟用；成員過敏／禁吃選擇維持原操作。辨識元件、多結果確認／略過／重試未修改。
+- 選取暫存在搜尋區，重新輸入時取消舊選取；只輸入文字不能加入；已存在的 ingredient_id 停用加入並提示，成功後清空搜尋與選取。仍用同一 GET `/ingredients` 搜尋及既有 available_ingredient_ids 草稿保存契約，沒有新增後端端點。搜尋失敗提供錯誤與重試。
+- 實際執行：31 項測試、lint、正式／demo build 成功；最後縮短窄版標籤後再次執行正式 build 成功。lint 保留既有 form.watch 的 1 項警告（0 錯誤）。完整契約比對擴充至 IngredientPicker 的查詢本文／參數；git diff --check 通過。
+- Chrome 使用 `/private/tmp/overcooked-manual-review-20261115.mjs` 記憶體合成 HTTP fixture，確認選取番茄後右側仍為 0 項、改搜尋高麗菜時舊選取消、按加入後顯示 1 項並清空輸入、重複選取停用加入、移除後可重新加入、下一步保存草稿版號 2 且確認摘要包含高麗菜；查無標準食材時不能加入。390×844 預覽確認「食材名稱」與加入按鈕完整顯示、食材清單改為單欄排列。
+- 未重新測試真實資料庫／辨識模型、搜尋失敗重試、手機實機或遠端 CI。多結果辨識保留原程式與契約，本輪未重新上傳照片驗收。測試分頁與 DevTools 已關閉、暫存服務已停止；未提交、推送或合併。
+
+## 2026-11-15：確認／生成頁採用 B，保留條列與進度條（本機未提交）
+
+- 使用者選擇 B：保留第五步條列摘要、進度條、階段、等待時間、重試與取消操作。摘要欄名與進度改用紫色，調整列間距／服務狀態間距，生成狀態加淡紫底色，生成、重新送出及取消按鈕補上圖示。沒有改為分區摘要或大型等待卡片。
+- 本輪修改 GenerationPanel 呈現、MealRequestEditor 的摘要樣式與 scoped CSS；不更改提交／取消 API、版本、冪等鍵、輪詢頻率、超時顯示或結果顯示條件。後端、舊 `frontend/`、腳本、Compose 與 CI 檔案無差異。
+- 實際執行：31 項測試、lint、正式／demo build 成功；lint 保留既有 form.watch 的 1 項警告（0 錯誤）。完整 API 方法／URL／本文／冪等鍵契約比對與 git diff --check 通過。
+- Chrome 使用 `/private/tmp/overcooked-generation-review-20261115.mjs` 的記憶體合成 HTTP fixture，實際確認條列摘要、排隊→計算階段、進度條／等待時間／嘗試次數、生成中停用提交、取消後保留問卷與重新送出、失敗訊息及再次送出、完成後結果與不可採用阻擋正常顯示。三次提交的 fixture 檢查均確認版號 1 與不同的 Idempotency-Key（取消與失敗後不重用舊鍵）。
+- 以上只驗證合成狀態切換；未執行真實模型／生成服務、實際超時、資料庫端到端、手機實機或遠端 CI，本輪未另做窄版瀏覽器驗收。測試分頁已關閉、暫存服務已停止；未提交、推送或合併。
+
+## 2026-11-15：結果頁混合設計，正式摘要／營養提示與原設計操作區（本機未提交）
+
+- 使用者指定頂部摘要、營養未達標提示使用正式版，操作區使用原設計。保留整餐熱量／蛋白質／成本／菜數、營養提醒與全部頁籤；唯讀比對確認 MealResultView 從結果資料到操作區之前的整段呈現與 HEAD 相同。
+- 移除原黏貼操作列，改為一般頁尾右側「修改條件／重新產生／採用菜單」三按鈕及圖示。修改條件由父頁回呼返回目前問卷第一步，食譜庫流程則返回既有用餐條件步驟；保留草稿。採用先顯示確認視窗，列出日期、餐別、菜單／主食、本餐成本及整包採購金額，按確認才送出。
+- 保留正式採用 eligibility、同日衝突、request/result 版號、既有缺價處理與冪等鍵契約；不引入示範版的營養門檻或缺價政策。採用中限制重複操作，保存失敗在視窗內顯示錯誤並可重試；結果版本改變會關閉舊版本確認，已採用結果維持正式版唯讀與操作限制。
+- 實際執行：31 項測試、lint、正式／demo build 及 git diff --check 通過；lint 保留既有 form.watch 的 1 項警告（0 錯誤）。API 方法／URL／本文／冪等鍵比對通過；後端、舊 `frontend/`、腳本、Compose 與 CI 檔案無差異。
+- Chrome 使用 `/private/tmp/overcooked-result-actions-review-20261115.mjs` 記憶體合成 HTTP fixture，確認不可採用時按鈕停用、修改條件返回同一份問卷並保留日期／預算、重新產生呼叫既有提交入口、確認視窗顯示成本與採購金額、返回結果沒有 POST 採用。實際確認後模擬 503 保存失敗，原視窗與重試按鈕保留；第二次成功後視窗關閉，出現已採用唯讀提示並切到採購頁籤。兩次採用請求的 request/result 版號均為 1，fixture 確認重試沿用同一冪等鍵。
+- 未重新驗證真實資料庫／模型、新結果版本實際生成、食譜庫修改回呼的瀏覽器流程、手機實機或遠端 CI，本輪未另做窄版瀏覽器驗收。瀏覽器分頁已關閉、暫存服務已停止；未提交、推送或合併。
+
+## 2026-11-15：已採用紀錄採混合設計（月曆／卡片／同頁明細＋正式趨勢，本機未提交）
+
+- 使用者指定：日期用原設計月曆，主版面用原設計並新增趨勢區，查看內容用原設計，趨勢統計維持正式版。MealHistoryPage 改為左側月曆／右側當日餐食卡片，早餐→午餐→晚餐排序；查看內容在同頁展開食譜／採購／營養／分餐四頁籤，切換日期收起舊明細，保留日期 URL 與返回首頁。
+- 重用 GenerationHistoryPage 的正式趨勢元件，僅更名並匯出，不修改其 7／30／90 天查詢、截至本機今天、熱量／成本圖、已知小計、未知價格與預算統計計算。另一個營養與採購入口維持原本版面。
+- 新舊紀錄皆由原 GET /meal-plans（日期清單及當日明細）讀取。生成紀錄使用返回的已採用明細；資料庫菜單使用 snapshot.cost、dishes、people 等保存欄位。新增唯讀價格格式轉換與歷史分餐表，保留整包採購價／用量成本、原報價時間、未知與實際 0、用餐／便當分開及精確份額字串。頁籤不讀取目前草稿，不新增生成／查價／採用請求；缺少保存資料明確提示。
+- 日期清單端點最多提供近期 60 個有紀錄日期，所以月曆只標示「近期已採用紀錄」，其他日期仍可查詢，不將沒有圓點解讀為沒有歷史。補上月底換月截斷、閏年與不合法日期 URL 的處理；載入／當日查詢錯誤與重試保留月曆。
+- 本機實際執行：34 項測試、lint、正式 build、demo build 及 git diff --check 通過。lint 為 0 錯誤，保留既有 form.watch 的 1 項警告。新增歷史查詢參數契約、換月／閏年／無效日期及採購快照的未知／零值／歷史時間測試。舊 frontend、backend、scripts、.github 與 compose.yaml 無差異。
+- Chrome 使用 /private/tmp/overcooked-history-review-20261115.mjs 記憶體合成 HTTP fixture：確認同日混合新舊紀錄排序、四個頁籤、保存食譜用量與步驟、歷史報價時間、缺價與已知 0 元、用餐與便當分列；切日期收起舊明細、未來空白日、當日 503 錯誤與重試入口；切換 7／30／90 天及保留 7 天選項跨日期切換。紀錄外的 2024-02-29 可直接查詢、補標該日期並呈現缺漏快照提示。390×844 預覽確認月曆／卡片上下排列、四頁籤與單欄食譜呈現。fixture 日誌僅有讀取請求，趨勢參數正確。
+- 未執行真實資料庫端到端、模型、遠端 CI、手機實機、趨勢長條點選、慢回應競態或伺服器錯誤後成功重試。本輪瀏覽器驗收後只微調月曆標題 HTML／移除多餘 CSS 選擇器、返回首頁的明確路徑與零值判斷，最後重新執行上述建置／測試／lint 通過。Chrome 測試分頁與 DevTools 已關閉，合成服務已停止；未提交、推送或合併。
+
+## 2026-11-15：營養與採購選擇 A，合併至已採用紀錄（本機未提交）
+
+- 移除獨立前端「營養與採購」導覽與舊頁面路由掛載；舊 /generation-history 經 loader 轉至 /history，完整保留日期等查詢參數，以 replace 取代舊歷史項目。已採用紀錄的四頁籤與正式趨勢元件維持，沒有修改後端/API 或上一輪的統計計算。
+- 本輪只修改 App.tsx、新增 history/redirect.ts，並記錄此驗證。實際以 React Router createMemoryRouter 執行無參數、日期、閏年日期加額外參數 3 種舊網址，確認抵達 /history、search 完整保留、historyAction 為 REPLACE、沒有路由錯誤；10 項 live-contracts 測試、正式 build、兩個修改檔的 ESLint、git diff --check 均通過。frontend、backend、scripts、.github、compose.yaml 無差異。
+- 這是入口合併，未重跑上一輪已通過的完整 34 項測試、demo build 或 Chrome 頁面驗收；未執行真實資料庫端到端或遠端 CI。未提交、推送或合併。
+
+## 2026-11-15：吉祥物游標暫停與右鍵拖放（本機未提交）
+
+- 使用者保留飲食小幫手正式版，另指定游標移入吉祥物時原地停止、按住右鍵可拖開。只修改獨立前端 FloatingAssistant.tsx：移入時讀取 CSS 過渡中的實際畫面位置並停止位移／閒晃計時器，移出後恢復；右鍵 Pointer Capture 支援上下左右拖曳、限制在視窗內，放開後保留位置並停止自動閒晃，避免又走回文字上。重新載入後位置重置，未新增持久化。
+- 保留左鍵開關聊天、Escape 關閉、減少動態效果設定；手動定位後聊天開關保留位置。右鍵選單僅在吉祥物上停用，拖曳取消／失去捕捉時清除拖曳狀態，縮小視窗時修正位置，拖到頂部時提示氣泡顯示在下方。
+- 實際執行：修改檔 ESLint（0 警告／錯誤）、TypeScript 與正式 build、git diff --check 通過。frontend、backend、scripts、.github、compose.yaml 無差異；沒有修改聊天/API 契約或吉祥物圖案。
+- 本輪未啟動服務、未做 Chrome 真實滑鼠 hover／右鍵拖放／視窗縮放實測，未重跑全套測試、demo build 或遠端 CI；互動行為仍待實際瀏覽器驗收。未提交、推送或合併。
+
+## 2026-11-15：吉祥物拖放後垂直落地（本機未提交）
+
+- 依使用者最新指定，取代上一輪「放開後停留在任意高度」：右鍵拖放／取消捕捉後保留水平座標，垂直以 0.45 秒 ease-in 落到可視視窗底部（保留裝置安全區），落地後保留水平位置，不自動閒晃。重新拖曳時讀取當下實際位置，可在下落途中再次抓取；拖曳中不套用落地過渡，減少動態效果時直接落地。落地高度使用 dvh，隨視窗高度變化調整；提示氣泡在落地時回到上方。
+- 本輪程式僅修改 FloatingAssistant.tsx 的垂直定位／過渡與氣泡位置判斷。實際執行修改檔 ESLint、TypeScript／正式 build 及 git diff --check 通過，frontend、backend、scripts、.github、compose.yaml 無差異。
+- 未做瀏覽器實際拖放／動畫／安全區驗收，未重跑整套測試、demo build 或遠端 CI；未提交、推送或合併。
+
+## 2026-11-15：食譜庫選菜採 B，統一版面與前端隨機加一道（本機未提交）
+
+- 使用者選擇 B，並希望隨機選菜不需後端規則。保留「用餐人數與便當→挑選菜色→結果」三步及既有共用結果頁，調整紫色步驟導覽、成員頭像／食量卡片、篩選面板、菜色卡片與操作列；窄版使用單欄。不新增照片或示範菜單資料。
+- 新增前端「隨機加一道」，只從已取得且符合目前分類／搜尋的清單中抽選尚未選取、conflicts 為空的菜名；去除候選同名重複，保留原選取，維持 10 道上限。未有可選菜、已滿額、唯讀／保存中或查詢錯誤時停用，顯示抽選結果與無候選提示。手選卡片一併遵守父頁 disabled；隨機不送出 API，按確定才保存並沿用原份量／採用驗證。
+- 實際執行：13 項 live-contracts 測試、修改檔與測試檔 ESLint、TypeScript／正式 build、git diff --check 通過。新增三項抽選測試涵蓋衝突／已選排除、候選去重、10 道上限、空池不抽選、篩選範圍及不修改輸入；完整 API 本文／版號契約比對擴充至 RecipePickerPage 與 RecipeCatalogPicker。frontend、backend、scripts、.github、compose.yaml 無差異。
+- Chrome 使用 /private/tmp/overcooked-picker-review-20261115.mjs 記憶體合成 fixture：確認成員／三步導覽、卡片排版，先手選番茄炒蛋，再搜尋高麗菜抽選，已選數從 1→2 且原菜保留；搜尋花生時衝突菜不能勾選、隨機按鈕停用；搜尋豆腐再抽選至 3 道，候選耗盡停用。390×844 預覽確認卡片單欄、衝突提示及操作列，按確定後進入結果摘要。fixture 日誌確認抽選沒有新增 HTTP 請求，最後沿用 PUT 草稿、version=2、dish_count=3、specified_dishes 僅含上述三道菜；沒有改送後端隨機／生成端點。
+- 未執行真實資料庫／模型、實際營養份量／採用端到端、瀏覽器連抽滿 10 道或唯讀狀態操作、demo build、全套測試或遠端 CI。結果頁只確認保存與摘要，不重驗其後續流程。測試分頁、DevTools 已關閉，合成服務已停止；未提交、推送或合併。
+
+## 2026-11-15：首頁草稿操作、食譜選菜主按鈕與草稿刪除（本機未提交）
+
+- 使用者指定：已有草稿時「開始規劃」採原設計詢問繼續／重新開始；沒有草稿時保留目前直接建立／查看餐食規劃。主按鈕旁新增「食譜選菜」連到 /pick，保留底部捷徑。重新開始仍用原 POST /meal-requests 建立新稿，不覆寫或刪除舊稿。
+- 唯讀確認後端已存在 DELETE /meal-requests/{request_id}（家庭權限檢查、生成中拒絕刪除），因此只新增前端 DeleteDraftButton，供首頁最新問卷草稿與問卷清單的 questionnaire／picker 草稿共用。確認視窗固定當次選取的草稿，顯示日期／餐別／模式；取消不送請求，送出中停用重複操作。先 GET 最新狀態，僅 status=draft 才 DELETE；失敗留在視窗顯示錯誤、可重試；成功清除對應快取並更新清單。
+- Chrome 使用 /private/tmp/overcooked-home-review-20261115.mjs 記憶體合成 fixture：確認選擇視窗、繼續原稿 /plan/qa-request、另建 /plan/qa-new-1 且原稿仍存在；刪除確認取消沒有 DELETE；模擬第一次 503，重試成功後首頁顯示原稿；清單僅草稿有刪除入口，已採用沒有。模擬清單草稿已變 confirmed，GET 後阻擋 DELETE，顯示「這份資料已不是草稿」，關閉後更新狀態。刪除最後問卷草稿後顯示「尚無未完成的草稿／查看餐食規劃」，開始規劃直接建立 /plan/qa-new-2。390×844 預覽確認兩個主按鈕並排。fixture 日誌確認既有建立本文只有 meal_date、每次刪除前均 GET、qa-stale 沒有 DELETE。
+- 實際執行：13 項 live-contracts、修改檔與測試檔 ESLint（0 錯誤／警告）、TypeScript／正式 build、git diff --check 通過；首頁新增於獨立前端，沒有 legacy HomePage，契約測試改以此 checkout HEAD 的 HomePage 比對原建立／讀取契約，另涵蓋 MealRequestsPage 完整本文。frontend、backend、scripts、.github、compose.yaml 無差異。
+- 限制：未執行真實資料庫刪除／家庭權限端到端、後端競態測試、真實建立失敗／斷線、demo build、全套測試或遠端 CI。前端 GET→DELETE 不是原子版本比對，未新增後端草稿狀態規則。Chrome 測試分頁與 DevTools 已關閉；關閉合成服務的 kill 操作被使用者拒絕，因此保留 localhost:5174（Vite）與 127.0.0.1:18010（記憶體 fixture）運行。未提交、推送或合併。
+
+## 2026-11-15：吉祥物左右鍵拖曳、落地後恢復走動與 PR 收尾
+
+- 使用者在 localhost:5174/home 以左鍵拖曳，原實作僅接受右鍵，已改為左右鍵皆可拖曳。左鍵移動滿 5px 才視為拖曳，單擊仍開關聊天，拖曳後抑制誤觸點擊；改用視窗 mousemove／mouseup 與 blur 清理，避免只依賴按鈕 Pointer Capture。停用原生圖片拖放，保留拖曳範圍、垂直落地與減少動態效果。
+- 依最新要求，移除手動定位後永久停止閒晃的條件：放開落地後等待約 2.5 秒再沿底部走動；游標仍在身上、拖曳中、聊天開啟或減少動態效果時維持暫停。使用者實際操作回覆「可以拖動並落地」，後續再確認「會繼續走」。這兩項為使用者手動驗收；代理的原生拖曳工具沒有成功重現完整拖曳序列，不以其截圖宣稱拖曳驗收。暫時事件追蹤 UI 已移除。
+- 整批本機檢查實際完成：37 項測試（22 demo＋15 契約／用量）、完整 lint（0 errors，既有 form.watch 1 warning）、正式 build 與 demo build；最後吉祥物條件調整後再次執行修改檔 ESLint 與正式 build 通過。git diff --check 及本輪 frontend／backend／scripts／.github／compose.yaml 未變更檢查通過。本輪程式只在 overcooked-frontend，另依 AGENTS.md 更新此驗證紀錄；PR 既有兩個提交仍包含先前已授權的啟動入口與 CI 修改。
+- 頁面決策補記：登入／註冊與規劃餐食清單均選 A 保留正式版；飲食小幫手聊天介面選 A，僅另改吉祥物互動。本輪沒有呼叫真實資料庫／模型端到端；草稿刪除沿用既有端點，GET→DELETE 未增加原子狀態規則。
+- 使用者授權推送 PR，確認沿用仍開啟的 PR #43、分支 codex/frontend-recipe-recognition-layout。未授權合併，禁止啟用自動合併。本機合成展示服務與使用者驗收分頁保留，不重試先前被拒絕的關閉操作。
+
+## 2026-11-15 — Demo prod-up on latest main and 小幫手 地瓜／地瓜葉 fix
+
+- Environment: `prod-up` from worktree at `b9584d0` (latest `origin/main`) on the team laptop, new `meal_planner_prod` from `release_data/nutrition-v1` (293 recipes, 1996 food nutrition rows, `synthetic_data_used=false`). YOLO on CPU (borrowed `.venv-yolo` has `torch 2.15.0+cpu`). Reranker `TEI_IMAGE_TAG=120-1.9.4` (RTX 5070 Ti).
+- Found: `knowledge_rag.bootstrap` in `prod-up` failed with `FileNotFoundError: /app/config/nutrition_keywords.json`. `deploy/prod/rag.Dockerfile` does not copy `config/`, which b9584d0's classification apply now needs. Worked around by re-running bootstrap with `config/` mounted read-only (123 approved, 123 classified, index built, 114 records). Dockerfile not changed; a fresh `prod-up` will hit this again.
+- 小幫手 index built with `scripts/assistant-data.ps1 -SkipCrawl` from the existing corpus (1298 articles, 5858 chunks, embeddinggemma, status ready). No crawling.
+- Bug: 「地瓜的好處」 retrieved 2 地瓜葉 articles in the top 5 (`hybrid_rerank@embeddinggemma`, reranker 0.99) and the answer cited 地瓜葉's calcium/vitamin K as part of 地瓜's benefits. The off-topic check is a substring test, so 「地瓜葉」 counted as mentioning 地瓜.
+- Fix: `assistant_rag/foodfocus.py` + `Assistant.search`. After the main and alias retrievals, passages are filtered before references and the LLM prompt. The category-fallback retrieval is not filtered.
+  - Asked foods: food names in the question, longest first. Vocabulary is the TFDA names/aliases plus the category table. Names in one TFDA row are synonyms (地瓜＝甘藷＝番薯; 地瓜葉＝甘藷葉). Nutrient terms such as 胡蘿蔔素 are masked so they are not read as 胡蘿蔔.
+  - Keep a passage if its title/heading names an asked food or a synonym. A longer name that starts with it and is not in the question (地瓜葉 for 地瓜) does not count.
+  - Drop it if the title/heading names another food. This covers 茼蒿, 地瓜葉 for a 地瓜 question, and 地瓜 for a 地瓜葉 question, even when the body mentions the asked food in passing.
+  - If the title/heading names no food, keep it, unless its body only talks about a longer other name (地瓜葉) and never the asked food itself.
+  - A compound name made only of known foods counts as mentioned when all its parts are.
+  - If everything is dropped, the existing alias/category/refusal flow applies. `top_score` and the `not_mentioned` reason still use the pre-filter score, and `done.other_food_dropped` reports the count.
+- Tests: `tests/test_assistant_*.py` on host `.venv` (Python 3.12) → 214 passed, 1 skipped, including 10 new focus tests. Placeholder-passage tests that do not name a food run with `focus=None`. `pytest tests -k assistant` collection hit 2 unrelated pydantic settings errors (`test_1111_local_generation_knowledge.py`, `test_ai_ingredient_identity.py`) from the host environment; not investigated.
+- Retrieval-only comparison on `assistant_rag/eval/dev.jsonl` + `holdout.jsonl`, 103 `answer` questions, `hybrid_rerank@embeddinggemma` on the prod assistant DB, no LLM:
+  - The filter changed the passages for 34 questions.
+  - A relevant article was in the top 5 for 102 of 103 questions both before and after.
+  - 0 questions moved from above to below the 0.5 threshold.
+  - An earlier variant that required the body to mention the food lost D007 (鮪魚生魚片). It was replaced by the rule above.
+- Live check after rebuilding `meal-prod-rag` and recreating only `assistant-rag`:
+
+  | Question | References kept | Passages dropped | Answer |
+  |---|---|---|---|
+  | 地瓜葉的好處 | 2 地瓜葉 articles | 3 | only 地瓜葉; no 茼蒿 or 地瓜 |
+  | 地瓜的好處 | 3 地瓜 articles | 2 | no 地瓜葉 |
+  | 茼蒿的營養 | 1 茼蒿 article | 4 | |
+  | 常吃鮪魚生魚片會不會有重金屬問題 | 2 relevant articles | 3 | |
+
+- Not done: the full answer-level evaluation (`assistant_rag.eval.evaluate`) with the LLM.
+- Follow-up (same day): 「吃地瓜有甚麼好處」 showed the recipe suggestion 蜂蜜大蒜鮭魚.
+  - Cause: a retrieved 地瓜 article warns that store-bought roasted sweet potatoes may have syrup or 蜂蜜 added. When the answer repeats that clause without a negative word, `assistant_recipes.find_mentions` counts 蜂蜜 as a recommended food. `choose` then prefers a dish named after it (main ingredients 鮭魚 and 蜂蜜).
+  - Also found: 「玉米黃素」 was read as 玉米 and suggested 烤玉米.
+  - The user's actual answer text is not logged, so the cause was confirmed by replaying equivalent answer text against the prod recipe DB (→ 蜜糖番薯 + 蜂蜜大蒜鮭魚). Six fresh runs of the question did not reproduce the 蜂蜜 sentence.
+  - Fix in `backend/app/services/assistant_recipes.py`:
+    - Sweeteners are not suggested: 蜂蜜, 紅糖, 麥芽糖, 黃冰糖, plus 楓糖(漿), 糖漿, 果糖, (果)寡糖. 砂糖, 黑糖 and 冰糖 were already excluded.
+    - `NUTRIENT_FOLLOWERS` gains 黃素 and 異黃酮.
+    - The clause-level negative-context rule is unchanged.
+  - Tests: `tests/test_assistant_recipes.py` + `tests/test_assistant_answer.py` → 134 passed, 1 skipped, including 1 new recipe test.
+  - Live check: rebuilt `meal-prod-backend` and recreated only `backend`; public `/api/health` ok. `suggest` on the prod DB:
+
+    | Answer text | Suggested recipes |
+    |---|---|
+    | 蜂蜜 warning | 蜜糖番薯 only |
+    | 玉米黃素 | 蜜糖番薯 only |
+    | 玉米富含纖維 | 烤玉米 (still) |
+
+  - Not checked in the browser UI.
+- Superseded (same day): at the user's request, the `foodfocus.py` filter and the sweetener exclusions above were removed. They were replaced by the user's own earlier fixes, which had never been committed, from the `overcooked-rag-integration` worktree (`git diff cfdb0bf`, 2026-11-10–12).
+  - What was brought in:
+    - `assistant_rag/answer.py`: `article_min_score` 0.3 and `DISTINCT_FOODS` handling.
+    - `assistant_rag/categories.py`, `providers.py`.
+    - `backend/app/api/assistant.py`, `internal_assistant.py`, `services/assistant_recipes.py`: question-focused suggestions, 主菜/主食/湯 only, no repeats, `NUTRIENT_AFTER`.
+    - Old `frontend/` assistant files and the matching tests.
+  - Applied with `git apply --3way`. `answer.py` keeps main's `embeddinggemma` default. Two conflicts were resolved:
+    - `frontend/src/assistant/ChatParts.tsx`: kept main's fuller citation stripping.
+    - `tests/test_assistant_answer.py`: kept the user's text with `embedder="embeddinggemma"`.
+  - Ported to `overcooked-frontend`, used by prod: `/assistant/recipes` now sends `question` and `shown_recipe_ids`; added the `LLM_KEY_INVALID`/`LLM_FAILED` messages; the reference list is unnumbered.
+  - Tests: `tests/test_assistant_*.py` → 218 passed, 1 skipped. New frontend: `npm run build` (tsc + vite) passed inside the image build.
+  - Live: rebuilt `meal-prod-backend`, `meal-prod-frontend` and `meal-prod-rag`; recreated `backend`, `worker`, `assistant-rag` and `frontend`. Public `/api/health` ok.
+
+    | Check | Result |
+    |---|---|
+    | 「吃地瓜有甚麼好處」 | 4 地瓜 references; answer has no 地瓜葉 or 蜂蜜 |
+    | `suggest` with the 蜂蜜/玉米黃素 answer and the question | no recipes (蜜糖番薯 is 點心, excluded by design) |
+    | 「地瓜葉的好處」 | still receives 地瓜 and 茼蒿 references (茼蒿 reranker ≈0.42 ≥ 0.3); one answer sentence cited the 茼蒿 article |
+
+  - Not done: the browser UI was not rechecked.
+- Follow-up (same day, user request): example question and the reverse 地瓜葉 direction.
+  - Example chip changed from 「吃地瓜有什麼好處」 to 「吃番茄有什麼好處」. The only 地瓜 recipe is a 點心, which the user's 主菜/主食/湯 rule excludes. Changed in both `chatStore.ts` `EXAMPLES` and in the three `assistant_rag/safety.py` example sentences.
+  - Chosen after live end-to-end checks of 6 candidates. 番茄 cited only 番茄 articles and suggested 蕃茄炒蛋, 奶油蝦仁番茄飯 and 清燉蕃茄牛肉湯麵. 南瓜 and 高麗菜 cited a seeds article and the 地瓜葉 article.
+  - Rebuilt `meal-prod-frontend` and `meal-prod-rag`. The served bundle contains the 番茄 chip and no 地瓜 chip. The browser UI was not clicked through.
+  - New rule (user-approved): `assistant_rag/categories.py` `FoodNames` + `Assistant.food_names`. It runs after the user's `article_min_score` and `DISTINCT_FOODS` steps; those are unchanged.
+    - When the question names foods, a passage whose title/heading names another food and not the asked food (or its synonym) is not given to the model.
+    - Food names and synonyms come from the TFDA name/alias rows (`segment.FOOD_FILES`). Nutrient terms are masked. Longer names starting with the asked food (地瓜葉 for 地瓜) do not count as mentioning it.
+    - Titles that name no food are kept.
+    - Skipped for category and alias answers.
+    - If every passage would be removed, the original list is kept, the same pattern as `DISTINCT_FOODS`.
+  - Tests: `tests/test_assistant_*.py` → 227 passed, 1 skipped, including 9 new.
+  - Retrieval-only check on 103 `answer` eval questions (`hybrid_rerank@embeddinggemma`, after the user's 0.3 and DISTINCT steps), no LLM:
+    - The rule changed the passages for 15 questions.
+    - Questions with a relevant article in the passages: 102 before and 102 after.
+    - Most drops were list-article sections headed by another food.
+    - Trade-off on comparison questions: 豆漿 sections were dropped for 「植物奶可以取代牛奶嗎」 (植物奶 is not in the food list) and 「喝牛奶補鈣有效嗎」.
+  - Live check after recreating `assistant-rag`:
+
+    | Question | References | Answer |
+    |---|---|---|
+    | 地瓜葉的好處 | 2 地瓜葉 articles | no 茼蒿 or 地瓜 content |
+    | 吃地瓜有甚麼好處 | 4 地瓜 articles | |
+    | 吃番茄有什麼好處 | 番茄 articles and one general fruit article | |
+    | 植物奶可以取代牛奶嗎 | 3 植物奶 articles | sensible |
+
+## 2026-11-15 — PR #44 review: preserve the PR rules and fix question food focus
+
+- Base: PR #44 at `6588758cee45976db995a266abe360dd5b87a5b8`. User clarification: modifications follow the PR's existing rules. Article score threshold, distinct-food rules, all-passages-removed behavior, category/alias behavior, unnamed-food recipe fallback, allowed dish categories and conversation deduplication are unchanged.
+- Bug reproduced: `focus` reused the answer's positive-clause detector for questions. Questions containing 注意 / 不能 / 禁忌 / 不適合 lost their named food and allowed other foods from the answer to produce recipes.
+- Fix: question detection uses the same longest-name, alias and nutrient checks without the answer's positive-context filter. Answer-side negative-context filtering remains enabled.
+- Six new regression cases failed before the fix: four warning questions, a 地瓜葉/地瓜/玉米黃素 case, and the synthetic SQLite recipe API case. They pass after the fix.
+- Executed on an isolated Python 3.12 venv installed from `requirements-dev.txt`, with `TEST_DATABASE_URL` unset: `PROJECT_DATA_ROOT=/tmp/pr44-test-data PYTHONPATH=backend:tests /tmp/pr44-venv/bin/python -m pytest tests/test_assistant_*.py -q` → **233 passed, 1 skipped**, one Starlette/httpx deprecation warning. The skipped case requires disposable PostgreSQL.
+- Initial collection attempts lacked `PYTHONPATH`, then used the unwritable default `/app/data`; corrected using the environment above. No production databases, external models, crawlers or deployment commands were used. These checks do not validate live LLM answer quality or the production frontend.
+
+## 2026-11-16：PR #43 整合最新 main，保留逐頁決策與正式規則
+
+- 使用者授權保留 PR 的目錄外變更：一鍵啟動／Compose 指向 `overcooked-frontend/frontend`、README 與新增前端 CI；吉祥物及先前逐頁決策以 PR 的已確認行為為準，其餘業務／API 規則沿用 main。此原則適用於本次整合，不以歷史驗證段落中的施工範圍限制取代最新授權。
+- 將 `origin/main@e3109aa` 整合進 PR 分支 `codex/frontend-recipe-recognition-layout`；唯一文字衝突為本檔追加紀錄，保留兩邊完整內容。後端、舊 frontend、助理規則與測試採 main；獨立前端同步保留 main 的問題食材聚焦、對話去重、錯誤訊息與引用呈現修正。吉祥物仍支援左右鍵拖曳、移入暫停、垂直落地及移開後繼續走動。
+- 整合後實際執行：`npm test` 37 項通過（22 demo＋13 契約＋2 用量）、`npm run lint` 0 errors／既有 form.watch 1 warning、`npm run build` 及 `npm run build:demo` 通過。以逐檔位元組比對確認 main 的 18 個程式／測試檔全部保留，吉祥物元件／互動及 live.css 與 PR 原提交相同，兩邊追加的驗證歷史完整保留。`git diff --check` 通過；相對 main 的目錄外差異僅有已授權的 CI、README、Compose、開發腳本與本驗證文件。
+- 本機日誌在 `/private/tmp/pr43-integrated-{test,lint,build,build-demo}.log`。待推送後檢查最新提交的遠端 CI；未合併至 main、未啟用自動合併，未重新執行真實資料庫／模型端到端或 Windows 啟停驗收。
+
+## 2026-11-16 — 小幫手 recipe suggestions: 蛋白質 is not the food 蛋白
+
+- Context: confirmed main `5dbedba` (warning words in the question no longer disable the named-food focus).
+  - Worktree fast-forwarded to `e3109aa`. `tests/test_assistant_*.py` → 233 passed, 1 skipped.
+  - Prod DB, with the 「番茄要注意什麼」 and 「番茄有什麼禁忌」 questions:
+
+    | | Food found in the question |
+    |---|---|
+    | Old question parsing | none |
+    | New question parsing | 番茄 |
+
+    Both questions suggest 蕃茄炒蛋, 奶油蝦仁番茄飯 and 清燉蕃茄牛肉湯麵.
+- Bug: the example question 「我想增加蛋白質可以吃什麼」 suggested no recipes.
+  - `find_mentions` read 「蛋白質」 in the question, and 「高蛋白」 in the answer, as the food 蛋白 (egg white). The focus then kept only egg-white dishes, and there were none. `NUTRIENT_AFTER` does not cover 質.
+- Fix: `backend/app/services/assistant_recipes.py` masks `NUTRIENT_PHRASES` in each clause before matching.
+  - Phrases: 蛋白質, 高/低蛋白, 優質蛋白, 植物(性)/動物(性)蛋白, 乳清蛋白, 大豆蛋白.
+  - 「蛋白比蛋黃熱量低」 still counts as 蛋白.
+  - The reason text still uses the original sentence.
+- Tests: `tests/test_assistant_*.py` → 234 passed, 1 skipped, including 1 new.
+- Live: rebuilt `meal-prod-backend` and recreated only `backend`; public `/api/health` ok. On the prod DB with a real 小幫手 answer:
+  - 「我想增加蛋白質可以吃什麼」 → 牛肉丼飯, 法式蜂蜜吐司, 麻婆豆腐 (previously none).
+  - 「番茄要注意什麼」 → unchanged.
+- Found, not fixed: 「吃素要怎麼補充蛋白質」 suggests 麻婆豆腐, 鐵板豆腐 and 味噌鮮魚湯 from the vegetarian answer's 豆腐 mention. The matcher does not consider vegetarian diets, so dishes with meat or fish can appear.
+- Vegetarian questions (user request, same day):
+  - `vegetarian_only` in `assistant_recipes.suggest` applies when the question contains 吃素, 素食, 茹素, 全素, 純素, 蛋奶素, 奶素, 蛋素 or 鍋邊素.
+  - It removes recipes with any meat, seafood or animal broth/seasoning ingredient (肉, 雞, 豬, 魚, 蝦, 蠔油, 柴魚, 高湯 …). Exceptions: 肉桂, 素蠔油, 雞蛋, 牛奶, 牛蒡, 牛番茄.
+  - 全素 and 純素 also remove 蛋, 奶, 乳, 起司, 優格 and 蜂蜜. 豆腐乳 and 酪梨 are kept.
+  - 五辛 is not judged.
+  - Word lists were checked against all 431 ingredient names used by prod recipes.
+  - Tests: `tests/test_assistant_*.py` → 238 passed, 1 skipped.
+  - Live: backend rebuilt and recreated.
+
+    | Question | Suggestions |
+    |---|---|
+    | 吃素要怎麼補充蛋白質 | none; the answer names only 黃豆, 青豆, 扁豆 and 菇類, which match no main ingredient |
+    | 全素要怎麼補充蛋白質 | 百香南瓜 (see the 南瓜子 finding below) |
+
+- Check against the original recipe-suggestion design slide, by running its example question 「哪些蔬果的葉黃素比較多」 live:
+  - Result: 菠菜炒蛋, 玉米炒蛋, 百香南瓜. The slide shows 炒青花菜 third; this answer listed 南瓜 before 綠花椰菜.
+  - Still as designed:
+    - no suggestions for refusal or emergency replies;
+    - household allergy and forbidden-food exclusion;
+    - positive mentions only (clause level);
+    - alias table and longest match (番茄醬 ≠ 番茄);
+    - main ingredient ≥ 8% by weight;
+    - at most 3 dishes, taken from the library, no generated names.
+  - Added after the slide:
+    - only 主菜/主食/湯, ranked before 「dish named after the food」;
+    - question-named food focus;
+    - no repeats within a conversation;
+    - nutrient-word handling;
+    - vegetarian filter.
+  - Found, not fixed:
+    - 「南瓜子」 is read as 南瓜, because 南瓜子 is not in the recipe vocabulary, so longest match falls back to 南瓜. 全素 therefore suggested 百香南瓜.
+    - 「含蛋白的蔬菜」 is still read as 蛋白, because the masked phrases do not include 含蛋白.
+- Follow-up (user: 「要推薦有食譜的」 — an empty suggestion block looks broken on the page):
+  - `family_mentions`: when the question names no specific food, group words in positive answer clauses map to library ingredients of that group:
+    - 豆類, 豆製品, 黃豆, 扁豆, 鷹嘴豆 … → names with 豆腐, 豆干, 豆皮, 毛豆 …, excluding 豆芽 and 雞蛋豆腐; shown as 「豆製品」.
+    - 菇類, 蕈菇 → names with 菇 or 蕈; shown as 「菇類」.
+    - Regular food names take precedence (黃豆芽 ≠ 黃豆).
+  - Vegetarian filter also treats 餛飩, 水餃, 鍋貼 and 肉包 as meat (not 餛飩皮 or 水餃皮).
+  - Fixed the two slide-check findings:
+    - a food name followed directly by 子/籽 is its seed, not the food (南瓜子 ≠ 南瓜);
+    - 含蛋白 and 蛋白含量 are masked.
+  - Tests: `tests/test_assistant_*.py` → 241 passed, 1 skipped.
+  - Live: backend rebuilt. Replaying 8 real 小幫手 answers on the prod DB, every question gets 3 library dishes:
+
+    | Question | Suggestions |
+    |---|---|
+    | 吃素要怎麼補充蛋白質 (2 runs) | 滷豆干, 和風豆腐排, 糖醋豆腐 |
+    | 全素要怎麼補充蛋白質 (2 runs) | vegan only: 豆製品 dishes, 炒青花菜, 地瓜葉; no 百香南瓜 |
+    | 哪些蔬果的葉黃素比較多 | 菠菜炒蛋, 玉米炒蛋, 炒青花菜 (now identical to the slide) |
+    | 番茄 | unchanged |
+    | 豆腐 | unchanged |
+    | 我想增加蛋白質可以吃什麼 | 牛肉丼飯, 雞肉豆腐排, 麻婆豆腐 |
+
+  - Not checked: browser UI.
+
+## 2026-11-16：依使用者要求移除最終結果頁營養小知識（本機未提交）
+
+- 獨立前端 `MenuPreviewPanel` 與 `MealResultView` 移除食材／營養小知識區塊及載入、不可用、錯誤與重試入口；前者一併移除自動 POST knowledge-tips，後者移除 knowledge-retry mutation。食譜、採購、營養數值／檢核、分餐與採用流程保留，未修改後端、飲食小幫手、歷史頁或正式 API 型別；後端原有知識處理並未停用。
+- 更新既有契約測試的基準，僅排除上述兩個元件已明確移除的知識請求，其餘請求方法、路徑、完整本文與冪等鍵持續比對。
+- 實際執行 `npm test`：37 項通過；`npm run lint`：0 errors、既有 MealRequestEditor form.watch 1 warning；`npm run build`：TypeScript／正式建置通過；`git diff --check` 通過。日誌：`/private/tmp/overcooked-remove-result-tips-{test,lint,build}.log`。
+- 本輪未重跑 demo 建置、瀏覽器結果頁實測、真實資料庫／模型端到端或遠端 CI；現有 Vite 服務可熱更新。未提交、推送或合併。
+
+- 後續使用者明確授權建立新 PR 並合併。整合 `main@20fabc6`（已含 PR #45），只解決本檔追加紀錄的衝突，保留兩邊完整紀錄；後端推薦規則／測試逐檔保持 main 版本，這次提交範圍仍為兩個結果元件、契約測試與本文件。待新 PR 的 CI 通過後再執行合併。
+
+## 2026-11-16：後端小知識變更暫緩，僅保留歷史餐單隱藏（本機未提交）
+
+- 使用者決定先與組員討論後端需求，本輪除了歷史餐單頁隱藏小知識以外全部還原。HistoryPlanDetails 與 GenerationHistoryPage 僅移除小知識顯示；舊快照與其知識內容保留。
+- generation.py、meal_results.py、GenerationPanel、相關後端測試與文件首頁全部回復本次修改前的 HEAD；新增的後端測試及未生效的後端交接文件移除。後端產生餐單時仍會依原流程取得知識，prod-up 的 T11 初始化與黃色警告行為未修改。PR #46 已合併的結果頁隱藏維持。
+- 歷史頁移除已在本輪先前的 37 項前端測試、lint（0 errors／既有 form.watch 1 warning）與正式 build 中通過；還原後以逐檔位元組比對確認後端與測試回復 HEAD，並執行 git diff --check。未重跑已通過的整套測試，未更新正在運行的後端／worker，未提交、推送或合併。
 ## 2026-11-16 — Confirmed product pages and confirmed synonyms in T02 pricing
 
 - Before: the `pxmart-daily-2026-11-16` runs (PxMart, then Uni-Prosperity) priced 203 of 301 foods.

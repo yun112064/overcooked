@@ -57,6 +57,10 @@ export default function AssistantChatProvider({ children }: { children: ReactNod
   const update = (id: number, patch: (m: Message) => Partial<Message>) =>
     setMessages((list) => list.map((m) => (m.id === id ? { ...m, ...patch(m) } : m)))
 
+  // 這段對話已經推薦過的食譜（「重新開始」清空對話後就重新計算）
+  const shownRecipeIds = () => messagesRef.current.flatMap((m) =>
+    m.recipes && m.recipes !== 'loading' ? m.recipes.recipes.map((r) => r.recipe_id) : [])
+
   const { refetch } = status
   const send = useCallback(async (text: string) => {
     const question = text.trim()
@@ -102,7 +106,8 @@ export default function AssistantChatProvider({ children }: { children: ReactNod
     if (finished && RECIPE_ANSWER_TYPES.includes(finished) && answer.trim()) {
       update(botId, () => ({ recipes: 'loading' }))
       try {
-        const { data } = await api.post<RecipeSuggestions>('/assistant/recipes', { answer: answer.slice(0, 8000), type: finished })
+        const { data } = await api.post<RecipeSuggestions>('/assistant/recipes',
+          { answer: answer.slice(0, 8000), type: finished, question, shown_recipe_ids: shownRecipeIds() })
         update(botId, () => ({ recipes: data }))
       } catch {
         update(botId, () => ({ recipes: undefined }))

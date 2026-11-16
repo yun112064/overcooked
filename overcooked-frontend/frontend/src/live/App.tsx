@@ -15,16 +15,16 @@ import {
 import { api, errorStatus } from './api/client'
 import type { Me } from './api/types'
 import HouseholdPage from './pages/HouseholdPage'
+import MemberEditorPage from './pages/MemberEditorPage'
 import LoginPage from './pages/LoginPage'
 import MealRequestsPage from './pages/MealRequestsPage'
-import MembersPage from './pages/MembersPage'
 import HomePage from './pages/HomePage'
+import { redirectGenerationHistory } from './history/redirect'
 import './live.css'
 import { Suspense, lazy } from 'react'
 
 // 圖表（Recharts）與問卷編輯較大，用到才載入，首頁更快
 const MealHistoryPage = lazy(() => import('./pages/MealHistoryPage'))
-const GenerationHistoryPage = lazy(() => import('./pages/GenerationHistoryPage'))
 const MealRequestEditor = lazy(() => import('./pages/MealRequestEditor'))
 const RecipePickerPage = lazy(() => import('./pages/RecipePickerPage'))
 const AssistantPage = lazy(() => import('./pages/AssistantPage'))
@@ -68,7 +68,7 @@ function Protected({ requireHousehold = false }: { requireHousehold?: boolean })
   if (me.isError) return <Typography sx={{ p: 3 }} color="text.secondary">無法連線到伺服器，請稍後再試。</Typography>
   if (!me.data) return <Navigate to="/login" replace />
   if (requireHousehold && !me.data.current_household) return <Navigate to="/households" replace />
-  return <Outlet />
+  return <Outlet context={me.data} />
 }
 
 const NAV = [
@@ -76,8 +76,7 @@ const NAV = [
   { to: '/plan', label: '規劃餐食', short: '規劃', icon: <EventNoteOutlined /> },
   { to: '/pick', label: '食譜庫選菜', short: '選菜', icon: <MenuBookOutlined /> },
   { to: '/history', label: '已採用紀錄', short: '紀錄', icon: <HistoryEduOutlined /> },
-  { to: '/generation-history', label: '營養與採購', short: '採購紀錄', icon: <HistoryEduOutlined /> },
-  { to: '/members', label: '家庭成員', short: '成員', icon: <GroupOutlined /> },
+  { to: '/members', label: '家庭與成員', short: '成員', icon: <GroupOutlined /> },
   { to: '/assistant', label: '飲食小幫手', short: '問答', icon: <ChatBubbleOutlineOutlined /> },
 ]
 
@@ -103,7 +102,7 @@ function Layout() {
               <BrandMark size={37} />今天吃啥
             </Box>
             <Box className="live-account">
-              {household && <Button component={Link} to="/households" color="inherit" startIcon={<HomeOutlined />}
+              {household && <Button component={Link} to="/members" color="inherit" startIcon={<HomeOutlined />}
                 sx={{ maxWidth: { xs: 145, sm: 240 } }}>
                 <Box component="span" sx={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{household.name}</Box>
               </Button>}
@@ -142,18 +141,20 @@ const router = createBrowserRouter([
     children: [{
       element: <Layout />,
       children: [
-        { path: '/households', element: <HouseholdPage /> },
+        { path: '/households', element: <Navigate to="/members" replace /> },
+        { path: '/members', element: <HouseholdPage /> },
         {
           element: <Protected requireHousehold />,
           children: [
+            { path: '/members/new', element: <MemberEditorPage /> },
+            { path: '/members/:memberId/edit', element: <MemberEditorPage /> },
             { path: '/home', element: <HomePage /> },
-            { path: '/members', element: <MembersPage /> },
             { path: '/plan', element: <MealRequestsPage /> },
             { path: '/plan/:id', element: <MealRequestEditor /> },
             { path: '/pick', element: <RecipePickerPage /> },
             { path: '/pick/:id', element: <RecipePickerPage /> },
             { path: '/history', element: <MealHistoryPage /> },
-            { path: '/generation-history', element: <GenerationHistoryPage /> },
+            { path: '/generation-history', loader: redirectGenerationHistory },
             { path: '/assistant', element: <AssistantPage /> },
           ],
         },

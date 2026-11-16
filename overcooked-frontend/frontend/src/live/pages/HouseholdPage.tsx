@@ -1,17 +1,16 @@
 import { zodResolver } from '@hookform/resolvers/zod'
-import ChevronRightOutlined from '@mui/icons-material/ChevronRightOutlined'
-import HomeOutlined from '@mui/icons-material/HomeOutlined'
+import { Plus, Users } from 'lucide-react'
 import {
-  Alert, Box, Button, Card, CardActionArea, CardContent, Chip, CircularProgress, Stack, TextField, Typography,
+  Alert, Box, Button, CircularProgress, Dialog, DialogActions, DialogContent, DialogTitle, MenuItem, Stack, TextField, Typography,
 } from '@mui/material'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useForm } from 'react-hook-form'
+import { useState } from 'react'
 import { useNavigate } from 'react-router'
 import { z } from 'zod'
 import { api, errorMessage } from '../api/client'
 import type { Household } from '../api/types'
-import { PageHeader, Section } from '../components/ui'
-import { tokens } from '../theme'
+import MembersPage from './MembersPage'
 
 const schema = z.object({ name: z.string().trim().min(1, '請輸入家庭名稱').max(100, '最多 100 個字') })
 type FormValues = z.infer<typeof schema>
@@ -24,6 +23,7 @@ const GLOBAL_QUERY_KEYS = new Set(['me', 'households', 'staple-options', 'team-s
 export default function HouseholdPage() {
   const queryClient = useQueryClient()
   const navigate = useNavigate()
+  const [createOpen, setCreateOpen] = useState(false)
   const list = useQuery({
     queryKey: ['households'],
     queryFn: async () => (await api.get<HouseholdList>('/household')).data,
@@ -38,58 +38,69 @@ export default function HouseholdPage() {
     // 只保留與家庭無關的快取
     queryClient.removeQueries({ predicate: (q) => !GLOBAL_QUERY_KEYS.has(String(q.queryKey[0])) })
     await queryClient.invalidateQueries({ queryKey: ['me'] })
-    await queryClient.invalidateQueries({ queryKey: ['households'] })
+    // 成功與失敗都重新確認伺服器選定的家庭；網路中斷不代表切換沒有生效。
+    await list.refetch()
     navigate('/members')
   }
 
   const create = useMutation({
     mutationFn: async (values: FormValues) => (await api.post<Household>('/household', values)).data,
-    onSuccess: async () => { reset(); await afterChange() },
+    onSuccess: () => { reset(); select.reset(); setCreateOpen(false) },
+    onSettled: afterChange,
   })
   const select = useMutation({
     mutationFn: async (id: string) => (await api.post<Household>('/household/select', { household_id: id })).data,
-    onSuccess: afterChange,
+    onSettled: afterChange,
   })
 
-  return (
-    <Stack spacing={4}>
-      <PageHeader eyebrow="Household" title="選擇家庭"
-        description="成員、問卷與採用紀錄都屬於某個家庭。切換家庭後，畫面只會顯示那個家庭的資料。" />
-      {list.isPending && <CircularProgress />}
-      {list.isError && <Alert severity="error">{errorMessage(list.error)}</Alert>}
-      {select.isError && <Alert severity="error">{errorMessage(select.error)}</Alert>}
-      {list.data && list.data.households.length === 0 && (
-        <Typography color="text.secondary">尚未建立家庭，請先在下方建立。</Typography>
-      )}
-      <Stack spacing={1.5}>
-        {list.data?.households.map((h) => {
-          const active = h.id === list.data.current_household_id
-          return (
-            <Card key={h.id} sx={active ? { borderColor: tokens.indigo } : undefined}>
-              <CardActionArea onClick={() => select.mutate(h.id)} disabled={select.isPending}>
-                <CardContent sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                  <Box sx={{ color: active ? tokens.indigo : tokens.inkMuted, display: 'flex' }}><HomeOutlined /></Box>
-                  <Typography sx={{ flexGrow: 1, fontFamily: tokens.serif, fontSize: '1.1rem', letterSpacing: '0.08em' }}>{h.name}</Typography>
-                  {active && <Chip size="small" color="primary" variant="outlined" label="目前家庭" />}
-                  <ChevronRightOutlined sx={{ color: tokens.inkMuted }} />
-                </CardContent>
-              </CardActionArea>
-            </Card>
-          )
-        })}
-      </Stack>
+  const changing = create.isPending || select.isPending
+  const activeId = list.data?.current_household_id
+  const active = list.data?.households.find(h => h.id === activeId)
+  const closeCreate = () => { if (!create.isPending) setCreateOpen(false) }
 
-      <Section title="建立新家庭">
-        <Stack component="form" direction={{ xs: 'column', sm: 'row' }} spacing={2} noValidate
-          onSubmit={handleSubmit((v) => create.mutate(v))}>
-          <TextField label="家庭名稱" placeholder="王家" fullWidth {...register('name')}
-            error={!!errors.name} helperText={errors.name?.message} />
-          <Button type="submit" variant="contained" disabled={create.isPending} sx={{ flexShrink: 0, height: 56 }}>
-            建立
-          </Button>
-        </Stack>
-        {create.isError && <Alert severity="error" sx={{ mt: 2 }}>{errorMessage(create.error)}</Alert>}
-      </Section>
-    </Stack>
-  )
+  return <Stack spacing={3}>
+    <Box className="live-family-title">
+      <Box className="live-family-title-icon"><Users size={23} aria-hidden="true" /></Box>
+      <Typography component="h1" variant="h4">家庭與成員</Typography>
+    </Box>
+    <Box className="live-family-toolbar">
+      <TextField select label="目前家庭" size="small" value={active?.id ?? ''}
+        disabled={changing || list.isPending || list.isError || !list.data?.households.length}
+        onChange={event => { if (event.target.value !== activeId) select.mutate(event.target.value) }}>
+        <MenuItem value="" disabled>請選擇家庭</MenuItem>
+        {list.data?.households.map(h => <MenuItem key={h.id} value={h.id}>{h.name}</MenuItem>)}
+      </TextField>
+      <Button variant="outlined" startIcon={<Plus size={18} />} disabled={changing}
+        onClick={() => { reset(); create.reset(); setCreateOpen(true) }}>建立家庭</Button>
+    </Box>
+    {select.isError && <Alert severity="error">{errorMessage(select.error)}</Alert>}
+    {list.isError && <Alert severity="error" action={<Button color="inherit" onClick={() => { void list.refetch() }}>重試</Button>}>
+      {errorMessage(list.error)}
+    </Alert>}
+    {(changing || list.isPending || list.isFetching) && <Box className="live-family-loading" role="status">
+      <CircularProgress size={22} /><Typography>{changing ? '正在更新家庭，請稍候…' : '正在讀取家庭…'}</Typography>
+    </Box>}
+    {!changing && !list.isFetching && !list.isError && list.data && (
+      active ? <MembersPage key={active.id} householdId={active.id} /> : <Box className="live-family-empty">
+        <Users size={34} aria-hidden="true" />
+        <Typography>{list.data.households.length ? '請先選擇家庭，再管理成員。' : '尚未建立家庭，先建立你的第一個家庭。'}</Typography>
+        <Button variant="outlined" onClick={() => { reset(); create.reset(); setCreateOpen(true) }}>建立家庭</Button>
+      </Box>
+    )}
+    <Dialog open={createOpen} onClose={closeCreate} fullWidth maxWidth="xs">
+      <DialogTitle>建立家庭</DialogTitle>
+      <Box component="form" noValidate onSubmit={handleSubmit(values => create.mutate(values))}>
+        <DialogContent>
+          <TextField label="家庭名稱" placeholder="王家" fullWidth autoFocus {...register('name')}
+            disabled={create.isPending} error={!!errors.name} helperText={errors.name?.message}
+            slotProps={{ htmlInput: { maxLength: 100 } }} />
+          {create.isError && <Alert severity="error" sx={{ mt: 2 }}>{errorMessage(create.error)}</Alert>}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={closeCreate} disabled={create.isPending}>取消</Button>
+          <Button type="submit" variant="contained" disabled={create.isPending}>{create.isPending ? '建立中…' : '建立'}</Button>
+        </DialogActions>
+      </Box>
+    </Dialog>
+  </Stack>
 }

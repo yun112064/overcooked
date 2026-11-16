@@ -61,7 +61,10 @@ def chat(body: ChatBody, factory=Depends(get_session_factory), responder=Depends
         )
     except spend.BudgetExhausted:
         raise ApiError(503, "SERVICE_BUDGET_EXHAUSTED", "本月外部服務額度不足，飲食小幫手 OpenAI 版暫停使用。") from None
-    except spend.CallNotBilled:
+    except spend.CallNotBilled as exc:
+        if str(exc) in ("HTTP 401", "HTTP 403"):
+            # 金鑰錯誤、過期或被撤銷：要換金鑰，不是稍後再試
+            raise ApiError(503, "LLM_KEY_INVALID", "OpenAI 金鑰無效或已過期，請管理者更新 OPENAI_API_KEY。") from None
         raise ApiError(502, "LLM_UNAVAILABLE", "OpenAI 暫時無法使用（未計費），請稍後再試。") from None
     except spend.UncertainBilling:
         raise ApiError(502, "BILLING_UNCERTAIN", "OpenAI 回應不明，可能已計費；請核對額度紀錄。") from None

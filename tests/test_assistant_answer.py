@@ -116,7 +116,8 @@ def test_answer_streams_filtered_sentences_citations_and_notes():
     refs = evs[1]["data"]
     assert [r["n"] for r in refs] == [1, 2, 3] and refs[0]["url"] == "https://x/1"
     prompt = chat.streamed[0][1]["content"]
-    assert "[1] 文章1｜小標（Hello醫師）\n內文1" in prompt and prompt.endswith("問題：吃地瓜有什麼好處")
+    assert "[1] 文章1｜小標（Hello醫師）\n內文1" in prompt and "\n\n問題：吃地瓜有什麼好處\n" in prompt
+    assert prompt.endswith("不要提到這些食物，也不要說明它們不同。）")  # 地瓜／地瓜葉提醒
     assert "不提供任何劑量" in chat.streamed[0][0]["content"]
 
 
@@ -198,10 +199,10 @@ def test_bullets_on_own_lines_and_simplified_only_conversion():
     from assistant_rag.textconv import to_traditional
     assert to_traditional("膳食纤维与蛋白质") == "膳食纖維與蛋白質"
     assert to_traditional("干擾、里面、便秘、后來") == "干擾、里面、便秘、后來"  # 繁體文字不被改壞
-    a = Assistant(FakeRetriever(), FakeChat(["・地瓜含纤维[1]。", "・地瓜葉含鈣[2]。"]),
+    a = Assistant(FakeRetriever(), FakeChat(["・地瓜含纤维[1]。", "・地瓜含鈣[2]。"]),
                   Settings(method="hybrid_rerank", embedder="embeddinggemma", threshold=0.5))
     text = a.answer("地瓜好處")["text"]
-    assert text.startswith("・地瓜含纖維[1]。\n・地瓜葉含鈣[2]。")
+    assert text.startswith("・地瓜含纖維[1]。\n・地瓜含鈣[2]。")
 
 
 from assistant_rag.categories import FoodCategories
@@ -467,3 +468,137 @@ def test_uncited_sentences_removed_but_reference_scope_kept():
     assert safety.check_sentence("・若對雞蛋過敏，食用時應特別留意成分標示。", 3)[1] == "uncited"
     assert safety.check_sentence("豆腐是好的蛋白質來源 [9]。", 3)[1] == "uncited"   # 編號超出範圍，清掉後沒有引用
     assert safety.check_sentence("參考資料沒有提到具體的份量。", 3)[1] is None
+
+
+# ---- 名稱相近但不同的食物（2026-11-10 使用者回報：問地瓜不應該出現地瓜葉） ----
+
+def test_distinct_foods_detection():
+    from assistant_rag.categories import about_other_food, distinct_foods
+    assert distinct_foods("吃地瓜有什麼好處") == {"地瓜": ("地瓜葉", "地瓜粉")}
+    # 問題本身就問地瓜葉，或兩者都問：地瓜葉不算「混進來」
+    assert distinct_foods("地瓜葉有什麼營養") == {}
+    assert distinct_foods("地瓜和地瓜葉哪個好") == {"地瓜": ("地瓜粉",)}
+    d = distinct_foods("吃地瓜有什麼好處")
+    assert about_other_food("・深綠色的地瓜葉則提供高鈣與維生素K [2]。", d)
+    # 兩者混在同一句也刪（實測模型會寫「地瓜葉雖非地瓜本體，但…」）
+    assert about_other_food("・地瓜葉雖非地瓜本體，但地瓜本身也含有鐵 [4]。", d)
+    assert not about_other_food("・地瓜富含膳食纖維 [1]。", d)
+
+
+def test_sentences_about_other_food_removed_and_model_told():
+    chat = FakeChat(["・地瓜富含膳食纖維 [1]。", "・深綠色的地瓜葉則提供高鈣 [2]。", "・地瓜含有鉀 [3]。"])
+    ev = events(bot(chat), "吃地瓜有什麼好處")
+    text = "".join(e["data"]["text"] for e in ev if e["event"] == "delta")
+    assert "地瓜葉" not in text and "膳食纖維" in text and "鉀" in text
+    done = ev[-1]["data"]
+    assert done["removed"] == {"other_food": 1} and done["citations"] == [1, 3]
+    prompt = chat.streamed[0][-1]["content"]
+    assert "「地瓜葉」「地瓜粉」不是「地瓜」" in prompt
+
+
+def test_other_food_kept_when_question_asks_about_it():
+    chat = FakeChat(["・地瓜葉提供高鈣 [1]。"])
+    text = "".join(e["data"]["text"] for e in events(bot(chat), "地瓜葉有什麼營養") if e["event"] == "delta")
+    assert "地瓜葉提供高鈣" in text
+
+
+def test_articles_titled_about_other_food_not_given_to_model():
+    from dataclasses import replace as dc_replace
+
+    class TitledRetriever(FakeRetriever):
+        def search(self, query, method, emb):
+            result = super().search(query, method, emb)
+            titles = ["超級食物地瓜好處多", "地瓜葉6大功效", "地瓜、地瓜葉怎麼吃"]
+            return dc_replace(result, hits=[dc_replace(h, title=t) for h, t in zip(result.hits, titles)])
+
+    chat = FakeChat(["・地瓜富含纖維 [1]。"])
+    ev = events(bot(chat, TitledRetriever()), "吃地瓜有什麼好處")
+    refs = next(e["data"] for e in ev if e["event"] == "references")
+    # 〈地瓜葉6大功效〉移除；兩者都談的標題保留；編號重新排
+    assert [(r["n"], r["title"]) for r in refs] == [(1, "超級食物地瓜好處多"), (2, "地瓜、地瓜葉怎麼吃")]
+    assert "地瓜葉6大功效" not in chat.streamed[0][-1]["content"]
+
+
+def test_low_scoring_articles_not_given_to_model():
+    # 2026-11-12：第 1 名過門檻才回答；其餘每篇要 ≥ article_min_score（預設 0.3）才給模型與列為參考資料
+    chat = FakeChat(["・地瓜富含纖維 [1]。"])
+    ev = events(bot(chat, FakeRetriever((0.95, 0.6, 0.31, 0.29, 0.1))), "吃地瓜有什麼好處")
+    refs = next(e["data"] for e in ev if e["event"] == "references")
+    assert [r["n"] for r in refs] == [1, 2, 3]
+    prompt = chat.streamed[0][-1]["content"]
+    assert "[3] 文章3" in prompt and "文章4" not in prompt and "文章5" not in prompt
+
+
+def test_article_min_score_configurable(monkeypatch):
+    monkeypatch.setenv("RAG_ARTICLE_MIN_SCORE", "0")
+    chat = FakeChat(["・地瓜富含纖維 [1]。"])
+    a = Assistant(FakeRetriever((0.95, 0.6, 0.1)), chat,
+                  Settings(method="hybrid_rerank", embedder="bge-m3", threshold=0.5), converter=lambda s: s)
+    refs = next(e["data"] for e in events(a, "吃地瓜有什麼好處") if e["event"] == "references")
+    assert len(refs) == 3
+
+
+# ---------- 標題在講別的食物的文章不給模型（2026-11-15：問地瓜葉卻拿到茼蒿、地瓜的文章） ----------
+from assistant_rag.categories import FoodNames  # noqa: E402
+
+NAMES = FoodNames([["地瓜", "甘藷", "番薯"], ["地瓜葉", "甘藷葉"], ["茼蒿"], ["胡蘿蔔"], ["番茄"]],
+                  nutrients=["胡蘿蔔素", "β胡蘿蔔素", "地瓜葉"])
+
+
+def titled(n, title, heading=(), score=0.9):
+    return Hit(n, f"c{n}", f"hy:{n}", score, title, f"https://x/{n}", "Hello醫師", list(heading), "內文", None)
+
+
+def test_food_names_asked_and_mentions():
+    assert NAMES.asked("地瓜葉的好處") == ["地瓜葉"]
+    assert NAMES.asked("β胡蘿蔔素預防肺癌") == []  # 營養素不是胡蘿蔔
+    assert NAMES.mentions("地瓜", "甘藷的營養", "地瓜的好處")  # 同物異名
+    assert not NAMES.mentions("地瓜", "地瓜葉6大功效", "地瓜的好處")  # 地瓜葉不算提到地瓜
+    assert NAMES.mentions("地瓜", "地瓜葉和地瓜", "地瓜和地瓜葉哪個好")
+
+
+@pytest.mark.parametrize("topic,other", [
+    ("地瓜葉6大功效 功效2. 地瓜葉高鈣", False),
+    ("高膳食纖維食物排行 高纖維食物5：地瓜葉", False),
+    ("超級食物地瓜好處多 地瓜好處2", True),          # 問地瓜葉時，標題只講地瓜
+    ("吃茼蒿5大營養好處 5. β-胡蘿蔔素預防肺癌", True),  # 茼蒿；胡蘿蔔素不算胡蘿蔔
+    ("糖尿病飲食原則", False),                        # 標題沒有任何食物：照常保留
+])
+def test_title_about_other_food(topic, other):
+    assert NAMES.title_about_other_food(topic, ["地瓜葉"], "地瓜葉的好處") is other
+
+
+class ListRetriever(FakeRetriever):
+    def __init__(self, hits):
+        super().__init__()
+        self.hits = hits
+
+    def search(self, query, method, emb):
+        self.queries.append(query)
+        return Result(query, method, emb, list(self.hits))
+
+
+def test_answer_drops_articles_whose_title_is_about_another_food():
+    chat = FakeChat(["地瓜葉高鈣[1]。"])
+    hits = [titled(1, "地瓜葉6大功效", ["功效2. 地瓜葉高鈣"], 0.99), titled(2, "超級食物地瓜好處多", [], 0.97),
+            titled(3, "吃茼蒿5大營養好處", ["5. β-胡蘿蔔素預防肺癌"], 0.42), titled(4, "糖尿病飲食原則", [], 0.35)]
+    a = Assistant(ListRetriever(hits), chat, Settings(method="hybrid_rerank", embedder="embeddinggemma", threshold=0.5),
+                  converter=lambda s: s, categories=None, food_names=NAMES)
+    out = a.answer("地瓜葉的好處")
+    assert [r["title"] for r in out["references"]] == ["地瓜葉6大功效", "糖尿病飲食原則"]
+    prompt = chat.streamed[0][-1]["content"]
+    assert "茼蒿" not in prompt and "超級食物地瓜" not in prompt
+
+
+def test_all_articles_about_other_food_are_kept_rather_than_answering_empty():
+    chat = FakeChat(["可以[1]。"])
+    a = Assistant(ListRetriever([titled(1, "吃茼蒿5大營養好處")]), chat,
+                  Settings(method="hybrid_rerank", embedder="embeddinggemma", threshold=0.5),
+                  converter=lambda s: s, categories=None, food_names=NAMES)
+    assert [r["title"] for r in a.answer("地瓜葉的好處")["references"]] == ["吃茼蒿5大營養好處"]
+
+
+def test_default_food_names_load_tfda_synonyms():
+    names = FoodNames.load()
+    assert {"地瓜葉", "甘藷葉"} <= names.synonyms["地瓜葉"] and "地瓜葉" not in names.synonyms["地瓜"]
+    assert names.title_about_other_food("吃茼蒿5大健康好處 5. β-胡蘿蔔素預防肺癌", ["地瓜葉"], "地瓜葉的好處")

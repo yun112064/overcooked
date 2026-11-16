@@ -3,7 +3,7 @@ import MenuBookOutlined from '@mui/icons-material/MenuBookOutlined'
 import ChevronRightOutlined from '@mui/icons-material/ChevronRightOutlined'
 import RestaurantMenuOutlined from '@mui/icons-material/RestaurantMenuOutlined'
 import {
-  Alert, Box, Button, Card, CardActionArea, CardContent, Chip, CircularProgress, Stack, Typography,
+  Alert, Box, Button, Card, CardActionArea, CardActions, CardContent, Chip, CircularProgress, Stack, Typography,
 } from '@mui/material'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import type { ReactNode } from 'react'
@@ -13,6 +13,7 @@ import { MEAL_LABELS, type MealRequest, type MealRequestSummary, type Me, type M
 import { AvatarStack, EmptyState, IconTile, PageHeader } from '../components/ui'
 import { MEAL_VISUALS } from '../components/visuals'
 import { tokens } from '../theme'
+import DeleteDraftButton from '../components/DeleteDraftButton'
 
 const STATUS_LABELS: Record<string, string> = {
   draft: '草稿', queued: '排隊中', running: '生成中', awaiting_decision: '待決定', result_ready: '已有結果',
@@ -167,6 +168,7 @@ export default function MealRequestsPage() {
                   <ChevronRightOutlined sx={{ color: tokens.inkMuted, display: { xs: 'none', sm: 'block' } }} />
                 </CardContent>
               </CardActionArea>
+              {r.status === 'draft' && <CardActions sx={{ justifyContent: 'flex-end', px: 2, pb: 1.5 }}><DeleteDraftButton draft={r} /></CardActions>}
             </Card>
           )
         })}

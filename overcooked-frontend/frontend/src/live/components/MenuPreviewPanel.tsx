@@ -1,25 +1,18 @@
 import ResultSections from './ResultSections'
 import { PreviewPortions } from './PortionsTable'
 import CheckCircleOutlineOutlined from '@mui/icons-material/CheckCircleOutlineOutlined'
-import { Alert, Box, Button, Chip, CircularProgress, Link, Stack, Typography } from '@mui/material'
+import { Alert, Box, Button, Chip, CircularProgress, Stack, Typography } from '@mui/material'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useRef } from 'react'
 import { Link as RouterLink } from 'react-router'
 import { api, errorMessage } from '../api/client'
 import MarketCheckoutButton from './MarketCheckoutButton'
-import type { KnowledgeTips, MealPlanSummary, MealRequest, Member, NutritionPreview, RecipeRetrieval } from '../api/types'
+import type { MealPlanSummary, MealRequest, Member, NutritionPreview, RecipeRetrieval } from '../api/types'
 import { tokens } from '../theme'
 import { NUTRIENTS, toNumber, withinTarget } from '../api/nutrition'
 import DishList from './DishList'
 import PersonNutrition from './PersonNutrition'
 import { Section, Stat, StatRow } from './ui'
-
-const TIP_UNAVAILABLE: Record<string, string> = {
-  EXPLANATION_NOT_CONFIGURED: '尚未設定雲端小知識服務（OPENAI_API_KEY）。',
-  NOT_CONFIGURED: '食材知識服務未啟動。',
-  KNOWLEDGE_UNAVAILABLE: '食材知識服務暫時無法使用。',
-  EMBEDDING_UNAVAILABLE: '本機知識檢索模型無法使用。',
-}
 
 /** 資料庫排不出菜單的原因 → 說明與做法；有菜名時直接寫出來。 */
 function retrievalMessage(menu: RecipeRetrieval, staple: string | null): string {
@@ -73,14 +66,6 @@ function NutrientTable({ all }: { all: NonNullable<NutritionPreview['nutrition_a
   )
 }
 
-/** 小知識來源的網站名稱：網頁取平台名（健康醫療網、Hello醫師），論文取期刊名；沒有時用網址主機名。 */
-function sourceName(label: string | null | undefined, url: string) {
-  const lines = (label ?? '').split('\n').map((s) => s.trim()).filter(Boolean)
-  if (lines.length >= 2) return lines[1].replace(/\s+\d.*$/, '')
-  if (lines.length === 1) return lines[0]
-  try { return new URL(url).hostname } catch { return '原文' }
-}
-
 function targetNote(key: 'energy_kcal' | 'protein_g', value: number | null, target: number | null, unit: string) {
   if (value === null || !target) return { note: target ? `目標 ${Math.round(target)} ${unit}` : undefined, tone: 'default' as const }
   const diff = value / target - 1
@@ -90,8 +75,7 @@ function targetNote(key: 'energy_kcal' | 'protein_g', value: number | null, targ
 
 type Props = { row: MealRequest; members: Member[]; onAdopted?: () => void }
 
-/** 問卷完成後自動顯示（版面取自 t11-t20-demo）：T11 資料庫菜單 → T12 營養計算（都在本機）；
- *  營養通過後自動產生營養小知識（雲端付費呼叫；同一頁面內同一版只產生一次）。 */
+/** 問卷完成後顯示資料庫菜單與營養計算結果。 */
 export default function MenuPreviewPanel({ row, members, onAdopted }: Props) {
   const menu = useQuery({
     queryKey: ['meal-request-menu', row.id, row.version],
@@ -107,17 +91,6 @@ export default function MenuPreviewPanel({ row, members, onAdopted }: Props) {
     enabled: recipeIds.length > 0,
     retry: false,
   })
-  // 營養通過後自動產生；頁面開著時同一版問卷與菜單只呼叫一次（重新載入頁面會再產生一次）
-  const tips = useQuery({
-    queryKey: ['meal-request-tips', row.id, row.version, recipeIds],
-    queryFn: async () =>
-      (await api.post<KnowledgeTips>(`/meal-requests/${row.id}/knowledge-tips`, { recipe_ids: recipeIds })).data,
-    enabled: nutrition.data?.status === 'nutrition_passed',
-    retry: false,
-    staleTime: Infinity,
-    gcTime: Infinity,
-  })
-
   const queryClient = useQueryClient()
   // 同一份菜單固定一把冪等鍵：重複點擊或網路重送只採用一次
   const adoptKeys = useRef(new Map<string, string>())
@@ -235,24 +208,6 @@ export default function MenuPreviewPanel({ row, members, onAdopted }: Props) {
 
       {menu.data?.previous_day && <PreviousDay context={menu.data.previous_day} selected={selected} />}
 
-      {n && (
-        <Section title="食材小知識" aside={tipSites(tips.data) ? `資料來源：${tipSites(tips.data)}` : undefined}>
-          {!passed ? (
-            <Typography variant="body2" color="text.secondary">
-              營養小知識只針對通過營養計算的菜單提供；可調整指定菜色、道數或主食後再試。
-            </Typography>
-          ) : tips.isError ? (
-            <Alert severity="error">{errorMessage(tips.error)}</Alert>
-          ) : !tips.data ? (
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-              <CircularProgress size={20} />
-              <Typography variant="body2" color="text.secondary">正在產生營養小知識…</Typography>
-            </Box>
-          ) : (
-            <TipsResult data={tips.data} />
-          )}
-        </Section>
-      )}
         </>}
         shopping={<Section title="採購資訊"><Typography variant="body2" color="text.secondary">
           此菜單預覽尚未提供採購報價。如需查看缺料、整包採購價與本餐成本，請使用「規劃餐食」的菜單生成功能；已採用的餐食也可從紀錄查看。
@@ -296,38 +251,5 @@ function PreviousDay({ context, selected }: {
         )}
       </Stack>
     </Section>
-  )
-}
-
-/** 小知識用到的網站名稱（去重），放在區塊右上角。 */
-function tipSites(data: KnowledgeTips | undefined) {
-  if (!data || data.status === 'unavailable') return ''
-  return [...new Set(data.items.flatMap((k) => k.citations.map((c) => sourceName(c.source_label, c.source_url))))].join('、')
-}
-
-function TipsResult({ data }: { data: KnowledgeTips }) {
-  if (data.status === 'unavailable') {
-    return <Alert severity="warning">營養小知識暫時無法提供：{TIP_UNAVAILABLE[data.reason ?? ''] ?? '服務不可用'}</Alert>
-  }
-  if (data.items.length === 0) {
-    return <Typography variant="body2" color="text.secondary">這份菜單的食材目前沒有審核過的營養知識。</Typography>
-  }
-  return (
-    <Stack spacing={2.5}>
-      {data.items.map((k) => (
-        <Box key={k.ingredient_id} sx={{ pl: 2, borderLeft: `2px solid ${tokens.sand}` }}>
-          <Typography sx={{ fontWeight: 500, letterSpacing: '0.08em', mb: 0.5 }}>{k.ingredient_name ?? k.ingredient_id}</Typography>
-          <Typography variant="body2">{k.tip_zh}</Typography>
-          <Typography variant="caption" component="p" sx={{ mt: 0.5 }}>
-            {k.citations.map((c, idx) => (
-              <span key={c.knowledge_id}>
-                {idx > 0 && '、'}來源：{sourceName(c.source_label, c.source_url)}{' '}
-                <Link href={c.source_url} target="_blank" rel="noopener noreferrer">原文</Link>
-              </span>
-            ))}
-          </Typography>
-        </Box>
-      ))}
-    </Stack>
   )
 }
