@@ -602,3 +602,46 @@ Scope: nested checkout `1111_update_V2`, Docker project `overcooked-1111_update_
     - second run → 0 written;
     - 114 records usable for explanations.
   - Prod knowledge DB, new `apply` → 0 approved, 0 classified, no error.
+
+## 2026-11-16 — Confirmed product pages and confirmed synonyms in T02 pricing
+
+- Before: the `pxmart-daily-2026-11-16` runs (PxMart, then Uni-Prosperity) priced 203 of 301 foods.
+  - 72 of the 98 unpriced foods had user-confirmed product pages in `config/t02_confirmed_recheck.json`, but only the file-only `scripts/recheck_t02_prices.py` used them.
+  - 2 had confirmed synonyms that were priced (椰菜 = 高麗菜 SYN006, 全蛋).
+- Change:
+  - Moved the confirmed-page parsing and gates out of the script into `backend/app/source_adapters/confirmed_products.py`; the script now imports it. Gates: robots.txt, ≥ 2 s per-host pacing, exact title/SKU/package checks, single offer, in stock.
+  - New third collection stage `<run_key>:confirmed`, provider `confirmed`, enabled by default with `PRICE_CONFIRMED_PRODUCTS_ENABLED`. It fetches only foods with a rule that neither store run priced usably (`PricingRepository.unpriced_after`).
+  - Quote rules:
+    - The price uses the user-approved package basis.
+    - Market estimates stay `review_required`/`estimate`.
+    - Failed checks are recorded as missing with their reason. No older or guessed price is used.
+  - Targeted T15 price retries use the same three stages.
+  - `meal_cost_from_db`: a food without a usable quote takes a teammate-confirmed synonym's quote (`synonyms.confirmed_equivalents`), with the reason recorded in `selection_reasons`. Management price-policy reasons are not overridden.
+- Tests (throwaway backend-image container; disposable `meal_planner_1102_v3_confirmed_test` on a throwaway pgvector container, removed afterwards):
+  - New `tests/test_t02_confirmed_products.py`:
+    - adapter success, out of stock, SKU/title mismatch, page change, blocked source, no rule, estimate, 79 rules, settings default;
+    - DB stage (only both-store misses with a rule are fetched; rerun skipped; failed page stays unknown);
+    - synonym pricing.
+  - `test_t02_confirmed_products`, `test_t02_uni_prosperity`, `test_t13_meal_cost`, `test_price_scheduler_database`, `test_management_price` → 78 passed, 7 skipped.
+  - Full `tests/` → 1273 passed, 28 skipped. 5 failed and 19 errors, all from the test container lacking `git`, `jieba`, `opencc` or a backup container, in assistant/T17/secrets tests this change does not touch.
+- Real run on prod (one-off container with this branch's code, crawler role): `pxmart-daily-2026-11-16:confirmed` ran 72 targets in 187 s.
+
+  | Result | Count | Foods |
+  |---|---|---|
+  | Priced | 70 | |
+  | Estimate | 1 | 甜豆 |
+  | Missing | 1 | 蒟蒻烏龍麵 (robots.txt disallows the confirmed URL) |
+
+- Coverage read with this branch's `meal_cost_from_db` (100 g and 100 mL requirements per food), 301 foods:
+
+  | Priced by | Count |
+  |---|---|
+  | Store search | 208 |
+  | Confirmed page | 70 |
+  | Synonym | 1 |
+  | Still unknown | 22 |
+
+  The 22 still unknown: 大白菜 (out of stock today), 甜豆, 蒟蒻烏龍麵, the cooking liquids (香菇水, 泡香菇的水, 高湯水), the derived eggs and chicken cuts (水煮蛋, 荷包蛋, 蛋黃, 帶皮雞腿, 雞柳條), unparseable packages (澄粉, 紅酒, 荷包蛋) and items with no store match.
+- Limitations:
+  - The running prod backend, worker and scheduler still use main's code. Until rebuilt, the daily 03:00 job will not run the confirmed stage, and generation will not apply synonym pricing.
+  - Confirmed quotes without a source expiry are usable for 48 h, like other live quotes.

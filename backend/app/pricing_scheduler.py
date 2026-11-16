@@ -17,6 +17,7 @@ from apscheduler.schedulers.blocking import BlockingScheduler
 from apscheduler.triggers.cron import CronTrigger
 from sqlalchemy import create_engine
 
+from app.source_adapters.confirmed_products import ConfirmedProductAdapter, load_confirmed_rules
 from app.source_adapters.price_collection import PriceCollectionService
 from app.source_adapters.pricing_repository import PricingRepository
 from app.source_adapters.pxmart import PxMartAdapter
@@ -44,6 +45,8 @@ class SchedulerSettings:
     batch_size: int | None = None
     # 決策 #25：全聯查無／不可用時改查萬家福
     fallback_uni_prosperity: bool = True
+    # 兩家都查不到時，改讀使用者確認過的商品頁（config/t02_confirmed_recheck.json）
+    confirmed_products: bool = True
 
     @property
     def timezone(self) -> ZoneInfo:
@@ -75,6 +78,9 @@ class SchedulerSettings:
             ),
             fallback_uni_prosperity=_boolean(
                 os.getenv("PRICE_FALLBACK_UNI_PROSPERITY_ENABLED", "true")
+            ),
+            confirmed_products=_boolean(
+                os.getenv("PRICE_CONFIRMED_PRODUCTS_ENABLED", "true")
             ),
         )
         if not 0 <= settings.hour <= 23:
@@ -111,6 +117,7 @@ def create_repository(*, price_database_url: str | None = None,
 def create_service(settings: SchedulerSettings, *,
                    expected_recipe_release_id: str | None = None,
                    price_database_url: str | None = None) -> PriceCollectionService:
+    rules = load_confirmed_rules() if settings.confirmed_products else None
     return PriceCollectionService(
         repository=create_repository(price_database_url=price_database_url,
                                      expected_recipe_release_id=expected_recipe_release_id),
@@ -126,6 +133,10 @@ def create_service(settings: SchedulerSettings, *,
             ))
             if settings.fallback_uni_prosperity else None
         ),
+        confirmed_adapter_factory=(
+            (lambda: ConfirmedProductAdapter(rules, timeout=settings.timeout_seconds)) if rules else None
+        ),
+        confirmed_food_ids=set(rules) if rules else None,
     )
 
 

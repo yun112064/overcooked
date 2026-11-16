@@ -313,4 +313,24 @@ def meal_cost_from_db(
                     selected[item] = decision.quote
                     if decision.reason:
                         reasons[item] = decision.reason
+    _price_by_confirmed_synonym(db, [item for item in paid if item not in reasons], selected, now)
     return _compute_meal_cost(items, free, budget, selected.get, now, unquantified_food_ids, reasons)
+
+
+def _price_by_confirmed_synonym(db: Session, items: list[IngredientRequirement],
+                                selected: dict[IngredientRequirement, PriceQuote | None], now: datetime) -> None:
+    """A food with no usable quote of its own takes a confirmed synonym's quote (e.g. 椰菜 = 高麗菜, SYN006).
+
+    Only teammate-confirmed groups apply (synonyms.confirmed_equivalents), the same rule as
+    owned ingredients; the quote keeps its own product and records which Food_ID priced it.
+    """
+    missing = [item for item in items if price_requirement(item, selected.get(item), now).price_status != "known"]
+    others = {item: sorted(confirmed_equivalents([item.food_id]) - {item.food_id}) for item in missing}
+    candidates = cost_quote_candidates(db, {food_id for ids in others.values() for food_id in ids})
+    for item, food_ids in others.items():
+        for food_id in food_ids:
+            quote = select_cost_quote(replace(item, food_id=food_id), candidates.get(food_id, []), now)
+            if quote is not None and price_requirement(item, quote, now).price_status == "known":
+                reason = f"confirmed synonym: priced by {food_id} ({quote.canonical_name})"
+                selected[item] = quote.model_copy(update={"selection_reasons": [*quote.selection_reasons, reason]})
+                break
