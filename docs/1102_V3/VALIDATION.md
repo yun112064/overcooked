@@ -1021,3 +1021,8 @@ Checks:
   | Unknown | 0 |
 
 - Limitation: a day with a new store miss and no rule can still show an unknown price; estimates are static figures dated 2026-11-16.
+- Deploy (2026-11-16, user request "這些做完rebuild"):
+  - Rebuilt `backend`, `worker`, `scheduler` and `frontend` from branch `claude/t02-confirmed-product-prices` (ab9aa51, which includes main b6267c2), using `docker compose --env-file .env.prod -f compose.yaml -f compose.prod.yaml up -d --build --wait`. All four came up healthy.
+  - The backend loads 14 estimate rules. The scheduler reports `enabled=True` and `confirmed_products=True`. The live `overcooked-frontend` bundle contains the 含估價 labels.
+  - The public tunnel URL returns 200 for `/` and `/api/health`.
+  - Not checked: no menu was generated in the browser after the deploy.
